@@ -61,7 +61,7 @@ var setSuccessString = function() {
 	// putting string here just for convenience
 	// we could unhide this field or send its value to anything we like
 	$("#share_success_string").val(successString);
-	$("#twitter_link").attr("href","http://twitter.com/share/?text=" + successString);
+	$("#twitter_link").attr("href","http://twitter.com/share/?text=" + encodeURIComponent(successString));
 }
 
 var changePageColor = function(newColor) {
