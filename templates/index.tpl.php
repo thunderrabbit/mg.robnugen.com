@@ -7,8 +7,8 @@
 <div class="PagePanel">
     <h2>Quick Actions</h2>
     <ul>
+        <li><a href="/mg">Meditation Timer</a></li>
         <li><a href="/admin/">Admin Dashboard</a></li>
-        <li><a href="/admin/workers">Workers Section</a></li>
         <li><a href="/profile/">Profile Settings</a></li>
     </ul>
 </div>
