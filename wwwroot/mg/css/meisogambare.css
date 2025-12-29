@@ -1,0 +1,27 @@
+/* flippy clock */
+.clock {
+	width: 300px; margin: 200px auto;
+}
+
+/* minutes input label */
+label {
+	color:rgb(100,100,100);
+	font-size: xx-large;
+}
+
+/* minutes input field */
+input {
+	font-size: xx-large;
+	width: 2em;
+	margin-left: 1em;
+}
+
+/* start and stop buttons */
+.start, .stop {
+	font-size: xx-large;
+}
+
+/* to hide things */
+.hidden {
+	display:none;
+}
