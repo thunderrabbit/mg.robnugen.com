@@ -1,7 +1,7 @@
 <html>
 <head>
 	<link rel="stylesheet" href="https://code.jquery.com/ui/1.14.1/themes/base/jquery-ui.css">
-	<link rel="stylesheet" href="bower_components/flipclock/compiled/flipclock.css">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flipclock@0.7.8/compiled/flipclock.min.css">
 	<link rel="stylesheet" href="css/meisogambare.css">
 </head>
 <body class="body">
@@ -23,7 +23,7 @@
 	<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 	<script src="https://code.jquery.com/jquery-migrate-1.4.1.min.js"></script>
 	<script src="https://code.jquery.com/ui/1.14.1/jquery-ui.min.js"></script>
-	<script src="bower_components/flipclock/compiled/flipclock.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/flipclock@0.7.8/compiled/flipclock.min.js"></script>
 	<script src="javascript/meisoprefs.js"></script>
 	<script src="javascript/meisogambare.js"></script>
 </body>
