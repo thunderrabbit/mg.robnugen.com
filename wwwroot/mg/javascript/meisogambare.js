@@ -48,7 +48,16 @@ var startActivitySession = function() {
 		String(now.getMinutes()).padStart(2, '0') + ':' +
 		String(now.getSeconds()).padStart(2, '0');
 
-	var intendedSec = parseInt($('#countdown_minutes').val()) * 60;
+
+	var countdownMinutes = parseInt($('#countdown_minutes').val()) || 5; // Default to 5 if empty
+	var intendedSec = countdownMinutes * 60;
+
+	// Don't send API request if intended time is invalid
+	if (intendedSec <= 0) {
+		console.log('Invalid countdown time, skipping API call');
+		return;
+	}
+
 
 	$.ajax({
 		url: '/api/start-activity.php',
