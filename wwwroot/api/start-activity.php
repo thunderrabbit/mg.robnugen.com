@@ -47,7 +47,7 @@ if (empty($start_local_dt)) {
 
 try {
     $pdo = \Database\Base::getPDO($config);
-    $user_id = $is_logged_in->getLoggedInUserId();
+    $user_id = $is_logged_in->loggedInID();
 
     // Get or create timezone
     $timezoneHelper = new \ActivityTracking\Timezone($pdo);

@@ -46,7 +46,7 @@ if ($bonus_sec < 0) {
 
 try {
     $pdo = \Database\Base::getPDO($config);
-    $user_id = $is_logged_in->getLoggedInUserId();
+    $user_id = $is_logged_in->loggedInID();
 
     // Stop activity
     $activityHelper = new \ActivityTracking\ActivityKai($pdo);
