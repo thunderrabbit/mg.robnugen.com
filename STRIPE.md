@@ -287,19 +287,28 @@ At this point:
 
 ---
 
-### 3) Promote the clock to `/` (served from `wwwroot/`)
+### 3) Clock accessibility and landing page
 
-You want `/` to show the clock UI, protected by login.
+**Anonymous users:**
+
+* Can access the meditation clock at `/mg/` without logging in
+* The clock works fully for anonymous users, but sessions are not saved
+
+**Root page (`/`) behavior:**
+
+* **Anonymous users:** See a landing page with:
+  * Explainer of benefits of logging in (e.g., "Save your meditation durations")
+  * Link to `/mg/` to use the clock immediately
+* **Logged-in users:** Automatically redirected to `/mg/` (unless a GET param keeps them on `/` - TBD for future)
 
 Plan (minimal-change, fast path):
 
-* Create a PHP controller at `wwwroot/index.php` that requires login and renders `templates/clock/index.tpl.php`.
-* Reuse meisogambare static assets by pointing the template at:
-
-  * `/mg/css/...`
-  * `/mg/javascript/...`
-  * `/mg/assets/...`
-* Later (optional) copy only what you need into `wwwroot/assets/mg/` and delete unused folders.
+* The existing static clock at `/mg/` remains accessible to everyone
+* Create a PHP controller at `wwwroot/index.php` that:
+  * Checks login status
+  * If logged in: redirects to `/mg/`
+  * If not logged in: renders `templates/landing/index.tpl.php` (landing page with explainer + link)
+* The clock at `/mg/` will need to detect login status to enable save functionality
 
 ---
 
@@ -317,32 +326,46 @@ So for `mg.robnugen.com` on DreamHost, plan on:
 
 ### Desired behavior for `mg.robnugen.com/`
 
-You want the **clock page at `/`**, but protected:
+**Root page (`/`):**
 
-* If user is **not logged in**: redirect to `/login?next=%2F`
-* After successful login: redirect back to `next` (default `/`)
+* If user is **not logged in**: show landing page with explainer and link to `/mg/`
+* If user is **logged in**: redirect to `/mg/` (unless GET param overrides - TBD)
+
+**Clock page (`/mg/`):**
+
+* Accessible to **everyone** (anonymous and logged-in users)
+* Anonymous users: clock works, but sessions are not saved
+* Logged-in users: clock works AND sessions are saved to database
+* Pro users: get timer continuity across navigation (session persists when navigating away)
 
 ### Implementation sketch (fits the DH scaffold)
 
-Because the DH scaffold already uses DB-backed cookies for logins, implement the guard at the entrypoint for `/`:
+1. `wwwroot/index.php` (root landing page):
+   * Check if user is logged in (via DB-backed session)
+   * If logged in: redirect to `/mg/`
+   * If not logged in: render `templates/landing/index.tpl.php`
 
-1. `wwwroot/index.php` (or whatever the root router is) calls something like:
+2. `wwwroot/mg/index.php` (or existing static page, enhanced):
+   * Check login status (optional, for save functionality)
+   * Render the clock UI for everyone
+   * If logged in: enable "Save Session" functionality
+   * If Pro: enable timer continuity (load active session on page load)
 
-   * `require_login($next = '/')`
-2. `wwwroot/login.php` renders the login form and, on success:
-
+3. `wwwroot/login.php` renders the login form and, on success:
    * sets the cookie/session record
-   * redirects to `$_GET['next'] ?? '/'`
+   * redirects to `$_GET['next'] ?? '/mg/'`
 
-### Where the clock page code should live
+### Where the code should live
 
-Since the web root is `wwwroot/`, the simplest shape is:
+Since the web root is `wwwroot/`, the structure is:
 
-* `wwwroot/index.php` = PHP controller for the clock page
-* `templates/clock/index.tpl.php` = page template
-* Static assets copied/adapted from Meiso Gambare into:
-
-  * `wwwroot/assets/mg/...` (or `wwwroot/css`, `wwwroot/javascript` depending on your preference)
+* `wwwroot/index.php` = PHP controller for the landing page (redirects if logged in)
+* `templates/landing/index.tpl.php` = landing page template (explainer + link to `/mg/`)
+* `wwwroot/mg/` = meditation clock (existing static files, enhanced with save functionality)
+* Static assets remain at:
+  * `/mg/css/...`
+  * `/mg/javascript/...`
+  * `/mg/assets/...`
 
 ---
 
@@ -585,18 +608,25 @@ CREATE TABLE meditation_kai_pauses (
 
 ---
 
-### User story: timer continuity across navigation (Pro)
+### User story: timer continuity across navigation (Pro feature)
+
+**Feature:** Timer continuity is available to **Pro users only** (any paid level: `TRIAL`, `MONTHLY`, `ANNUAL`, `LIFETIME`).
 
 **Scenario:**
 
 * User starts a meditation
 * User navigates away
 * User returns later to the clock page
-* User is logged in and **Pro**
+* User is logged in and **Pro** (subscription status is `trialing` or `active`)
 
 **Behavior:**
 
 * The elapsed time should reflect real wall-clock time since start, as if the page had stayed open.
+
+**Non-Pro logged-in users:**
+
+* Can save completed meditation sessions
+* Do NOT get timer continuity (timer resets if they navigate away)
 
 **Implementation sketch:**
 
