@@ -1,5 +1,7 @@
 var clock;
 var reachedGoalTime = false;
+var sessionStartTime = null; // Track when session started
+var currentAkId = null; // Track current activity session ID
 
 var meisoPrefs = MeisoPreferences();
 var reveal_duration = meisoPrefs.getRevealDuration();
@@ -15,12 +17,108 @@ var clickedStartButton = function(e) {
 	clock.setCountdown(true);
 	clock.start();
 	hideStuffs();
+
+	// Track session start time
+	sessionStartTime = new Date();
+
+	// Call API to start activity (if logged in)
+	startActivitySession();
 }
 
 var clickedStopButton = function(e) {
 	clock.stop();
 	setSuccessString();
 	revealStuffs();
+
+	// Call API to stop activity (if logged in)
+	stopActivitySession();
+}
+
+// Start activity session via API
+var startActivitySession = function() {
+	// Get timezone from browser
+	var timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+	// Format local datetime as YYYY-MM-DD HH:MM:SS
+	var now = new Date();
+	var localDt = now.getFullYear() + '-' +
+		String(now.getMonth() + 1).padStart(2, '0') + '-' +
+		String(now.getDate()).padStart(2, '0') + ' ' +
+		String(now.getHours()).padStart(2, '0') + ':' +
+		String(now.getMinutes()).padStart(2, '0') + ':' +
+		String(now.getSeconds()).padStart(2, '0');
+
+	var intendedSec = parseInt($('#countdown_minutes').val()) * 60;
+
+	$.ajax({
+		url: '/api/start-activity.php',
+		method: 'POST',
+		contentType: 'application/json',
+		data: JSON.stringify({
+			activity_id: 1, // Meditation
+			intended_sec: intendedSec,
+			timezone_iana: timezone,
+			start_local_dt: localDt
+		}),
+		success: function(response) {
+			if (response.success) {
+				currentAkId = response.ak_id;
+				console.log('Activity session started:', response.ak_id);
+			}
+		},
+		error: function(xhr) {
+			// If 401 (not logged in), that's okay - timer still works
+			if (xhr.status === 401) {
+				console.log('Not logged in - session not saved');
+			} else {
+				console.error('Failed to start activity session:', xhr.responseJSON);
+			}
+		}
+	});
+}
+
+// Stop activity session via API
+var stopActivitySession = function() {
+	if (!currentAkId && !sessionStartTime) {
+		return; // No session to stop
+	}
+
+	// Calculate actual duration
+	var now = new Date();
+	var actualSec = Math.floor((now - sessionStartTime) / 1000);
+
+	// Calculate bonus time (time beyond countdown)
+	var intendedSec = parseInt($('#countdown_minutes').val()) * 60;
+	var bonusSec = Math.max(0, actualSec - intendedSec);
+
+	$.ajax({
+		url: '/api/stop-activity.php',
+		method: 'POST',
+		contentType: 'application/json',
+		data: JSON.stringify({
+			ak_id: currentAkId,
+			actual_sec: actualSec,
+			bonus_sec: bonusSec
+		}),
+		success: function(response) {
+			if (response.success) {
+				console.log('Activity session stopped successfully');
+				currentAkId = null;
+				sessionStartTime = null;
+			}
+		},
+		error: function(xhr) {
+			// If 401 (not logged in), that's okay
+			if (xhr.status === 401) {
+				console.log('Not logged in - session not saved');
+			} else {
+				console.error('Failed to stop activity session:', xhr.responseJSON);
+			}
+			// Clear session data anyway
+			currentAkId = null;
+			sessionStartTime = null;
+		}
+	});
 }
 
 var hideStuffs = function() {
