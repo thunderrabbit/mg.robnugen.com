@@ -157,12 +157,12 @@ public function getSessionByKey(string $session_key, int $user_id): ?array {
 }
 
 public function generateSessionKey(): string {
-    // Generate YouTube-style ID: base62 encoding (a-z, A-Z, 0-9)
-    // 11 chars = 62^11 = 52 trillion combinations
-    $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    // Generate YouTube-style ID: base64url encoding (a-z, A-Z, 0-9, _, -)
+    // 11 chars = 64^11 = 73.7 quadrillion combinations
+    $chars = '_-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     $key = '';
     for ($i = 0; $i < 11; $i++) {
-        $key .= $chars[random_int(0, 61)];
+        $key .= $chars[random_int(0, 63)]; // 64 chars total
     }
     return $key;
 }
@@ -183,11 +183,11 @@ This allows gradual rollout and keeps free tier simple.
 ## Security Considerations
 
 ### Session Key Generation
-- **YouTube-style format**: 11 random alphanumeric chars (e.g., "dQw4w9WgXcQ")
-- Base62 encoding: `a-z`, `A-Z`, `0-9` (no special characters)
+- **YouTube-style format**: 11 random chars (e.g., "dQw4w9WgXcQ")
+- Base64url encoding: `a-z`, `A-Z`, `0-9`, `_`, `-` (64 chars total)
 - Readable in database (plain ASCII, not binary)
 - URL-safe (no encoding needed)
-- 11 chars = 62^11 = 52 trillion combinations
+- 11 chars = 64^11 = 73.7 quadrillion combinations
 - **No expiration**: Keys exist forever for historical lookup
 - Collision handling: Check uniqueness before insert, retry if exists
 
@@ -293,9 +293,9 @@ if ($session) {
    - ✅ If not owner: redirect to `/mg/`
 
 5. **Session key format?**
-   - ✅ **YouTube-style**: Random alphanumeric (base62)
+   - ✅ **YouTube-style**: Base64url encoding (a-z, A-Z, 0-9, _, -)
    - ✅ Plain ASCII in database (not binary)
-   - ✅ Examples: "dQw4w9WgXcQ", "xK7mP2nQ9vR"
+   - ✅ Examples: "dQw4w9WgXcQ", "jNQXAC9IVRw"
 
 ---
 
