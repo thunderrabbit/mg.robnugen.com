@@ -1,6 +1,6 @@
 -- Create activity_kai table for tracking activity sessions
 CREATE TABLE activity_kai (
-  activity_kai_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  ak_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   user_id INT UNSIGNED NOT NULL,
   activity_id BIGINT UNSIGNED NOT NULL DEFAULT 1,  -- FK to activities table
 
@@ -18,7 +18,7 @@ CREATE TABLE activity_kai (
   created_at_utc DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   updated_at_utc DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
 
-  PRIMARY KEY (activity_kai_id),
+  PRIMARY KEY (ak_id),
   KEY idx_user_start (user_id, start_local_dt),
   KEY idx_user_activity (user_id, activity_id, start_local_dt),
   KEY idx_activity (activity_id),
