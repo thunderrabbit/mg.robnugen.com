@@ -35,7 +35,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $mla_database = \Database\Base::getPDO($config);
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['pass'] ?? '';
-    $password_confirm = $_POST['pass_verify'] ?? '';
 
     // Validate input
     $errors = [];
@@ -43,8 +42,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = "Username is required.";
     if (empty($password))
         $errors[] = "Password is required.";
-    if ($password !== $password_confirm)
-        $errors[] = "Passwords do not match.";
 
     // If errors, redisplay form with errors
     if (!empty($errors)) {
@@ -63,7 +60,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $mla_database->prepare("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)");
         $stmt->execute([$username, $hash, $role]);
 
-        echo "<p>User created!  Please <a href='/login'>log in</a> with your new credentials.</p>";
+        // Redirect to login page with success message
+        header("Location: /login/?registered=1");
+        exit;
     } catch (\PDOException $e) {
         if ($e->getCode() == '23000') { // Duplicate key error
             echo "<h1>Error</h1><p>User already exists. Try a different username.</p>";
@@ -76,7 +75,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 } else {
     $page = new \Template(config: $config);
-    $page->setTemplate("login/register.tpl.php");
+    $page->setTemplate("layout/welcome_base.tpl.php");
+    $page->set("page_title", "Create Account - Meiso Gambare");
+
+    // Get the inner content
+    $inner_page = new \Template(config: $config);
+    $inner_page->setTemplate("login/register_content.tpl.php");
+    $page->set("page_content", $inner_page->grabTheGoods());
+
     $page->echoToScreen();
     exit;
 }
