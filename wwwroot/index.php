@@ -11,24 +11,20 @@ if($debugLevel > 0) {
 }
 
 if($is_logged_in->isLoggedIn()){
-    // Logged in - show main site homepage
+    // Logged in - redirect to meditation timer
+    header("Location: /mg/");
+    exit;
+} else {
+    // Anonymous user - show welcome page
     $page = new \Template(config: $config);
-    $page->setTemplate("layout/admin_base.tpl.php");
-    $page->set("page_title", "Slide Chat Forest");
-    $page->set("username", $is_logged_in->getLoggedInUsername());
-    $page->set("site_version", SENTIMENTAL_VERSION);
+    $page->setTemplate("layout/welcome_base.tpl.php");
+    $page->set("page_title", "Meiso Gambare - Meditation Timer");
 
-    // Get the inner content
+    // Get the welcome content
     $inner_page = new \Template(config: $config);
-    $inner_page->setTemplate("index.tpl.php");
-    $inner_page->set("username", $is_logged_in->getLoggedInUsername());
-    $inner_page->set("site_version", SENTIMENTAL_VERSION);
+    $inner_page->setTemplate("welcome.tpl.php");
     $page->set("page_content", $inner_page->grabTheGoods());
 
     $page->echoToScreen();
-    exit;
-} else {
-    echo "<h1>Slide on in!</h1>";
-    echo "<p><a href='/login/'>Click here to log in</a></p>";
     exit;
 }
