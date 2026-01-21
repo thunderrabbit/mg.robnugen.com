@@ -1,7 +1,7 @@
 -- Create activity_kai table for tracking activity sessions
 CREATE TABLE activity_kai (
   activity_kai_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  user_id BIGINT UNSIGNED NOT NULL,
+  user_id INT UNSIGNED NOT NULL,
   activity_id BIGINT UNSIGNED NOT NULL DEFAULT 1,  -- FK to activities table
 
   -- Timing
