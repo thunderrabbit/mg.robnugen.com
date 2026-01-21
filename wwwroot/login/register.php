@@ -35,7 +35,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $mla_database = \Database\Base::getPDO($config);
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['pass'] ?? '';
-    $password_confirm = $_POST['pass_verify'] ?? '';
 
     // Validate input
     $errors = [];
@@ -43,8 +42,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = "Username is required.";
     if (empty($password))
         $errors[] = "Password is required.";
-    if ($password !== $password_confirm)
-        $errors[] = "Passwords do not match.";
 
     // If errors, redisplay form with errors
     if (!empty($errors)) {
