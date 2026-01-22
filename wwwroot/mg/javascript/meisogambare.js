@@ -295,6 +295,9 @@ var loadAndResumeSession = function(sessionKey) {
 
 			// If not owner (public view), show read-only message
 			if (!response.is_owner) {
+				// Hide activity selector for public view
+				$('#activity_text_wrapper').hide();
+
 				var liveMessage = '<div class="live-session-notice" style="margin-top: 20px; padding: 15px; background: rgba(255, 255, 255, 0.1); border-radius: 8px;">' +
 					'<h3>🔴 LIVE - Someone is doing ' + session.activity_name + '</h3>' +
 					'<p style="color: #999; font-style: italic;">This is a live session (read-only)</p>' +
@@ -315,6 +318,7 @@ var loadAndResumeSession = function(sessionKey) {
 			$('.start').hide();
 			$('.stop').hide();
 			$('.duration-field-wrapper').hide();
+			$('#activity_text_wrapper').hide();
 
 			// Show completion message
 			var bonusMinutes = Math.floor(session.bonus_sec / 60);
