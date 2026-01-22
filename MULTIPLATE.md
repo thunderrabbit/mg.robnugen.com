@@ -139,10 +139,13 @@ public function getSessionByKey(string $session_key, int $user_id): ?array {
 public function getPublicSessionByKey(string $session_key): ?array {
     $stmt = $this->pdo->prepare("
         SELECT ak.intended_sec, ak.actual_sec, ak.bonus_sec,
-               ak.start_local_dt
+               ak.start_local_dt, ak.is_public,
+               a.activity_name
         FROM activity_session_keys ask
         JOIN activity_kai ak ON ask.ak_id = ak.ak_id
+        JOIN activities a ON ak.activity_id = a.activity_id
         WHERE ask.session_key = ?
+          AND ak.is_public = 1  -- Only show if user marked as public
     ");
     $stmt->execute([$session_key]);
     return $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
@@ -246,9 +249,12 @@ if (!$is_logged_in->isLoggedIn() || !$activityHelper->isOwner($session_key, $use
 }
 ```
 
-**Privacy Protection:**
-- **Active sessions ARE publicly viewable** (like YouTube LIVE)
-- Activity name NEVER shown in public view (always "an activity")
+**Privacy Control:**
+- **Per-session privacy**: User chooses to share each session individually
+- Default: Private (not publicly viewable)
+- User can toggle `is_public` flag when starting/stopping timer
+- Only sessions with `is_public = 1` are viewable by others
+- Activity name shown in public view (e.g., "Meditation")
 - No user information shown
 - No controls (can't stop someone else's timer)
 - Shows elapsed time for active sessions
@@ -256,7 +262,7 @@ if (!$is_logged_in->isLoggedIn() || !$activityHelper->isOwner($session_key, $use
 
 **Example Public View (Completed):**
 ```
-Someone completed an activity
+Someone completed Meditation
 Intended: 5 minutes
 Actual: 7 minutes
 Bonus: 2 minutes
@@ -265,16 +271,27 @@ Started: 2026-01-22 09:00:00
 
 **Example Public View (Live/Active):**
 ```
-🔴 LIVE - Someone is doing an activity
+🔴 LIVE - Someone is doing Meditation
 Intended: 5 minutes
 Elapsed: 3 minutes 42 seconds
 Started: 2026-01-22 09:00:00
 ```
 
+**UI for Privacy Toggle:**
+```
+Timer page:
+Countdown minutes: [5]
+☐ Share this timer publicly (read-only)
+[Start Clock]
+
+Or after stopping:
+Great job! You meditated for 7 minutes!
+☐ Make this timer public (read-only)
+[Copy shareable link]
+```
+
 ### Privacy
-- Session keys only visible to owner (via ownership check)
-- Even if guessed, ownership verification prevents access
-- No public sharing (yet) - all sessions are private
+- Session keys reveal timer only if owner allows.  (no public index of sessions)
 
 ---
 
