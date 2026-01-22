@@ -1,3 +1,9 @@
+<?php
+# Must include here because DH runs FastCGI
+# Extract DreamHost project root: /home/username/domain.com
+preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
+include_once $matches[1] . '/prepend.php';
+?>
 <html>
 <head>
 
@@ -8,6 +14,15 @@
 	<div class="duration-field-wrapper">
 		<label for="countdown_minutes">Countdown minutes:</label>
 		<input type="text" id="countdown_minutes" value="" />
+	</div>
+	<div class="activity-selector-wrapper">
+		<!-- Shown when 2+ activities available -->
+		<label for="activity_select" id="activity_label_select" style="display:none;">Activity:
+			<select id="activity_select">
+			</select>
+		</label>
+		<!-- Shown when 0-1 activities available -->
+		<label id="activity_text_wrapper">Activity: <span id="activity_text"></span></label>
 	</div>
 	<div class="clock-wrapper">
 		<div class="clock"></div>

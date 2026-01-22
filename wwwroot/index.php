@@ -10,25 +10,29 @@ if($debugLevel > 0) {
     echo "<pre>Debug Level: $debugLevel</pre>";
 }
 
-if($is_logged_in->isLoggedIn()){
-    // Logged in - redirect to meditation timer ONLY if at root
-    $uri = $_SERVER['REQUEST_URI'] ?? '/';
-    if ($uri === '/' || $uri === '') {
+$uri = $_SERVER['REQUEST_URI'] ?? '/';
+
+// Check if we're at the root
+if ($uri === '/' || $uri === '') {
+    if($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()){
+        // Admin users - redirect to meditation timer
         header("Location: /mg/");
         exit;
+    } else {
+        // Anonymous or free users - show welcome page
+        $page = new \Template(config: $config);
+        $page->setTemplate("layout/welcome_base.tpl.php");
+        $page->set("page_title", "Meiso Gambare - Meditation Timer");
+
+        // Get the welcome content
+        $inner_page = new \Template(config: $config);
+        $inner_page->setTemplate("welcome.tpl.php");
+        $inner_page->set("is_logged_in", $is_logged_in->isLoggedIn());
+        $inner_page->set("is_admin", $is_logged_in->isAdmin());
+        $page->set("page_content", $inner_page->grabTheGoods());
+
+        $page->echoToScreen();
+        exit;
     }
-    // Otherwise, let them access /admin/, /profile/, etc.
-} else {
-    // Anonymous user - show welcome page
-    $page = new \Template(config: $config);
-    $page->setTemplate("layout/welcome_base.tpl.php");
-    $page->set("page_title", "Meiso Gambare - Meditation Timer");
-
-    // Get the welcome content
-    $inner_page = new \Template(config: $config);
-    $inner_page->setTemplate("welcome.tpl.php");
-    $page->set("page_content", $inner_page->grabTheGoods());
-
-    $page->echoToScreen();
-    exit;
 }
+// Otherwise, let them access /admin/, /profile/, /mg/, etc.

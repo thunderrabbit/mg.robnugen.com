@@ -2,6 +2,7 @@ var clock;
 var reachedGoalTime = false;
 var sessionStartTime = null; // Track when session started
 var currentAkId = null; // Track current activity session ID
+var currentActivityId = 1; // Default to Meditation, will be updated when activities load
 
 var meisoPrefs = MeisoPreferences();
 var reveal_duration = meisoPrefs.getRevealDuration();
@@ -64,7 +65,7 @@ var startActivitySession = function() {
 		method: 'POST',
 		contentType: 'application/json',
 		data: JSON.stringify({
-			activity_id: 1, // Meditation
+			activity_id: currentActivityId,
 			intended_sec: intendedSec,
 			timezone_iana: timezone,
 			start_local_dt: localDt
@@ -175,6 +176,44 @@ var changePageColor = function(newColor) {
 	$('.body').css({backgroundColor:newColor},1000);
 }
 
+// Load activities from API and populate selector
+var loadActivities = function() {
+	$.get('/api/list-activities.php', function(response) {
+		if (!response.activities || response.activities.length === 0) {
+			// No activities returned (shouldn't happen) - default to Meditation
+			$('#activity_text').text('Meditation');
+			$('#activity_text_wrapper').show();
+			currentActivityId = 1;
+		} else if (response.activities.length === 1) {
+			// Only one activity - show as text
+			$('#activity_text').text(response.activities[0].activity_name);
+			$('#activity_text_wrapper').show();
+			currentActivityId = response.activities[0].activity_id;
+		} else {
+			// Multiple activities - show dropdown
+			response.activities.forEach(function(activity) {
+				$('#activity_select').append(
+					$('<option>').val(activity.activity_id).text(activity.activity_name)
+				);
+			});
+			$('#activity_text_wrapper').hide();
+			$('#activity_label_select').show();
+			// Set default to first activity
+			currentActivityId = response.activities[0].activity_id;
+
+			// Update currentActivityId when dropdown changes
+			$('#activity_select').on('change', function() {
+				currentActivityId = parseInt($(this).val());
+			});
+		}
+	}).fail(function() {
+		// If API fails, default to Meditation
+		$('#activity_text').text('Meditation');
+		$('#activity_text_wrapper').show();
+		currentActivityId = 1;
+	});
+}
+
 $(document).ready(function() {
 	clock = $('.clock').FlipClock({
 		clockFace: 'MinuteCounter',
@@ -196,6 +235,9 @@ $(document).ready(function() {
 	changePageColor(meisoPrefs.getCountingColor());
 	$('#countdown_minutes').val(meisoPrefs.getMeditationTime());
 	clock.setTime(meisoPrefs.getMeditationTime() * 60);
+
+	// Load available activities for user
+	loadActivities();
 
 	$('.start').click(clickedStartButton);
 
