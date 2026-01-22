@@ -15,8 +15,17 @@ $uri = $_SERVER['REQUEST_URI'] ?? '/';
 // Check if we're at the root
 if ($uri === '/' || $uri === '') {
     if($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()){
-        // Admin users - redirect to meditation timer
-        header("Location: /mg/");
+        // Admin users - show dashboard
+        $page = new \Template(config: $config);
+        $page->setTemplate("layout/welcome_base.tpl.php");
+        $page->set("page_title", "Dashboard - Meiso Gambare");
+
+        // Get the dashboard content
+        $inner_page = new \Template(config: $config);
+        $inner_page->setTemplate("dashboard/active_sessions.tpl.php");
+        $page->set("page_content", $inner_page->grabTheGoods());
+
+        $page->echoToScreen();
         exit;
     } else {
         // Anonymous or free users - show welcome page
