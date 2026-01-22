@@ -3,6 +3,7 @@ var reachedGoalTime = false;
 var sessionStartTime = null; // Track when session started
 var currentAkId = null; // Track current activity session ID
 var currentActivityId = 1; // Default to Meditation, will be updated when activities load
+var currentSessionKey = null; // Track session key for admin/pro users
 
 var meisoPrefs = MeisoPreferences();
 var reveal_duration = meisoPrefs.getRevealDuration();
@@ -74,6 +75,13 @@ var startActivitySession = function() {
 			if (response.success) {
 				currentAkId = response.ak_id;
 				console.log('Activity session started:', response.ak_id);
+
+				// If session_key returned (admin/pro users), redirect to unique URL
+				if (response.session_key) {
+					currentSessionKey = response.session_key;
+					console.log('Redirecting to session URL:', response.session_key);
+					window.location.href = '/mg/' + response.session_key;
+				}
 			}
 		},
 		error: function(xhr) {
@@ -101,15 +109,23 @@ var stopActivitySession = function() {
 	var intendedSec = parseInt($('#countdown_minutes').val()) * 60;
 	var bonusSec = Math.max(0, actualSec - intendedSec);
 
+	// Prepare data - use session_key if available, otherwise ak_id
+	var stopData = {
+		actual_sec: actualSec,
+		bonus_sec: bonusSec
+	};
+
+	if (currentSessionKey) {
+		stopData.session_key = currentSessionKey;
+	} else {
+		stopData.ak_id = currentAkId;
+	}
+
 	$.ajax({
 		url: '/api/stop-activity.php',
 		method: 'POST',
 		contentType: 'application/json',
-		data: JSON.stringify({
-			ak_id: currentAkId,
-			actual_sec: actualSec,
-			bonus_sec: bonusSec
-		}),
+		data: JSON.stringify(stopData),
 		success: function(response) {
 			if (response.success) {
 				console.log('Activity session stopped successfully');
@@ -176,6 +192,115 @@ var changePageColor = function(newColor) {
 	$('.body').css({backgroundColor:newColor},1000);
 }
 
+// Get session key from URL (e.g., /mg/abc123de)
+var getSessionKeyFromURL = function() {
+	var path = window.location.pathname;
+	var match = path.match(/^\/mg\/([a-zA-Z0-9_-]{11})$/);
+	return match ? match[1] : null;
+}
+
+// Load and resume session from session key
+var loadAndResumeSession = function(sessionKey) {
+	$.get('/api/get-session.php?session_key=' + sessionKey, function(response) {
+		if (!response.success || !response.session) {
+			console.error('Failed to load session');
+			return;
+		}
+
+		var session = response.session;
+		console.log('Loaded session:', session);
+
+		// Set activity if we have the data
+		if (session.activity_id) {
+			currentActivityId = session.activity_id;
+
+			// Update UI to show correct activity
+			if (session.activity_name) {
+				// Check if dropdown is visible (multiple activities)
+				if ($('#activity_select').is(':visible')) {
+					// Set dropdown to correct activity
+					$('#activity_select').val(session.activity_id);
+				} else {
+					// Update text display
+					$('#activity_text').text(session.activity_name);
+				}
+			}
+		}
+
+		// Check if session is still active (not yet stopped)
+		if (session.actual_sec === null || session.actual_sec === undefined) {
+			// Session is active - resume timer
+			console.log('Resuming active session');
+
+			// Parse start time - start_local_dt format: "YYYY-MM-DD HH:MM:SS"
+			var startParts = session.start_local_dt.split(/[- :]/);
+			var startTime = new Date(
+				parseInt(startParts[0]), // year
+				parseInt(startParts[1]) - 1, // month (0-indexed)
+				parseInt(startParts[2]), // day
+				parseInt(startParts[3]), // hour
+				parseInt(startParts[4]), // minute
+				parseInt(startParts[5])  // second
+			);
+
+			// Calculate elapsed time
+			var now = new Date();
+			var elapsedSec = Math.floor((now - startTime) / 1000);
+
+			console.log('Start time:', startTime);
+			console.log('Elapsed seconds:', elapsedSec);
+			console.log('Intended seconds:', session.intended_sec);
+
+			// Set session start time for stop calculation
+			sessionStartTime = startTime;
+			currentAkId = session.ak_id;
+
+			// Set the countdown minutes field
+			var intendedMinutes = Math.floor(session.intended_sec / 60);
+			$('#countdown_minutes').val(intendedMinutes);
+
+			// Check if we've passed the intended time
+			if (elapsedSec >= session.intended_sec) {
+				// We're in bonus time
+				var bonusSec = elapsedSec - session.intended_sec;
+				reachedGoalTime = true;
+				clock.setTime(bonusSec);
+				clock.setCountdown(false);
+				clock.start();
+				changePageColor(successBGColor);
+				$('.stop').show();
+			} else {
+				// Still in countdown phase
+				var remainingSec = session.intended_sec - elapsedSec;
+				reachedGoalTime = false;
+				clock.setTime(remainingSec);
+				clock.setCountdown(true);
+				clock.start();
+				changePageColor(countingColor);
+				$('.stop').show();
+			}
+
+			// Hide start controls
+			hideStuffs();
+		} else {
+			// Session is completed
+			console.log('Session already completed');
+			console.log('Actual time:', session.actual_sec, 'seconds');
+			console.log('Bonus time:', session.bonus_sec, 'seconds');
+
+			// Show completion state
+			clock.setTime(session.bonus_sec || 0);
+			changePageColor(successBGColor);
+		}
+	}).fail(function(xhr) {
+		console.error('Failed to load session:', xhr.responseJSON);
+		// Redirect to /mg/ if session load fails
+		if (xhr.status === 404 || xhr.status === 403) {
+			window.location.href = '/mg/';
+		}
+	});
+}
+
 // Load activities from API and populate selector
 var loadActivities = function() {
 	$.get('/api/list-activities.php', function(response) {
@@ -215,6 +340,12 @@ var loadActivities = function() {
 }
 
 $(document).ready(function() {
+	// Check URL for session key
+	currentSessionKey = getSessionKeyFromURL();
+	if (currentSessionKey) {
+		console.log('Session key found in URL:', currentSessionKey);
+	}
+
 	clock = $('.clock').FlipClock({
 		clockFace: 'MinuteCounter',
 		countdown: true,
@@ -238,6 +369,11 @@ $(document).ready(function() {
 
 	// Load available activities for user
 	loadActivities();
+
+	// If session key in URL, load and resume that session
+	if (currentSessionKey) {
+		loadAndResumeSession(currentSessionKey);
+	}
 
 	$('.start').click(clickedStartButton);
 

@@ -3,6 +3,32 @@
 # Extract DreamHost project root: /home/username/domain.com
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
+
+// Check URL for session key pattern: /mg/{session_key}
+$uri = $_SERVER['REQUEST_URI'] ?? '';
+if (preg_match('#^/mg/([a-zA-Z0-9_-]{11})(?:\?.*)?$#', $uri, $matches)) {
+    $session_key = $matches[1];
+
+    // Verify ownership if logged in
+    if ($is_logged_in->isLoggedIn()) {
+        $pdo = \Database\Base::getPDO($config);
+        $sessionKeyHelper = new \ActivityTracking\SessionKey($pdo);
+        $user_id = $is_logged_in->loggedInID();
+
+        // Check if user owns this session
+        if (!$sessionKeyHelper->isOwner($session_key, $user_id)) {
+            // Not owner - redirect to /mg/
+            // (Future: could show public view if is_public=1)
+            header("Location: /mg/");
+            exit;
+        }
+        // User owns this session - continue to show timer page
+    } else {
+        // Not logged in - redirect to login or /mg/
+        header("Location: /mg/");
+        exit;
+    }
+}
 ?>
 <html>
 <head>
