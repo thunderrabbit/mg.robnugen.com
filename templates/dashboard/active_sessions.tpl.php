@@ -1,3 +1,5 @@
+<link rel="stylesheet" href="/dashboard/dashboard.css">
+
 <div class="dashboard-container">
 	<header class="dashboard-header">
 		<h1>My Active Sessions</h1>
@@ -15,4 +17,5 @@
 	</div>
 </div>
 
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="/dashboard/dashboard.js"></script>
