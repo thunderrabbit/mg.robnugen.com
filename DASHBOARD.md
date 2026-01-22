@@ -7,7 +7,7 @@ Create a dashboard at `/` that shows Pro/admin users their active and completed 
 
 ### Current Behavior
 - **Anonymous users**: See welcome page at `/`
-- **Free users**: Redirected from `/` to `/mg/`
+- **Free users**: Stay at `/` and see welcome page with upgrade messaging
 - **Admin users**: Redirected from `/` to `/mg/`
 
 ### New Behavior
