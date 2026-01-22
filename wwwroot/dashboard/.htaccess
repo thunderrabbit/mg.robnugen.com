@@ -1,0 +1,9 @@
+# Enable URL rewriting for versioned JS/CSS paths
+# e.g., /dashboard/1.0.0/dashboard.js -> /dashboard/dashboard.js
+RewriteEngine On
+
+# Rewrite versioned paths: {version}/filename.ext -> filename.ext
+# Version format: X.Y.Z (semantic versioning)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^[0-9]+\.[0-9]+\.[0-9]+/(.+)$ $1 [L]
