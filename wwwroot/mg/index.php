@@ -15,6 +15,14 @@ include_once $matches[1] . '/prepend.php';
 		<label for="countdown_minutes">Countdown minutes:</label>
 		<input type="text" id="countdown_minutes" value="" />
 	</div>
+	<div class="activity-selector-wrapper">
+		<label for="activity_display">Activity:</label>
+		<!-- Shown when 2+ activities available -->
+		<select id="activity_select" style="display:none;">
+		</select>
+		<!-- Shown when 0-1 activities available -->
+		<span id="activity_text"></span>
+	</div>
 	<div class="clock-wrapper">
 		<div class="clock"></div>
 		<div class="message"></div>
