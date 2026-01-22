@@ -213,6 +213,18 @@ var loadAndResumeSession = function(sessionKey) {
 		// Set activity if we have the data
 		if (session.activity_id) {
 			currentActivityId = session.activity_id;
+
+			// Update UI to show correct activity
+			if (session.activity_name) {
+				// Check if dropdown is visible (multiple activities)
+				if ($('#activity_select').is(':visible')) {
+					// Set dropdown to correct activity
+					$('#activity_select').val(session.activity_id);
+				} else {
+					// Update text display
+					$('#activity_text').text(session.activity_name);
+				}
+			}
 		}
 
 		// Check if session is still active (not yet stopped)
