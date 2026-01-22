@@ -3,6 +3,7 @@ var reachedGoalTime = false;
 var sessionStartTime = null; // Track when session started
 var currentAkId = null; // Track current activity session ID
 var currentActivityId = 1; // Default to Meditation, will be updated when activities load
+var currentSessionKey = null; // Track session key for admin/pro users
 
 var meisoPrefs = MeisoPreferences();
 var reveal_duration = meisoPrefs.getRevealDuration();
@@ -74,6 +75,13 @@ var startActivitySession = function() {
 			if (response.success) {
 				currentAkId = response.ak_id;
 				console.log('Activity session started:', response.ak_id);
+
+				// If session_key returned (admin/pro users), redirect to unique URL
+				if (response.session_key) {
+					currentSessionKey = response.session_key;
+					console.log('Redirecting to session URL:', response.session_key);
+					window.location.href = '/mg/' + response.session_key;
+				}
 			}
 		},
 		error: function(xhr) {
@@ -101,15 +109,23 @@ var stopActivitySession = function() {
 	var intendedSec = parseInt($('#countdown_minutes').val()) * 60;
 	var bonusSec = Math.max(0, actualSec - intendedSec);
 
+	// Prepare data - use session_key if available, otherwise ak_id
+	var stopData = {
+		actual_sec: actualSec,
+		bonus_sec: bonusSec
+	};
+
+	if (currentSessionKey) {
+		stopData.session_key = currentSessionKey;
+	} else {
+		stopData.ak_id = currentAkId;
+	}
+
 	$.ajax({
 		url: '/api/stop-activity.php',
 		method: 'POST',
 		contentType: 'application/json',
-		data: JSON.stringify({
-			ak_id: currentAkId,
-			actual_sec: actualSec,
-			bonus_sec: bonusSec
-		}),
+		data: JSON.stringify(stopData),
 		success: function(response) {
 			if (response.success) {
 				console.log('Activity session stopped successfully');
@@ -176,6 +192,13 @@ var changePageColor = function(newColor) {
 	$('.body').css({backgroundColor:newColor},1000);
 }
 
+// Get session key from URL (e.g., /mg/abc123de)
+var getSessionKeyFromURL = function() {
+	var path = window.location.pathname;
+	var match = path.match(/^\/mg\/([a-zA-Z0-9_-]{11})$/);
+	return match ? match[1] : null;
+}
+
 // Load activities from API and populate selector
 var loadActivities = function() {
 	$.get('/api/list-activities.php', function(response) {
@@ -215,6 +238,12 @@ var loadActivities = function() {
 }
 
 $(document).ready(function() {
+	// Check URL for session key
+	currentSessionKey = getSessionKeyFromURL();
+	if (currentSessionKey) {
+		console.log('Session key found in URL:', currentSessionKey);
+	}
+
 	clock = $('.clock').FlipClock({
 		clockFace: 'MinuteCounter',
 		countdown: true,
