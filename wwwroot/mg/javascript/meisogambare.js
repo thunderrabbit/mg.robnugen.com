@@ -181,11 +181,13 @@ var loadActivities = function() {
 	$.get('/api/list-activities.php', function(response) {
 		if (!response.activities || response.activities.length === 0) {
 			// No activities returned (shouldn't happen) - default to Meditation
-			$('#activity_text').text('Meditation').show();
+			$('#activity_text').text('Meditation');
+			$('#activity_text_wrapper').show();
 			currentActivityId = 1;
 		} else if (response.activities.length === 1) {
 			// Only one activity - show as text
-			$('#activity_text').text(response.activities[0].activity_name).show();
+			$('#activity_text').text(response.activities[0].activity_name);
+			$('#activity_text_wrapper').show();
 			currentActivityId = response.activities[0].activity_id;
 		} else {
 			// Multiple activities - show dropdown
@@ -194,7 +196,8 @@ var loadActivities = function() {
 					$('<option>').val(activity.activity_id).text(activity.activity_name)
 				);
 			});
-			$('#activity_select').show();
+			$('#activity_text_wrapper').hide();
+			$('#activity_label_select').show();
 			// Set default to first activity
 			currentActivityId = response.activities[0].activity_id;
 
@@ -205,7 +208,8 @@ var loadActivities = function() {
 		}
 	}).fail(function() {
 		// If API fails, default to Meditation
-		$('#activity_text').text('Meditation').show();
+		$('#activity_text').text('Meditation');
+		$('#activity_text_wrapper').show();
 		currentActivityId = 1;
 	});
 }
