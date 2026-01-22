@@ -25,3 +25,39 @@ input {
 .hidden {
 	display:none;
 }
+
+/* Completion summary for read-only completed sessions */
+.completion-summary {
+	max-width: 500px;
+	margin: 50px auto;
+	padding: 30px;
+	background: white;
+	border: 2px solid #e0e0e0;
+	border-radius: 10px;
+	box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+	text-align: left;
+}
+
+.completion-summary h3 {
+	font-size: 28px;
+	margin-bottom: 20px;
+	color: #333;
+	text-align: center;
+}
+
+.completion-summary p {
+	font-size: 18px;
+	margin: 12px 0;
+	color: #555;
+}
+
+.completion-summary strong {
+	color: #333;
+	margin-right: 8px;
+}
+
+.completion-summary .readonly-note {
+	text-align: center;
+	border-top: 1px solid #e0e0e0;
+	padding-top: 15px;
+}

@@ -13,6 +13,9 @@ CREATE TABLE activity_kai (
   -- Timezone context
   timezone_id SMALLINT UNSIGNED NOT NULL,  -- FK to timezones table
 
+  -- Privacy
+  is_public TINYINT(1) NOT NULL DEFAULT 0,  -- 0 = private, 1 = public (shareable)
+
   -- Metadata
   created_at_utc DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at_utc DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

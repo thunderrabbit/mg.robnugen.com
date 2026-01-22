@@ -22,6 +22,18 @@ if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
     $layout->echoToScreen();
     exit;
 } else {
+    // Check if user is logged in but not admin
+    if ($is_logged_in->isLoggedIn()) {
+        // Logged in but not admin - show error
+        echo "<h1>Access Denied</h1>";
+        echo "<p>You need administrator privileges to access this page.</p>";
+        echo "<p>Logged in as: <strong>" . htmlspecialchars($is_logged_in->getLoggedInUsername()) . "</strong></p>";
+        echo "<p><a href='/mg/'>Return to Meditation Timer</a> | <a href='/logout.php'>Logout</a></p>";
+        exit;
+    }
+
+    // Not logged in - save URL and redirect to login
+    $_SESSION['return_url'] = $_SERVER['REQUEST_URI'];
     header(header: "Location: /login/");
     exit;
 }
