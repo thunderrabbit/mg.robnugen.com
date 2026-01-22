@@ -7,7 +7,10 @@ include_once $matches[1] . '/prepend.php';
 
 if ($is_logged_in->isLoggedIn()) {
     // We logged in.. yay!
-    header(header: "Location: /");
+    // Check if there's a return URL saved
+    $return_url = $_SESSION['return_url'] ?? '/mg/';
+    unset($_SESSION['return_url']); // Clear it
+    header(header: "Location: $return_url");
     exit;
 } else {
     if(!$is_logged_in->isLoggedIn()){

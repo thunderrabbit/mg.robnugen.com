@@ -11,9 +11,13 @@ if($debugLevel > 0) {
 }
 
 if($is_logged_in->isLoggedIn()){
-    // Logged in - redirect to meditation timer
-    header("Location: /mg/");
-    exit;
+    // Logged in - redirect to meditation timer ONLY if at root
+    $uri = $_SERVER['REQUEST_URI'] ?? '/';
+    if ($uri === '/' || $uri === '') {
+        header("Location: /mg/");
+        exit;
+    }
+    // Otherwise, let them access /admin/, /profile/, etc.
 } else {
     // Anonymous user - show welcome page
     $page = new \Template(config: $config);

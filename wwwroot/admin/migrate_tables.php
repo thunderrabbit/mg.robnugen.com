@@ -20,6 +20,7 @@ if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
     $layout->echoToScreen();
     exit;
 } else {
+    $_SESSION['return_url'] = $_SERVER['REQUEST_URI'];
     header(header: "Location: /login/");
     exit;
 }

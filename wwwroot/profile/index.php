@@ -7,6 +7,7 @@ include_once $matches[1] . '/prepend.php';
 
 // Check if user is logged in
 if (!$is_logged_in->isLoggedIn()) {
+    $_SESSION['return_url'] = $_SERVER['REQUEST_URI'];
     header("Location: /login/");
     exit;
 }
