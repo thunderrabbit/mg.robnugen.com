@@ -1,6 +1,6 @@
 <?php
 
-const SENTIMENTAL_VERSION = "Sessions have URLs";
+const SENTIMENTAL_VERSION = "Let's Dashboarding";
 
 # write errors to screen
 ini_set('display_errors', 1);
