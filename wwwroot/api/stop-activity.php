@@ -21,14 +21,32 @@ if (!$is_logged_in->isLoggedIn()) {
 // Get JSON input
 $input = json_decode(file_get_contents('php://input'), true);
 
-// Get ak_id from input or session
-$ak_id = (int)($input['ak_id'] ?? $_SESSION['active_ak_id'] ?? 0);
+// Get ak_id from session_key, ak_id, or session
+$session_key = trim($input['session_key'] ?? '');
+$ak_id = 0;
+
+if (!empty($session_key)) {
+    // Look up ak_id from session key
+    $pdo = \Database\Base::getPDO($config);
+    $sessionKeyHelper = new \ActivityTracking\SessionKey($pdo);
+    $ak_id = $sessionKeyHelper->getAkIdBySessionKey($session_key);
+
+    if ($ak_id === null) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'error' => 'Session key not found']);
+        exit;
+    }
+} else {
+    // Fall back to ak_id from input or session
+    $ak_id = (int)($input['ak_id'] ?? $_SESSION['active_ak_id'] ?? 0);
+}
+
 $actual_sec = (int)($input['actual_sec'] ?? 0);
 $bonus_sec = (int)($input['bonus_sec'] ?? 0);
 
 if ($ak_id <= 0) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Missing or invalid ak_id']);
+    echo json_encode(['success' => false, 'error' => 'Missing or invalid ak_id/session_key']);
     exit;
 }
 
