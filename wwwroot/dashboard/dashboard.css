@@ -1,0 +1,172 @@
+/* Dashboard Styles for Active Sessions */
+
+.dashboard-container {
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 20px;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+.dashboard-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 30px;
+	padding-bottom: 15px;
+	border-bottom: 2px solid #e0e0e0;
+}
+
+.dashboard-header h1 {
+	margin: 0;
+	font-size: 28px;
+	color: #333;
+}
+
+.btn-new-timer {
+	background-color: #4CAF50;
+	color: white;
+	padding: 12px 24px;
+	text-decoration: none;
+	border-radius: 6px;
+	font-weight: 600;
+	font-size: 16px;
+	transition: background-color 0.3s ease;
+}
+
+.btn-new-timer:hover {
+	background-color: #45a049;
+}
+
+/* Session Grid */
+.active-sessions-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+	gap: 20px;
+	margin-bottom: 30px;
+}
+
+.loading {
+	text-align: center;
+	padding: 40px;
+	color: #666;
+	font-size: 16px;
+}
+
+/* Session Widget */
+.session-widget {
+	display: block;
+	background: white;
+	border: 2px solid #e0e0e0;
+	border-radius: 10px;
+	padding: 20px;
+	text-decoration: none;
+	color: inherit;
+	transition: transform 0.2s ease, box-shadow 0.2s ease;
+	cursor: pointer;
+}
+
+.session-widget:hover {
+	transform: translateY(-4px);
+	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.session-widget.countdown {
+	border-left: 6px solid #FFC107; /* Yellow for countdown */
+}
+
+.session-widget.bonus {
+	border-left: 6px solid #4CAF50; /* Green for bonus */
+}
+
+.session-widget .activity-name {
+	font-size: 20px;
+	font-weight: 700;
+	margin-bottom: 12px;
+	color: #333;
+}
+
+.session-widget .intended-time {
+	font-size: 14px;
+	color: #666;
+	margin-bottom: 8px;
+}
+
+.session-widget .elapsed-time {
+	font-size: 16px;
+	font-weight: 600;
+	color: #333;
+	margin-bottom: 12px;
+}
+
+.session-widget .elapsed-value {
+	font-family: 'Courier New', monospace;
+	color: #2196F3;
+}
+
+.session-widget .status-indicator {
+	font-size: 14px;
+	font-weight: 500;
+	padding: 6px 12px;
+	border-radius: 20px;
+	display: inline-block;
+	background-color: #f5f5f5;
+}
+
+.session-widget.countdown .status-indicator {
+	background-color: #FFF9C4;
+	color: #F57F17;
+}
+
+.session-widget.bonus .status-indicator {
+	background-color: #C8E6C9;
+	color: #2E7D32;
+}
+
+/* Empty State */
+.empty-state {
+	text-align: center;
+	padding: 60px 20px;
+	background: #f9f9f9;
+	border-radius: 10px;
+	border: 2px dashed #ccc;
+}
+
+.empty-state p {
+	font-size: 18px;
+	color: #666;
+	margin-bottom: 20px;
+}
+
+.btn-primary {
+	background-color: #2196F3;
+	color: white;
+	padding: 12px 30px;
+	text-decoration: none;
+	border-radius: 6px;
+	font-weight: 600;
+	font-size: 16px;
+	display: inline-block;
+	transition: background-color 0.3s ease;
+}
+
+.btn-primary:hover {
+	background-color: #1976D2;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+	.dashboard-header {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.btn-new-timer {
+		margin-top: 15px;
+		width: 100%;
+		text-align: center;
+	}
+
+	.active-sessions-grid {
+		grid-template-columns: 1fr;
+	}
+}
