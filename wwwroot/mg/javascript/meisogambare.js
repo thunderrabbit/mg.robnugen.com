@@ -283,14 +283,40 @@ var loadAndResumeSession = function(sessionKey) {
 			// Hide start controls
 			hideStuffs();
 		} else {
-			// Session is completed
+			// Session is completed - show read-only view
 			console.log('Session already completed');
 			console.log('Actual time:', session.actual_sec, 'seconds');
 			console.log('Bonus time:', session.bonus_sec, 'seconds');
 
-			// Show completion state
+			// Show final timer state (bonus time)
 			clock.setTime(session.bonus_sec || 0);
 			changePageColor(successBGColor);
+
+			// Hide all interactive controls
+			$('.start').hide();
+			$('.stop').hide();
+			$('.duration-field-wrapper').hide();
+
+			// Show completion message
+			var bonusMinutes = Math.floor(session.bonus_sec / 60);
+			var completedMessage = '<div class="completion-summary">' +
+				'<h3>✅ Session Completed</h3>' +
+				'<p><strong>Activity:</strong> ' + session.activity_name + '</p>' +
+				'<p><strong>Intended:</strong> ' + Math.floor(session.intended_sec / 60) + ' minutes</p>' +
+				'<p><strong>Actual:</strong> ' + Math.floor(session.actual_sec / 60) + ' minutes</p>';
+
+			if (session.bonus_sec > 0) {
+				completedMessage += '<p><strong>Bonus:</strong> <span style="color: #4CAF50;">+' + bonusMinutes + ' minutes</span></p>';
+			} else if (session.bonus_sec < 0) {
+				completedMessage += '<p><strong>Status:</strong> <span style="color: #F44336;">Stopped early</span></p>';
+			} else {
+				completedMessage += '<p><strong>Status:</strong> <span style="color: #2196F3;">Exactly on time!</span></p>';
+			}
+
+			completedMessage += '<p class="readonly-note" style="margin-top: 20px; color: #999; font-style: italic;">This is a completed session (read-only)</p>' +
+				'</div>';
+
+			$('.message').html(completedMessage);
 		}
 	}).fail(function(xhr) {
 		console.error('Failed to load session:', xhr.responseJSON);
