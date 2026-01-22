@@ -9,24 +9,35 @@ $uri = $_SERVER['REQUEST_URI'] ?? '';
 if (preg_match('#^/mg/([a-zA-Z0-9_-]{11})(?:\?.*)?$#', $uri, $matches)) {
     $session_key = $matches[1];
 
+    // Initialize database connection and helper
+    $pdo = \Database\Base::getPDO($config);
+    $sessionKeyHelper = new \ActivityTracking\SessionKey($pdo);
+
     // Verify ownership if logged in
     if ($is_logged_in->isLoggedIn()) {
-        $pdo = \Database\Base::getPDO($config);
-        $sessionKeyHelper = new \ActivityTracking\SessionKey($pdo);
         $user_id = $is_logged_in->loggedInID();
 
         // Check if user owns this session
         if (!$sessionKeyHelper->isOwner($session_key, $user_id)) {
-            // Not owner - redirect to /mg/
-            // (Future: could show public view if is_public=1)
-            header("Location: /mg/");
-            exit;
+            // Not owner - check if it's public
+            $publicSession = $sessionKeyHelper->getPublicSessionByKey($session_key);
+            if (!$publicSession) {
+                // Not public or doesn't exist - redirect to /mg/
+                header("Location: /mg/");
+                exit;
+            }
+            // Session is public - continue to show public view
         }
         // User owns this session - continue to show timer page
     } else {
-        // Not logged in - redirect to login or /mg/
-        header("Location: /mg/");
-        exit;
+        // Not logged in - check if session is public
+        $publicSession = $sessionKeyHelper->getPublicSessionByKey($session_key);
+        if (!$publicSession) {
+            // Not public or doesn't exist - redirect to /mg/
+            header("Location: /mg/");
+            exit;
+        }
+        // Session is public - continue to show public view
     }
 }
 ?>

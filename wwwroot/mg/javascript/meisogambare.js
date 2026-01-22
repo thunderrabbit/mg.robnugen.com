@@ -251,9 +251,11 @@ var loadAndResumeSession = function(sessionKey) {
 			console.log('Elapsed seconds:', elapsedSec);
 			console.log('Intended seconds:', session.intended_sec);
 
-			// Set session start time for stop calculation
-			sessionStartTime = startTime;
-			currentAkId = session.ak_id;
+			// Set session start time for stop calculation (only if owner)
+			if (response.is_owner) {
+				sessionStartTime = startTime;
+				currentAkId = session.ak_id;
+			}
 
 			// Set the countdown minutes field
 			var intendedMinutes = Math.floor(session.intended_sec / 60);
@@ -268,7 +270,11 @@ var loadAndResumeSession = function(sessionKey) {
 				clock.setCountdown(false);
 				clock.start();
 				changePageColor(successBGColor);
-				$('.stop').show();
+
+				// Only show stop button if owner
+				if (response.is_owner) {
+					$('.stop').show();
+				}
 			} else {
 				// Still in countdown phase
 				var remainingSec = session.intended_sec - elapsedSec;
@@ -277,11 +283,24 @@ var loadAndResumeSession = function(sessionKey) {
 				clock.setCountdown(true);
 				clock.start();
 				changePageColor(countingColor);
-				$('.stop').show();
+
+				// Only show stop button if owner
+				if (response.is_owner) {
+					$('.stop').show();
+				}
 			}
 
 			// Hide start controls
 			hideStuffs();
+
+			// If not owner (public view), show read-only message
+			if (!response.is_owner) {
+				var liveMessage = '<div class="live-session-notice" style="margin-top: 20px; padding: 15px; background: rgba(255, 255, 255, 0.1); border-radius: 8px;">' +
+					'<h3>🔴 LIVE - Someone is doing ' + session.activity_name + '</h3>' +
+					'<p style="color: #999; font-style: italic;">This is a live session (read-only)</p>' +
+					'</div>';
+				$('.message').html(liveMessage);
+			}
 		} else {
 			// Session is completed - show read-only view
 			console.log('Session already completed');
