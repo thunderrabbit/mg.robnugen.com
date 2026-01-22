@@ -5,6 +5,7 @@
         <li>⏱️ Set a countdown timer for your meditation sessions</li>
         <li>🔔 Get notified with a gentle bell when your time is up</li>
         <li>💾 Save your meditation durations (when logged in)</li>
+        <li>✨ Pro users can track different activities (sleep, work, exercise, and more)</li>
         <li>📊 Track your meditation history over time (coming soon)</li>
     </ul>
     <?php if (isset($is_logged_in) && $is_logged_in && !$is_admin): ?>
