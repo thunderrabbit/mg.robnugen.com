@@ -160,8 +160,140 @@ function startAutoRefresh() {
 	}, 30000); // 30 seconds
 }
 
+// ===== COMPLETED SESSIONS =====
+
+var currentOffset = 0;
+var completedLimit = 10;
+
+// Format date for completed session display
+function formatCompletedDate(utcDateString) {
+	// Parse UTC datetime - format: "YYYY-MM-DD HH:MM:SS"
+	var parts = utcDateString.split(/[- :]/);
+	var date = new Date(Date.UTC(
+		parseInt(parts[0]), // year
+		parseInt(parts[1]) - 1, // month (0-indexed)
+		parseInt(parts[2]), // day
+		parseInt(parts[3]), // hour
+		parseInt(parts[4]), // minute
+		parseInt(parts[5])  // second
+	));
+
+	// Format as local date/time
+	var options = {
+		month: 'short',
+		day: 'numeric',
+		year: 'numeric',
+		hour: 'numeric',
+		minute: '2-digit',
+		hour12: true
+	};
+	return date.toLocaleString('en-US', options);
+}
+
+// Create completed session widget HTML
+function createCompletedSessionWidget(session) {
+	var bonusDisplay;
+	if (session.bonus_sec > 0) {
+		bonusDisplay = '<span class="bonus-positive">+' + formatDuration(session.bonus_sec) + ' bonus</span>';
+	} else if (session.bonus_sec < 0) {
+		bonusDisplay = '<span class="bonus-negative">Stopped early</span>';
+	} else {
+		bonusDisplay = '<span class="bonus-none">Exactly on time</span>';
+	}
+
+	// Build the URL - use session_key if available, otherwise skip (no link)
+	if (session.session_key) {
+		var sessionUrl = '/mg/' + session.session_key;
+		return $('<a>', {
+			'href': sessionUrl,
+			'class': 'session-widget completed',
+			'html': '<div class="activity-name">✅ ' + session.activity_name + '</div>' +
+					'<div class="completion-date">' + formatCompletedDate(session.updated_at_utc) + '</div>' +
+					'<div class="duration">' +
+					'  Duration: ' + formatDuration(session.actual_sec) + ' ' + bonusDisplay +
+					'</div>'
+		});
+	} else {
+		// No session key - show as non-clickable div
+		return $('<div>', {
+			'class': 'session-widget completed no-link',
+			'html': '<div class="activity-name">✅ ' + session.activity_name + '</div>' +
+					'<div class="completion-date">' + formatCompletedDate(session.updated_at_utc) + '</div>' +
+					'<div class="duration">' +
+					'  Duration: ' + formatDuration(session.actual_sec) + ' ' + bonusDisplay +
+					'</div>'
+		});
+	}
+}
+
+// Render completed sessions
+function renderCompletedSessions(sessions, isLoadMore) {
+	var container = $('#completed-sessions');
+
+	if (!isLoadMore) {
+		container.empty();
+	} else {
+		// Remove loading indicator if exists
+		container.find('.loading').remove();
+	}
+
+	if (sessions.length === 0 && !isLoadMore) {
+		$('.completed-empty-state').show();
+		$('#load-more-sessions').hide();
+		return;
+	}
+
+	$('.completed-empty-state').hide();
+
+	sessions.forEach(function(session) {
+		var widget = createCompletedSessionWidget(session);
+		container.append(widget);
+	});
+}
+
+// Load completed sessions from API
+function loadCompletedSessions(isLoadMore) {
+	if (!isLoadMore) {
+		currentOffset = 0;
+	}
+
+	$.get('/api/list-completed-sessions.php?limit=' + completedLimit + '&offset=' + currentOffset, function(response) {
+		if (response.success) {
+			renderCompletedSessions(response.completed_sessions, isLoadMore);
+
+			// Update offset for next load
+			currentOffset += response.completed_sessions.length;
+
+			// Show/hide "Load More" button
+			if (response.has_more) {
+				$('#load-more-sessions').show();
+			} else {
+				$('#load-more-sessions').hide();
+			}
+		} else {
+			console.error('Failed to load completed sessions:', response.error);
+			if (!isLoadMore) {
+				$('.completed-empty-state').show();
+			}
+		}
+	}).fail(function(xhr) {
+		console.error('API error:', xhr);
+		if (!isLoadMore) {
+			$('.completed-empty-state').show();
+		}
+	});
+}
+
 // Initialize dashboard on page load
 $(document).ready(function() {
 	loadActiveSessions();
 	startAutoRefresh();
+
+	// Load completed sessions
+	loadCompletedSessions(false);
+
+	// Handle "Load More" button click
+	$('#load-more-sessions').on('click', function() {
+		loadCompletedSessions(true);
+	});
 });
