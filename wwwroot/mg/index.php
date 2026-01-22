@@ -74,7 +74,7 @@ if (preg_match('#^/mg/([a-zA-Z0-9_-]{11})(?:\?.*)?$#', $uri, $matches)) {
 	<audio id="audio-bell" src="assets/124742__tec-studios__mono-bell-11-d-18sec.wav" preload="auto"></audio>
 	<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/flipclock@0.7.8/compiled/flipclock.min.js"></script>
-	<script src="javascript/meisoprefs.js"></script>
-	<script src="javascript/meisogambare.js"></script>
+	<script src="javascript/<?= SEMVER ?>/meisoprefs.js"></script>
+	<script src="javascript/<?= SEMVER ?>/meisogambare.js"></script>
 </body>
 </html>

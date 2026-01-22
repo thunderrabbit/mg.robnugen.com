@@ -1,0 +1,9 @@
+# Enable URL rewriting for versioned JS paths
+# e.g., javascript/1.0.0/file.js -> javascript/file.js
+RewriteEngine On
+
+# Rewrite versioned paths: {version}/filename.ext -> filename.ext
+# Version format: X.Y.Z (semantic versioning)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^[0-9]+\.[0-9]+\.[0-9]+/(.+)$ $1 [L]
