@@ -1,24 +1,31 @@
 // Dashboard JavaScript for Active Sessions
 
-// Format seconds into human-readable duration (e.g., "5 minutes", "1h 30m")
+// Format seconds into human-readable duration (e.g., "5 minutes", "1h 30m", "2d 5h")
 function formatDuration(seconds) {
-	var hours = Math.floor(seconds / 3600);
+	var days = Math.floor(seconds / 86400);
+	var hours = Math.floor((seconds % 86400) / 3600);
 	var minutes = Math.floor((seconds % 3600) / 60);
 
-	if (hours > 0) {
+	if (days > 0) {
+		return days + 'd ' + hours + 'h';
+	} else if (hours > 0) {
 		return hours + 'h ' + minutes + 'm';
 	} else {
 		return minutes + ' minute' + (minutes !== 1 ? 's' : '');
 	}
 }
 
-// Format elapsed time (MM:SS or HH:MM:SS)
+// Format elapsed time (MM:SS, HH:MM:SS, or D days HH:MM:SS)
 function formatElapsed(seconds) {
-	var hours = Math.floor(seconds / 3600);
+	var days = Math.floor(seconds / 86400);
+	var hours = Math.floor((seconds % 86400) / 3600);
 	var minutes = Math.floor((seconds % 3600) / 60);
 	var secs = seconds % 60;
 
-	if (hours > 0) {
+	if (days > 0) {
+		// Show days if more than 24 hours
+		return days + 'd ' + hours + ':' + String(minutes).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+	} else if (hours > 0) {
 		return hours + ':' + String(minutes).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
 	} else {
 		return minutes + ':' + String(secs).padStart(2, '0');
