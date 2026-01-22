@@ -48,6 +48,7 @@ if (empty($start_local_dt)) {
 try {
     $pdo = \Database\Base::getPDO($config);
     $user_id = $is_logged_in->loggedInID();
+    $is_admin = $is_logged_in->isAdmin();
 
     // Get or create timezone
     $timezoneHelper = new \ActivityTracking\Timezone($pdo);
@@ -66,12 +67,26 @@ try {
     // Store ak_id in session for later
     $_SESSION['active_ak_id'] = $ak_id;
 
-    http_response_code(201);
-    echo json_encode([
+    // Generate session key for admin users
+    $session_key = null;
+    if ($is_admin) {
+        $sessionKeyHelper = new \ActivityTracking\SessionKey($pdo);
+        $session_key = $sessionKeyHelper->createSessionKey($ak_id);
+    }
+
+    $response = [
         'success' => true,
         'ak_id' => $ak_id,
         'message' => 'Activity started successfully'
-    ]);
+    ];
+
+    // Include session_key in response only for admin users
+    if ($session_key !== null) {
+        $response['session_key'] = $session_key;
+    }
+
+    http_response_code(201);
+    echo json_encode($response);
 
 } catch (\Exception $e) {
     http_response_code(500);
