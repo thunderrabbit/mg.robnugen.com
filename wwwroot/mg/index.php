@@ -80,7 +80,7 @@ if (preg_match('#^/mg/([a-zA-Z0-9_-]{11})(?:\?.*)?$#', $uri, $matches)) {
 	<div id="post_timer_links" class="hidden">
 		<a href="/mg/" class="post-timer-link">Start New Timer</a>
 		<?php if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()): ?>
-		<a href="/dashboard/" class="post-timer-link">Dashboard</a>
+		<a href="/" class="post-timer-link">Dashboard</a>
 		<a href="/admin/" class="post-timer-link">Admin</a>
 		<?php endif; ?>
 	</div>
