@@ -365,19 +365,29 @@ var loadActivities = function() {
 			currentActivityId = response.activities[0].activity_id;
 		} else {
 			// Multiple activities - show dropdown
+			$('#activity_select').empty(); // Clear existing options
 			response.activities.forEach(function(activity) {
 				$('#activity_select').append(
 					$('<option>').val(activity.activity_id).text(activity.activity_name)
 				);
 			});
+			// Add "Add new..." option at the end
+			$('#activity_select').append(
+				$('<option>').val('add_new').text('+ Add new...')
+			);
 			$('#activity_text_wrapper').hide();
 			$('#activity_label_select').show();
 			// Set default to first activity
 			currentActivityId = response.activities[0].activity_id;
 
 			// Update currentActivityId when dropdown changes
-			$('#activity_select').on('change', function() {
-				currentActivityId = parseInt($(this).val());
+			$('#activity_select').off('change').on('change', function() {
+				var val = $(this).val();
+				if (val === 'add_new') {
+					showAddActivityForm();
+				} else {
+					currentActivityId = parseInt(val);
+				}
 			});
 		}
 	}).fail(function() {
@@ -385,6 +395,56 @@ var loadActivities = function() {
 		$('#activity_text').text('Meditation');
 		$('#activity_text_wrapper').show();
 		currentActivityId = 1;
+	});
+}
+
+// Show the add activity form
+var showAddActivityForm = function() {
+	$('#activity_label_select').hide();
+	$('#add_activity_wrapper').show();
+	$('#new_activity_name').val('').focus();
+}
+
+// Hide the add activity form and restore dropdown
+var hideAddActivityForm = function() {
+	$('#add_activity_wrapper').hide();
+	$('#activity_label_select').show();
+	// Reset dropdown to current activity
+	$('#activity_select').val(currentActivityId);
+}
+
+// Save new activity via API
+var saveNewActivity = function() {
+	var activityName = $('#new_activity_name').val().trim();
+	if (!activityName) {
+		alert('Please enter an activity name');
+		return;
+	}
+
+	$.ajax({
+		url: '/api/create-activity.php',
+		method: 'POST',
+		contentType: 'application/json',
+		data: JSON.stringify({ activity_name: activityName }),
+		success: function(response) {
+			if (response.success) {
+				// Set the new activity as current
+				currentActivityId = response.activity_id;
+				// Reload activities to refresh the dropdown
+				loadActivities();
+				// After reload, select the new activity
+				setTimeout(function() {
+					$('#activity_select').val(currentActivityId);
+				}, 100);
+				hideAddActivityForm();
+			} else {
+				alert('Failed to create activity: ' + (response.error || 'Unknown error'));
+			}
+		},
+		error: function(xhr) {
+			var error = xhr.responseJSON ? xhr.responseJSON.error : 'Failed to create activity';
+			alert(error);
+		}
 	});
 }
 
@@ -426,5 +486,14 @@ $(document).ready(function() {
 
 	$('.start').click(clickedStartButton);
 
-	$('.stop').click(clickedStopButton)
+	$('.stop').click(clickedStopButton);
+
+	// Add activity handlers
+	$('#save_new_activity').click(saveNewActivity);
+	$('#cancel_new_activity').click(hideAddActivityForm);
+	$('#new_activity_name').on('keypress', function(e) {
+		if (e.which === 13) { // Enter key
+			saveNewActivity();
+		}
+	});
 });

@@ -61,3 +61,43 @@ input {
 	border-top: 1px solid #e0e0e0;
 	padding-top: 15px;
 }
+
+/* Add activity form */
+#add_activity_wrapper {
+	margin-top: 10px;
+}
+
+#new_activity_name {
+	font-size: x-large;
+	width: 12em;
+	padding: 5px 10px;
+}
+
+#save_new_activity, #cancel_new_activity {
+	font-size: large;
+	padding: 8px 16px;
+	margin-left: 8px;
+	cursor: pointer;
+}
+
+#save_new_activity {
+	background-color: #4CAF50;
+	color: white;
+	border: none;
+	border-radius: 4px;
+}
+
+#save_new_activity:hover {
+	background-color: #45a049;
+}
+
+#cancel_new_activity {
+	background-color: #888;
+	color: white;
+	border: none;
+	border-radius: 4px;
+}
+
+#cancel_new_activity:hover {
+	background-color: #666;
+}
