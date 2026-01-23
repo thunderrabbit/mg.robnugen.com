@@ -101,3 +101,29 @@ input {
 #cancel_new_activity:hover {
 	background-color: #666;
 }
+
+/* Post-timer navigation links */
+#post_timer_links {
+	margin-top: 30px;
+	text-align: center;
+}
+
+.post-timer-link {
+	display: inline-block;
+	padding: 12px 24px;
+	margin: 8px;
+	font-size: large;
+	text-decoration: none;
+	color: white;
+	background-color: #2196F3;
+	border-radius: 6px;
+	transition: background-color 0.2s;
+}
+
+.post-timer-link:hover {
+	background-color: #1976D2;
+}
+
+.post-timer-link:visited {
+	color: white;
+}

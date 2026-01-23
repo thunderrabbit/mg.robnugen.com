@@ -151,6 +151,7 @@ var hideStuffs = function() {
 	$('.start').hide(hide_duration);
 	$('.duration-field-wrapper').hide(hide_duration);
 	$('.share').hide(reveal_duration);
+	$('#post_timer_links').hide(hide_duration);
 }
 
 var revealStopButton = function() {
@@ -168,7 +169,7 @@ var revealStuffs = function() {
 	$('.share').show(reveal_duration);
 	$('.start').show(hide_duration);
 	$('.duration-field-wrapper').show(hide_duration);
-
+	$('#post_timer_links').show(reveal_duration);
 }
 
 var setSuccessString = function() {
