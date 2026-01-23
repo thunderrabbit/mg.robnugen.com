@@ -38,7 +38,7 @@ class Utilities {
         if (strpos($versionWithFile, '..') !== false) {
             throw new \Exception("Invalid migration path (traversal not allowed): $versionWithFile");
         }
-        if (!preg_match('#^[0-9]{2}_[a-zA-Z0-9_-]+/create_[a-zA-Z0-9_-]+\.sql$#', $versionWithFile)) {
+        if (!preg_match('#^[0-9]{2}_[a-zA-Z0-9_-]+/[a-z]+_[a-zA-Z0-9_-]+\.sql$#', $versionWithFile)) {
             throw new \Exception("Invalid migration path format: $versionWithFile");
         }
 
