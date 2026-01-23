@@ -158,4 +158,22 @@ class ActivityKai {
 
         return $result['count'] > 0;
     }
+
+    /**
+     * Delete an activity session
+     *
+     * @param int $ak_id Activity session ID
+     * @param int $user_id User ID (for security check)
+     * @return bool Success
+     */
+    public function deleteActivity(int $ak_id, int $user_id): bool {
+        $stmt = $this->pdo->prepare("
+            DELETE FROM activity_kai
+            WHERE ak_id = ? AND user_id = ?
+        ");
+
+        $stmt->execute([$ak_id, $user_id]);
+
+        return $stmt->rowCount() > 0;
+    }
 }

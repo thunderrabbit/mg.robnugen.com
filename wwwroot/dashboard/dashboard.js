@@ -59,16 +59,23 @@ function createSessionWidget(session) {
 	// Build the URL - use session_key if available, otherwise go to /mg/
 	var sessionUrl = session.session_key ? '/mg/' + session.session_key : '/mg/';
 
-	return $('<a>', {
-		'href': sessionUrl,
-		'class': 'session-widget ' + statusClass,
-		'html': '<div class="activity-name">' + session.activity_name + '</div>' +
+	// Build delete button data attribute
+	var deleteData = session.session_key ? 'data-session-key="' + session.session_key + '"' : 'data-ak-id="' + session.ak_id + '"';
+
+	var widget = $('<div>', {
+		'class': 'session-widget-container',
+		'html': '<a href="' + sessionUrl + '" class="session-widget ' + statusClass + '">' +
+				'<div class="activity-name">' + session.activity_name + '</div>' +
 				'<div class="intended-time">Intended: ' + formatDuration(session.intended_sec) + '</div>' +
 				'<div class="elapsed-time" data-start="' + session.start_local_dt + '">' +
 				'  Elapsed: <span class="elapsed-value">' + formatElapsed(elapsedSec) + '</span>' +
 				'</div>' +
-				'<div class="status-indicator">' + statusText + '</div>'
+				'<div class="status-indicator">' + statusText + '</div>' +
+				'</a>' +
+				'<button class="delete-session-btn" ' + deleteData + ' title="Delete session">✕</button>'
 	});
+
+	return widget;
 }
 
 // Render active sessions
@@ -208,27 +215,35 @@ function createCompletedSessionWidget(session) {
 		bonusDisplay = '<span class="bonus-none">Exactly on time</span>';
 	}
 
+	// Build delete button data attribute
+	var deleteData = session.session_key ? 'data-session-key="' + session.session_key + '"' : 'data-ak-id="' + session.ak_id + '"';
+
 	// Build the URL - use session_key if available, otherwise skip (no link)
 	if (session.session_key) {
 		var sessionUrl = '/mg/' + session.session_key;
-		return $('<a>', {
-			'href': sessionUrl,
-			'class': 'session-widget completed',
-			'html': '<div class="activity-name">✅ ' + session.activity_name + '</div>' +
+		return $('<div>', {
+			'class': 'session-widget-container',
+			'html': '<a href="' + sessionUrl + '" class="session-widget completed">' +
+					'<div class="activity-name">✅ ' + session.activity_name + '</div>' +
 					'<div class="completion-date">' + formatCompletedDate(session.updated_at_utc) + '</div>' +
 					'<div class="duration">' +
 					'  Duration: ' + formatDuration(session.actual_sec) + ' ' + bonusDisplay +
-					'</div>'
+					'</div>' +
+					'</a>' +
+					'<button class="delete-session-btn" ' + deleteData + ' title="Delete session">✕</button>'
 		});
 	} else {
 		// No session key - show as non-clickable div
 		return $('<div>', {
-			'class': 'session-widget completed no-link',
-			'html': '<div class="activity-name">✅ ' + session.activity_name + '</div>' +
+			'class': 'session-widget-container',
+			'html': '<div class="session-widget completed no-link">' +
+					'<div class="activity-name">✅ ' + session.activity_name + '</div>' +
 					'<div class="completion-date">' + formatCompletedDate(session.updated_at_utc) + '</div>' +
 					'<div class="duration">' +
 					'  Duration: ' + formatDuration(session.actual_sec) + ' ' + bonusDisplay +
-					'</div>'
+					'</div>' +
+					'</div>' +
+					'<button class="delete-session-btn" ' + deleteData + ' title="Delete session">✕</button>'
 		});
 	}
 }
@@ -291,6 +306,44 @@ function loadCompletedSessions(isLoadMore) {
 	});
 }
 
+// Delete a session
+function deleteSession(button) {
+	var sessionKey = $(button).data('session-key');
+	var akId = $(button).data('ak-id');
+
+	if (!confirm('Delete this activity session? This cannot be undone.')) {
+		return;
+	}
+
+	var data = {};
+	if (sessionKey) {
+		data.session_key = sessionKey;
+	} else {
+		data.ak_id = akId;
+	}
+
+	$.ajax({
+		url: '/api/delete-activity-session.php',
+		method: 'POST',
+		contentType: 'application/json',
+		data: JSON.stringify(data),
+		success: function(response) {
+			if (response.success) {
+				// Remove the widget container from DOM
+				$(button).closest('.session-widget-container').fadeOut(300, function() {
+					$(this).remove();
+				});
+			} else {
+				alert('Failed to delete: ' + (response.error || 'Unknown error'));
+			}
+		},
+		error: function(xhr) {
+			var error = xhr.responseJSON ? xhr.responseJSON.error : 'Failed to delete session';
+			alert(error);
+		}
+	});
+}
+
 // Initialize dashboard on page load
 $(document).ready(function() {
 	loadActiveSessions();
@@ -302,5 +355,12 @@ $(document).ready(function() {
 	// Handle "Load More" button click
 	$('#load-more-sessions').on('click', function() {
 		loadCompletedSessions(true);
+	});
+
+	// Handle delete button clicks (delegated for dynamically added elements)
+	$(document).on('click', '.delete-session-btn', function(e) {
+		e.preventDefault();
+		e.stopPropagation();
+		deleteSession(this);
 	});
 });
