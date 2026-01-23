@@ -1,7 +1,7 @@
 <?php
 
-const SENTIMENTAL_VERSION = "Let's Dashboarding";
-const SEMVER = "1.1.0";
+const SENTIMENTAL_VERSION = "BEGIN adding links";
+const SEMVER = "1.1.1";
 
 # write errors to screen
 ini_set('display_errors', 1);
