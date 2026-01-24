@@ -10,9 +10,9 @@
 | 4. API: create-activity.php | DONE |
 | 5. Migration Script | DONE |
 | UI: Add activity on timer page | DONE |
-| Phase 2: Activity Management UI | NOT DONE |
-| Phase 3: Activity Sharing | NOT DONE |
-| Phase 4: Activity Analytics | NOT DONE |
+| Phase 2: Activity Management UI | NOT DONE as of 24 Jan 2026 |
+| Phase 3: Activity Sharing | NOT DONE as of 24 Jan 2026 |
+| Phase 4: Activity Analytics | NOT DONE as of 24 Jan 2026 |
 
 ---
 
@@ -447,22 +447,22 @@ curl -X GET https://mg.robnugen.com/api/list-activities.php \
 
 ---
 
-## Future Enhancements - NOT DONE
+## Future Enhancements - NOT DONE as of 24 Jan 2026
 
-### Phase 2: Activity Management UI - NOT DONE
+### Phase 2: Activity Management UI - NOT DONE as of 24 Jan 2026
 
 - **List custom activities**: Show user's custom activities with edit/delete options
 - **Edit activity**: Update name/description
 - **Delete activity**: Soft delete (set `is_active = 0`) or hard delete
 - **Activity icons**: Allow users to choose icons for their activities
 
-### Phase 3: Activity Sharing - NOT DONE
+### Phase 3: Activity Sharing - NOT DONE as of 24 Jan 2026
 
 - **Public activities**: Users can mark activities as public for others to copy
 - **Activity templates**: Curated list of popular user-created activities
 - **Import activity**: Copy another user's public activity to your account
 
-### Phase 4: Activity Analytics - NOT DONE
+### Phase 4: Activity Analytics - NOT DONE as of 24 Jan 2026
 
 - **Most used activities**: Show which custom activities are most tracked
 - **Activity streaks**: Track consecutive days using specific activities
