@@ -52,6 +52,11 @@
 	font-size: 16px;
 }
 
+/* Session Widget Container */
+.session-widget-container {
+	position: relative;
+}
+
 /* Session Widget */
 .session-widget {
 	display: block;
@@ -63,6 +68,34 @@
 	color: inherit;
 	transition: transform 0.2s ease, box-shadow 0.2s ease;
 	cursor: pointer;
+}
+
+/* Delete Button */
+.delete-session-btn {
+	position: absolute;
+	top: 8px;
+	right: 8px;
+	width: 28px;
+	height: 28px;
+	background-color: rgba(244, 67, 54, 0.1);
+	color: #F44336;
+	border: none;
+	border-radius: 50%;
+	font-size: 16px;
+	font-weight: bold;
+	cursor: pointer;
+	opacity: 0;
+	transition: opacity 0.2s ease, background-color 0.2s ease;
+	z-index: 10;
+}
+
+.session-widget-container:hover .delete-session-btn {
+	opacity: 1;
+}
+
+.delete-session-btn:hover {
+	background-color: #F44336;
+	color: white;
 }
 
 .session-widget:hover {
