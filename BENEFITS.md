@@ -7,10 +7,10 @@
 | Timer works | Yes | Yes |
 | **Sessions saved to DB** | No | Yes |
 | **View session history** | No | Yes |
-| **Create custom activities** | No | Yes |
+| **Create custom activities** | No | No |
 | **Delete sessions** | No | Yes |
 | View public sessions | Yes | Yes |
-| Activities available | Meditation only | Meditation + custom |
+| Activities available | Meditation only | Meditation + List of Pro Activities |
 
 ### Key Benefits
 
@@ -29,12 +29,14 @@
 ## Pro/Admin Only Features
 
 - **Session Keys/URLs** - Only admins get shareable `/mg/{session_key}` URLs (from `start-activity.php:72-75`)
-- **Pro Activities** - Sleeping, Networking, Work, Physical activity, Hard mode, Creativity, Minecraft (all `is_pro = 1`)
-- **Dashboard** - The `/` dashboard only shows for admins
+- **Logged In Activities** - Sleeping, Networking, Work, Physical activity, Hard mode, Creativity, Minecraft (all `is_pro = 1`)   <--- TODO change how this is done
+- **Dashboard** - The `/` dashboard only shows for logged in users
 - **Multiple concurrent timers** - Session keys enable this for admins
 
 ---
 
 ## Summary
 
-The main value for free logged-in users is **session history** and **custom activities**.
+The main value for free logged-in users is **session history** and **multiple activities**
+
+The main value for Pro users is **session keys/URLs**, **multiple concurrent timers**, and **multiple activities**.
