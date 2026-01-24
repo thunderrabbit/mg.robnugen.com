@@ -60,6 +60,12 @@ if (preg_match('#^/mg/([a-zA-Z0-9_-]{11})(?:\?.*)?$#', $uri, $matches)) {
 		</label>
 		<!-- Shown when 0-1 activities available -->
 		<label id="activity_text_wrapper">Activity: <span id="activity_text"></span></label>
+		<!-- Add new activity input (shown when "Add new..." selected) -->
+		<div id="add_activity_wrapper" style="display:none;">
+			<input type="text" id="new_activity_name" placeholder="Activity name" maxlength="64" />
+			<button id="save_new_activity" type="button">Save</button>
+			<button id="cancel_new_activity" type="button">Cancel</button>
+		</div>
 	</div>
 	<div class="clock-wrapper">
 		<div class="clock"></div>
