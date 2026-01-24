@@ -1,5 +1,21 @@
 # Adding user_id to Activities Table
 
+## Implementation Status
+
+| Section | Status |
+|---------|--------|
+| 1. Database Schema | DONE |
+| 2. Access Control Logic | DONE |
+| 3. Code Changes (Activity.php) | DONE |
+| 4. API: create-activity.php | DONE |
+| 5. Migration Script | DONE |
+| UI: Add activity on timer page | DONE |
+| Phase 2: Activity Management UI | NOT DONE |
+| Phase 3: Activity Sharing | NOT DONE |
+| Phase 4: Activity Analytics | NOT DONE |
+
+---
+
 ## Problem Statement
 
 Currently, the `activities` table contains only system-defined activities (Meditation, Sleeping, Networking, etc.). We need to enable users to create their own custom activities while maintaining access to the default system activities.
@@ -18,7 +34,7 @@ Currently, the `activities` table contains only system-defined activities (Medit
 
 ## Proposed Changes
 
-### 1. Database Schema
+### 1. Database Schema - DONE
 
 #### Modify `activities` table
 
@@ -62,7 +78,7 @@ CREATE TABLE activities (
 
 ---
 
-### 2. Access Control Logic
+### 2. Access Control Logic - DONE
 
 #### Activity Visibility Rules
 
@@ -115,7 +131,7 @@ ORDER BY user_id IS NULL DESC, user_id, activity_name;
 
 ---
 
-### 3. Code Changes
+### 3. Code Changes - DONE
 
 #### Update `Activity.php` class
 
@@ -243,7 +259,7 @@ $activities = $activityHelper->getActivitiesForUser($user_id, $is_admin, $is_pro
 
 ---
 
-### 4. New API Endpoint: Create Custom Activity
+### 4. New API Endpoint: Create Custom Activity - DONE
 
 Create new file: `wwwroot/api/create-activity.php`
 
@@ -307,9 +323,9 @@ try {
 
 ---
 
-### 5. Migration Script
+### 5. Migration Script - DONE
 
-Create new file: `db_schemas/02_activity_tracking/migrations/001_add_user_id_to_activities.sql`
+Created: `db_schemas/02_activity_tracking/alter_activities_add_user_id.sql`
 
 ```sql
 -- Migration: Add user_id to activities table
@@ -423,30 +439,30 @@ curl -X GET https://mg.robnugen.com/api/list-activities.php \
 
 ### 3. Edge Cases
 
-- [ ] Attempt to create activity with duplicate name (should fail)
-- [ ] Attempt to create activity with empty name (should fail)
-- [ ] Attempt to create activity with name > 64 chars (should fail)
-- [ ] Delete user and verify their custom activities are cascade-deleted
-- [ ] Verify system activities (user_id=NULL) cannot be deleted by users
+- [x] Attempt to create activity with duplicate name (should fail) - HANDLED in createUserActivity()
+- [x] Attempt to create activity with empty name (should fail) - HANDLED in createUserActivity()
+- [x] Attempt to create activity with name > 64 chars (should fail) - HANDLED in createUserActivity() + HTML maxlength
+- [x] Delete user and verify their custom activities are cascade-deleted - HANDLED via FK constraint
+- [x] Verify system activities (user_id=NULL) cannot be deleted by users - HANDLED (users only see/modify their own)
 
 ---
 
-## Future Enhancements
+## Future Enhancements - NOT DONE
 
-### Phase 2: Activity Management UI
+### Phase 2: Activity Management UI - NOT DONE
 
 - **List custom activities**: Show user's custom activities with edit/delete options
 - **Edit activity**: Update name/description
 - **Delete activity**: Soft delete (set `is_active = 0`) or hard delete
 - **Activity icons**: Allow users to choose icons for their activities
 
-### Phase 3: Activity Sharing
+### Phase 3: Activity Sharing - NOT DONE
 
 - **Public activities**: Users can mark activities as public for others to copy
 - **Activity templates**: Curated list of popular user-created activities
 - **Import activity**: Copy another user's public activity to your account
 
-### Phase 4: Activity Analytics
+### Phase 4: Activity Analytics - NOT DONE
 
 - **Most used activities**: Show which custom activities are most tracked
 - **Activity streaks**: Track consecutive days using specific activities
