@@ -28,22 +28,22 @@ class Activity {
             ");
             $stmt->execute();
         } elseif ($is_pro) {
-            // Pro users see all system activities + their own custom activities
+            // Pro users see FREE + PUBLIC activities + their own PRIVATE activities
             $stmt = $this->pdo->prepare("
                 SELECT activity_id, activity_name, description, user_id
                 FROM activities
                 WHERE is_active = 1
-                  AND (user_id IS NULL OR user_id = ?)
+                  AND (type IN ('FREE', 'PUBLIC') OR (type = 'PRIVATE' AND user_id = ?))
                 ORDER BY user_id IS NULL DESC, activity_name
             ");
             $stmt->execute([$user_id]);
         } else {
-            // Free users see only free system activities + their own custom activities
+            // Free users see only FREE activities + their own PRIVATE activities
             $stmt = $this->pdo->prepare("
                 SELECT activity_id, activity_name, description, user_id
                 FROM activities
                 WHERE is_active = 1
-                  AND ((user_id IS NULL AND is_pro = 0) OR user_id = ?)
+                  AND (type = 'FREE' OR (type = 'PRIVATE' AND user_id = ?))
                 ORDER BY user_id IS NULL DESC, activity_name
             ");
             $stmt->execute([$user_id]);
@@ -77,10 +77,10 @@ class Activity {
             return false;
         }
 
-        // Insert new activity
+        // Insert new activity (user-created activities are PRIVATE by default)
         $stmt = $this->pdo->prepare("
-            INSERT INTO activities (user_id, activity_name, description, is_pro, is_active)
-            VALUES (?, ?, ?, 1, 1)
+            INSERT INTO activities (user_id, activity_name, description, type, is_active)
+            VALUES (?, ?, ?, 'PRIVATE', 1)
         ");
 
         if ($stmt->execute([$user_id, $activity_name, $description])) {
