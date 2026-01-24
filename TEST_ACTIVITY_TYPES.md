@@ -40,9 +40,9 @@ Base URL: https://mg.robnugen.com/
 
 **Expected Result:**
 - "Meditation" should be visible (FREE type)
-- PUBLIC activities should be visible: Sleeping, Networking, Work, Physical activity, Creativity, Minecraft
+- PUBLIC activities should be visible: Sleeping, Work, Physical activity, Creativity
 - "Add new activity" option should NOT be available (cannot create PRIVATE activities)
-- No PRIVATE activities visible (e.g., "Hard mode" if it's PRIVATE)
+- No PRIVATE activities visible (e.g., "Hard mode")
 
 **Test activity history:**
 1. Start a Meditation timer
@@ -84,7 +84,7 @@ Base URL: https://mg.robnugen.com/
 
 **Expected Result:**
 - "Meditation" visible (FREE type)
-- All PUBLIC activities visible: Sleeping, Networking, Work, Physical activity, Creativity, Minecraft
+- All PUBLIC activities visible: Sleeping, Work, Physical activity, Creativity
 - "Add new activity" option IS available
 - Can see their own PRIVATE activities (custom created)
 - Each activity timer gets a session_code (enabling stacking)
