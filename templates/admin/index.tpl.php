@@ -10,11 +10,6 @@ if ($has_pending_migrations) {
     }
 ?>
 
-<div class="PagePanel">
-    <h3>Database Tools</h3>
-    <a href="/phpmyadmin-login.php" target="_blank">Open PHPMyAdmin</a>
-</div>
-
 <div class="fix">
     <p>Sentimental version: <?= $site_version ?></p>
 </div>
