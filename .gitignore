@@ -5,3 +5,4 @@ classes/Config.php
 wwwroot/.dh-diag
 wwwroot/favicon.*
 *.code-workspace
+php*
