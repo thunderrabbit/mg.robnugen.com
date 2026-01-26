@@ -13,12 +13,38 @@ header('Content-Type: application/json');
 
 // Check if user is logged in
 if (!$is_logged_in->isLoggedIn()) {
-    // Return only Meditation for anonymous users
-    echo json_encode([
-        'activities' => [
-            ['activity_id' => 1, 'activity_name' => 'Meditation']
-        ]
-    ]);
+    // Return all FREE activities for anonymous users
+    try {
+        $pdo = \Database\Base::getPDO($config);
+        $stmt = $pdo->prepare("
+            SELECT activity_id, activity_name, description
+            FROM activities
+            WHERE is_active = 1 AND type = 'FREE'
+            ORDER BY activity_name
+        ");
+        $stmt->execute();
+        $activities = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        // If no FREE activities found, default to Meditation
+        if (empty($activities)) {
+            $activities = [
+                ['activity_id' => 1, 'activity_name' => 'Meditation']
+            ];
+        }
+
+        echo json_encode([
+            'activities' => $activities,
+            'can_create_activities' => false  // Anonymous users cannot create activities
+        ]);
+    } catch (\Exception $e) {
+        // On error, return Meditation as fallback
+        echo json_encode([
+            'activities' => [
+                ['activity_id' => 1, 'activity_name' => 'Meditation']
+            ],
+            'can_create_activities' => false
+        ]);
+    }
     exit;
 }
 
@@ -40,7 +66,8 @@ try {
     }
 
     echo json_encode([
-        'activities' => $activities
+        'activities' => $activities,
+        'can_create_activities' => ($is_admin || $is_pro)  // Only Pro/Admin can create activities
     ]);
 
 } catch (\Exception $e) {
@@ -49,6 +76,7 @@ try {
         'error' => 'Failed to retrieve activities: ' . $e->getMessage(),
         'activities' => [
             ['activity_id' => 1, 'activity_name' => 'Meditation']
-        ]
+        ],
+        'can_create_activities' => false
     ]);
 }

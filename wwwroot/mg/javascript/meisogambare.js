@@ -372,10 +372,12 @@ var loadActivities = function() {
 					$('<option>').val(activity.activity_id).text(activity.activity_name)
 				);
 			});
-			// Add "Add new..." option at the end
-			$('#activity_select').append(
-				$('<option>').val('add_new').text('+ Add new...')
-			);
+			// Only add "Add new..." option if user can create activities (Pro/Admin)
+			if (response.can_create_activities) {
+				$('#activity_select').append(
+					$('<option>').val('add_new').text('+ Add new...')
+				);
+			}
 			$('#activity_text_wrapper').hide();
 			$('#activity_label_select').show();
 			// Set default to first activity
