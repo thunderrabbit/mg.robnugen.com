@@ -110,6 +110,7 @@ Here is how these activities map to the proposed `todos` table:
 | :--- | :--- | :--- | :--- |
 | **Wake Up** | Simple Habit | Daily | `is_timer=0`, `is_counter=0`, `target_count=1` |
 | **Brush Teeth** | Simple Habit | Daily | `is_timer=0`, `is_counter=0`, `target_count=1` |
+| **Block Therapy** | Timed 30 minutes | Daily 8am | `is_timer=1`, `is_counter=0`, `target_count=1`, `target_duration_seconds=1800`, `do_days='Mon,Tue,Wed,Thu'` |
 | **Drink Water** | Counter | Daily (8x) | `is_timer=0`, `is_counter=1`, `target_count=8` |
 | **Take Supplements** | Simple Habit | Daily | `is_timer=0`, `is_counter=0`, `target_count=1` |
 | **Meditate** | Timed + Count | Daily (2x) | `is_timer=1`, `target_count=2`, `activity_id` linked (e.g. 1) |
