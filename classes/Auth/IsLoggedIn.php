@@ -12,36 +12,53 @@ class IsLoggedIn
     private int $who_is_logged_in = 0;
 
     private string $loggedInUsername = 'YUNOset?'; // default value, should be overwritten if user is logged in
+    private string $log_file_path;
+
     public function __construct(
         private \PDO $di_pdo,
         private \Config $di_config,
     ) {
+        // Set log file path to project root (parent of wwwroot)
+        $this->log_file_path = $di_config->app_path . '/auth_log.txt';
+    }
+
+    private function logAuth(string $message): void
+    {
+        $timestamp = date('Y-m-d H:i:s');
+        $log_entry = "[{$timestamp}] {$message}\n";
+        file_put_contents($this->log_file_path, $log_entry, FILE_APPEND);
     }
 
     public function checkLogin(\Mlaphp\Request $mla_request): void
     {
         $found_user_id = 0;
+        $current_ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+
         if(!empty($mla_request->cookie[$this->di_config->cookie_name]))
         {
             $found_user_id = $this->getUserIdForCookieInDatabase(
                 cookie: $mla_request->cookie[$this->di_config->cookie_name],
-                ip_address: $_SERVER['REMOTE_ADDR'] ?? '',
+                ip_address: $current_ip,
                 user_agent: $_SERVER['HTTP_USER_AGENT'] ?? ''
             );
             if(empty($found_user_id))
             {
+                $this->logAuth("user_id: N/A, IP: {$current_ip} - Cookie validation FAILED");
                 $this->killCookie();
                 $this->who_is_logged_in = 0;
             } else {
+                // $this->logAuth("user_id: {$found_user_id}, IP: {$current_ip} - Cookie validation SUCCESS");
                 $this->who_is_logged_in = $found_user_id;
             }
         } elseif(!empty($mla_request->post['username']) && !empty($mla_request->post['pass'])) {
             $found_user_id = $this->checkPHPHashedPassword($mla_request->post['username'], $mla_request->post['pass']);
             if(empty($found_user_id))
             {
+                $this->logAuth("user_id: N/A, IP: {$current_ip} - Password login FAILED (username: {$mla_request->post['username']})");
                 $this->killCookie();        // bad login, so kill any cookie
                 $this->who_is_logged_in = 0;
             } else {
+                $this->logAuth("user_id: {$found_user_id}, IP: {$current_ip} - Password login SUCCESS");
                 $this->setAutoLoginCookie($found_user_id);
                 $this->who_is_logged_in = $found_user_id;
             }
@@ -164,16 +181,36 @@ class IsLoggedIn
     ): int
     {
         $varbinary_ip = \Auth\IPBin::ipToBinary($ip_address);
-        $stmt = $this->di_pdo->prepare("SELECT `user_id` FROM `cookies` WHERE `cookie` = ? AND `ip_address` = ? AND `user_agent_md5` = ? LIMIT 1");
-        $stmt->execute([$cookie, $varbinary_ip, md5($user_agent)]);
+        $stmt = $this->di_pdo->prepare("SELECT `user_id`, `ip_address` FROM `cookies` WHERE `cookie` = ? LIMIT 1");
+        $stmt->execute([$cookie]);
         $result = $stmt->fetchAll();
 
         if(count($result) > 0)
         {
-            return $result[0]['user_id'];
+            $stored_ip = \Auth\IPBin::binaryToIp($result[0]['ip_address']);
+            $user_id = $result[0]['user_id'];
+
+            // Check IP match
+            if($varbinary_ip !== $result[0]['ip_address']) {
+                $this->logAuth("user_id: {$user_id}, IP: {$ip_address} - Cookie IP MISMATCH (stored IP: {$stored_ip})");
+                return 0;
+            }
+
+            // Check user agent match
+            $stmt2 = $this->di_pdo->prepare("SELECT `user_id` FROM `cookies` WHERE `cookie` = ? AND `user_agent_md5` = ? LIMIT 1");
+            $stmt2->execute([$cookie, md5($user_agent)]);
+            $result2 = $stmt2->fetchAll();
+
+            if(count($result2) === 0) {
+                $this->logAuth("user_id: {$user_id}, IP: {$ip_address} - Cookie USER AGENT MISMATCH");
+                return 0;
+            }
+
+            return $user_id;
         }
         else
         {
+            $this->logAuth("user_id: N/A, IP: {$ip_address} - Cookie NOT FOUND in database");
             return 0;
         }
     }
