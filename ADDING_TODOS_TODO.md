@@ -96,6 +96,79 @@ CREATE TABLE todo_logs (
 *   **Streaks**: Validated on fly from `todo_logs` (Strict consecutive).
 *   **Multi-Frequency**: Resets daily. Logic enforced by `date_logged` unique constraint (new row = new count).
 
+---
+
+## User Stories
+
+### "A Day in the Life" (The Easy Case)
+*Scenario: Wake up, brush teeth, drink water 1 of 8, take supplements, meditate 1 of 2 (timed), work (timed), water 2 of 8, enjoy sunshine (timed), water 3 of 8, networking, shower, meditate 2 of 2, sleep (timed).*
+
+### Schema Mapping
+Here is how these activities map to the proposed `todos` table:
+
+| Activity | Type | Config | Schema Mapping (`todos`) |
+| :--- | :--- | :--- | :--- |
+| **Wake Up** | Simple Habit | Daily | `is_timer=0`, `is_counter=0`, `target_count=1` |
+| **Brush Teeth** | Simple Habit | Daily | `is_timer=0`, `is_counter=0`, `target_count=1` |
+| **Drink Water** | Counter | Daily (8x) | `is_timer=0`, `is_counter=1`, `target_count=8` |
+| **Take Supplements** | Simple Habit | Daily | `is_timer=0`, `is_counter=0`, `target_count=1` |
+| **Meditate** | Timed + Count | Daily (2x) | `is_timer=1`, `target_count=2`, `activity_id` linked (e.g. 1) |
+| **Work** | Timed | Daily | `is_timer=1`, `target_duration=X`, `activity_id` linked (e.g. 4) |
+| **Enjoy Sunshine** | Timed | Daily | `is_timer=1`, `activity_id` linked (New activity needed?) |
+| **Networking** | Simple/Timed? | Daily | `is_timer=1`, `activity_id` linked (e.g. 3) |
+| **Shower** | Simple Habit | Daily | `is_timer=0`, `is_counter=0`, `target_count=1` |
+| **Sleep** | Timed | Daily (7h+) | `is_timer=1`, `target_duration=25200` (7h), `activity_id` linked (e.g. 2) |
+
+
+**Note**: Actions like "Drink Water" increment `count_completed` in `todo_logs`. Timed actions update `duration_seconds` in `todo_logs`.
+
+### Data Simulation: End of Day State
+
+Assuming `user_id=1`, `date_logged='2026-01-28'`, and sample `todo_id`s, here is what the database tables would look like after completing the scenario:
+
+**Scenario Recap**:
+1.  Wake up (Habit)
+2.  Brush Teeth (Habit)
+3.  Water (Counter 1/8)
+4.  Supplements (Habit)
+5.  Meditate (Timer 1/2) - 10 min
+6.  Work (Timer) - 4 hours
+7.  Water (Counter 2/8)
+8.  Enjoy Sunshine (Timer) - 15 min
+9.  Water (Counter 3/8)
+10. Networking (Timer) - 30 min
+11. Shower (Habit)
+12. Meditate (Timer 2/2) - 10 min
+13. Sleep (Timer) - 7 hours
+
+#### `activity_kai` (The raw sessions)
+*Note: Only timed events generate these rows.*
+
+| ak_id | activity_id | Name | intended_sec | actual_sec | start_local_dt |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **500** | 1 | Meditate | 600 | 600 | 07:00:00 |
+| **501** | 4 | Work | 14400 | 14400 | 09:00:00 |
+| **502** | 99 | Sunshine | 900 | 900 | 13:00:00 |
+| **503** | 3 | Networking | 1800 | 1800 | 14:00:00 |
+| **504** | 1 | Meditate | 600 | 600 | 20:00:00 |
+| **505** | 2 | Sleep | 25200 | 25200 | 22:00:00 |
+
+#### `todo_logs` (The daily summary)
+*Note: One row per `todo_id` per day. `ak_id` points to the **latest** session.*
+
+| log_id | todo_id | Title         | count | duration | is_completed | ak_id (FK) | Notes |
+| :--- | :--- | :--- | :--- | :--- | :---  | :--- | :--- |
+| **1001** | 101 | Wake Up         | 1     | 0 | **1** | NULL | Done |
+| **1002** | 102 | Brush Teeth     | 1     | 0 | **1** | NULL | Done |
+| **1003** | 103 | Drink Water     | **3** | 0 | **0** | NULL | Not satisfied (Target 8) |
+| **1004** | 104 | Supplements     | 1     | 0 | **1** | NULL | Done |
+| **1005** | 105 | Meditate        | **2** | **1200** | **1** | **504** | Done (2/2). Duration sum of ID 500+504. last ak_id=504. |
+| **1006** | 106 | Work            | 1     | 14400 | **1** | 501 | Done |
+| **1007** | 107 | Sunshine        | 1     | 900 | **1** | 502 | Done |
+| **1008** | 108 | Networking      | 1     | 1800 | **1** | 503 | Done |
+| **1009** | 109 | Shower          | 1     | 0 | **1** | NULL | Done |
+| **1010** | 110 | Sleep           | 1     | 25200 | **1** | 505 | Done |
+
 ## Next Steps
 
 1.  **Draft Migration**: Create the actual `.sql` file for schema migration.
