@@ -22,7 +22,9 @@ CREATE TABLE todos (
     do_days SET('Sun','Mon','Tue','Wed','Thu','Fri','Sat') NULL,
 
     -- For "Monthly Tasks" (e.g. 5th and 25th) use do_dates
-    do_dates VARCHAR(15) NULL,                      -- Comma-separated days of month (e.g. "5,25")
+    do_dates SET('1','2','3','4','5','6','7','8','9','10',
+                 '11','12','13','14','15','16','17','18','19','20',
+                 '21','22','23','24','25','26','27','28','29','30','31') NULL,
 
     -- For One-time items (no recurrence set)
     due_date DATETIME NULL,                         -- Single due date
@@ -35,6 +37,7 @@ CREATE TABLE todos (
     updated_at_utc DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
 
     PRIMARY KEY (todo_id),
+    KEY idx_user_todos (user_id, is_active),
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (activity_id) REFERENCES activities(activity_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

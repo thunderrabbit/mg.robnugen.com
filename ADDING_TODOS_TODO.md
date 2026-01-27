@@ -24,7 +24,7 @@ CREATE TABLE todos (
     is_counter TINYINT(1) NOT NULL DEFAULT 0,       -- Requires counting? (target_count > 1)
 
     -- Integration with Activity System
-    related_activity_id BIGINT UNSIGNED NULL,       -- If set, this todo is completed by doing this activity
+    activity_id BIGINT UNSIGNED NULL,               -- If set, this todo is completed by doing this activity
                                                     -- FK to activities(activity_id)
 
     -- Goals
@@ -36,7 +36,9 @@ CREATE TABLE todos (
     do_days SET('Sun','Mon','Tue','Wed','Thu','Fri','Sat') NULL,
 
     -- For "Monthly Tasks" (e.g. 5th and 25th) use do_dates
-    do_dates VARCHAR(15) NULL,                     -- Comma-separated days of month (e.g. "5,25" or "1,2...31")
+    do_dates SET('1','2','3','4','5','6','7','8','9','10',
+                 '11','12','13','14','15','16','17','18','19','20',
+                 '21','22','23','24','25','26','27','28','29','30','31') NULL,
 
     -- For One-time items (no recurrence set)
     due_date DATETIME NULL,                         -- Single due date
@@ -50,7 +52,7 @@ CREATE TABLE todos (
 
     PRIMARY KEY (todo_id),
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-    FOREIGN KEY (related_activity_id) REFERENCES activities(activity_id) ON DELETE SET NULL
+    FOREIGN KEY (activity_id) REFERENCES activities(activity_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Log table for tracking daily progress, streaks, and history
@@ -88,7 +90,7 @@ CREATE TABLE todo_logs (
 
 ## Resolved Questions
 
-*   **Recurrence**: Implemented `do_days` (SET) and `do_dates` (String) as requested.
+*   **Recurrence**: Implemented `do_days` (SET) and `do_dates` (SET) as requested.
 *   **Timezones**: `todo_logs` captures `completed_at_local` and `timezone`. App logic will rely on browser/client to determine "today".
 *   **Activity Integration**: Uses `related_activity_id`. Logic: When `activity_kai` session finishes, system checks if a Todo exists for that `activity_id` and increments `todo_logs` for "today".
 *   **Streaks**: Validated on fly from `todo_logs` (Strict consecutive).
