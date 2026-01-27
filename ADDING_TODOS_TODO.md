@@ -36,7 +36,7 @@ CREATE TABLE todos (
     do_days SET('Sun','Mon','Tue','Wed','Thu','Fri','Sat') NULL,
 
     -- For "Monthly Tasks" (e.g. 5th and 25th) use do_dates
-    do_dates VARCHAR(255) NULL,                     -- Comma-separated days of month (e.g. "5,25")
+    do_dates VARCHAR(15) NULL,                     -- Comma-separated days of month (e.g. "5,25" or "1,2...31")
 
     -- For One-time items (no recurrence set)
     due_date DATETIME NULL,                         -- Single due date
