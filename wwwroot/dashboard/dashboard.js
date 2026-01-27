@@ -31,6 +31,10 @@ function createTodoWidget(todo) {
 	var isComplete = completedCount >= targetCount;
 
 	var statusClass = isComplete ? 'complete' : 'incomplete';
+	if (isTimer) {
+		statusClass += ' has-timer';
+	}
+
 	var timeDisplay = todo.do_time ? '<span class="todo-time">' + todo.do_time.substring(0, 5) + '</span>' : '';
 
 	var durationDisplay = '';
@@ -131,7 +135,11 @@ function handleTodoCheckbox(checkbox) {
 				// Update UI
 				var $label = $checkbox.closest('.todo-checkbox');
 				if (isChecked) {
-					$label.addClass('checked');
+					$label.addClass('checked just-checked');
+					// Remove animation class after animation completes
+					setTimeout(function() {
+						$label.removeClass('just-checked');
+					}, 300);
 				} else {
 					$label.removeClass('checked');
 				}
