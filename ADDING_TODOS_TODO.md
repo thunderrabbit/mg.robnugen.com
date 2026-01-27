@@ -59,34 +59,35 @@ CREATE TABLE todos (
     FOREIGN KEY (activity_id) REFERENCES activities(activity_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Log table for tracking daily progress, streaks, and history
+-- Log table for tracking each completion instance
 CREATE TABLE todo_logs (
     log_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     todo_id BIGINT UNSIGNED NOT NULL,
     user_id INT UNSIGNED NOT NULL,
+    ak_id BIGINT UNSIGNED NULL,                     -- If set, this todo was completed by this activity_kai
+                                                    -- FK to activity_kai(ak_id)
 
-    -- The "business date" this log applies to (Local Date)
-    date_logged DATE NOT NULL,
+    -- When this instance was completed (local time)
+    date_logged DATETIME NOT NULL,                  -- e.g. '2026-01-28 14:30:00'
 
-    -- Progress tracking
-    count_completed INT UNSIGNED NOT NULL DEFAULT 0,  -- Current count (e.g. 1/2)
-    duration_seconds INT UNSIGNED NOT NULL DEFAULT 0, -- Total duration logged for this day
+    -- Which instance is this today? (1st glass of water, 2nd, etc.)
+    nth TINYINT UNSIGNED NOT NULL DEFAULT 1,
 
-    -- Completion status for this specific day/instance
-    is_completed TINYINT(1) NOT NULL DEFAULT 0,
+    -- Duration for timed todos (NULL for simple checkboxes)
+    duration_seconds INT UNSIGNED NULL,
 
-    -- Completion Context
-    completed_at_local DATETIME NULL,               -- Local time when the LAST action finished it
-    timezone VARCHAR(64) NULL,                      -- e.g. 'Asia/Tokyo' (captured from browser)
+    -- Timezone context (captured from browser)
+    timezone VARCHAR(64) NULL,                      -- e.g. 'Asia/Tokyo'
 
     -- Timestamps
     created_at_utc DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
 
     PRIMARY KEY (log_id),
-    -- Ensure one log entry per todo per day
-    UNIQUE KEY unique_todo_date (todo_id, date_logged),
+    KEY idx_todo_date (todo_id, date_logged),
+    KEY idx_user_date (user_id, date_logged),
     FOREIGN KEY (todo_id) REFERENCES todos(todo_id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (ak_id) REFERENCES activity_kai(ak_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ```
 
@@ -98,7 +99,7 @@ CREATE TABLE todo_logs (
 *   **Timezones**: `todo_logs` captures `completed_at_local` and `timezone`. App logic will rely on browser/client to determine "today".
 *   **Activity Integration**: Uses `activity_id`. Logic: When `activity_kai` session finishes, system checks if a Todo exists for that `activity_id` and increments `todo_logs` for "today".
 *   **Streaks**: Validated on fly from `todo_logs` (Strict consecutive).
-*   **Multi-Frequency**: Resets daily. Logic enforced by `date_logged` unique constraint (new row = new count).
+*   **Multi-Frequency**: Each completion is a separate row with its own `nth` value (1, 2, 3...) and `date_logged` timestamp.
 
 ---
 
@@ -125,7 +126,7 @@ Here is how these activities map to the proposed `todos` table:
 | **Sleep** | Timed | Daily (7h+) | `is_timer=1`, `target_duration=25200` (7h), `activity_id` linked (e.g. 2) |
 
 
-**Note**: Actions like "Drink Water" increment `count_completed` in `todo_logs`. Timed actions update `duration_seconds` in `todo_logs`.
+**Note**: Each completion creates a new row in `todo_logs` with its own `nth` value (1, 2, 3...) and timestamp. Timed actions also store `duration_seconds`.
 
 ### Data Simulation: End of Day State
 
@@ -158,21 +159,24 @@ Assuming `user_id=1`, `date_logged='2026-01-28'`, and sample `todo_id`s, here is
 | **504** | 1 | Meditate | 600 | 600 | 20:00:00 |
 | **505** | 2 | Sleep | 25200 | 25200 | 22:00:00 |
 
-#### `todo_logs` (The daily summary)
-*Note: One row per `todo_id` per day. `ak_id` points to the **latest** session.*
+#### `todo_logs` (Each completion instance)
+*Note: One row per completion. Multi-frequency todos (Water, Meditate) have multiple rows.*
 
-| log_id | todo_id | Title         | count | duration | is_completed | ak_id (FK) | Notes |
-| :--- | :--- | :--- | :--- | :--- | :---  | :--- | :--- |
-| **1001** | 101 | Wake Up         | 1     | 0 | **1** | NULL | Done |
-| **1002** | 102 | Brush Teeth     | 1     | 0 | **1** | NULL | Done |
-| **1003** | 103 | Drink Water     | **3** | 0 | **0** | NULL | Not satisfied (Target 8) |
-| **1004** | 104 | Supplements     | 1     | 0 | **1** | NULL | Done |
-| **1005** | 105 | Meditate        | **2** | **1200** | **1** | **504** | Done (2/2). Duration sum of ID 500+504. last ak_id=504. |
-| **1006** | 106 | Work            | 1     | 14400 | **1** | 501 | Done |
-| **1007** | 107 | Sunshine        | 1     | 900 | **1** | 502 | Done |
-| **1008** | 108 | Networking      | 1     | 1800 | **1** | 503 | Done |
-| **1009** | 109 | Shower          | 1     | 0 | **1** | NULL | Done |
-| **1010** | 110 | Sleep           | 1     | 25200 | **1** | 505 | Done |
+| log_id | todo_id | Title | nth | date_logged | duration | ak_id |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 1001 | 101 | Wake Up | 1 | 06:30 (local datetime) | NULL | NULL |
+| 1002 | 102 | Brush Teeth | 1 | 06:35 (local datetime) | NULL | NULL |
+| 1003 | 103 | Drink Water | 1 | 06:40 (local datetime) | NULL | NULL |
+| 1004 | 104 | Supplements | 1 | 06:45 (local datetime) | NULL | NULL |
+| 1005 | 105 | Meditate | 1 | 07:00 (local datetime) | 600 | 500 |
+| 1006 | 106 | Work | 1 | 09:00 (local datetime) | 14400 | 501 |
+| 1007 | 103 | Drink Water | 2 | 12:00 (local datetime) | NULL | NULL |
+| 1008 | 107 | Sunshine | 1 | 13:00 (local datetime) | 900 | 502 |
+| 1009 | 103 | Drink Water | 3 | 13:30 (local datetime) | NULL | NULL |
+| 1010 | 108 | Networking | 1 | 14:00 (local datetime) | 1800 | 503 |
+| 1011 | 109 | Shower | 1 | 19:30 (local datetime) | NULL | NULL |
+| 1012 | 105 | Meditate | 2 | 20:00 (local datetime) | 600 | 504 |
+| 1013 | 110 | Sleep | 1 | 22:00 (local datetime) | 25200 | 505 |
 
 ## Next Steps
 

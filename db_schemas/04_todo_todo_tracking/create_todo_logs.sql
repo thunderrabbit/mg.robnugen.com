@@ -1,33 +1,30 @@
--- Log table for tracking daily progress, streaks, and history
+-- Log table for tracking each completion instance
 CREATE TABLE todo_logs (
     log_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     todo_id BIGINT UNSIGNED NOT NULL,
     user_id INT UNSIGNED NOT NULL,
-    ak_id BIGINT UNSIGNED NULL,                 -- If set, this todo was completed by this activity_kai
-                                                -- should be set if there is a duration
-                                                -- FK to activity_kai(activity_kai_id)
+    ak_id BIGINT UNSIGNED NULL,                     -- If set, this todo was completed by this activity_kai
+                                                    -- FK to activity_kai(ak_id)
 
-    -- The "business date" this log applies to (Local Date)
-    date_logged DATE NOT NULL,
+    -- When this instance was completed (local time)
+    date_logged DATETIME NOT NULL,                  -- e.g. '2026-01-28 14:30:00'
 
-    -- Progress tracking
-    count_completed INT UNSIGNED NOT NULL DEFAULT 0,  -- Current count (e.g. 1/2)
-    duration_seconds INT UNSIGNED NOT NULL DEFAULT 0, -- Total duration logged for this day
+    -- Which instance is this today? (1st glass of water, 2nd, etc.)
+    nth TINYINT UNSIGNED NOT NULL DEFAULT 1,
 
-    -- Completion status for this specific day/instance
-    is_completed TINYINT(1) NOT NULL DEFAULT 0,
+    -- Duration for timed todos (NULL for simple checkboxes)
+    duration_seconds INT UNSIGNED NULL,
 
-    -- Completion Context
-    completed_at_local DATETIME NULL,               -- Local time when the LAST action finished it
-    timezone VARCHAR(64) NULL,                      -- e.g. 'Asia/Tokyo' (captured from browser)
+    -- Timezone context (captured from browser)
+    timezone VARCHAR(64) NULL,                      -- e.g. 'Asia/Tokyo'
 
     -- Timestamps
     created_at_utc DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
 
     PRIMARY KEY (log_id),
-    -- Ensure one log entry per todo per day
-    UNIQUE KEY unique_todo_date (todo_id, date_logged),
+    KEY idx_todo_date (todo_id, date_logged),
+    KEY idx_user_date (user_id, date_logged),
     FOREIGN KEY (todo_id) REFERENCES todos(todo_id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-    FOREIGN KEY (ak_id) REFERENCES activity_kai(ak_id) ON DELETE CASCADE
+    FOREIGN KEY (ak_id) REFERENCES activity_kai(ak_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
