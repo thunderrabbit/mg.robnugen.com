@@ -6,8 +6,8 @@ Based on your feedback, I have revised the schema to be more flexible and integr
 
 ### Key Changes
 *   **Removed `type` Enum**: Replaced with functional flags and separate scheduling columns.
-*   **Flexible Scheduling**: Added `do_days` (Mon-Sun) and `do_dates` (5th, 25th) to handle complex recurrence simply.
-*   **Activity Integration**: Added `related_activity_id` to link Todo items to `activity_kai` sessions.
+*   **Flexible Scheduling**: Added `do_days` (Mon-Sun), `do_dates` (5th, 25th), and `do_time` (24h format) to handle complex recurrence simply.
+*   **Activity Integration**: Added `activity_id` to link Todo items to `activities` (and indirectly to `activity_kai` sessions).
 *   **Timezones**: `todo_logs` will store `completed_at_local` and the `timezone` string captured at the time of logging.
 *   **Goals**: `target_count` and `target_duration_seconds` can coexist (e.g., "Meditate 10min, 2x per day").
 
@@ -40,6 +40,9 @@ CREATE TABLE todos (
                  '11','12','13','14','15','16','17','18','19','20',
                  '21','22','23','24','25','26','27','28','29','30','31') NULL,
 
+    -- Target time of day (NULL for flexible/multi-frequency items)
+    do_time TIME NULL,                              -- e.g. '08:00:00' for 8am
+
     -- For One-time items (no recurrence set)
     due_date DATETIME NULL,                         -- Single due date
 
@@ -51,6 +54,7 @@ CREATE TABLE todos (
     updated_at_utc DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
 
     PRIMARY KEY (todo_id),
+    KEY idx_user_todos (user_id, is_active),
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (activity_id) REFERENCES activities(activity_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -90,9 +94,9 @@ CREATE TABLE todo_logs (
 
 ## Resolved Questions
 
-*   **Recurrence**: Implemented `do_days` (SET) and `do_dates` (SET) as requested.
+*   **Recurrence**: Implemented `do_days` (SET), `do_dates` (SET), and `do_time` (TIME) for flexible scheduling.
 *   **Timezones**: `todo_logs` captures `completed_at_local` and `timezone`. App logic will rely on browser/client to determine "today".
-*   **Activity Integration**: Uses `related_activity_id`. Logic: When `activity_kai` session finishes, system checks if a Todo exists for that `activity_id` and increments `todo_logs` for "today".
+*   **Activity Integration**: Uses `activity_id`. Logic: When `activity_kai` session finishes, system checks if a Todo exists for that `activity_id` and increments `todo_logs` for "today".
 *   **Streaks**: Validated on fly from `todo_logs` (Strict consecutive).
 *   **Multi-Frequency**: Resets daily. Logic enforced by `date_logged` unique constraint (new row = new count).
 
@@ -110,7 +114,7 @@ Here is how these activities map to the proposed `todos` table:
 | :--- | :--- | :--- | :--- |
 | **Wake Up** | Simple Habit | Daily | `is_timer=0`, `is_counter=0`, `target_count=1` |
 | **Brush Teeth** | Simple Habit | Daily | `is_timer=0`, `is_counter=0`, `target_count=1` |
-| **Block Therapy** | Timed 30 minutes | Daily 8am | `is_timer=1`, `is_counter=0`, `target_count=1`, `target_duration_seconds=1800`, `do_days='Mon,Tue,Wed,Thu'` |
+| **Block Therapy** | Timed 30 minutes | Daily 8am | `is_timer=1`, `is_counter=0`, `target_count=1`, `target_duration_seconds=1800`, `do_days='Mon,Tue,Wed,Thu'`, `do_time='08:00:00'` |
 | **Drink Water** | Counter | Daily (8x) | `is_timer=0`, `is_counter=1`, `target_count=8` |
 | **Take Supplements** | Simple Habit | Daily | `is_timer=0`, `is_counter=0`, `target_count=1` |
 | **Meditate** | Timed + Count | Daily (2x) | `is_timer=1`, `target_count=2`, `activity_id` linked (e.g. 1) |
