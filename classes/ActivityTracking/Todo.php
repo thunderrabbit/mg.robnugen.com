@@ -1,0 +1,196 @@
+<?php
+
+namespace ActivityTracking;
+
+class Todo {
+    private $pdo;
+
+    public function __construct(\PDO $pdo) {
+        $this->pdo = $pdo;
+    }
+
+    /**
+     * Get today's todos for a user, filtered by day of week
+     *
+     * @param int $user_id
+     * @param string $dayOfWeek Day name (Sun, Mon, Tue, Wed, Thu, Fri, Sat)
+     * @return array Array of todos with completion status
+     */
+    public function getTodaysTodos(int $user_id, string $dayOfWeek): array {
+        $stmt = $this->pdo->prepare("
+            SELECT
+                t.todo_id,
+                t.title,
+                t.description,
+                t.is_timer,
+                t.is_counter,
+                t.activity_id,
+                t.target_count,
+                t.target_duration_seconds,
+                t.do_time,
+                a.activity_name
+            FROM todos t
+            LEFT JOIN activities a ON t.activity_id = a.activity_id
+            WHERE t.user_id = ?
+            AND t.is_active = 1
+            AND (
+                t.do_days IS NULL
+                OR FIND_IN_SET(?, t.do_days) > 0
+            )
+            ORDER BY t.do_time ASC, t.title ASC
+        ");
+
+        $stmt->execute([$user_id, $dayOfWeek]);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Get completion count for a todo on a specific date
+     *
+     * @param int $todo_id
+     * @param string $date Date in Y-m-d format
+     * @return int Number of completions today
+     */
+    public function getCompletionCount(int $todo_id, string $date): int {
+        $stmt = $this->pdo->prepare("
+            SELECT COUNT(*) as count
+            FROM todo_logs
+            WHERE todo_id = ?
+            AND DATE(date_logged) = ?
+        ");
+
+        $stmt->execute([$todo_id, $date]);
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return (int)$result['count'];
+    }
+
+    /**
+     * Get all completions for a todo on a specific date
+     *
+     * @param int $todo_id
+     * @param string $date Date in Y-m-d format
+     * @return array Array of completion records
+     */
+    public function getCompletionsForDate(int $todo_id, string $date): array {
+        $stmt = $this->pdo->prepare("
+            SELECT log_id, nth, date_logged, duration_seconds, ak_id
+            FROM todo_logs
+            WHERE todo_id = ?
+            AND DATE(date_logged) = ?
+            ORDER BY nth ASC
+        ");
+
+        $stmt->execute([$todo_id, $date]);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Log a todo completion
+     *
+     * @param int $todo_id
+     * @param int $user_id
+     * @param int $nth Which instance (1, 2, 3...)
+     * @param string $date_logged Local datetime
+     * @param string $timezone Timezone string
+     * @param int|null $duration_seconds Duration for timed todos
+     * @param int|null $ak_id Activity session ID if linked
+     * @return int The new log_id
+     */
+    public function logCompletion(
+        int $todo_id,
+        int $user_id,
+        int $nth,
+        string $date_logged,
+        string $timezone,
+        ?int $duration_seconds = null,
+        ?int $ak_id = null
+    ): int {
+        $stmt = $this->pdo->prepare("
+            INSERT INTO todo_logs (
+                todo_id,
+                user_id,
+                date_logged,
+                nth,
+                duration_seconds,
+                timezone,
+                ak_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        ");
+
+        $stmt->execute([
+            $todo_id,
+            $user_id,
+            $date_logged,
+            $nth,
+            $duration_seconds,
+            $timezone,
+            $ak_id
+        ]);
+
+        return (int)$this->pdo->lastInsertId();
+    }
+
+    /**
+     * Remove a todo completion (uncheck)
+     *
+     * @param int $todo_id
+     * @param int $user_id
+     * @param int $nth Which instance to remove
+     * @param string $date Date in Y-m-d format
+     * @return bool Success
+     */
+    public function removeCompletion(int $todo_id, int $user_id, int $nth, string $date): bool {
+        $stmt = $this->pdo->prepare("
+            DELETE FROM todo_logs
+            WHERE todo_id = ?
+            AND user_id = ?
+            AND nth = ?
+            AND DATE(date_logged) = ?
+        ");
+
+        $stmt->execute([$todo_id, $user_id, $nth, $date]);
+        return $stmt->rowCount() > 0;
+    }
+
+    /**
+     * Verify that a todo belongs to a user
+     *
+     * @param int $todo_id
+     * @param int $user_id
+     * @return bool
+     */
+    public function verifyOwnership(int $todo_id, int $user_id): bool {
+        $stmt = $this->pdo->prepare("
+            SELECT COUNT(*) as count
+            FROM todos
+            WHERE todo_id = ? AND user_id = ?
+        ");
+
+        $stmt->execute([$todo_id, $user_id]);
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        return $result['count'] > 0;
+    }
+
+    /**
+     * Get a single todo by ID
+     *
+     * @param int $todo_id
+     * @return array|null
+     */
+    public function getTodo(int $todo_id): ?array {
+        $stmt = $this->pdo->prepare("
+            SELECT
+                t.*,
+                a.activity_name
+            FROM todos t
+            LEFT JOIN activities a ON t.activity_id = a.activity_id
+            WHERE t.todo_id = ?
+        ");
+
+        $stmt->execute([$todo_id]);
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        return $result ?: null;
+    }
+}

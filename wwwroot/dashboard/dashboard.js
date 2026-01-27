@@ -1,4 +1,179 @@
-// Dashboard JavaScript for Active Sessions
+// Dashboard JavaScript for Active Sessions and Todos
+
+// ===== TODOS SECTION =====
+
+// Create checkbox HTML for a todo
+function createTodoCheckboxes(todo) {
+	var checkboxes = '';
+	var targetCount = parseInt(todo.target_count) || 1;
+	var completedNths = todo.completed_nths || [];
+
+	for (var i = 1; i <= targetCount; i++) {
+		var isChecked = completedNths.indexOf(i) !== -1;
+		var checkedAttr = isChecked ? 'checked' : '';
+		var checkedClass = isChecked ? 'checked' : '';
+		checkboxes += '<label class="todo-checkbox ' + checkedClass + '">' +
+			'<input type="checkbox" ' + checkedAttr + ' data-todo-id="' + todo.todo_id + '" data-nth="' + i + '">' +
+			'<span class="checkbox-mark"></span>' +
+			(targetCount > 1 ? '<span class="nth-label">' + i + '</span>' : '') +
+			'</label>';
+	}
+
+	return checkboxes;
+}
+
+// Create todo widget HTML
+function createTodoWidget(todo) {
+	var isTimer = parseInt(todo.is_timer) === 1;
+	var hasActivityId = todo.activity_id !== null;
+	var targetCount = parseInt(todo.target_count) || 1;
+	var completedCount = parseInt(todo.completed_count) || 0;
+	var isComplete = completedCount >= targetCount;
+
+	var statusClass = isComplete ? 'complete' : 'incomplete';
+	var timeDisplay = todo.do_time ? '<span class="todo-time">' + todo.do_time.substring(0, 5) + '</span>' : '';
+
+	var durationDisplay = '';
+	if (isTimer && todo.target_duration_seconds) {
+		durationDisplay = '<span class="todo-duration">' + formatDuration(parseInt(todo.target_duration_seconds)) + '</span>';
+	}
+
+	var startButton = '';
+	if (isTimer && hasActivityId) {
+		startButton = '<a href="/mg/?activity_id=' + todo.activity_id +
+			(todo.target_duration_seconds ? '&duration=' + todo.target_duration_seconds : '') +
+			'&todo_id=' + todo.todo_id + '" class="btn-start-timer">START</a>';
+	} else if (isTimer) {
+		startButton = '<a href="/mg/?todo_id=' + todo.todo_id +
+			(todo.target_duration_seconds ? '&duration=' + todo.target_duration_seconds : '') +
+			'" class="btn-start-timer">START</a>';
+	}
+
+	var progressText = '';
+	if (targetCount > 1) {
+		progressText = '<span class="todo-progress">' + completedCount + '/' + targetCount + '</span>';
+	}
+
+	var widget = $('<div>', {
+		'class': 'todo-widget ' + statusClass,
+		'data-todo-id': todo.todo_id,
+		'html': '<div class="todo-header">' +
+				timeDisplay +
+				'<span class="todo-title">' + todo.title + '</span>' +
+				durationDisplay +
+				progressText +
+				'</div>' +
+				'<div class="todo-actions">' +
+				'<div class="todo-checkboxes">' + createTodoCheckboxes(todo) + '</div>' +
+				startButton +
+				'</div>'
+	});
+
+	return widget;
+}
+
+// Render todos
+function renderTodos(todos) {
+	var container = $('#todos-container');
+	container.empty();
+
+	if (todos.length === 0) {
+		$('.todos-empty-state').show();
+		return;
+	}
+
+	$('.todos-empty-state').hide();
+
+	todos.forEach(function(todo) {
+		var widget = createTodoWidget(todo);
+		container.append(widget);
+	});
+}
+
+// Load todos from API
+function loadTodos() {
+	var timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+	$.get('/api/todos/list.php?timezone=' + encodeURIComponent(timezone), function(response) {
+		if (response.success) {
+			renderTodos(response.todos);
+		} else {
+			console.error('Failed to load todos:', response.error);
+			$('.todos-empty-state').show();
+		}
+	}).fail(function(xhr) {
+		console.error('API error:', xhr);
+		$('.todos-empty-state').show();
+	});
+}
+
+// Handle todo checkbox toggle
+function handleTodoCheckbox(checkbox) {
+	var $checkbox = $(checkbox);
+	var todoId = $checkbox.data('todo-id');
+	var nth = $checkbox.data('nth');
+	var isChecked = $checkbox.is(':checked');
+	var timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+	var endpoint = isChecked ? '/api/todos/complete.php' : '/api/todos/uncomplete.php';
+
+	$.ajax({
+		url: endpoint,
+		method: 'POST',
+		contentType: 'application/json',
+		data: JSON.stringify({
+			todo_id: todoId,
+			nth: nth,
+			timezone: timezone
+		}),
+		success: function(response) {
+			if (response.success) {
+				// Update UI
+				var $label = $checkbox.closest('.todo-checkbox');
+				if (isChecked) {
+					$label.addClass('checked');
+				} else {
+					$label.removeClass('checked');
+				}
+
+				// Update progress counter
+				var $widget = $checkbox.closest('.todo-widget');
+				var $progress = $widget.find('.todo-progress');
+				if ($progress.length) {
+					var parts = $progress.text().split('/');
+					var current = parseInt(parts[0]);
+					var target = parseInt(parts[1]);
+					var newCount = isChecked ? current + 1 : current - 1;
+					$progress.text(newCount + '/' + target);
+
+					// Update complete/incomplete status
+					if (newCount >= target) {
+						$widget.removeClass('incomplete').addClass('complete');
+					} else {
+						$widget.removeClass('complete').addClass('incomplete');
+					}
+				} else {
+					// Single checkbox todo
+					if (isChecked) {
+						$widget.removeClass('incomplete').addClass('complete');
+					} else {
+						$widget.removeClass('complete').addClass('incomplete');
+					}
+				}
+			} else {
+				// Revert checkbox state
+				$checkbox.prop('checked', !isChecked);
+				alert('Failed to update: ' + (response.error || 'Unknown error'));
+			}
+		},
+		error: function(xhr) {
+			// Revert checkbox state
+			$checkbox.prop('checked', !isChecked);
+			var error = xhr.responseJSON ? xhr.responseJSON.error : 'Failed to update todo';
+			alert(error);
+		}
+	});
+}
 
 // Format seconds into human-readable duration (e.g., "5 minutes", "1h 30m", "2d 5h")
 function formatDuration(seconds) {
@@ -346,6 +521,9 @@ function deleteSession(button) {
 
 // Initialize dashboard on page load
 $(document).ready(function() {
+	// Load todos first (above timers)
+	loadTodos();
+
 	loadActiveSessions();
 	startAutoRefresh();
 
@@ -362,5 +540,10 @@ $(document).ready(function() {
 		e.preventDefault();
 		e.stopPropagation();
 		deleteSession(this);
+	});
+
+	// Handle todo checkbox clicks (delegated for dynamically added elements)
+	$(document).on('change', '.todo-checkbox input[type="checkbox"]', function(e) {
+		handleTodoCheckbox(this);
 	});
 });
