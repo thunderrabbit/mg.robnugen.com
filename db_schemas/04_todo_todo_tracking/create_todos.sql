@@ -41,3 +41,26 @@ CREATE TABLE todos (
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (activity_id) REFERENCES activities(activity_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Sample todos for user_id=1 (based on "A Day in the Life" user story)
+-- activity_id references: 1=Meditation, 2=Sleeping, 3=Networking, 4=Work, 5=Physical activity
+INSERT INTO todos (user_id, title, is_timer, is_counter, activity_id, target_count, target_duration_seconds, do_days) VALUES
+  -- Simple daily habits (checkbox style)
+  (1, 'Wake Up', 0, 0, NULL, 1, NULL, 'Sun,Mon,Tue,Wed,Thu,Fri,Sat'),
+  (1, 'Brush Teeth', 0, 0, NULL, 1, NULL, 'Sun,Mon,Tue,Wed,Thu,Fri,Sat'),
+  (1, 'Take Supplements', 0, 0, NULL, 1, NULL, 'Sun,Mon,Tue,Wed,Thu,Fri,Sat'),
+  (1, 'Shower', 0, 0, NULL, 1, NULL, 'Sun,Mon,Tue,Wed,Thu,Fri,Sat'),
+
+  -- Counter-based habit
+  (1, 'Drink Water', 0, 1, NULL, 8, NULL, 'Sun,Mon,Tue,Wed,Thu,Fri,Sat'),
+
+  -- Timed habit on specific weekdays (30 min = 1800 sec)
+  (1, 'Block Therapy', 1, 0, NULL, 1, 1800, 'Mon,Tue,Wed,Thu'),
+
+  -- Timed + counted habits linked to activities
+  (1, 'Meditate', 1, 0, 1, 2, 600, 'Sun,Mon,Tue,Wed,Thu,Fri,Sat'),  -- 2x daily, 10 min each, activity_id=1 (Meditation)
+  (1, 'Work', 1, 0, 4, 1, NULL, 'Sun,Mon,Tue,Wed,Thu,Fri,Sat'),      -- activity_id=4 (Work), no duration goal
+  (1, 'Enjoy Sunshine', 1, 0, NULL, 1, NULL, 'Sun,Mon,Tue,Wed,Thu,Fri,Sat'),  -- No activity link yet
+  (1, 'Networking', 1, 0, 3, 1, NULL, 'Sun,Mon,Tue,Wed,Thu,Fri,Sat'),  -- activity_id=3 (Networking)
+  (1, 'Sleep', 1, 0, 2, 1, 25200, 'Sun,Mon,Tue,Wed,Thu,Fri,Sat')       -- 7 hours = 25200 sec, activity_id=2 (Sleeping)
+;
