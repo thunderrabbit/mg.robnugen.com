@@ -3,6 +3,9 @@ CREATE TABLE todo_logs (
     log_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     todo_id BIGINT UNSIGNED NOT NULL,
     user_id INT UNSIGNED NOT NULL,
+    ak_id BIGINT UNSIGNED NULL,                 -- If set, this todo was completed by this activity_kai
+                                                -- should be set if there is a duration
+                                                -- FK to activity_kai(activity_kai_id)
 
     -- The "business date" this log applies to (Local Date)
     date_logged DATE NOT NULL,
@@ -25,5 +28,6 @@ CREATE TABLE todo_logs (
     -- Ensure one log entry per todo per day
     UNIQUE KEY unique_todo_date (todo_id, date_logged),
     FOREIGN KEY (todo_id) REFERENCES todos(todo_id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (ak_id) REFERENCES activity_kai(ak_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
