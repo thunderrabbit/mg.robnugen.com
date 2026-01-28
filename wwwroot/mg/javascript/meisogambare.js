@@ -133,7 +133,12 @@ var stopActivitySession = function() {
 
 				// Auto-complete linked todo if present
 				if (currentTodoId && currentAkId) {
+					console.log('Auto-completing todo (line 136):', currentTodoId);
 					autoCompleteTodo(currentTodoId, currentAkId, actualSec);
+				} else {
+					console.log('No todo or ak_id to auto-complete (line 139)');
+					console.log('currentTodoId:', currentTodoId);
+					console.log('currentAkId:', currentAkId);
 				}
 
 				currentAkId = null;
@@ -200,10 +205,15 @@ var countDownFinished = function() {
 	// Auto-complete linked todo when countdown finishes (reached goal time)
 	if (currentTodoId && currentAkId && sessionStartTime) {
 		var intendedSec = parseInt($('#countdown_minutes').val()) * 60;
-		console.log('Countdown finished - auto-completing todo:', currentTodoId);
+		console.log('Countdown finished - line 206 - auto-completing todo:', currentTodoId);
 		autoCompleteTodo(currentTodoId, currentAkId, intendedSec);
 		// Clear todo ID so we don't complete again when Stop is clicked
 		currentTodoId = null;
+	} else {
+		console.log('Countdown finished - line 211 - no todo or ak_id to auto-complete');
+		console.log('currentTodoId:', currentTodoId);
+		console.log('currentAkId:', currentAkId);
+		console.log('sessionStartTime:', sessionStartTime);
 	}
 }
 
