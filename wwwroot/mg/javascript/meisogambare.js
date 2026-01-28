@@ -81,7 +81,11 @@ var startActivitySession = function() {
 				if (response.session_key) {
 					currentSessionKey = response.session_key;
 					console.log('Redirecting to session URL:', response.session_key);
-					window.location.href = '/mg/' + response.session_key;
+					var redirectUrl = '/mg/' + response.session_key;
+					if (currentTodoId) {
+						redirectUrl += '?todo_id=' + currentTodoId;
+					}
+					window.location.href = redirectUrl;
 				}
 			}
 		},
@@ -141,6 +145,7 @@ var stopActivitySession = function() {
 					console.log('currentAkId:', currentAkId);
 				}
 
+				// Don't clear currentTodoId here, wait for countDownFinished or manual stop
 				currentAkId = null;
 				sessionStartTime = null;
 			}
@@ -265,7 +270,9 @@ var applyURLParams = function() {
 	var todoId = getURLParam('todo_id');
 	if (todoId) {
 		currentTodoId = parseInt(todoId);
-		console.log('Todo ID from URL:', currentTodoId);
+		console.log('Todo ID found in URL and set:', currentTodoId);
+	} else {
+		console.log('No todo_id found in URL parameters');
 	}
 
 	// Check for activity_id to pre-select
