@@ -196,6 +196,15 @@ var countDownFinished = function() {
 	document.getElementById("audio-bell").play();
 	revealStopButton();
 	changePageColor(successBGColor);
+
+	// Auto-complete linked todo when countdown finishes (reached goal time)
+	if (currentTodoId && currentAkId && sessionStartTime) {
+		var intendedSec = parseInt($('#countdown_minutes').val()) * 60;
+		console.log('Countdown finished - auto-completing todo:', currentTodoId);
+		autoCompleteTodo(currentTodoId, currentAkId, intendedSec);
+		// Clear todo ID so we don't complete again when Stop is clicked
+		currentTodoId = null;
+	}
 }
 
 var revealStuffs = function() {
