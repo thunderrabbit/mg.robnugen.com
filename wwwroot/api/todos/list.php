@@ -27,9 +27,10 @@ try {
     $now = new \DateTime('now', $tz);
     $dayOfWeek = $now->format('D'); // Sun, Mon, Tue, etc.
     $today = $now->format('Y-m-d');
+    $dayOfMonth = (int)$now->format('j'); // 1-31
 
     $todoHelper = new \ActivityTracking\Todo($pdo);
-    $todos = $todoHelper->getTodaysTodos($user_id, $dayOfWeek);
+    $todos = $todoHelper->getTodaysTodos($user_id, $dayOfWeek, $dayOfMonth, $today);
 
     // Add completion info to each todo and filter out old completed items
     $oneMinuteAgo = (clone $now)->modify('-1 minute');

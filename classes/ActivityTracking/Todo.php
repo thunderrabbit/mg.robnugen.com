@@ -16,7 +16,16 @@ class Todo {
      * @param string $dayOfWeek Day name (Sun, Mon, Tue, Wed, Thu, Fri, Sat)
      * @return array Array of todos with completion status
      */
-    public function getTodaysTodos(int $user_id, string $dayOfWeek): array {
+    /**
+     * Get today's todos for a user, filtered by schedule
+     *
+     * @param int $user_id
+     * @param string $dayOfWeek Day name (Sun, Mon, Tue, Wed, Thu, Fri, Sat)
+     * @param int $dayOfMonth Day of month (1-31)
+     * @param string $todayDate Full date (Y-m-d)
+     * @return array Array of todos with completion status
+     */
+    public function getTodaysTodos(int $user_id, string $dayOfWeek, int $dayOfMonth, string $todayDate): array {
         $stmt = $this->pdo->prepare("
             SELECT
                 t.todo_id,
@@ -34,13 +43,18 @@ class Todo {
             WHERE t.user_id = ?
             AND t.is_active = 1
             AND (
-                t.do_days IS NULL
-                OR FIND_IN_SET(?, t.do_days) > 0
+                (t.do_days IS NOT NULL AND FIND_IN_SET(?, t.do_days) > 0)    -- Weekly match
+                OR
+                (t.do_dates IS NOT NULL AND FIND_IN_SET(?, t.do_dates) > 0)  -- Monthly match
+                OR
+                (t.due_date IS NOT NULL AND DATE(t.due_date) = ?)            -- Specific Due Date
+                OR
+                (t.do_days IS NULL AND t.do_dates IS NULL AND t.due_date IS NULL) -- Unscheduled / Anytime
             )
             ORDER BY t.do_time ASC, t.title ASC
         ");
 
-        $stmt->execute([$user_id, $dayOfWeek]);
+        $stmt->execute([$user_id, $dayOfWeek, $dayOfMonth, $todayDate]);
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
