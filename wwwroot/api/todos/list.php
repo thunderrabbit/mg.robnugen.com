@@ -104,6 +104,27 @@ try {
         $filteredTodos[] = $todo;
     }
 
+    // Sort todos by adjusted time to keep chronological order
+    usort($filteredTodos, function($a, $b) {
+        $timeA = $a['do_time'] ?? null;
+        $timeB = $b['do_time'] ?? null;
+
+        // Handle NULLs (flexible items) - match MySQL NULLs first behavior?
+        // Actually, if we want them to show up where they fit, fine.
+        // But usually NULL do_time means "any time", so maybe first is good or last?
+        // MySQL ASC puts NULLs first. Let's stick to that.
+        if ($timeA === $timeB) {
+            // Secondary sort by title
+            return strcasecmp($a['title'], $b['title']);
+        }
+
+        // If one is null, it comes first (MySQL behavior)
+        if ($timeA === null) return -1;
+        if ($timeB === null) return 1;
+
+        return strcmp($timeA, $timeB);
+    });
+
     echo json_encode([
         'success' => true,
         'todos' => $filteredTodos,
