@@ -97,6 +97,7 @@ try {
 
                 // Update the exposed do_time
                 $todo['do_time'] = $adjustedTime->format('H:i:s');
+                $todo['interval_seconds'] = $interval;
             }
         }
         // --------------------------------------

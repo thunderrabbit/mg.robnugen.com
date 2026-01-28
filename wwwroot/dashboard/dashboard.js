@@ -29,6 +29,7 @@ function createTodoWidget(todo) {
 	var targetCount = parseInt(todo.target_count) || 1;
 	var completedCount = parseInt(todo.completed_count) || 0;
 	var isComplete = completedCount >= targetCount;
+	var intervalSeconds = todo.interval_seconds || 0;
 
 	var statusClass = isComplete ? 'complete' : 'incomplete';
 	if (isTimer) {
@@ -61,6 +62,7 @@ function createTodoWidget(todo) {
 	var widget = $('<div>', {
 		'class': 'todo-widget ' + statusClass,
 		'data-todo-id': todo.todo_id,
+		'data-interval': intervalSeconds,
 		'html': '<div class="todo-header">' +
 				timeDisplay +
 				'<span class="todo-title">' + todo.title + '</span>' +
@@ -114,10 +116,12 @@ function loadTodos() {
 // Handle todo checkbox toggle
 function handleTodoCheckbox(checkbox) {
 	var $checkbox = $(checkbox);
+	var $widget = $checkbox.closest('.todo-widget');
 	var todoId = $checkbox.data('todo-id');
 	var nth = $checkbox.data('nth');
 	var isChecked = $checkbox.is(':checked');
 	var timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+	var interval = parseFloat($widget.data('interval')) || 0;
 
 	var endpoint = isChecked ? '/api/todos/complete.php' : '/api/todos/uncomplete.php';
 
@@ -145,7 +149,6 @@ function handleTodoCheckbox(checkbox) {
 				}
 
 				// Update progress counter
-				var $widget = $checkbox.closest('.todo-widget');
 				var $progress = $widget.find('.todo-progress');
 				if ($progress.length) {
 					var parts = $progress.text().split('/');
@@ -160,6 +163,30 @@ function handleTodoCheckbox(checkbox) {
 					} else {
 						$widget.removeClass('complete').addClass('incomplete');
 					}
+
+                    // Adjust Start Time (if interval exists)
+                    if (interval > 0) {
+                        var $timeSpan = $widget.find('.todo-time');
+                        if ($timeSpan.length) {
+                            var currentTimeStr = $timeSpan.text(); // HH:MM
+                            var parts = currentTimeStr.split(':');
+                            if (parts.length === 2) {
+                                var date = new Date();
+                                date.setHours(parseInt(parts[0]));
+                                date.setMinutes(parseInt(parts[1]));
+                                date.setSeconds(0);
+
+                                // Add or subtract interval
+                                var change = isChecked ? interval : -interval;
+                                date.setSeconds(date.getSeconds() + change);
+
+                                var newHours = String(date.getHours()).padStart(2, '0');
+                                var newMinutes = String(date.getMinutes()).padStart(2, '0');
+                                $timeSpan.text(newHours + ':' + newMinutes);
+                            }
+                        }
+                    }
+
 				} else {
 					// Single checkbox todo
 					if (isChecked) {
@@ -182,6 +209,7 @@ function handleTodoCheckbox(checkbox) {
 		}
 	});
 }
+
 
 // Format seconds into human-readable duration (e.g., "5 minutes", "1h 30m", "2d 5h")
 function formatDuration(seconds) {
