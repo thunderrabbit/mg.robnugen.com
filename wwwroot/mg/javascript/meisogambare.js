@@ -413,6 +413,8 @@ var loadAndResumeSession = function(sessionKey) {
 			$('.stop').hide();
 			$('.duration-field-wrapper').hide();
 			$('#activity_text_wrapper').hide();
+			$('#post_timer_links').show(reveal_duration);
+
 
 			// Show completion message
 			var bonusMinutes = Math.floor(session.bonus_sec / 60);
