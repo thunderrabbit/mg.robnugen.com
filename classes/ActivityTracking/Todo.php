@@ -193,4 +193,62 @@ class Todo {
 
         return $result ?: null;
     }
+
+    /**
+     * Create a new todo item
+
+     *
+     * @param array $data Todo data
+     * @return int|false New todo ID or false on failure
+     */
+    public function createTodo(array $data) {
+        // Basic validation
+        if (empty($data['user_id']) || empty($data['title'])) {
+            return false;
+        }
+
+        $fields = [
+            'user_id',
+            'title',
+            'description',
+            'is_timer',
+            'is_counter',
+            'target_count',
+            'target_duration_seconds',
+            'do_days',
+            'do_dates',
+            'do_time',
+            'due_date',
+            'activity_id',
+            'is_active'
+        ];
+
+        $columns = [];
+        $placeholders = [];
+        $values = [];
+
+        foreach ($fields as $field) {
+            if (array_key_exists($field, $data)) {
+                $columns[] = $field;
+                $placeholders[] = '?';
+                $values[] = $data[$field];
+            }
+        }
+
+        // Set default is_active to 1 if not provided
+        if (!in_array('is_active', $columns)) {
+            $columns[] = 'is_active';
+            $placeholders[] = '?';
+            $values[] = 1;
+        }
+
+        $sql = "INSERT INTO todos (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")";
+        $stmt = $this->pdo->prepare($sql);
+
+        if ($stmt->execute($values)) {
+            return (int)$this->pdo->lastInsertId();
+        }
+
+        return false;
+    }
 }

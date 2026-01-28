@@ -4,6 +4,7 @@
 	<section class="todos-section">
 		<header class="dashboard-header">
 			<h1>Today's Todos</h1>
+            <a href="/todos/create.php" class="btn-new-timer">+ Create New Todo</a>
 		</header>
 		<div class="todos-grid" id="todos-container">
 			<div class="loading">Loading todos...</div>
