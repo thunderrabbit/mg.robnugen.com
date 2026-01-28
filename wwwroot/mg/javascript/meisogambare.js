@@ -446,6 +446,12 @@ var loadAndResumeSession = function(sessionKey) {
 
 // Load activities from API and populate selector
 var loadActivities = function() {
+	// If a session is active (session key present), don't load activity list
+	// This prevents the dropdown from overwriting the read-only session activity name
+	if (currentSessionKey) {
+		return;
+	}
+
 	// Check if activity_id was provided in URL (before API call)
 	var urlActivityId = getURLParam('activity_id');
 
