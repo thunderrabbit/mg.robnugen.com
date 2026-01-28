@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $newId = $todoHelper->createTodo($data);
             if ($newId) {
                 // Determine redirect message or location
-                header("Location: /dashboard/?msg=todo_created");
+                header("Location: /?msg=todo_created");
                 exit;
             } else {
                 $error = "Failed to create todo.";

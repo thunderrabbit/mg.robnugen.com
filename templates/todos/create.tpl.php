@@ -1,7 +1,7 @@
 <div class="dashboard-container">
     <header class="dashboard-header">
         <h1>Create New Todo</h1>
-        <a href="/dashboard/" class="btn-secondary">Cancel</a>
+        <a href="/" class="btn-secondary">Cancel</a>
     </header>
 
     <div class="card">

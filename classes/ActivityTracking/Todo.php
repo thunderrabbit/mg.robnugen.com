@@ -195,6 +195,28 @@ class Todo {
     }
 
     /**
+     * Get all active todos for a user
+     *
+     * @param int $user_id
+     * @return array
+     */
+    public function getAllTodos(int $user_id): array {
+        $stmt = $this->pdo->prepare("
+            SELECT
+                t.*,
+                a.activity_name
+            FROM todos t
+            LEFT JOIN activities a ON t.activity_id = a.activity_id
+            WHERE t.user_id = ?
+            AND t.is_active = 1
+            ORDER BY t.created_at_utc DESC
+        ");
+
+        $stmt->execute([$user_id]);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    /**
      * Create a new todo item
 
      *
