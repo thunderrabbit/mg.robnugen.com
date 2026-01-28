@@ -54,8 +54,9 @@ INSERT INTO todos (user_id, title, is_timer, is_counter, activity_id, target_cou
   (1, 'Take Supplements', 0, 0, NULL, 1, NULL, 'Sun,Mon,Tue,Wed,Thu,Fri,Sat', NULL),
   (1, 'Shower', 0, 0, NULL, 1, NULL, 'Sun,Mon,Tue,Wed,Thu,Fri,Sat', NULL),
 
-  -- Counter-based habit (multiple times per day, so do_time=NULL)
-  (1, 'Drink Water', 0, 1, NULL, 8, NULL, 'Sun,Mon,Tue,Wed,Thu,Fri,Sat', NULL),
+  -- Counter-based habit (multiple times per day, starting at 7 a.m.)
+  (1, 'Pray', 0, 1, NULL, 11, NULL, 'Sun,Mon,Tue,Wed,Thu,Fri,Sat', '07:00:00'),
+  (1, 'Drink Water', 0, 1, NULL, 8, NULL, 'Sun,Mon,Tue,Wed,Thu,Fri,Sat', '08:00:00'),
 
   -- Timed habit on specific weekdays at 8am (30 min = 1800 sec)
   (1, 'Block Therapy', 1, 0, NULL, 1, 1800, 'Mon,Tue,Wed,Thu', '08:00:00'),
