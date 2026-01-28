@@ -183,6 +183,9 @@ function handleTodoCheckbox(checkbox) {
                                 var newHours = String(date.getHours()).padStart(2, '0');
                                 var newMinutes = String(date.getMinutes()).padStart(2, '0');
                                 $timeSpan.text(newHours + ':' + newMinutes);
+
+                                // Re-sort the list to reflect new time
+                                resortTodos();
                             }
                         }
                     }
@@ -208,6 +211,34 @@ function handleTodoCheckbox(checkbox) {
 			alert(error);
 		}
 	});
+}
+
+// Re-sort todos based on time and title
+function resortTodos() {
+    var $container = $('#todos-container');
+    var $todos = $container.children('.todo-widget');
+
+    $todos.sort(function(a, b) {
+        var timeA = $(a).find('.todo-time').text().trim();
+        var timeB = $(b).find('.todo-time').text().trim();
+        var titleA = $(a).find('.todo-title').text().trim().toLowerCase();
+        var titleB = $(b).find('.todo-title').text().trim().toLowerCase();
+
+        // Empty times come last (or first? consistent with PHP sort which puts NULLs first)
+        // In PHP we did NULLs first.
+        // Let's treat empty string as "null".
+        if (!timeA && !timeB) return titleA.localeCompare(titleB);
+        if (!timeA) return -1;
+        if (!timeB) return 1;
+
+        if (timeA === timeB) {
+            return titleA.localeCompare(titleB);
+        }
+
+        return timeA.localeCompare(timeB);
+    });
+
+    $todos.detach().appendTo($container);
 }
 
 
