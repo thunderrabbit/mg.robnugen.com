@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="/dashboard/dashboard.css">
+<link rel="stylesheet" href="/dashboard/<?= SEMVER ?>/dashboard.css">
 
 <div class="dashboard-container">
 	<section class="todos-section">
