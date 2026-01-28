@@ -59,6 +59,48 @@ try {
             }
         }
 
+        // --- Dynamic Start Time Calculation ---
+        // If this is a recurring item (target_count > 1) with a set start time,
+        // adjust the displayed start time based on completions.
+        if (
+            $targetCount > 1 &&
+            !empty($todo['do_time']) &&
+            $todo['completed_count'] < $targetCount
+        ) {
+            // Deadline is hardcoded to 22:00:00 (10 PM)
+            $deadlineStr = $today . ' 22:00:00';
+            $deadline = new \DateTime($deadlineStr, $tz);
+
+            // Parse original start time
+            $originalTimeStr = $today . ' ' . $todo['do_time'];
+            $originalTime = new \DateTime($originalTimeStr, $tz);
+
+            // Calculate total window in seconds
+            $totalWindow = $deadline->getTimestamp() - $originalTime->getTimestamp();
+
+            // Only proceed if we have a valid positive window
+            if ($totalWindow > 0) {
+                // Interval per item
+                $interval = $totalWindow / $targetCount;
+
+                // Adjust time: Original + (Completed * Interval)
+                $adjustmentSeconds = $todo['completed_count'] * $interval;
+                $adjustedTimeTimestamp = $originalTime->getTimestamp() + $adjustmentSeconds;
+
+                // Ensure we don't go past deadline (though logic validates this)
+                if ($adjustedTimeTimestamp > $deadline->getTimestamp()) {
+                    $adjustedTimeTimestamp = $deadline->getTimestamp();
+                }
+
+                $adjustedTime = new \DateTime('@' . $adjustedTimeTimestamp);
+                $adjustedTime->setTimezone($tz); // timestamp loses timezone
+
+                // Update the exposed do_time
+                $todo['do_time'] = $adjustedTime->format('H:i:s');
+            }
+        }
+        // --------------------------------------
+
         $filteredTodos[] = $todo;
     }
 
