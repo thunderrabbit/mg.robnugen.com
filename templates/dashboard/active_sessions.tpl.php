@@ -27,6 +27,11 @@
 		</div>
 	</section>
 
+    <div class="dashboard-nav">
+        <a href="/todos/history.php" class="nav-arrow" title="View Completed Todos">← Completed</a>
+        <a href="/todos/upcoming.php" class="nav-arrow" title="View Future Todos">Upcoming →</a>
+    </div>
+
 	<header class="dashboard-header">
 		<h1>My Active Sessions</h1>
 		<a href="/mg/" class="btn-new-timer">+ Start New Timer</a>
