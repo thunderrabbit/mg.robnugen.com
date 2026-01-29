@@ -450,8 +450,8 @@ function formatCompletedDate(utcDateString) {
 // Create completed session widget HTML
 function createCompletedSessionWidget(session) {
 	var bonusDisplay;
-	if (session.bonus_sec > 0) {
-		bonusDisplay = '<span class="bonus-positive">+' + formatDuration(session.bonus_sec) + ' bonus</span>';
+	if (session.bonus_sec > 60) {
+		bonusDisplay = '<span class="bonus-positive">inc. ' + formatDuration(session.bonus_sec) + ' bonus</span>';
 	} else if (session.bonus_sec < 0) {
 		bonusDisplay = '<span class="bonus-negative">Stopped early</span>';
 	} else {
