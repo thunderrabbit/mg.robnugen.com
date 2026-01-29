@@ -1,7 +1,7 @@
 <?php
 
-const SENTIMENTAL_VERSION = "BEGIN Delete activity_kai";
-const SEMVER = "1.1.2";
+const SENTIMENTAL_VERSION = "Enhanced todo styling";
+const SEMVER = "0.8.0";
 
 # write errors to screen
 ini_set('display_errors', 1);

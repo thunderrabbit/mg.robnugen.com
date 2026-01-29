@@ -106,7 +106,7 @@
 </head>
 <body>
     <h1>🧘 Meiso Gambare</h1>
-    <p class="subtitle">Your simple meditation timer</p>
+    <p class="subtitle">Your simple meditation timer v.<?= SEMVER ?></p>
 
     <?= $page_content ?>
 

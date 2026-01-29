@@ -4,6 +4,7 @@ var sessionStartTime = null; // Track when session started
 var currentAkId = null; // Track current activity session ID
 var currentActivityId = 1; // Default to Meditation, will be updated when activities load
 var currentSessionKey = null; // Track session key for admin/pro users
+var currentTodoId = null; // Track linked todo for auto-completion
 
 var meisoPrefs = MeisoPreferences();
 var reveal_duration = meisoPrefs.getRevealDuration();
@@ -80,7 +81,11 @@ var startActivitySession = function() {
 				if (response.session_key) {
 					currentSessionKey = response.session_key;
 					console.log('Redirecting to session URL:', response.session_key);
-					window.location.href = '/mg/' + response.session_key;
+					var redirectUrl = '/mg/' + response.session_key;
+					if (currentTodoId) {
+						redirectUrl += '?todo_id=' + currentTodoId;
+					}
+					window.location.href = redirectUrl;
 				}
 			}
 		},
@@ -129,6 +134,18 @@ var stopActivitySession = function() {
 		success: function(response) {
 			if (response.success) {
 				console.log('Activity session stopped successfully');
+
+				// Auto-complete linked todo if present
+				if (currentTodoId && currentAkId) {
+					console.log('Auto-completing todo (line 136):', currentTodoId);
+					autoCompleteTodo(currentTodoId, currentAkId, actualSec);
+				} else {
+					console.log('No todo or ak_id to auto-complete (line 139)');
+					console.log('currentTodoId:', currentTodoId);
+					console.log('currentAkId:', currentAkId);
+				}
+
+				// Don't clear currentTodoId here, wait for countDownFinished or manual stop
 				currentAkId = null;
 				sessionStartTime = null;
 			}
@@ -143,6 +160,33 @@ var stopActivitySession = function() {
 			// Clear session data anyway
 			currentAkId = null;
 			sessionStartTime = null;
+		}
+	});
+}
+
+// Auto-complete a todo when its linked activity session ends
+var autoCompleteTodo = function(todoId, akId, durationSec) {
+	var timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+	$.ajax({
+		url: '/api/todos/complete-with-session.php',
+		method: 'POST',
+		contentType: 'application/json',
+		data: JSON.stringify({
+			todo_id: todoId,
+			ak_id: akId,
+			duration_seconds: durationSec,
+			timezone: timezone
+		}),
+		success: function(response) {
+			if (response.success) {
+				console.log('Todo auto-completed:', todoId);
+			} else {
+				console.log('Failed to auto-complete todo:', response.error);
+			}
+		},
+		error: function(xhr) {
+			console.log('Error auto-completing todo:', xhr.responseJSON);
 		}
 	});
 }
@@ -162,6 +206,20 @@ var countDownFinished = function() {
 	document.getElementById("audio-bell").play();
 	revealStopButton();
 	changePageColor(successBGColor);
+
+	// Auto-complete linked todo when countdown finishes (reached goal time)
+	if (currentTodoId && currentAkId && sessionStartTime) {
+		var intendedSec = parseInt($('#countdown_minutes').val()) * 60;
+		console.log('Countdown finished - line 206 - auto-completing todo:', currentTodoId);
+		autoCompleteTodo(currentTodoId, currentAkId, intendedSec);
+		// Clear todo ID so we don't complete again when Stop is clicked
+		currentTodoId = null;
+	} else {
+		console.log('Countdown finished - line 211 - no todo or ak_id to auto-complete');
+		console.log('currentTodoId:', currentTodoId);
+		console.log('currentAkId:', currentAkId);
+		console.log('sessionStartTime:', sessionStartTime);
+	}
 }
 
 var revealStuffs = function() {
@@ -198,6 +256,41 @@ var getSessionKeyFromURL = function() {
 	var path = window.location.pathname;
 	var match = path.match(/^\/mg\/([a-zA-Z0-9_-]{11})$/);
 	return match ? match[1] : null;
+}
+
+// Get URL query parameter by name
+var getURLParam = function(name) {
+	var urlParams = new URLSearchParams(window.location.search);
+	return urlParams.get(name);
+}
+
+// Apply URL parameters (activity_id, duration, todo_id)
+var applyURLParams = function() {
+	// Check for todo_id (for auto-completion when session ends)
+	var todoId = getURLParam('todo_id');
+	if (todoId) {
+		currentTodoId = parseInt(todoId);
+		console.log('Todo ID found in URL and set:', currentTodoId);
+	} else {
+		console.log('No todo_id found in URL parameters');
+	}
+
+	// Check for activity_id to pre-select
+	var activityId = getURLParam('activity_id');
+	if (activityId) {
+		currentActivityId = parseInt(activityId);
+		console.log('Activity ID from URL:', currentActivityId);
+		// Will be applied after activities load
+	}
+
+	// Check for duration (in seconds)
+	var duration = getURLParam('duration');
+	if (duration) {
+		var durationMinutes = Math.floor(parseInt(duration) / 60);
+		$('#countdown_minutes').val(durationMinutes);
+		clock.setTime(durationMinutes * 60);
+		console.log('Duration from URL:', durationMinutes, 'minutes');
+	}
 }
 
 // Load and resume session from session key
@@ -320,6 +413,8 @@ var loadAndResumeSession = function(sessionKey) {
 			$('.stop').hide();
 			$('.duration-field-wrapper').hide();
 			$('#activity_text_wrapper').hide();
+			$('#post_timer_links').show(reveal_duration);
+
 
 			// Show completion message
 			var bonusMinutes = Math.floor(session.bonus_sec / 60);
@@ -353,6 +448,15 @@ var loadAndResumeSession = function(sessionKey) {
 
 // Load activities from API and populate selector
 var loadActivities = function() {
+	// If a session is active (session key present), don't load activity list
+	// This prevents the dropdown from overwriting the read-only session activity name
+	if (currentSessionKey) {
+		return;
+	}
+
+	// Check if activity_id was provided in URL (before API call)
+	var urlActivityId = getURLParam('activity_id');
+
 	$.get('/api/list-activities.php', function(response) {
 		if (!response.activities || response.activities.length === 0) {
 			// No activities returned (shouldn't happen) - default to Meditation
@@ -382,6 +486,19 @@ var loadActivities = function() {
 			$('#activity_label_select').show();
 			// Set default to first activity
 			currentActivityId = response.activities[0].activity_id;
+
+			// If activity_id was in URL, pre-select it
+			if (urlActivityId) {
+				var activityIdInt = parseInt(urlActivityId);
+				// Check if this activity exists in the list
+				var exists = response.activities.some(function(a) {
+					return a.activity_id === activityIdInt;
+				});
+				if (exists) {
+					currentActivityId = activityIdInt;
+					$('#activity_select').val(activityIdInt);
+				}
+			}
 
 			// Update currentActivityId when dropdown changes
 			$('#activity_select').off('change').on('change', function() {
@@ -478,6 +595,9 @@ $(document).ready(function() {
 	changePageColor(meisoPrefs.getCountingColor());
 	$('#countdown_minutes').val(meisoPrefs.getMeditationTime());
 	clock.setTime(meisoPrefs.getMeditationTime() * 60);
+
+	// Apply URL parameters (may override local storage values)
+	applyURLParams();
 
 	// Load available activities for user
 	loadActivities();

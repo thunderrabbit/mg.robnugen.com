@@ -40,6 +40,17 @@ if (preg_match('#^/mg/([a-zA-Z0-9_-]{11})(?:\?.*)?$#', $uri, $matches)) {
         // Session is public - continue to show public view
     }
 }
+
+// Check for todo_id in URL and verify ownership
+$todo_id = $_GET['todo_id'] ?? null;
+if ($todo_id && $is_logged_in->isLoggedIn()) {
+    $pdo = \Database\Base::getPDO($config); // Ensure PDO is available
+    $todoHelper = new \ActivityTracking\Todo($pdo);
+    if (!$todoHelper->verifyOwnership((int)$todo_id, $is_logged_in->loggedInID())) {
+        header("Location: /mg/?yeah=nah");
+        exit;
+    }
+}
 ?>
 <html>
 <head>

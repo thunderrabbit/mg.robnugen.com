@@ -1,6 +1,19 @@
-<link rel="stylesheet" href="/dashboard/dashboard.css">
+<link rel="stylesheet" href="/dashboard/<?= SEMVER ?>/dashboard.css">
 
 <div class="dashboard-container">
+	<section class="todos-section">
+		<header class="dashboard-header">
+			<h1>Today's Todos</h1>
+            <a href="/todos/create.php" class="btn-new-timer">+ Create New Todo</a>
+		</header>
+		<div class="todos-grid" id="todos-container">
+			<div class="loading">Loading todos...</div>
+		</div>
+		<div class="todos-empty-state" style="display:none;">
+			<p>No todos scheduled for today</p>
+		</div>
+	</section>
+
 	<header class="dashboard-header">
 		<h1>My Active Sessions</h1>
 		<a href="/mg/" class="btn-new-timer">+ Start New Timer</a>
