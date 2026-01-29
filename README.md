@@ -1,10 +1,10 @@
-# Meiso Gambare
+# 🧘 Meiso Gambare
 
 > Helps you focus on what's important for you.
 
 Meiso Gambare is a tool designed to help you build habits and stay focused. It combines a distraction-free timer with activity tracking and todo management to support your personal goals.
 
-## � Features
+## 🚀 Features
 
 - **Focus Timer**: A simple, distraction-free countdown timer for authorized activities.
 - **Activity Tracking**: Log your sessions and track your consistency.
@@ -22,7 +22,7 @@ Licensed under the GNU General Public License v3.0. See the `LICENSE` file for d
 
 ---
 
-## �️ Development & Installation
+## 🛠️ Development & Installation
 
 This project is built on a minimalist custom PHP framework tailored for DreamHost shared hosting.
 
