@@ -287,4 +287,53 @@ class Todo {
 
         return false;
     }
+
+    /**
+     * Update an existing todo
+     *
+     * @param int $todo_id
+     * @param array $data Update data
+     * @return bool Success
+     */
+    public function updateTodo(int $todo_id, array $data): bool {
+        if (empty($data)) {
+            return false;
+        }
+
+        $fields = [
+            'title',
+            'description',
+            'is_timer',
+            'is_counter',
+            'target_count',
+            'target_duration_seconds',
+            'do_days',
+            'do_dates',
+            'do_time',
+            'due_date',
+            'activity_id',
+            'is_active'
+        ];
+
+        $setParts = [];
+        $values = [];
+
+        foreach ($fields as $field) {
+            if (array_key_exists($field, $data)) {
+                $setParts[] = "{$field} = ?";
+                $values[] = $data[$field];
+            }
+        }
+
+        if (empty($setParts)) {
+            return false;
+        }
+
+        $values[] = $todo_id;
+
+        $sql = "UPDATE todos SET " . implode(', ', $setParts) . " WHERE todo_id = ?";
+        $stmt = $this->pdo->prepare($sql);
+
+        return $stmt->execute($values);
+    }
 }

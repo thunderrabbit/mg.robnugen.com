@@ -1,6 +1,19 @@
 <link rel="stylesheet" href="/dashboard/<?= SEMVER ?>/dashboard.css">
 
 <div class="dashboard-container">
+    <?php if (isset($msg)): ?>
+        <?php
+        $msgs = [
+            'todo_created' => 'Todo created successfully.',
+            'todo_updated' => 'Todo updated successfully.'
+        ];
+        $text = $msgs[$msg] ?? 'Action completed.';
+        ?>
+        <div class="alert-success">
+            <?= htmlspecialchars($text) ?>
+        </div>
+    <?php endif; ?>
+
 	<section class="todos-section">
 		<header class="dashboard-header">
 			<h1>Today's Todos</h1>

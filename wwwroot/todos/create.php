@@ -24,6 +24,27 @@ $pdo = \Database\Base::getPDO($config);
 $todoHelper = new \ActivityTracking\Todo($pdo);
 $activityHelper = new \ActivityTracking\Activity($pdo);
 
+// Check for Edit Mode
+$todo_id = isset($_REQUEST['todo_id']) ? (int)$_REQUEST['todo_id'] : null;
+$todo_data = null;
+$page_title = "Create New Todo - Meiso Gambare";
+$btn_text = "Create Todo";
+
+if ($todo_id) {
+    if (!$todoHelper->verifyOwnership($todo_id, $user_id)) {
+        // Not authorized or doesn't exist
+        header("Location: /todos/create.php?err=not_found");
+        exit;
+    }
+    $todo_data = $todoHelper->getTodo($todo_id);
+    if (!$todo_data) {
+         header("Location: /todos/create.php?err=not_found");
+         exit;
+    }
+    $page_title = "Edit Todo - Meiso Gambare";
+    $btn_text = "Update Todo";
+}
+
 // Handle POST Submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title = trim($_POST['title'] ?? '');
@@ -48,6 +69,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Handle Days of Week (Recurrence)
         if (!empty($_POST['do_days']) && is_array($_POST['do_days'])) {
             $data['do_days'] = implode(',', $_POST['do_days']);
+        } else {
+            $data['do_days'] = null; // Explicitly clear if empty
         }
 
         // Handle Dates of Month (Recurrence)
@@ -62,28 +85,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             if (!empty($clean_dates)) {
                 $data['do_dates'] = implode(',', $clean_dates);
+            } else {
+                $data['do_dates'] = null;
             }
+        } else {
+            $data['do_dates'] = null;
         }
 
         // Validation Logic
         if (!empty($data['activity_id']) && empty($data['target_duration_seconds']) && empty($data['is_counter'])) {
-            // If activity is linked, we generally want a duration, but maybe not strictly required if it's just a counter link?
-            // User requirement: "required if there is an activity_id selected"
-            // Let's enforce it if not a counter? Or just enforce duration?
-            // "If there is an activity_id, that implies the todo will take time, and therefore should have a duration."
             if (empty($data['target_duration_seconds'])) {
                 $error = "Duration is required when an activity is selected.";
             }
         }
 
         if (empty($error)) {
-            $newId = $todoHelper->createTodo($data);
-            if ($newId) {
-                // Determine redirect message or location
-                header("Location: /?msg=todo_created");
-                exit;
+            if ($todo_id) {
+                // Update
+                if ($todoHelper->updateTodo($todo_id, $data)) {
+                     header("Location: /?msg=todo_updated");
+                     exit;
+                } else {
+                    $error = "Failed to update todo.";
+                }
             } else {
-                $error = "Failed to create todo.";
+                // Create
+                $newId = $todoHelper->createTodo($data);
+                if ($newId) {
+                    header("Location: /?msg=todo_created");
+                    exit;
+                } else {
+                    $error = "Failed to create todo.";
+                }
             }
         }
     }
@@ -92,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Prepare View
 $page = new \Template($config);
 $page->setTemplate("layout/welcome_base.tpl.php");
-$page->set("page_title", "Create New Todo - Meiso Gambare");
+$page->set("page_title", $page_title);
 
 $inner_page = new \Template($config);
 $inner_page->setTemplate("todos/create.tpl.php");
@@ -100,6 +133,9 @@ $inner_page->setTemplate("todos/create.tpl.php");
 // Pass data to template
 $activities = $activityHelper->getActivitiesForUser($user_id, $is_admin, $is_pro ?? false);
 $inner_page->set("activities", $activities);
+$inner_page->set("todo", $todo_data); // Will be null if creating
+$inner_page->set("is_edit", !!$todo_id);
+$inner_page->set("btn_text", $btn_text);
 
 if (isset($error)) {
     $inner_page->set("error", $error);

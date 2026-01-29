@@ -10,10 +10,10 @@ if($debugLevel > 0) {
     echo "<pre>Debug Level: $debugLevel</pre>";
 }
 
-$uri = $_SERVER['REQUEST_URI'] ?? '/';
+$uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 
 // Check if we're at the root
-if ($uri === '/' || $uri === '') {
+if ($uri === '/' || $uri === '' || $uri === '/index.php') {
     if($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()){
         // Admin users - show dashboard
         $page = new \Template(config: $config);
@@ -23,6 +23,9 @@ if ($uri === '/' || $uri === '') {
         // Get the dashboard content
         $inner_page = new \Template(config: $config);
         $inner_page->setTemplate("dashboard/active_sessions.tpl.php");
+        if (isset($_GET['msg'])) {
+            $inner_page->set("msg", $_GET['msg']);
+        }
         $page->set("page_content", $inner_page->grabTheGoods());
 
         $page->echoToScreen();

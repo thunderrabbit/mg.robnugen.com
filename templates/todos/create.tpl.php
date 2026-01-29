@@ -1,20 +1,23 @@
 <div class="dashboard-container">
     <header class="dashboard-header">
-        <h1>Create New Todo</h1>
+        <h1><?= $is_edit ? 'Edit Todo' : 'Create New Todo' ?></h1>
         <a href="/" class="btn-secondary">Cancel</a>
     </header>
 
     <div class="card">
         <form action="/todos/create.php" method="POST" class="create-todo-form">
+            <?php if ($is_edit): ?>
+                <input type="hidden" name="todo_id" value="<?= $todo['todo_id'] ?>">
+            <?php endif; ?>
 
             <div class="form-group">
                 <label for="title">Title <span class="required">*</span></label>
-                <input type="text" id="title" name="title" required class="form-control" placeholder="e.g., Morning Meditation">
+                <input type="text" id="title" name="title" required class="form-control" placeholder="e.g., Morning Meditation" value="<?= htmlspecialchars($todo['title'] ?? '') ?>">
             </div>
 
             <div class="form-group">
                 <label for="description">Description</label>
-                <textarea id="description" name="description" class="form-control" rows="3" placeholder="Optional details..."></textarea>
+                <textarea id="description" name="description" class="form-control" rows="3" placeholder="Optional details..."><?= htmlspecialchars($todo['description'] ?? '') ?></textarea>
             </div>
 
             <fieldset class="form-section">
@@ -22,11 +25,11 @@
 
                 <div class="checkbox-group">
                     <label>
-                        <input type="checkbox" name="is_timer" id="is_timer" value="1">
+                        <input type="checkbox" name="is_timer" id="is_timer" value="1" <?= (isset($todo) && $todo['is_timer']) ? 'checked' : '' ?>>
                         Is Timer (requires duration)
                     </label>
                     <label>
-                        <input type="checkbox" name="is_counter" id="is_counter" value="1">
+                        <input type="checkbox" name="is_counter" id="is_counter" value="1" <?= (isset($todo) && $todo['is_counter']) ? 'checked' : '' ?>>
                         Is Counter (requires target count)
                     </label>
                 </div>
@@ -34,15 +37,15 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="target_count">Target Count</label>
-                        <input type="number" id="target_count" name="target_count" value="1" min="1" class="form-control">
+                        <input type="number" id="target_count" name="target_count" value="<?= $todo['target_count'] ?? 1 ?>" min="1" class="form-control">
                         <small class="help-text">Default is 1 (checkbox style)</small>
                     </div>
 
                     <div class="form-group">
                         <label for="target_duration_seconds">Target Duration</label>
                         <div class="duration-input-group">
-                            <input type="number" id="target_duration_minutes" class="form-control" placeholder="Minutes">
-                            <input type="hidden" name="target_duration_seconds" id="target_duration_seconds">
+                            <input type="number" id="target_duration_minutes" class="form-control" placeholder="Minutes" value="<?= isset($todo['target_duration_seconds']) ? floor($todo['target_duration_seconds'] / 60) : '' ?>">
+                            <input type="hidden" name="target_duration_seconds" id="target_duration_seconds" value="<?= $todo['target_duration_seconds'] ?? '' ?>">
                         </div>
                         <small class="help-text">Required if 'Is Timer' or Activity selected</small>
                     </div>
@@ -56,7 +59,7 @@
                     <select id="activity_id" name="activity_id" class="form-control">
                         <option value="">-- None --</option>
                         <?php foreach ($activities as $activity): ?>
-                            <option value="<?= $activity['activity_id'] ?>">
+                            <option value="<?= $activity['activity_id'] ?>" <?= (isset($todo) && $todo['activity_id'] == $activity['activity_id']) ? 'selected' : '' ?>>
                                 <?= htmlspecialchars($activity['activity_name']) ?>
                             </option>
                         <?php endforeach; ?>
@@ -74,10 +77,11 @@
                     <div class="days-checkboxes">
                         <?php
                         $days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                        $selected_days = isset($todo['do_days']) ? explode(',', $todo['do_days']) : [];
                         foreach ($days as $day):
                         ?>
                         <label class="checkbox-inline">
-                            <input type="checkbox" name="do_days[]" value="<?= $day ?>"> <?= $day ?>
+                            <input type="checkbox" name="do_days[]" value="<?= $day ?>" <?= in_array($day, $selected_days) ? 'checked' : '' ?>> <?= $day ?>
                         </label>
                         <?php endforeach; ?>
                     </div>
@@ -85,7 +89,7 @@
 
                 <div class="form-group">
                     <label for="do_dates">Dates of Month</label>
-                    <input type="text" id="do_dates" name="do_dates" class="form-control" placeholder="e.g., 1, 15, 30">
+                    <input type="text" id="do_dates" name="do_dates" class="form-control" placeholder="e.g., 1, 15, 30" value="<?= htmlspecialchars($todo['do_dates'] ?? '') ?>">
                     <small class="help-text">Comma-separated dates (1-31)</small>
                 </div>
             </fieldset>
@@ -95,19 +99,19 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="do_time">Preferred Time</label>
-                        <input type="time" id="do_time" name="do_time" class="form-control">
+                        <input type="time" id="do_time" name="do_time" class="form-control" value="<?= $todo['do_time'] ?? '' ?>">
                     </div>
 
                     <div class="form-group">
                         <label for="due_date">Due Date</label>
-                        <input type="date" id="due_date" name="due_date" class="form-control">
+                        <input type="date" id="due_date" name="due_date" class="form-control" value="<?= $todo['due_date'] ?? '' ?>">
                         <small class="help-text">For one-time todos</small>
                     </div>
                 </div>
             </fieldset>
 
             <div class="form-actions">
-                <button type="submit" class="btn-primary">Create Todo</button>
+                <button type="submit" class="btn-primary"><?= $btn_text ?? 'Create Todo' ?></button>
             </div>
         </form>
     </div>

@@ -66,6 +66,7 @@ function createTodoWidget(todo) {
 		'html': '<div class="todo-header">' +
 				timeDisplay +
 				'<span class="todo-title">' + todo.title + '</span>' +
+				'<a href="/todos/create.php?todo_id=' + todo.todo_id + '" class="todo-edit-icon" title="Edit">✎</a>' +
 				durationDisplay +
 				progressText +
 				'</div>' +

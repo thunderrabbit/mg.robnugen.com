@@ -63,8 +63,7 @@
                                 <?= $todo['activity_name'] ? htmlspecialchars($todo['activity_name']) : '-' ?>
                             </td>
                             <td>
-                                <!-- Placeholder for Edit/Delete -->
-                                <button class="btn-sm btn-disabled" disabled>Edit</button>
+                                <a href="/todos/create.php?todo_id=<?= $todo['todo_id'] ?>" class="btn-sm btn-edit">Edit</a>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -117,7 +116,17 @@
         border: 1px solid var(--border-color);
         background: transparent;
         color: var(--text-muted);
+        text-decoration: none;
+        display: inline-block;
+    }
+    .btn-edit:hover {
+        border-color: #3b82f6;
+        color: #3b82f6;
+        background: rgba(59, 130, 246, 0.05);
+    }
+    .btn-disabled {
         cursor: not-allowed;
+        opacity: 0.6;
     }
     .empty-state {
         text-align: center;
