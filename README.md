@@ -42,19 +42,12 @@ This project is built on a minimalist custom PHP framework tailored for DreamHos
 2. **Set your domain's Web Directory in DreamHost panel:**
    - e.g. `/home/dh_user/example.com/wwwroot`
 
-3. **Clone this repo locally** into a working directory.
-
-4. **Configure your deploy script:**
-   - Edit `scp_files_to_dh.sh` to point to your DH username and target path.
-
-5. **Clone this repo server-side** (optional but useful):
+3. **Clone this repo on your server**:
    - Clone to `/home/dh_user/example.com`
    - ⚠️ Be aware of DreamHost system links like `.dh-diag → /dh/web/diag` — **The symlink is owned by `root`**.
 
-6. **Deploy with `scp_files_to_dh.sh`** or manually sync files.
-
-7. **Customize the templates:**
+4. **Customize the templates:**
    - `/templates/layout/admin_base.tpl.php`: Main layout
    - `/templates/admin/index.tpl.php`: Admin dashboard
 
-8. **Visit `/`** to automatically create admin user in the freshly set up MySQL tables.
+5. **Visit `/`** to automatically create admin user in the freshly set up MySQL tables.
