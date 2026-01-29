@@ -619,4 +619,40 @@ $(document).ready(function() {
 			saveNewActivity();
 		}
 	});
+
+    // Polling for session updates
+    var pollInterval = 12000; // 12 seconds
+    var pollTimer = null;
+
+    var pollSessionStatus = function() {
+        if (!currentSessionKey) return;
+
+        // Don't poll if we are just setting up a new activity (no running session yet)
+        // actually we might want to poll if we are waiting for a start on another device
+        // But for now, let's focus on: if I am watching a session, update it.
+
+        $.get('/api/get-session.php?session_key=' + currentSessionKey, function(response) {
+            if (response.success && response.session) {
+                var session = response.session;
+
+                // If the session has finished (actual_sec is set), and we haven't shown it as finished yet
+                if (session.actual_sec !== null && session.actual_sec !== undefined) {
+                    // Check if we already know it's finished?
+                    // The easiest way is to re-use loadAndResumeSession logic or similar.
+                    // But we don't want to cause jitter if it's just ticking along.
+
+                    // If UI is still counting down (clock running), stop it and show completion
+                    if (clock.running) {
+                        console.log('Polling detected completion!');
+                        loadAndResumeSession(currentSessionKey); // refetch and render completion state
+                    }
+                }
+            }
+        });
+    };
+
+    // Start polling if we have a session key
+    if (currentSessionKey) {
+        pollTimer = setInterval(pollSessionStatus, pollInterval);
+    }
 });
