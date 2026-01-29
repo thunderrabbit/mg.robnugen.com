@@ -454,7 +454,10 @@ var loadAndResumeSession = function(sessionKey) {
 		console.error('Failed to load session:', xhr.responseJSON);
 		// Redirect to /mg/ if session load fails
 		if (xhr.status === 404 || xhr.status === 403) {
-			window.location.href = '/mg/';
+            // Only redirect if we are not already at root to avoid loops if root logic is weird
+            if (window.location.pathname !== '/mg/') {
+			    window.location.href = '/mg/';
+            }
 		}
 	});
 }
