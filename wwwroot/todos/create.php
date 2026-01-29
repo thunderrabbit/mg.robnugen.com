@@ -43,6 +43,14 @@ if ($todo_id) {
     }
     $page_title = "Edit Todo - Meiso Gambare";
     $btn_text = "Update Todo";
+
+    // Format dates for HTML5 inputs
+    if (!empty($todo_data['due_date'])) {
+        $todo_data['due_date'] = date('Y-m-d', strtotime($todo_data['due_date']));
+    }
+    if (!empty($todo_data['do_time'])) {
+        $todo_data['do_time'] = date('H:i', strtotime($todo_data['do_time']));
+    }
 }
 
 // Handle POST Submission

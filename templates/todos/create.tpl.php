@@ -99,12 +99,12 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="do_time">Preferred Time</label>
-                        <input type="time" id="do_time" name="do_time" class="form-control" value="<?= $todo['do_time'] ?? '' ?>">
+                        <input type="time" id="do_time" name="do_time" class="form-control" value="<?= htmlspecialchars($todo['do_time'] ?? '') ?>">
                     </div>
 
                     <div class="form-group">
                         <label for="due_date">Due Date</label>
-                        <input type="date" id="due_date" name="due_date" class="form-control" value="<?= $todo['due_date'] ?? '' ?>">
+                        <input type="date" id="due_date" name="due_date" class="form-control" value="<?= htmlspecialchars($todo['due_date'] ?? '') ?>">
                         <small class="help-text">For one-time todos</small>
                     </div>
                 </div>
