@@ -336,4 +336,63 @@ class Todo {
 
         return $stmt->execute($values);
     }
+
+    /**
+     * Get completed todo history with pagination
+     *
+     * @param int $user_id
+     * @param int $limit
+     * @param int $offset
+     * @return array
+     */
+    public function getCompletedHistory(int $user_id, int $limit = 50, int $offset = 0): array {
+        $stmt = $this->pdo->prepare("
+            SELECT
+                tl.*,
+                t.title,
+                t.description,
+                t.is_timer,
+                t.target_duration_seconds
+            FROM todo_logs tl
+            JOIN todos t ON tl.todo_id = t.todo_id
+            WHERE tl.user_id = ?
+            ORDER BY tl.date_logged DESC
+            LIMIT ? OFFSET ?
+        ");
+
+        $stmt->execute([$user_id, $limit, $offset]);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Get upcoming todos (tomorrow and beyond)
+     *
+     * @param int $user_id
+     * @param string $todayDate Y-m-d
+     * @param int $limit
+     * @param int $offset
+     * @return array
+     */
+    public function getUpcomingTodos(int $user_id, string $todayDate, int $limit = 50, int $offset = 0): array {
+        $stmt = $this->pdo->prepare("
+            SELECT
+                t.*,
+                a.activity_name
+            FROM todos t
+            LEFT JOIN activities a ON t.activity_id = a.activity_id
+            WHERE t.user_id = ?
+            AND t.is_active = 1
+            AND (
+                (t.due_date IS NOT NULL AND DATE(t.due_date) > ?)
+                OR
+                (t.do_dates IS NOT NULL AND t.do_dates > ?)
+            )
+            ORDER BY
+                CASE WHEN t.due_date IS NOT NULL THEN t.due_date ELSE t.do_dates END ASC
+            LIMIT ? OFFSET ?
+        ");
+
+        $stmt->execute([$user_id, $todayDate, $todayDate, $limit, $offset]);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
 }
