@@ -320,6 +320,21 @@
 	font-size: 16px;
 }
 
+/* Edit Icon */
+.todo-edit-icon {
+	color: #bdbdbd;
+	text-decoration: none;
+	font-size: 16px;
+	margin-left: 8px;
+	transition: color 0.2s ease;
+	opacity: 0.7;
+}
+
+.todo-edit-icon:hover {
+	color: #2196F3;
+	opacity: 1;
+}
+
 /* Todo Widget */
 .todo-widget {
 	display: flex;
