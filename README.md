@@ -57,7 +57,7 @@ and a clean layout system with optional authentication hooks.
 
 ## 📝 License
 
-No license yet. Use it privately, tweak as needed. Attribution appreciated if it grows into something shared.
+Licensed under the GNU General Public License v3.0. See the `LICENSE` file for details.
 
 ---
 
