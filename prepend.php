@@ -1,7 +1,7 @@
 <?php
 
 const SENTIMENTAL_VERSION = "Allow edit todos";
-const SEMVER = "0.8.2";
+const SEMVER = "0.8.3";
 
 # write errors to screen
 ini_set('display_errors', 1);
