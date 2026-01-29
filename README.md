@@ -1,33 +1,39 @@
-# DreamHost Site Template (MVP Framework)
+# Meiso Gambare
 
-This is a minimalist PHP template framework developed originally for
-db.**MarbleTrack3** and now used as a starter for DreamHost-based sites.
-It includes a simple admin dashboard, a lightweight templating engine,
-and a clean layout system with optional authentication hooks.
+> Helps you focus on what's important for you.
 
----
+Meiso Gambare is a tool designed to help you build habits and stay focused. It combines a distraction-free timer with activity tracking and todo management to support your personal goals.
 
-## 📂 Structure
+## � Features
 
-- `classes/Template.php`: Core rendering engine with support for string-capture (`grabTheGoods()`) and layout nesting.
-- `wwwroot/`: Public-facing files. Place your admin pages here (`/admin/index.php`, etc).
-- `templates/`: Your site’s UI. Includes layout wrappers and specific content templates.
-- `css/styles.css`: Soft blue aesthetic with clean panels and nav bar.
+- **Focus Timer**: A simple, distraction-free countdown timer for authorized activities.
+- **Activity Tracking**: Log your sessions and track your consistency.
+- **Todo Integration**: Link timers to specific tasks to auto-complete them.
+- **Habit Building**: Track streaks and recurrences.
+- **Private & Secure**: User-based authentication and restricted access.
 
 ---
 
-## 🚀 Features
+## 📝 License
 
-- Lightweight custom templating (no Twig, Blade, or Smarty)
-- Admin dashboard scaffold
-- Built-in layout nesting (`grabTheGoods()`)
-- Styled with light blues and page panels
-- Easily set up first (admin) user
-- Uses cookies in DB for logins
+Copyright (C) 2026 Rob Nugen
+
+Licensed under the GNU General Public License v3.0. See the `LICENSE` file for details.
 
 ---
 
-## 🔧 Setup (with DreamHost Deployment)
+## �️ Development & Installation
+
+This project is built on a minimalist custom PHP framework tailored for DreamHost shared hosting.
+
+### 📂 Structure
+
+- `classes/`: Core logic (User, Todo, Timer, Database).
+- `wwwroot/`: Public-facing files (API endpoints, controllers).
+- `templates/`: View layer using a lightweight custom template engine.
+- `css/`: Soft blue aesthetic with clean panels.
+
+### 🔧 Setup (DreamHost Deployment)
 
 1. **Set up a DreamHost new user account:**
    - Clone [thunderrabbit/new-DH-user-account](https://github.com/thunderrabbit/new-DH-user-account)
@@ -46,23 +52,8 @@ and a clean layout system with optional authentication hooks.
 
 6. **Deploy with `scp_files_to_dh.sh`** or manually sync files.
 
-7. Customize the templates:
+7. **Customize the templates:**
    - `/templates/layout/admin_base.tpl.php`: Main layout
    - `/templates/admin/index.tpl.php`: Admin dashboard
-   - `/templates/admin/workers/index.tpl.php`: Example content page
 
-8. Visit `/` to automagically create admin user in the freshly set up TABLEs `users` and `cookies`
-
----
-
-## 📝 License
-
-Copyright (C) 2026 Rob Nugen
-
-Licensed under the GNU General Public License v3.0. See the `LICENSE` file for details.
-
----
-
-## ✨ Origin
-
-Originally created during work on the **MarbleTrack3** stop-motion animation archive (June 2025). Designed for fun and minimal overhead.
+8. **Visit `/`** to automatically create admin user in the freshly set up MySQL tables.
