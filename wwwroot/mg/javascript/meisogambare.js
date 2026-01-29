@@ -404,9 +404,22 @@ var loadAndResumeSession = function(sessionKey) {
 			console.log('Actual time:', session.actual_sec, 'seconds');
 			console.log('Bonus time:', session.bonus_sec, 'seconds');
 
-			// Show final timer state (bonus time)
-			clock.setTime(session.bonus_sec || 0);
-			changePageColor(successBGColor);
+            // Stop the clock immediately if it was running (e.g. from polling)
+            clock.stop();
+
+            if (session.actual_sec >= session.intended_sec) {
+                // Reached goal (bonus time)
+                clock.setCountdown(false);
+                clock.setTime(session.bonus_sec || 0);
+                changePageColor(successBGColor);
+            } else {
+                // Stopped early
+                var remaining = session.intended_sec - session.actual_sec;
+                clock.setCountdown(true);
+                clock.setTime(remaining);
+                // Revert to counting color (or keep it), don't show success green
+                changePageColor(countingColor);
+            }
 
 			// Hide all interactive controls
 			$('.start').hide();
