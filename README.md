@@ -57,6 +57,8 @@ and a clean layout system with optional authentication hooks.
 
 ## 📝 License
 
+Copyright (C) 2026 Rob Nugen
+
 Licensed under the GNU General Public License v3.0. See the `LICENSE` file for details.
 
 ---
