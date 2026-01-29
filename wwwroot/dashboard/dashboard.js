@@ -107,13 +107,16 @@ function renderTodos(todos) {
             handle: '.todo-widget', // or maybe a specific handle? For now, whole widget.
             onEnd: function (evt) {
                 handleTodoDrop(evt);
+            },
+            onChange: function(evt) {
+                updateTodoVisuals(evt);
             }
         });
     }
 }
 
-// Handle Drop Event
-function handleTodoDrop(evt) {
+// Update visuals during drag (on change)
+function updateTodoVisuals(evt) {
     var item = $(evt.item);
     var prev = item.prev('.todo-widget');
     var next = item.next('.todo-widget');
@@ -123,12 +126,24 @@ function handleTodoDrop(evt) {
 
     var newTime = calculateTimeBetween(prevTime, nextTime);
 
-    // Optimistic Update
     if (newTime) {
         item.find('.todo-time').text(newTime);
+        item.addClass('time-updating'); // Optional styling hook
     } else {
-        item.find('.todo-time').empty(); // Handle null/untimed
+        item.find('.todo-time').empty();
+        item.removeClass('time-updating');
     }
+}
+
+// Handle Drop Event (Finalize and Save)
+function handleTodoDrop(evt) {
+    // Reuse visual update logic just to be sure we have the final state
+    updateTodoVisuals(evt);
+
+    var item = $(evt.item);
+    item.removeClass('time-updating'); // Remove temp style
+
+    var newTime = item.find('.todo-time').text().trim() || null;
 
     // Send to Server
     var todoId = item.data('todo-id');
