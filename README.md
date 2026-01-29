@@ -6,10 +6,11 @@ Meiso Gambare is a tool designed to help you build habits and stay focused. It c
 
 ## 🚀 Features
 
-- **Focus Timer**: A simple, distraction-free countdown timer for authorized activities.
+- **Focus Timer**: A simple, distraction-free countdown timer for important activities.
+- **Bonus Time**: Finished timer then counts *up* to see how long you stayed in the zone.
 - **Activity Tracking**: Log your sessions and track your consistency.
 - **Todo Integration**: Link timers to specific tasks to auto-complete them.
-- **Habit Building**: Track streaks and recurrences.
+- **Habit Building**: Track streaks and recurrences. (coming soon?)
 - **Private & Secure**: User-based authentication and restricted access.
 
 ---
