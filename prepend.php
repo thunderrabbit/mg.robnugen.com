@@ -1,7 +1,7 @@
 <?php
 
 const SENTIMENTAL_VERSION = "Enhanced todo styling";
-const SEMVER = "1.2.1";
+const SEMVER = "0.8.0";
 
 # write errors to screen
 ini_set('display_errors', 1);
