@@ -79,6 +79,9 @@ function createTodoWidget(todo) {
 	return widget;
 }
 
+// Initialized Sortable instance
+var sortableInstance;
+
 // Render todos
 function renderTodos(todos) {
 	var container = $('#todos-container');
@@ -95,7 +98,123 @@ function renderTodos(todos) {
 		var widget = createTodoWidget(todo);
 		container.append(widget);
 	});
+
+    // Initialize Sortable
+    if (!sortableInstance) {
+        var el = document.getElementById('todos-container');
+        sortableInstance = Sortable.create(el, {
+            animation: 150,
+            handle: '.todo-widget', // or maybe a specific handle? For now, whole widget.
+            onEnd: function (evt) {
+                handleTodoDrop(evt);
+            },
+            onChange: function(evt) {
+                updateTodoVisuals(evt);
+            }
+        });
+    }
 }
+
+// Update visuals during drag (on change)
+function updateTodoVisuals(evt) {
+    var item = $(evt.item);
+    var prev = item.prev('.todo-widget');
+    var next = item.next('.todo-widget');
+
+    var prevTime = prev.length ? prev.find('.todo-time').text().trim() : null;
+    var nextTime = next.length ? next.find('.todo-time').text().trim() : null;
+
+    var newTime = calculateTimeBetween(prevTime, nextTime);
+
+    if (newTime) {
+        item.find('.todo-time').text(newTime);
+        item.addClass('time-updating'); // Optional styling hook
+    } else {
+        item.find('.todo-time').empty();
+        item.removeClass('time-updating');
+    }
+}
+
+// Handle Drop Event (Finalize and Save)
+function handleTodoDrop(evt) {
+    // Reuse visual update logic just to be sure we have the final state
+    updateTodoVisuals(evt);
+
+    var item = $(evt.item);
+    item.removeClass('time-updating'); // Remove temp style
+
+    var newTime = item.find('.todo-time').text().trim() || null;
+
+    // Send to Server
+    var todoId = item.data('todo-id');
+    updateTodoTime(todoId, newTime, function(success) {
+        if (!success) {
+            // Revert on failure (simple reload/resort or undo DOM move)
+            alert('Failed to save order. Reloading...');
+            loadTodos();
+        } else {
+            // Flash success?
+             item.css('background-color', '#e8f5e9');
+             setTimeout(function() { item.css('background-color', ''); }, 500);
+        }
+    });
+}
+
+// Calculate time between two HH:MM strings
+function calculateTimeBetween(prevStr, nextStr) {
+    // Helper to parse HH:MM to minutes
+    function toMins(str) {
+        if (!str) return null;
+        var p = str.split(':');
+        return parseInt(p[0]) * 60 + parseInt(p[1]);
+    }
+
+    // Helper to format minutes to HH:MM
+    function toStr(mins) {
+        var h = Math.floor(mins / 60);
+        var m = Math.floor(mins % 60);
+        return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+    }
+
+    var prev = toMins(prevStr);
+    var next = toMins(nextStr);
+
+    if (prev === null && next === null) {
+        // Both untimed? Return null (untimed)
+        // Or if dragging into untimed list?
+        return null;
+    }
+
+    // Dragging into start of list
+    if (prev === null) {
+        // Only next exists. Substract 30 mins?
+        // But what if next is 00:15?
+        // Logic: if next is untimed, and prev is null -> untimed.
+        // If next is timed (e.g. 09:00), new is 08:30.
+        if (next !== null) {
+            return toStr(Math.max(0, next - 30));
+        }
+        return null;
+    }
+
+    // Dragging to end of list
+    if (next === null) {
+        // Only prev exists (and is timed). Add 30 mins.
+        return toStr(Math.min(1439, prev + 30));
+    }
+
+    // Between two times
+    // If times are inverted (e.g. 10:00 -> 09:00), just take average?
+    // Sortable allows reordering, but list is usually sorted by time.
+    // Use average.
+    var diff = next - prev;
+    var avg = prev + (diff / 2);
+
+    // Round to nearest minute (floor)
+    return toStr(Math.floor(avg));
+}
+
+// Ensure loadTodos is defined before this or hoist? loadTodos is defined later.
 
 // Load todos from API
 function loadTodos() {
@@ -240,6 +359,31 @@ function resortTodos() {
     });
 
     $todos.detach().appendTo($container);
+}
+
+// Update todo time via API
+function updateTodoTime(todoId, newTime, callback) {
+    $.ajax({
+        url: '/api/todos/update_time.php',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            todo_id: todoId,
+            do_time: newTime
+        }),
+        success: function(response) {
+            if (response.success) {
+                callback(true);
+            } else {
+                console.error('Update failed:', response.error);
+                callback(false);
+            }
+        },
+        error: function(xhr) {
+             console.error('API error:', xhr);
+             callback(false);
+        }
+    });
 }
 
 
