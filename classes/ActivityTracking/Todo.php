@@ -37,6 +37,7 @@ class Todo {
                 t.target_count,
                 t.target_duration_seconds,
                 t.do_time,
+                t.due_date,
                 a.activity_name
             FROM todos t
             LEFT JOIN activities a ON t.activity_id = a.activity_id
@@ -49,12 +50,15 @@ class Todo {
                 OR
                 (t.due_date IS NOT NULL AND DATE(t.due_date) = ?)            -- Specific Due Date
                 OR
+                -- specific date is before today but not 2 weeks old
+                (t.due_date IS NOT NULL AND DATE(t.due_date) < ? AND DATE(t.due_date) > DATE_SUB(?, INTERVAL 2 WEEK))
+                OR
                 (t.do_days IS NULL AND t.do_dates IS NULL AND t.due_date IS NULL) -- Unscheduled / Anytime
             )
             ORDER BY t.do_time ASC, t.title ASC
         ");
 
-        $stmt->execute([$user_id, $dayOfWeek, $dayOfMonth, $todayDate]);
+        $stmt->execute([$user_id, $dayOfWeek, $dayOfMonth, $todayDate, $todayDate, $todayDate]);
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
