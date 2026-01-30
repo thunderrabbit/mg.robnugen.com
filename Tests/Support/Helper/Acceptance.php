@@ -28,7 +28,7 @@ class Acceptance extends \Codeception\Module
      * @param string $message The failure message to display
      * @throws \PHPUnit\Framework\AssertionFailedError
      */
-    public function fail($message = '')
+    public function fail(string $message = ''): never
     {
         Assert::fail($message);
     }
