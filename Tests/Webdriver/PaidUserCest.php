@@ -24,9 +24,10 @@ class PaidUserCest
     public function canCreateActivity(AcceptanceTester $I)
     {
         $I->amOnPage('/mg/');
-        $I->seeElement('#activity_select');
+        // Wait for JavaScript to populate the dropdown
+        $I->waitForElementVisible('#activity_select', 10);
         // Select "Add new..." option to create a new activity
-        $I->selectOption('#activity_select', 'Add new...');
+        $I->selectOption('#activity_select', '+ Add new...');
         $I->waitForElementVisible('#add_activity_wrapper', 5);
         $I->seeElement('#new_activity_name');
         $I->seeElement('#save_new_activity');
