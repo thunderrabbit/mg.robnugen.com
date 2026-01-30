@@ -15,7 +15,7 @@ $uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 // Check if we're at the root
 if ($uri === '/' || $uri === '' || $uri === '/index.php') {
     if($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()){
-        // Admin users - show dashboard
+        // Admin users - show admin dashboard
         $page = new \Template(config: $config);
         $page->setTemplate("layout/welcome_base.tpl.php");
         $page->set("page_title", "Dashboard - Meiso Gambare");
@@ -23,6 +23,24 @@ if ($uri === '/' || $uri === '' || $uri === '/index.php') {
         // Get the dashboard content
         $inner_page = new \Template(config: $config);
         $inner_page->setTemplate("dashboard/active_sessions.tpl.php");
+        $inner_page->set("is_admin", true);
+        if (isset($_GET['msg'])) {
+            $inner_page->set("msg", $_GET['msg']);
+        }
+        $page->set("page_content", $inner_page->grabTheGoods());
+
+        $page->echoToScreen();
+        exit;
+    } else if($is_logged_in->isLoggedIn() && $is_logged_in->isPaid()){
+        // Paid users - show user dashboard (no admin link)
+        $page = new \Template(config: $config);
+        $page->setTemplate("layout/welcome_base.tpl.php");
+        $page->set("page_title", "Dashboard - Meiso Gambare");
+
+        // Get the dashboard content
+        $inner_page = new \Template(config: $config);
+        $inner_page->setTemplate("dashboard/paid_dashboard.tpl.php");
+        $inner_page->set("is_admin", false);
         if (isset($_GET['msg'])) {
             $inner_page->set("msg", $_GET['msg']);
         }
