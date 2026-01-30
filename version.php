@@ -1,4 +1,4 @@
 <?php
 
-const SENTIMENTAL_VERSION = "Add isPaid() and show dashboard to paid users";
-const SEMVER = "0.8.5";
+const SENTIMENTAL_VERSION = "Fix decimal minute parsing for timers";
+const SEMVER = "0.8.6";
