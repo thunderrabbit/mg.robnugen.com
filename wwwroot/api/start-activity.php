@@ -23,6 +23,7 @@ $input = json_decode(file_get_contents('php://input'), true);
 
 // Validate input
 $activity_id = (int)($input['activity_id'] ?? 1); // Default to meditation
+$todo_id = isset($input['todo_id']) ? (int)$input['todo_id'] : null;
 $intended_sec = (int)($input['intended_sec'] ?? 0);
 $timezone_iana = trim($input['timezone_iana'] ?? '');
 $start_local_dt = trim($input['start_local_dt'] ?? '');
@@ -59,6 +60,7 @@ try {
     $ak_id = $activityHelper->startActivity(
         $user_id,
         $activity_id,
+        $todo_id,
         $intended_sec,
         $timezone_id,
         $start_local_dt

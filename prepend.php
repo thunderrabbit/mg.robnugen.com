@@ -1,7 +1,7 @@
 <?php
 
-const SENTIMENTAL_VERSION = "Allow edit todos";
-const SEMVER = "0.8.3";
+const SENTIMENTAL_VERSION = "Finish todos when timer expires";
+const SEMVER = "0.8.30";
 
 # write errors to screen
 ini_set('display_errors', 1);
@@ -70,3 +70,14 @@ if (!empty($errors)) {
 
 $is_logged_in = new \Auth\IsLoggedIn($mla_database, $config);
 $is_logged_in->checkLogin($mla_request);
+
+// Check for and finish expired activity sessions
+if ($is_logged_in->isLoggedIn()) {
+    try {
+        $akHelper = new \ActivityTracking\ActivityKai($mla_database);
+        $akHelper->processExpiredTimers($is_logged_in->loggedInID());
+    } catch (\Exception $e) {
+        // Silently fail to avoid breaking page load, but maybe log it?
+        // error_log("Failed to finish expired sessions: " . $e->getMessage());
+    }
+}

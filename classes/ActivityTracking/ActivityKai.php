@@ -14,6 +14,7 @@ class ActivityKai {
      *
      * @param int $user_id User ID
      * @param int $activity_id Activity type (1=meditation, 2=sleeping)
+     * @param int|null $todo_id nullable linked todo ID
      * @param int $intended_sec Intended duration in seconds
      * @param int $timezone_id Timezone ID from timezones table
      * @param string $start_local_dt Local datetime in format 'Y-m-d H:i:s'
@@ -22,6 +23,7 @@ class ActivityKai {
     public function startActivity(
         int $user_id,
         int $activity_id,
+        ?int $todo_id,
         int $intended_sec,
         int $timezone_id,
         string $start_local_dt
@@ -30,23 +32,103 @@ class ActivityKai {
             INSERT INTO activity_kai (
                 user_id,
                 activity_id,
+                todo_id,
                 start_local_dt,
                 intended_sec,
                 timezone_id,
                 created_at_utc,
                 updated_at_utc
-            ) VALUES (?, ?, ?, ?, ?, NOW(), NOW())
+            ) VALUES (?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP())
         ");
 
         $stmt->execute([
             $user_id,
             $activity_id,
+            $todo_id,
             $start_local_dt,
             $intended_sec,
             $timezone_id
         ]);
 
         return (int)$this->pdo->lastInsertId();
+    }
+
+    /**
+     * Process active sessions with expired timers (auto-complete linked todos)
+     * Does NOT stop the activity session itself.
+     *
+     * @param int $user_id
+     * @return int Number of todos auto-completed
+     */
+    public function processExpiredTimers(int $user_id): int {
+        // Find active sessions that have passed their intended duration
+        // We use a safe buffer of e.g. 5 seconds to avoid race conditions with frontend stop
+        $stmt = $this->pdo->prepare("
+            SELECT ak_id, todo_id, intended_sec, start_local_dt, timezone_id
+            FROM activity_kai
+            WHERE user_id = ?
+            AND actual_sec IS NULL
+            AND todo_id IS NOT NULL
+            AND DATE_ADD(created_at_utc, INTERVAL (intended_sec + 5) SECOND) < UTC_TIMESTAMP()
+        ");
+
+        $stmt->execute([$user_id]);
+        $expiredSessions = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        if (empty($expiredSessions)) {
+            return 0;
+        }
+
+        $count = 0;
+        $todoHelper = new Todo($this->pdo);
+
+        foreach ($expiredSessions as $session) {
+            // Check if already completed to avoid duplicates
+            // We only want ONE todo completion per activity session
+            $checkStmt = $this->pdo->prepare("
+                SELECT 1 FROM todo_logs WHERE ak_id = ?
+            ");
+            $checkStmt->execute([$session['ak_id']]);
+
+            if ($checkStmt->fetchColumn()) {
+                continue; // Already processed
+            }
+
+            // Fetch timezone string
+            $tzStmt = $this->pdo->prepare("SELECT iana_name FROM timezones WHERE timezone_id = ?");
+            $tzStmt->execute([$session['timezone_id']]);
+            $timezone = $tzStmt->fetchColumn() ?: 'UTC';
+
+            // Mark todo as complete
+            $todo_id = (int)$session['todo_id'];
+
+            // Log date calculation
+            $date_logged = date('Y-m-d H:i:s');
+            $today = date('Y-m-d');
+            try {
+                $dt = new \DateTime('now', new \DateTimeZone($timezone));
+                $today = $dt->format('Y-m-d');
+                $date_logged = $dt->format('Y-m-d H:i:s');
+            } catch (\Exception $e) {
+                // Fallback
+            }
+
+            $nth = $todoHelper->getCompletionCount($todo_id, $today) + 1;
+
+            $todoHelper->logCompletion(
+                $todo_id,
+                $user_id,
+                $nth,
+                $date_logged,
+                $timezone,
+                (int)$session['intended_sec'],
+                (int)$session['ak_id']
+            );
+
+            $count++;
+        }
+
+        return $count;
     }
 
     /**
@@ -68,7 +150,7 @@ class ActivityKai {
             UPDATE activity_kai
             SET actual_sec = ?,
                 bonus_sec = ?,
-                updated_at_utc = NOW()
+                updated_at_utc = UTC_TIMESTAMP()
             WHERE ak_id = ?
             AND user_id = ?
         ");
