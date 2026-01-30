@@ -1,7 +1,7 @@
 <?php
 
-const SENTIMENTAL_VERSION = "Allow edit todos";
-const SEMVER = "0.8.3";
+const SENTIMENTAL_VERSION = "Finish todos when timer expires";
+const SEMVER = "0.8.30";
 
 # write errors to screen
 ini_set('display_errors', 1);
