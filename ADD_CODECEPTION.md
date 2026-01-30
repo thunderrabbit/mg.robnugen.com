@@ -104,21 +104,6 @@ Please also check that users CANNOT do things they aren't supposed to.
 
 ## Apparent problems to be resolved with guidance from Rob
 
-### 1. Database has no "pro" or "free" role distinction
-
-**File:** `db_schemas/00_bedrock/create_users.sql`
-
-The `role` column is defined as:
-```sql
-role ENUM('admin', 'user') DEFAULT 'user'
-```
-
-Only two roles exist: `admin` and `user`. There is no `pro` or `free` distinction in the schema.
-
-**Question:** Should we add a `pro` role to the ENUM, or is "pro" vs "free" determined by something else (e.g., a subscription table, a flag column)?
-
----
-
 ### 2. Dashboard access logic only checks for admin
 
 **File:** `wwwroot/index.php:17`
