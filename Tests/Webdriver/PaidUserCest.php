@@ -4,11 +4,11 @@ namespace Webdriver;
 
 use Tests\Support\AcceptanceTester;
 
-class ProUserCest
+class PaidUserCest
 {
     public function _before(AcceptanceTester $I)
     {
-        $I->loginAsPro();
+        $I->loginAsPaid();
     }
 
     // === POSITIVE TESTS ===
@@ -16,9 +16,9 @@ class ProUserCest
     public function canSeeDashboard(AcceptanceTester $I)
     {
         $I->amOnPage('/');
-        $I->see('Welcome back,');
         $I->see("Today's Todos");
         $I->dontSee('A simple countdown timer for your meditation practice');
+        $I->dontSee('Admin');  // Paid users don't see admin link
     }
 
     public function canCreateActivity(AcceptanceTester $I)

@@ -25,8 +25,8 @@ class AcceptanceTester extends \Codeception\Actor
     // Credentials loaded from environment variables
     public $admin_username;
     public $admin_password;
-    public $pro_username;
-    public $pro_password;
+    public $paid_username;
+    public $paid_password;
     public $free_username;
     public $free_password;
 
@@ -35,8 +35,8 @@ class AcceptanceTester extends \Codeception\Actor
         parent::__construct($scenario);
         $this->admin_username = getenv('ADMIN_USER');
         $this->admin_password = getenv('ADMIN_PASS');
-        $this->pro_username = getenv('PRO_USER');
-        $this->pro_password = getenv('PRO_PASS');
+        $this->paid_username = getenv('PAID_USER');
+        $this->paid_password = getenv('PAID_PASS');
         $this->free_username = getenv('FREE_USER');
         $this->free_password = getenv('FREE_PASS');
     }
@@ -50,11 +50,11 @@ class AcceptanceTester extends \Codeception\Actor
     }
 
     /**
-     * Login as pro user
+     * Login as paid user
      */
-    public function loginAsPro()
+    public function loginAsPaid()
     {
-        $this->login($this->pro_username, $this->pro_password);
+        $this->login($this->paid_username, $this->paid_password);
     }
 
     /**

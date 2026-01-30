@@ -27,13 +27,13 @@ class ExampleCest
     }
 
     /**
-     * Example: Pro user can see their dashboard
+     * Example: Paid user can see their dashboard
      */
-    public function proUserCanSeeDashboard(AcceptanceTester $I)
+    public function paidUserCanSeeDashboard(AcceptanceTester $I)
     {
-        $I->loginAsPro();
+        $I->loginAsPaid();
         $I->amOnPage('/');
-        // Add assertions for pro user dashboard content
+        // Add assertions for paid user dashboard content
         // $I->see('Dashboard');
     }
 

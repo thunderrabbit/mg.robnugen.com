@@ -97,7 +97,7 @@ Please also check that users CANNOT do things they aren't supposed to.
 
 5. ~~**Write actual test cases** in `Tests/Webdriver/`~~ ✓ Done - created:
    * `FreeUserCest.php` - timer start/stop, cannot access `/admin/`, sees Welcome Page at `/`
-   * `ProUserCest.php` - create activities, sees Dashboard at `/`, cannot access `/admin/`
+   * `PaidUserCest.php` - create activities, sees Dashboard at `/`, cannot access `/admin/`
    * `AdminUserCest.php` - sees Admin Dashboard at `/`, sees login history, does not see Welcome Page
 
 ---
