@@ -52,11 +52,11 @@ try {
     $pdo = \Database\Base::getPDO($config);
     $user_id = $is_logged_in->loggedInID();
     $is_admin = $is_logged_in->isAdmin();
-    $is_pro = false; // TODO: Implement Pro check via Stripe subscription
+    $is_paid = $is_logged_in->isPaid();
 
     // Get activities based on user role
     $activityHelper = new \ActivityTracking\Activity($pdo);
-    $activities = $activityHelper->getActivitiesForUser($user_id, $is_admin, $is_pro);
+    $activities = $activityHelper->getActivitiesForUser($user_id, $is_admin, $is_paid);
 
     // If no activities found (shouldn't happen), default to Meditation
     if (empty($activities)) {
@@ -67,7 +67,7 @@ try {
 
     echo json_encode([
         'activities' => $activities,
-        'can_create_activities' => ($is_admin || $is_pro)  // Only Pro/Admin can create activities
+        'can_create_activities' => ($is_admin || $is_paid)  // Only Paid/Admin can create activities
     ]);
 
 } catch (\Exception $e) {
