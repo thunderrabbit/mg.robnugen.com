@@ -77,28 +77,28 @@ Please also check that users CANNOT do things they aren't supposed to.
 
 ### TODO
 
-1. **Create test users on the site** with the credentials above and appropriate roles
+1. ~~**Create test users on the site** with the credentials above and appropriate roles~~ ✓ Done
 
-2. **Install Codeception:**
+2. ~~**Install Codeception:**~~ ✓ Done
    ```bash
    composer install
    vendor/bin/codecept build
    ```
 
-3. **Start Selenium server** (required for WebDriver tests):
+3. **Start Selenium server** (required for WebDriver tests - run each session):
    ```bash
    xvfb-run java -Dwebdriver.chrome.driver=/usr/bin/chromedriver -jar /usr/local/bin/selenium-server-*.jar standalone
    ```
 
-4. **Run tests:**
+4. ~~**Run tests:**~~ ✓ Done (tests run, some failing due to code issues)
    ```bash
    ./run_tests.sh
    ```
 
-5. **Write actual test cases** in `Tests/Webdriver/` for:
-   * Free user: timer start/stop, cannot access `/admin/`, sees Welcome Page at `/`
-   * Pro user: create activities, sees Dashboard at `/`, cannot access `/admin/`
-   * Admin user: sees Admin Dashboard at `/`, sees login history, does not see Welcome Page
+5. ~~**Write actual test cases** in `Tests/Webdriver/`~~ ✓ Done - created:
+   * `FreeUserCest.php` - timer start/stop, cannot access `/admin/`, sees Welcome Page at `/`
+   * `ProUserCest.php` - create activities, sees Dashboard at `/`, cannot access `/admin/`
+   * `AdminUserCest.php` - sees Admin Dashboard at `/`, sees login history, does not see Welcome Page
 
 ---
 
