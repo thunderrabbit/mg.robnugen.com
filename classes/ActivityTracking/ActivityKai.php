@@ -54,6 +54,84 @@ class ActivityKai {
     }
 
     /**
+     * Process active sessions with expired timers (auto-complete linked todos)
+     * Does NOT stop the activity session itself.
+     *
+     * @param int $user_id
+     * @return int Number of todos auto-completed
+     */
+    public function processExpiredTimers(int $user_id): int {
+        // Find active sessions that have passed their intended duration
+        // We use a safe buffer of e.g. 1 minute to avoid race conditions with frontend stop
+        $stmt = $this->pdo->prepare("
+            SELECT ak_id, todo_id, intended_sec, start_local_dt, timezone_id
+            FROM activity_kai
+            WHERE user_id = ?
+            AND actual_sec IS NULL
+            AND todo_id IS NOT NULL
+            AND DATE_ADD(start_local_dt, INTERVAL (intended_sec + 60) SECOND) < NOW()
+        ");
+
+        $stmt->execute([$user_id]);
+        $expiredSessions = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        if (empty($expiredSessions)) {
+            return 0;
+        }
+
+        $count = 0;
+        $todoHelper = new Todo($this->pdo);
+
+        foreach ($expiredSessions as $session) {
+            // Check if already completed to avoid duplicates
+            // We only want ONE todo completion per activity session
+            $checkStmt = $this->pdo->prepare("
+                SELECT 1 FROM todo_logs WHERE ak_id = ?
+            ");
+            $checkStmt->execute([$session['ak_id']]);
+
+            if ($checkStmt->fetchColumn()) {
+                continue; // Already processed
+            }
+
+            // Fetch timezone string
+            $tzStmt = $this->pdo->prepare("SELECT iana_name FROM timezones WHERE timezone_id = ?");
+            $tzStmt->execute([$session['timezone_id']]);
+            $timezone = $tzStmt->fetchColumn() ?: 'UTC';
+
+            // Mark todo as complete
+            $todo_id = (int)$session['todo_id'];
+
+            // Log date calculation
+            $date_logged = date('Y-m-d H:i:s');
+            $today = date('Y-m-d');
+            try {
+                $dt = new \DateTime('now', new \DateTimeZone($timezone));
+                $today = $dt->format('Y-m-d');
+                $date_logged = $dt->format('Y-m-d H:i:s');
+            } catch (\Exception $e) {
+                // Fallback
+            }
+
+            $nth = $todoHelper->getCompletionCount($todo_id, $today) + 1;
+
+            $todoHelper->logCompletion(
+                $todo_id,
+                $user_id,
+                $nth,
+                $date_logged,
+                $timezone,
+                (int)$session['intended_sec'],
+                (int)$session['ak_id']
+            );
+
+            $count++;
+        }
+
+        return $count;
+    }
+
+    /**
      * Stop an activity session
      *
      * @param int $ak_id Activity session ID
