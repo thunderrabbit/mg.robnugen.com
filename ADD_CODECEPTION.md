@@ -104,7 +104,7 @@ Please also check that users CANNOT do things they aren't supposed to.
 
 ## Apparent problems to be resolved with guidance from Rob
 
-### 2. Dashboard access logic only checks for admin
+### 1. Dashboard access logic only checks for admin
 
 **File:** `wwwroot/index.php:17`
 
@@ -131,7 +131,7 @@ if($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()){
 
 ---
 
-### 3. Timer start/stop button tests failing
+### 2. Timer start/stop button tests failing
 
 **Tests:** `FreeUserCest::canStartTimer`, `FreeUserCest::canStopTimer`
 
@@ -148,7 +148,7 @@ if($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()){
 
 ---
 
-### 4. Activity select element not found for pro user
+### 3. Activity select element not found for pro user
 
 **Test:** `ProUserCest::canCreateActivity`
 
@@ -160,7 +160,7 @@ if($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()){
 
 ---
 
-### 5. Test user role assignments need verification
+### 4. Test user role assignments need verification
 
 Based on test results:
 - `testadmin` → Sees dashboard, so likely has `admin` role ✓
