@@ -55,7 +55,9 @@ Please also check that users CANNOT do things they aren't supposed to.
    Tests/
    ├── Webdriver.suite.yml                 # WebDriver suite config
    ├── Webdriver/
-   │   └── ExampleCest.php                 # Example test file
+   │   ├── AdminUserCest.php               # Admin user tests
+   │   ├── PaidUserCest.php                # Paid user tests
+   │   └── FreeUserCest.php                # Free user tests
    ├── Support/
    │   ├── AcceptanceTester.php            # Actor with login helpers
    │   ├── Helper/
@@ -144,7 +146,7 @@ Please also check that users CANNOT do things they aren't supposed to.
 
 **Run date:** 2026-01-30
 **Version:** 0.8.7
-**Result:** ✅ **All 14 tests pass**
+**Result:** ✅ **All 11 tests pass**
 
 | Test | Result |
 |------|--------|
@@ -152,9 +154,6 @@ Please also check that users CANNOT do things they aren't supposed to.
 | AdminUserCest::canAccessAdminArea | ✅ Pass |
 | AdminUserCest::canSeeLoginHistory | ✅ Pass |
 | AdminUserCest::doesNotSeeWelcomePage | ✅ Pass |
-| ExampleCest::adminCanAccessAdminDashboard | ✅ Pass |
-| ExampleCest::paidUserCanSeeDashboard | ✅ Pass |
-| ExampleCest::freeUserCanStartTimer | ✅ Pass |
 | FreeUserCest::canStartTimer | ✅ Pass |
 | FreeUserCest::canStopTimer | ✅ Pass |
 | FreeUserCest::cannotAccessAdminArea | ✅ Pass |
