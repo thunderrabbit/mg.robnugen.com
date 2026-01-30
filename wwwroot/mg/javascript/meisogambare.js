@@ -475,26 +475,30 @@ var loadActivities = function() {
 	var urlActivityId = getURLParam('activity_id');
 
 	$.get('/api/list-activities.php', function(response) {
-		if (!response.activities || response.activities.length === 0) {
-			// No activities returned (shouldn't happen) - default to Meditation
+		var activities = response.activities || [];
+		var canCreate = response.can_create_activities;
+		var showDropdown = canCreate || activities.length >= 2;
+
+		if (activities.length === 0) {
+			// No activities - default to Meditation
 			$('#activity_text').text('Meditation');
 			$('#activity_text_wrapper').show();
 			currentActivityId = 1;
-		} else if (response.activities.length === 1) {
-			// Only one activity - show as text
-			$('#activity_text').text(response.activities[0].activity_name);
+		} else if (!showDropdown) {
+			// Only one activity and can't create - show as text
+			$('#activity_text').text(activities[0].activity_name);
 			$('#activity_text_wrapper').show();
-			currentActivityId = response.activities[0].activity_id;
+			currentActivityId = activities[0].activity_id;
 		} else {
-			// Multiple activities - show dropdown
-			$('#activity_select').empty(); // Clear existing options
-			response.activities.forEach(function(activity) {
+			// Show dropdown (multiple activities OR can create new)
+			$('#activity_select').empty();
+			activities.forEach(function(activity) {
 				$('#activity_select').append(
 					$('<option>').val(activity.activity_id).text(activity.activity_name)
 				);
 			});
-			// Only add "Add new..." option if user can create activities (Pro/Admin)
-			if (response.can_create_activities) {
+			// Add "Add new..." option if user can create activities (Paid/Admin)
+			if (canCreate) {
 				$('#activity_select').append(
 					$('<option>').val('add_new').text('+ Add new...')
 				);
@@ -502,13 +506,12 @@ var loadActivities = function() {
 			$('#activity_text_wrapper').hide();
 			$('#activity_label_select').show();
 			// Set default to first activity
-			currentActivityId = response.activities[0].activity_id;
+			currentActivityId = activities[0].activity_id;
 
 			// If activity_id was in URL, pre-select it
 			if (urlActivityId) {
 				var activityIdInt = parseInt(urlActivityId);
-				// Check if this activity exists in the list
-				var exists = response.activities.some(function(a) {
+				var exists = activities.some(function(a) {
 					return a.activity_id === activityIdInt;
 				});
 				if (exists) {
