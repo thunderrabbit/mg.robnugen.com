@@ -69,7 +69,7 @@ class ActivityKai {
             WHERE user_id = ?
             AND actual_sec IS NULL
             AND todo_id IS NOT NULL
-            AND DATE_ADD(start_local_dt, INTERVAL (intended_sec + 60) SECOND) < NOW()
+            AND DATE_ADD(created_at_utc, INTERVAL (intended_sec + 60) SECOND) < NOW()
         ");
 
         $stmt->execute([$user_id]);
