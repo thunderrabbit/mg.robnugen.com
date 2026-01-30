@@ -104,3 +104,87 @@ Please also check that users CANNOT do things they aren't supposed to.
    * Free user: timer start/stop, cannot access `/admin/`, sees Welcome Page at `/`
    * Pro user: create activities, sees Dashboard at `/`, cannot access `/admin/`
    * Admin user: sees Admin Dashboard at `/`, sees login history, does not see Welcome Page
+
+---
+
+## Apparent problems to be resolved with guidance from Rob
+
+### 1. Database has no "pro" or "free" role distinction
+
+**File:** `db_schemas/00_bedrock/create_users.sql`
+
+The `role` column is defined as:
+```sql
+role ENUM('admin', 'user') DEFAULT 'user'
+```
+
+Only two roles exist: `admin` and `user`. There is no `pro` or `free` distinction in the schema.
+
+**Question:** Should we add a `pro` role to the ENUM, or is "pro" vs "free" determined by something else (e.g., a subscription table, a flag column)?
+
+---
+
+### 2. Dashboard access logic only checks for admin
+
+**File:** `wwwroot/index.php:17`
+
+```php
+if($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()){
+    // Admin users - show dashboard
+    ...
+} else {
+    // Anonymous or free users - show welcome page
+    ...
+}
+```
+
+**Current behavior:**
+- Admin → sees Dashboard ("Today's Todos")
+- Everyone else (including logged-in `user` role) → sees Welcome Page
+
+**Expected per requirements:**
+- Admin → Admin Dashboard
+- Pro → User Dashboard
+- Free → Welcome Page
+
+**Question:** Should logged-in non-admin users (`user` role) see the dashboard? Or do we need a separate "pro" role first?
+
+---
+
+### 3. Timer start/stop button tests failing
+
+**Tests:** `FreeUserCest::canStartTimer`, `FreeUserCest::canStopTimer`
+
+**Error:** `TimeoutException` - the `.stop` button never becomes visible after clicking `.start`
+
+**Observed:** After clicking the `.start` button, the test waits for `.stop` to appear but it times out after 5 seconds.
+
+**Possible causes:**
+- JavaScript error preventing the button swap
+- The `.stop` button uses different CSS class or selector
+- Timer requires additional setup (e.g., activity selection) before it can start
+
+**Question:** What should happen when clicking the Start button? Does it require a countdown value > 0?
+
+---
+
+### 4. Activity select element not found for pro user
+
+**Test:** `ProUserCest::canCreateActivity`
+
+**Error:** `#activity_select` element not found on `/mg/`
+
+**From exploration:** The `#activity_select` dropdown is "hidden by default, shown when 2+ activities exist"
+
+**Question:** For a brand new user with no activities, how should activity creation work? Is there a different flow for creating the first activity?
+
+---
+
+### 5. Test user role assignments need verification
+
+Based on test results:
+- `testadmin` → Sees dashboard, so likely has `admin` role ✓
+- `testpro` → Sees welcome page, suggesting they have `user` role (not special "pro" status)
+- `testfree` → Sees welcome page (expected)
+
+**Question:** How should `testpro` be distinguished from `testfree` in the database? Both currently appear to behave the same way.
