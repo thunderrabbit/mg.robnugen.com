@@ -1,4 +1,4 @@
 <?php
 
-const SENTIMENTAL_VERSION = "Fix register page";
-const SEMVER = "0.8.4";
+const SENTIMENTAL_VERSION = "Add isPaid() and show dashboard to paid users";
+const SEMVER = "0.8.5";
