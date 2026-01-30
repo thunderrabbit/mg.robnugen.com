@@ -37,6 +37,7 @@ class Todo {
                 t.target_count,
                 t.target_duration_seconds,
                 t.do_time,
+                t.due_date,
                 a.activity_name
             FROM todos t
             LEFT JOIN activities a ON t.activity_id = a.activity_id
