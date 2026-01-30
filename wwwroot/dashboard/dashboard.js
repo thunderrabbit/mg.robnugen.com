@@ -43,6 +43,11 @@ function createTodoWidget(todo) {
 		durationDisplay = '<span class="todo-duration">' + formatDuration(parseInt(todo.target_duration_seconds)) + '</span>';
 	}
 
+    var dateDisplay = '';
+    if (todo.due_date) {
+        dateDisplay = '<span class="todo-date">' + formatTodoDate(todo.due_date) + '</span>';
+    }
+
 	var startButton = '';
 	if (isTimer && hasActivityId) {
 		startButton = '<a href="/mg/?activity_id=' + todo.activity_id +
@@ -65,6 +70,7 @@ function createTodoWidget(todo) {
 		'data-interval': intervalSeconds,
 		'html': '<div class="todo-header">' +
 				timeDisplay +
+				dateDisplay +
 				'<span class="todo-title">' + todo.title + '</span>' +
 				'<a href="/todos/create.php?todo_id=' + todo.todo_id + '" class="todo-edit-icon" title="Edit">✎</a>' +
 				durationDisplay +
@@ -400,6 +406,24 @@ function formatDuration(seconds) {
 	} else {
 		return minutes + ' minute' + (minutes !== 1 ? 's' : '');
 	}
+}
+
+// Format YYYY-MM-DD to DD-Mon-YYYY
+function formatTodoDate(dateStr) {
+    if (!dateStr) return '';
+    // Ensure we only have the date part in case it's a datetime
+    var datePart = dateStr.substring(0, 10);
+    var parts = datePart.split('-');
+    if (parts.length !== 3) return datePart;
+
+    var year = parts[0];
+    var monthIndex = parseInt(parts[1]) - 1;
+    var day = parts[2];
+
+    var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    var monthName = months[monthIndex];
+
+    return day + '-' + monthName + '-' + year;
 }
 
 // Format elapsed time (MM:SS, HH:MM:SS, or D days HH:MM:SS)

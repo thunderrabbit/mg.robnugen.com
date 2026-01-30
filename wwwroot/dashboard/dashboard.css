@@ -424,6 +424,18 @@
 	flex-shrink: 0;
 }
 
+.todo-date {
+	font-size: 11px;
+	color: #1565C0;
+	background: linear-gradient(135deg, #bbdefb 0%, #90caf9 100%);
+	padding: 3px 10px;
+	border-radius: 12px;
+	font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+	font-weight: 500;
+	white-space: nowrap;
+	flex-shrink: 0;
+}
+
 .todo-duration {
 	font-size: 12px;
 	color: #1976D2;
