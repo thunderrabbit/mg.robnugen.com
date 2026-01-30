@@ -1,0 +1,14 @@
+# Codeception Test Suite Configuration
+#
+# Suite for acceptance tests using WebDriver (real browser).
+# Uses Chrome browser for JavaScript-enabled testing.
+
+actor: AcceptanceTester
+modules:
+    enabled:
+       - Tests\Support\Helper\Acceptance
+       - WebDriver:
+            url: https://mg.robnugen.com
+            browser: chrome
+            window_size: 1290x1000
+            restart: true      # prevents error in one test from affecting others
