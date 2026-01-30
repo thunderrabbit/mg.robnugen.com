@@ -52,7 +52,7 @@ var startActivitySession = function() {
 		String(now.getSeconds()).padStart(2, '0');
 
 
-	var countdownMinutes = parseInt($('#countdown_minutes').val()) || 5; // Default to 5 if empty
+	var countdownMinutes = parseFloat($('#countdown_minutes').val()) || 5; // Default to 5 if empty
 	var intendedSec = countdownMinutes * 60;
 
 	// Don't send API request if intended time is invalid
@@ -112,7 +112,7 @@ var stopActivitySession = function() {
 	var actualSec = Math.floor((now - sessionStartTime) / 1000);
 
 	// Calculate bonus time (time beyond countdown)
-	var intendedSec = parseInt($('#countdown_minutes').val()) * 60;
+	var intendedSec = parseFloat($('#countdown_minutes').val()) * 60;
 	var bonusSec = Math.max(0, actualSec - intendedSec);
 
 	// Prepare data - use session_key if available, otherwise ak_id
@@ -210,7 +210,7 @@ var countDownFinished = function() {
 
 	// Auto-complete linked todo when countdown finishes (reached goal time)
 	if (currentTodoId && currentAkId && sessionStartTime) {
-		var intendedSec = parseInt($('#countdown_minutes').val()) * 60;
+		var intendedSec = parseFloat($('#countdown_minutes').val()) * 60;
 		console.log('Countdown finished - line 206 - auto-completing todo:', currentTodoId);
 		autoCompleteTodo(currentTodoId, currentAkId, intendedSec);
 		// Clear todo ID so we don't complete again when Stop is clicked
