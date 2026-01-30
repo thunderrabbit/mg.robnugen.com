@@ -14,6 +14,7 @@ class ActivityKai {
      *
      * @param int $user_id User ID
      * @param int $activity_id Activity type (1=meditation, 2=sleeping)
+     * @param int|null $todo_id nullable linked todo ID
      * @param int $intended_sec Intended duration in seconds
      * @param int $timezone_id Timezone ID from timezones table
      * @param string $start_local_dt Local datetime in format 'Y-m-d H:i:s'
@@ -22,6 +23,7 @@ class ActivityKai {
     public function startActivity(
         int $user_id,
         int $activity_id,
+        ?int $todo_id,
         int $intended_sec,
         int $timezone_id,
         string $start_local_dt
@@ -30,17 +32,19 @@ class ActivityKai {
             INSERT INTO activity_kai (
                 user_id,
                 activity_id,
+                todo_id,
                 start_local_dt,
                 intended_sec,
                 timezone_id,
                 created_at_utc,
                 updated_at_utc
-            ) VALUES (?, ?, ?, ?, ?, NOW(), NOW())
+            ) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
         ");
 
         $stmt->execute([
             $user_id,
             $activity_id,
+            $todo_id,
             $start_local_dt,
             $intended_sec,
             $timezone_id
