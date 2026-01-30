@@ -62,14 +62,14 @@ class ActivityKai {
      */
     public function processExpiredTimers(int $user_id): int {
         // Find active sessions that have passed their intended duration
-        // We use a safe buffer of e.g. 1 minute to avoid race conditions with frontend stop
+        // We use a safe buffer of e.g. 5 seconds to avoid race conditions with frontend stop
         $stmt = $this->pdo->prepare("
             SELECT ak_id, todo_id, intended_sec, start_local_dt, timezone_id
             FROM activity_kai
             WHERE user_id = ?
             AND actual_sec IS NULL
             AND todo_id IS NOT NULL
-            AND DATE_ADD(created_at_utc, INTERVAL (intended_sec + 60) SECOND) < UTC_TIMESTAMP()
+            AND DATE_ADD(created_at_utc, INTERVAL (intended_sec + 5) SECOND) < UTC_TIMESTAMP()
         ");
 
         $stmt->execute([$user_id]);
