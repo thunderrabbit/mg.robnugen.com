@@ -140,9 +140,11 @@ Please also check that users CANNOT do things they aren't supposed to.
 
 ---
 
-## Test Results (after code fixes, before deployment)
+## Test Results
 
 **Run date:** 2026-01-30
+**Version:** 0.8.7
+**Result:** ✅ **All 14 tests pass**
 
 | Test | Result |
 |------|--------|
@@ -157,10 +159,13 @@ Please also check that users CANNOT do things they aren't supposed to.
 | FreeUserCest::canStopTimer | ✅ Pass |
 | FreeUserCest::cannotAccessAdminArea | ✅ Pass |
 | FreeUserCest::seesWelcomePageNotDashboard | ✅ Pass |
-| PaidUserCest::canSeeDashboard | ❌ Fail (needs deployment) |
-| PaidUserCest::canCreateActivity | ❌ Fail (needs deployment) |
+| PaidUserCest::canSeeDashboard | ✅ Pass |
+| PaidUserCest::canCreateActivity | ✅ Pass |
 | PaidUserCest::cannotAccessAdminArea | ✅ Pass |
 
-**Summary:** 12 pass, 2 fail
+### Running specific tests
 
-**Note:** The 2 failing tests are for paid user features. The server is still running v0.8.4 but the fixes are in v0.8.7. Tests will pass after deployment.
+To run a single test (faster for debugging):
+```bash
+./run_tests.sh PaidUserCest:canCreateActivity
+```
