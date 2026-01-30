@@ -18,6 +18,7 @@ class FreeUserCest
         $I->amOnPage('/mg/');
         $I->see('Countdown minutes:');
         $I->seeElement('.start');
+        $I->fillField('#countdown_minutes', '0.05');  // 3 seconds for fast testing
         $I->click('.start');
         $I->waitForElementVisible('.stop', 5);
         $I->seeElement('.stop');
@@ -26,7 +27,7 @@ class FreeUserCest
     public function canStopTimer(AcceptanceTester $I)
     {
         $I->amOnPage('/mg/');
-        $I->fillField('#countdown_minutes', '1');
+        $I->fillField('#countdown_minutes', '0.05');  // 3 seconds for fast testing
         $I->click('.start');
         $I->waitForElementVisible('.stop', 5);
         $I->click('.stop');
