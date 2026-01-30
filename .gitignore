@@ -6,3 +6,14 @@ wwwroot/.dh-diag
 wwwroot/favicon.*
 *.code-workspace
 php*
+
+# Environment
+.env
+
+# Codeception
+Tests/_output/*
+!Tests/_output/.gitkeep
+Tests/_envs/
+Tests/Support/_generated/*
+!Tests/Support/_generated/.gitkeep
+vendor/
