@@ -68,6 +68,7 @@ var startActivitySession = function() {
 		contentType: 'application/json',
 		data: JSON.stringify({
 			activity_id: currentActivityId,
+			todo_id: currentTodoId,
 			intended_sec: intendedSec,
 			timezone_iana: timezone,
 			start_local_dt: localDt
