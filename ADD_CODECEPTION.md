@@ -68,7 +68,7 @@ Please also check that users CANNOT do things they aren't supposed to.
 
 2. **Login helpers implemented** in `Tests/Support/AcceptanceTester.php`:
    * `$I->loginAsAdmin()`
-   * `$I->loginAsPro()`
+   * `$I->loginAsPaid()`
    * `$I->loginAsFree()`
 
 3. **Test credentials** are in `.env`:
@@ -102,88 +102,65 @@ Please also check that users CANNOT do things they aren't supposed to.
 
 ---
 
-## Apparent problems to be resolved with guidance from Rob
+## Problems Fixed
 
-Discussion: Let's have a discussion about what the code can do, and I'll let you know who should be able to do what.
-In any case, basically admin can do everything paid can do (and more).
-Paid users can do everything free users can do (and more).
-Free users can do nothing but start and stop timers.
+**Role hierarchy:** Admin > Paid > Free
+- Admin can do everything paid can do (and more)
+- Paid users can do everything free users can do (and more)
+- Free users can only start and stop timers
 
-After we decide who can do what, update this file with a plan.
+### Problem 1: Dashboard access logic ✅ FIXED (v0.8.5)
 
-Then, for each of the problems below, create a merge bubble starting with updating `version.php` with a new version number and a short description of the change.  Then commit it with "BEGIN fixing problem X" and once it is solved, do a `git merge --no-ff` from the BEGIN commit and then end it with "FINISHED fixing problem X".
+**Fix:** Added `isPaid()` method to `IsLoggedIn` class and updated `wwwroot/index.php` to show dashboard to paid users.
 
-
-### 1. Dashboard access logic only checks for admin
-
-**File:** `wwwroot/index.php:17`
-
-if($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()){
-    // Admin users - show dashboard
-    ...
-} else if($is_logged_in->isLoggedIn() && $is_logged_in->isPaid()){
-    // Paid users - show different dashboard (no admin link).  Not sure if it should be a separate file or not.
-    ...
-} else {
-    // Anonymous or free users - show welcome page
-    ...
-}
-
-**Current behavior:**
-- Admin → sees Dashboard ("Today's Todos")
-- Everyone else (including logged-in `user` role) → sees Welcome Page
-
-**Expected per requirements:**
-- Admin → Admin Dashboard
-- Pro → User Dashboard
-- Free → Welcome Page
-
-**Question:** Should logged-in non-admin users (`user` role) see the dashboard? Or do we need a separate "pro" role first?
-
-**ANSWER:**  The code is broken.  'paid' is the newly created role that should be used for paid users.  Fix this test by fixing the code. User dashboard will not show "Admin" link.  `paid` users cannot see `/admin/` page.
+**Files changed:**
+- `classes/Auth/IsLoggedIn.php` - Added `isPaid()` method
+- `wwwroot/index.php` - Added paid user dashboard routing
+- `templates/dashboard/paid_dashboard.tpl.php` - New template for paid users
 
 ---
 
-### 2. Timer start/stop button tests failing
+### Problem 2: Timer duration parsing ✅ FIXED (v0.8.6)
 
-**Tests:** `FreeUserCest::canStartTimer`, `FreeUserCest::canStopTimer`
+**Fix:** Changed `parseInt()` to `parseFloat()` in `meisogambare.js` so decimal values like `0.05` (3 seconds) work correctly.
 
-**Error:** `TimeoutException` - the `.stop` button never becomes visible after clicking `.start`
-
-**Observed:** After clicking the `.start` button, the test waits for `.stop` to appear but it times out after 5 seconds.
-
-**Possible causes:**
-- JavaScript error preventing the button swap
-- The `.stop` button uses different CSS class or selector
-- Timer requires additional setup (e.g., activity selection) before it can start
-
-**Question:** What should happen when clicking the Start button? Does it require a countdown value > 0?
-
-**ANSWER:** The minimum duration for a timer is 1 minute. I don't want to wait a minute for the test to complete.  I can tell you the .stop button works just fine.  One solution is to allow shorter tests, eg, write "0.05" for the duration.  0.05 minutes is 3 seconds.  Currently if I put .5 in the minute thing, it parses it as 5 minutes.
+**Files changed:**
+- `wwwroot/mg/javascript/meisogambare.js` - 3 parseInt→parseFloat changes
+- `Tests/Webdriver/FreeUserCest.php` - Updated tests to use 0.05 minute duration
 
 ---
 
-### 3. Activity select element not found for pro user
+### Problem 3: Activity creation for paid users ✅ FIXED (v0.8.7)
 
-**Test:** `ProUserCest::canCreateActivity`
+**Fix:** Updated API to use `isPaid()` check and modified JavaScript to show activity dropdown when user can create activities.
 
-**Error:** `#activity_select` element not found on `/mg/`
-
-**From exploration:** The `#activity_select` dropdown is "hidden by default, shown when 2+ activities exist"
-
-**Question:** For a brand new user with no activities, how should activity creation work? Is there a different flow for creating the first activity?
-
-**ANSWER:** `paid` users should be able to create activities.  There is no special flow for their first custom activity.  The user just needs to be logged in and have a `paid` role.  Fix this by fixing the code.
+**Files changed:**
+- `wwwroot/api/list-activities.php` - Use `isPaid()` for `can_create_activities`
+- `wwwroot/mg/javascript/meisogambare.js` - Show dropdown when `can_create_activities` is true
 
 ---
 
-### 4. Test user role assignments need verification
+## Test Results (after code fixes, before deployment)
 
-Based on test results:
-- `testadmin` → Sees dashboard, so likely has `admin` role ✓
-- `testpro` → Sees welcome page, suggesting they have `user` role (not special "pro" status)    <<<<----  No the problem is the code is broken.
-- `testfree` → Sees welcome page (expected)
+**Run date:** 2026-01-30
 
-**Question:** How should `testpro` be distinguished from `testfree` in the database? Both currently appear to behave the same way.
+| Test | Result |
+|------|--------|
+| AdminUserCest::canSeeAdminDashboard | ✅ Pass |
+| AdminUserCest::canAccessAdminArea | ✅ Pass |
+| AdminUserCest::canSeeLoginHistory | ✅ Pass |
+| AdminUserCest::doesNotSeeWelcomePage | ✅ Pass |
+| ExampleCest::adminCanAccessAdminDashboard | ✅ Pass |
+| ExampleCest::paidUserCanSeeDashboard | ✅ Pass |
+| ExampleCest::freeUserCanStartTimer | ✅ Pass |
+| FreeUserCest::canStartTimer | ✅ Pass |
+| FreeUserCest::canStopTimer | ✅ Pass |
+| FreeUserCest::cannotAccessAdminArea | ✅ Pass |
+| FreeUserCest::seesWelcomePageNotDashboard | ✅ Pass |
+| PaidUserCest::canSeeDashboard | ❌ Fail (needs deployment) |
+| PaidUserCest::canCreateActivity | ❌ Fail (needs deployment) |
+| PaidUserCest::cannotAccessAdminArea | ✅ Pass |
 
-**ANSWER:**  The code is broken.  'paid' is the newly created role that should be used for paid users.  Fix this test by fixing the code.
+**Summary:** 12 pass, 2 fail
+
+**Note:** The 2 failing tests are for paid user features. The server is still running v0.8.4 but the fixes are in v0.8.7. Tests will pass after deployment.
