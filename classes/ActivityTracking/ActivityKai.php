@@ -38,7 +38,7 @@ class ActivityKai {
                 timezone_id,
                 created_at_utc,
                 updated_at_utc
-            ) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
+            ) VALUES (?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP())
         ");
 
         $stmt->execute([
@@ -69,7 +69,7 @@ class ActivityKai {
             WHERE user_id = ?
             AND actual_sec IS NULL
             AND todo_id IS NOT NULL
-            AND DATE_ADD(created_at_utc, INTERVAL (intended_sec + 60) SECOND) < NOW()
+            AND DATE_ADD(created_at_utc, INTERVAL (intended_sec + 60) SECOND) < UTC_TIMESTAMP()
         ");
 
         $stmt->execute([$user_id]);
@@ -150,7 +150,7 @@ class ActivityKai {
             UPDATE activity_kai
             SET actual_sec = ?,
                 bonus_sec = ?,
-                updated_at_utc = NOW()
+                updated_at_utc = UTC_TIMESTAMP()
             WHERE ak_id = ?
             AND user_id = ?
         ");
