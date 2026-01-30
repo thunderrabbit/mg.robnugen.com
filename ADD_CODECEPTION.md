@@ -71,12 +71,7 @@ Please also check that users CANNOT do things they aren't supposed to.
    * `$I->loginAsPro()`
    * `$I->loginAsFree()`
 
-3. **Test credentials generated** in `.env`:
-   | Role | Username | Password |
-   |------|----------|----------|
-   | Admin | `testadmin` | `JIITa7W7ctOrAcvjk6pY` |
-   | Pro | `testpro` | `llFnWkvt37dcmZipt6g8` |
-   | Free | `testfree` | `YgsiUt0HP1mh2mdoOITA` |
+3. **Test credentials** are in `.env`:
 
 4. **Updated `.gitignore`** to exclude `.env`, `Tests/_output/*`, `Tests/Support/_generated/*`, and `vendor/`
 
