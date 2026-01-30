@@ -107,6 +107,12 @@ class IsLoggedIn
     {
         return $this->getUserRole() === 'admin';
     }
+
+    public function isPaid(): bool
+    {
+        return $this->getUserRole() === 'paid';
+    }
+
     private function setAutoLoginCookie(int $user_id):void
     {
         $cookie = \Utilities::randomString(32);
