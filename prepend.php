@@ -70,3 +70,14 @@ if (!empty($errors)) {
 
 $is_logged_in = new \Auth\IsLoggedIn($mla_database, $config);
 $is_logged_in->checkLogin($mla_request);
+
+// Check for and finish expired activity sessions
+if ($is_logged_in->isLoggedIn()) {
+    try {
+        $akHelper = new \ActivityTracking\ActivityKai($mla_database);
+        $akHelper->processExpiredTimers($is_logged_in->loggedInID());
+    } catch (\Exception $e) {
+        // Silently fail to avoid breaking page load, but maybe log it?
+        // error_log("Failed to finish expired sessions: " . $e->getMessage());
+    }
+}
