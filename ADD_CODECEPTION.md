@@ -104,19 +104,30 @@ Please also check that users CANNOT do things they aren't supposed to.
 
 ## Apparent problems to be resolved with guidance from Rob
 
+Discussion: Let's have a discussion about what the code can do, and I'll let you know who should be able to do what.
+In any case, basically admin can do everything paid can do (and more).
+Paid users can do everything free users can do (and more).
+Free users can do nothing but start and stop timers.
+
+After we decide who can do what, update this file with a plan.
+
+Then, for each of the problems below, create a merge bubble starting with updating `version.php` with a new version number and a short description of the change.  Then commit it with "BEGIN fixing problem X" and once it is solved, do a `git merge --no-ff` from the BEGIN commit and then end it with "FINISHED fixing problem X".
+
+
 ### 1. Dashboard access logic only checks for admin
 
 **File:** `wwwroot/index.php:17`
 
-```php
 if($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()){
     // Admin users - show dashboard
+    ...
+} else if($is_logged_in->isLoggedIn() && $is_logged_in->isPaid()){
+    // Paid users - show different dashboard (no admin link).  Not sure if it should be a separate file or not.
     ...
 } else {
     // Anonymous or free users - show welcome page
     ...
 }
-```
 
 **Current behavior:**
 - Admin → sees Dashboard ("Today's Todos")
@@ -128,6 +139,8 @@ if($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()){
 - Free → Welcome Page
 
 **Question:** Should logged-in non-admin users (`user` role) see the dashboard? Or do we need a separate "pro" role first?
+
+**ANSWER:**  The code is broken.  'paid' is the newly created role that should be used for paid users.  Fix this test by fixing the code. User dashboard will not show "Admin" link.  `paid` users cannot see `/admin/` page.
 
 ---
 
@@ -146,6 +159,8 @@ if($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()){
 
 **Question:** What should happen when clicking the Start button? Does it require a countdown value > 0?
 
+**ANSWER:** The minimum duration for a timer is 1 minute. I don't want to wait a minute for the test to complete.  I can tell you the .stop button works just fine.  One solution is to allow shorter tests, eg, write "0.05" for the duration.  0.05 minutes is 3 seconds.  Currently if I put .5 in the minute thing, it parses it as 5 minutes.
+
 ---
 
 ### 3. Activity select element not found for pro user
@@ -158,13 +173,17 @@ if($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()){
 
 **Question:** For a brand new user with no activities, how should activity creation work? Is there a different flow for creating the first activity?
 
+**ANSWER:** `paid` users should be able to create activities.  There is no special flow for their first custom activity.  The user just needs to be logged in and have a `paid` role.  Fix this by fixing the code.
+
 ---
 
 ### 4. Test user role assignments need verification
 
 Based on test results:
 - `testadmin` → Sees dashboard, so likely has `admin` role ✓
-- `testpro` → Sees welcome page, suggesting they have `user` role (not special "pro" status)
+- `testpro` → Sees welcome page, suggesting they have `user` role (not special "pro" status)    <<<<----  No the problem is the code is broken.
 - `testfree` → Sees welcome page (expected)
 
 **Question:** How should `testpro` be distinguished from `testfree` in the database? Both currently appear to behave the same way.
+
+**ANSWER:**  The code is broken.  'paid' is the newly created role that should be used for paid users.  Fix this test by fixing the code.
