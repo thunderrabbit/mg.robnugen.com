@@ -1,7 +1,6 @@
 <?php
 
-const SENTIMENTAL_VERSION = "Finish todos when timer expires";
-const SEMVER = "0.8.4";
+require_once __DIR__ . '/version.php';
 
 # write errors to screen
 ini_set('display_errors', 1);

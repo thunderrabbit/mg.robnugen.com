@@ -7,9 +7,11 @@
 # Extract DreamHost project root: /home/username/domain.com
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/classes/Mlaphp/Autoloader.php';
+include_once $matches[1] . '/version.php';
 // create autoloader instance and register the method with SPL
 $autoloader = new \Mlaphp\Autoloader();
 spl_autoload_register(array($autoloader, 'load'));
+
 
 $mla_request = new \Mlaphp\Request();
 $config = new \Config();

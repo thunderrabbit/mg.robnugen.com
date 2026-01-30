@@ -1,0 +1,4 @@
+<?php
+
+const SENTIMENTAL_VERSION = "Fix register page";
+const SEMVER = "0.8.4";
