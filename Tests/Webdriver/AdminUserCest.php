@@ -1,0 +1,45 @@
+<?php
+
+namespace Webdriver;
+
+use Tests\Support\AcceptanceTester;
+
+class AdminUserCest
+{
+    public function _before(AcceptanceTester $I)
+    {
+        $I->loginAsAdmin();
+    }
+
+    // === POSITIVE TESTS ===
+
+    public function canSeeAdminDashboard(AcceptanceTester $I)
+    {
+        $I->amOnPage('/');
+        $I->see("Today's Todos");
+        $I->see("My Active Sessions");
+    }
+
+    public function canAccessAdminArea(AcceptanceTester $I)
+    {
+        $I->amOnPage('/admin/');
+        $I->dontSee('Access Denied');
+    }
+
+    public function canSeeLoginHistory(AcceptanceTester $I)
+    {
+        $I->amOnPage('/admin/auth_log.php');
+        $I->see('Authentication Log');
+        $I->see('Showing last');
+        $I->see('entries (newest first)');
+    }
+
+    // === NEGATIVE TESTS ===
+
+    public function doesNotSeeWelcomePage(AcceptanceTester $I)
+    {
+        $I->amOnPage('/');
+        $I->dontSee('A simple countdown timer for your meditation practice');
+        $I->dontSee('Meiso Gambare helps you:');
+    }
+}
