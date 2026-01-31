@@ -1,0 +1,7 @@
+CREATE TABLE user_settings (
+    setting_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL,
+    site_title VARCHAR(255) DEFAULT NULL,
+    site_subtitle VARCHAR(255) DEFAULT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

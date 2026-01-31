@@ -67,24 +67,52 @@ class IsLoggedIn
         $this->setUsernameOfLoggedInID($this->who_is_logged_in);
     }
 
+    private string $siteTitle = '';
+    private string $siteSubtitle = '';
+
     private function setUsernameOfLoggedInID(int $user_id): void
     {
         if ($user_id <= 0) {
             return;
         }
-        // set the session variable for username
-        $stmt = $this->di_pdo->prepare("SELECT `username` FROM `users` WHERE `user_id` = ? LIMIT 1");
+        // Change from setUsernameOfLoggedInID to loadUserData effectively
+
+        // Fetch username and settings
+        $sql = "
+            SELECT u.username, s.site_title, s.site_subtitle
+            FROM users u
+            LEFT JOIN user_settings s ON u.user_id = s.user_id
+            WHERE u.user_id = ?
+            LIMIT 1
+        ";
+        $stmt = $this->di_pdo->prepare($sql);
         $stmt->execute([$user_id]);
         $result = $stmt->fetchAll();
 
         if (count($result) > 0) {
             $this->loggedInUsername = $result[0]['username'] ?? 'ummmmmm wtf';
+            $this->siteTitle = $result[0]['site_title'] ?? '';
+            $this->siteSubtitle = $result[0]['site_subtitle'] ?? '';
         }
     }
 
     public function getLoggedInUsername(): string
     {
         return $this->loggedInUsername;
+    }
+
+    public function getSiteTitle(): string
+    {
+        return !empty($this->siteTitle) ? $this->siteTitle : 'Meiso Gambare';
+    }
+
+    public function getSiteSubtitle(): string
+    {
+        // NOTE: We don't have access to SEMVER constant here cleanly unless global,
+        // but typically this is used in templates where SEMVER is available.
+        // For the default, we return the text without version, let template handle version if needed?
+        // Proposal said: "Your simple meditation timer"
+        return !empty($this->siteSubtitle) ? $this->siteSubtitle : 'Your simple meditation timer';
     }
 
     public function getUserRole(): string
