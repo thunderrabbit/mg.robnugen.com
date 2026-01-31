@@ -29,13 +29,13 @@ class Activity {
             ");
             $stmt->execute([$user_id]);
         } else {
-            // Free users see only FREE activities + their own PRIVATE activities
+            // Free users see only FREE activities
             $stmt = $this->pdo->prepare("
                 SELECT activity_id, activity_name, description, user_id
                 FROM activities
                 WHERE is_active = 1
-                  AND (type = 'FREE' OR (type = 'PRIVATE' AND user_id = ?))
-                ORDER BY user_id IS NULL DESC, activity_name
+                  AND (type = 'FREE')
+                ORDER BY activity_name
             ");
             $stmt->execute([$user_id]);
         }
