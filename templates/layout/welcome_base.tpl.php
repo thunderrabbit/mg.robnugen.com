@@ -107,8 +107,8 @@
 </head>
 <body>
     <?php include __DIR__ . '/../partials/menu.tpl.php'; ?>
-    <h1>🧘 Meiso Gambare</h1>
-    <p class="subtitle">Your simple meditation timer v.<?= SEMVER ?></p>
+    <h1>🧘 <?= $is_logged_in->isLoggedIn() ? htmlspecialchars($is_logged_in->getSiteTitle()) : 'Meiso Gambare' ?></h1>
+    <p class="subtitle"><?= $is_logged_in->isLoggedIn() ? htmlspecialchars($is_logged_in->getSiteSubtitle()) : 'Your simple meditation timer' ?> v.<?= SEMVER ?></p>
 
     <?= $page_content ?>
 
