@@ -22,7 +22,7 @@ if ($uri === '/' || $uri === '' || $uri === '/index.php') {
 
         // Get the dashboard content
         $inner_page = new \Template(config: $config);
-        $inner_page->setTemplate("dashboard/active_sessions.tpl.php");
+        $inner_page->setTemplate("dashboard/paid_dashboard.tpl.php");
         $inner_page->set("is_admin", true);
         if (isset($_GET['msg'])) {
             $inner_page->set("msg", $_GET['msg']);

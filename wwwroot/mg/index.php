@@ -57,8 +57,10 @@ if ($todo_id && $is_logged_in->isLoggedIn()) {
 
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flipclock@0.7.8/compiled/flipclock.min.css">
 	<link rel="stylesheet" href="css/meisogambare.css">
+    <link rel="stylesheet" href="/css/menu.css">
 </head>
 <body class="body">
+    <?php include __DIR__ . '/../../templates/partials/menu.tpl.php'; ?>
 	<div class="duration-field-wrapper">
 		<label for="countdown_minutes">Countdown minutes:</label>
 		<input type="text" id="countdown_minutes" value="" />

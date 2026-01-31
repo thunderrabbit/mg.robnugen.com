@@ -36,3 +36,7 @@
 .NavBar .dropdown:hover .dropdown-menu {
     display: block;
 }
+
+body.distraction-free .NavBar {
+    display: none !important;
+}
