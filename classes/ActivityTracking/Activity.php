@@ -18,17 +18,8 @@ class Activity {
      * @return array Array of activities with activity_id, activity_name, and user_id
      */
     public function getActivitiesForUser(int $user_id, bool $is_admin, bool $is_pro = false): array {
-        if ($is_admin) {
-            // Admin users see ALL activities (system + all users' custom)
-            $stmt = $this->pdo->prepare("
-                SELECT activity_id, activity_name, description, user_id
-                FROM activities
-                WHERE is_active = 1
-                ORDER BY user_id IS NULL DESC, user_id, activity_name
-            ");
-            $stmt->execute();
-        } elseif ($is_pro) {
-            // Pro users see FREE + PUBLIC activities + their own PRIVATE activities
+        if ($is_admin || $is_pro) {
+            // Admin and Pro users see FREE + PUBLIC activities + their own PRIVATE activities
             $stmt = $this->pdo->prepare("
                 SELECT activity_id, activity_name, description, user_id
                 FROM activities
