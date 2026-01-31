@@ -14,42 +14,10 @@
                 <input type="text" id="title" name="title" required class="form-control" placeholder="e.g., Morning Meditation" value="<?= htmlspecialchars($todo['title'] ?? '') ?>">
             </div>
 
-            <div class="form-group">
+            <div class="form-group" style="display:none;">
                 <label for="description">Description</label>
                 <textarea id="description" name="description" class="form-control" rows="3" placeholder="Optional details..."><?= htmlspecialchars($todo['description'] ?? '') ?></textarea>
             </div>
-
-            <fieldset class="form-section">
-                <legend>Type & Goal</legend>
-
-                <div class="checkbox-group">
-                    <label>
-                        <input type="checkbox" name="is_timer" id="is_timer" value="1" <?= (isset($todo) && $todo['is_timer']) ? 'checked' : '' ?>>
-                        Is Timer (requires duration)
-                    </label>
-                    <label>
-                        <input type="checkbox" name="is_counter" id="is_counter" value="1" <?= (isset($todo) && $todo['is_counter']) ? 'checked' : '' ?>>
-                        Is Counter (requires target count)
-                    </label>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="target_duration_seconds">Target Duration</label>
-                        <div class="duration-input-group">
-                            <input type="number" id="target_duration_minutes" class="form-control" placeholder="Minutes" value="<?= isset($todo['target_duration_seconds']) ? floor($todo['target_duration_seconds'] / 60) : '' ?>">
-                            <input type="hidden" name="target_duration_seconds" id="target_duration_seconds" value="<?= $todo['target_duration_seconds'] ?? '' ?>">
-                        </div>
-                        <small class="help-text">Required if 'Is Timer' or Activity selected</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="target_count">Target Count</label>
-                        <input type="number" id="target_count" name="target_count" value="<?= $todo['target_count'] ?? 1 ?>" min="1" class="form-control">
-                        <small class="help-text">Default is 1 (checkbox style)</small>
-                    </div>
-                </div>
-            </fieldset>
 
             <fieldset class="form-section">
                 <legend>Activity Type (Optional)</legend>
@@ -63,9 +31,37 @@
                             </option>
                         <?php endforeach; ?>
                     </select>
-                    <small class="help-text">Completing this activity will complete this todo.</small>
+                    <small class="help-text">This activity will be selected when you start this todo.</small>
                 </div>
             </fieldset>
+
+            <fieldset class="form-section">
+                <div class="checkbox-group">
+                    <!-- Timer is always on by default now (we *always* see a start button (which can be ignored)) -->
+                    <input type="hidden" name="is_timer" id="is_timer" value="1">
+                    <!-- Counter is controlled by JS based on target_count -->
+                    <input type="checkbox" name="is_counter" id="is_counter" value="1" <?= (isset($todo) && $todo['is_counter']) ? 'checked' : '' ?> style="display:none;">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="target_duration_seconds">Ideal Duration (Optional)</label>
+                        <div class="duration-input-group">
+                            <input type="number" id="target_duration_minutes" class="form-control" placeholder="Minutes" value="<?= isset($todo['target_duration_seconds']) ? floor($todo['target_duration_seconds'] / 60) : '' ?>">
+                            <input type="hidden" name="target_duration_seconds" id="target_duration_seconds" value="<?= $todo['target_duration_seconds'] ?? '' ?>">
+                        </div>
+                        <small class="help-text">Minutes of timed activity</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="target_count">How many per day?</label>
+                        <input type="number" id="target_count" name="target_count" value="<?= $todo['target_count'] ?? 1 ?>" min="1" class="form-control">
+                        <small class="help-text">Default is 1 (checkbox style)</small>
+                    </div>
+                </div>
+            </fieldset>
+
+
 
             <fieldset class="form-section">
                 <legend>Recurrence</legend>
@@ -125,15 +121,32 @@
     const minInput = document.getElementById('target_duration_minutes');
     const secInput = document.getElementById('target_duration_seconds');
 
-    minInput.addEventListener('input', function() {
-        if (this.value) {
-            secInput.value = parseInt(this.value) * 60;
-        } else {
-            secInput.value = '';
-        }
-    });
+    if (minInput && secInput) {
+        minInput.addEventListener('input', function() {
+            if (this.value) {
+                secInput.value = parseInt(this.value) * 60;
+            } else {
+                secInput.value = '';
+            }
+        });
+    }
 
-    // Validations could be added here
+    // Auto-check "is_counter" if target_count > 1
+    const targetCountInput = document.getElementById('target_count');
+    const isCounterCheckbox = document.getElementById('is_counter');
+
+    function updateCounterCheckbox() {
+        if (targetCountInput && isCounterCheckbox) {
+            const count = parseInt(targetCountInput.value) || 0;
+            isCounterCheckbox.checked = count > 1;
+        }
+    }
+
+    if (targetCountInput) {
+        targetCountInput.addEventListener('input', updateCounterCheckbox);
+        // Run once on load to set initial state
+        updateCounterCheckbox();
+    }
 </script>
 
 <style>
