@@ -39,10 +39,8 @@
                 <legend>Type & Goal</legend>
 
                 <div class="checkbox-group">
-                    <label>
-                        <input type="checkbox" name="is_timer" id="is_timer" value="1" <?= (isset($todo) && $todo['is_timer']) ? 'checked' : '' ?>>
-                        Timed?
-                    </label>
+                    <!-- Timer is always on by default now (we *always* see a start button (which can be ignored)) -->
+                    <input type="hidden" name="is_timer" id="is_timer" value="1">
                     <label>
                         <input type="checkbox" name="is_counter" id="is_counter" value="1" <?= (isset($todo) && $todo['is_counter']) ? 'checked' : '' ?>>
                         More than once per day?
