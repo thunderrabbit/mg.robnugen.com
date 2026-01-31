@@ -8,10 +8,16 @@ class Template{
     protected $mla_request;      // Encapsulates superglobals e.g. $SESSION, $REQUEST, etc (misspelled in this comment to keep searches clean)
     protected $di_dbase;
 
-    public function __construct(\Config $config) {
+    public function __construct(
+        \Config $config,
+        \Auth\IsLoggedIn $is_logged_in = null
+    ) {
         $this->template_location = "{$config->app_path}/templates";
 
         $this->vars = [];
+        if ($is_logged_in) {
+            $this->vars['is_logged_in'] = $is_logged_in;
+        }
     }
 
     public function setTemplate($template_file) {
