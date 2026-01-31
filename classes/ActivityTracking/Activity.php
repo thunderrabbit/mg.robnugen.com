@@ -25,7 +25,7 @@ class Activity {
                 FROM activities
                 WHERE is_active = 1
                   AND (type IN ('FREE', 'PUBLIC') OR (type = 'PRIVATE' AND user_id = ?))
-                ORDER BY user_id IS NULL DESC, activity_name
+                ORDER BY activity_name
             ");
             $stmt->execute([$user_id]);
         } else {
