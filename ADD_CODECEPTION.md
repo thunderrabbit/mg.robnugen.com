@@ -168,3 +168,42 @@ To run a single test (faster for debugging):
 ```bash
 ./run_tests.sh PaidUserCest:canCreateActivity
 ```
+
+---
+
+## Unit Tests
+
+Unit tests for code that doesn't require a database connection.
+
+### Structure
+
+```
+Tests/
+├── Unit.suite.yml              # Unit suite config
+├── Unit/
+│   ├── _bootstrap.php          # Custom autoloader for project classes
+│   ├── IPBinTest.php           # IP address to binary conversion (10 tests)
+│   ├── UtilitiesTest.php       # randomString and getSchemaFilePath (8 tests)
+│   ├── TimezoneTest.php        # isValidIanaName validation (7 tests)
+│   └── SessionKeyTest.php      # generateSessionKey (4 tests)
+└── Support/
+    └── UnitTester.php          # Unit test actor
+```
+
+### Running Unit Tests
+
+```bash
+vendor/bin/codecept run Unit
+```
+
+### Test Results
+
+**Run date:** 2026-01-31
+**Result:** ✅ **All 32 tests pass**
+
+| Class | Tests | Description |
+|-------|-------|-------------|
+| IPBinTest | 10 | IPv4/IPv6 to binary conversion and back |
+| UtilitiesTest | 8 | Random string generation, schema path validation |
+| TimezoneTest | 7 | IANA timezone name validation |
+| SessionKeyTest | 4 | Session key generation (base64url format) |
