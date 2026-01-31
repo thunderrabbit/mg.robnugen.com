@@ -21,11 +21,11 @@ $todoHelper = new \ActivityTracking\Todo($pdo);
 $todos = $todoHelper->getAllTodos($user_id);
 
 // Prepare View
-$page = new \Template($config);
+$page = new \Template($config, $is_logged_in);
 $page->setTemplate("layout/welcome_base.tpl.php");
 $page->set("page_title", "My Todos - Meiso Gambare");
 
-$inner_page = new \Template($config);
+$inner_page = new \Template($config, $is_logged_in);
 $inner_page->setTemplate("todos/index.tpl.php");
 $inner_page->set("todos", $todos);
 

@@ -16,13 +16,13 @@ if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
         $log_lines = array_reverse($log_lines); // Show newest first
     }
 
-    $page = new \Template(config: $config);
+    $page = new \Template(config: $config, is_logged_in: $is_logged_in);
     $page->setTemplate("admin/auth_log.tpl.php");
     $page->set(name: "log_lines", value: $log_lines);
     $page->set(name: "log_file", value: $log_file);
     $inner = $page->grabTheGoods();
 
-    $layout = new \Template(config: $config);
+    $layout = new \Template(config: $config, is_logged_in: $is_logged_in);
     $layout->setTemplate("layout/admin_base.tpl.php");
     $layout->set("page_title", "Authentication Log");
     $layout->set("page_content", $inner);

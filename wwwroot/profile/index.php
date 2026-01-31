@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Display the form
-$page = new \Template(config: $config);
+$page = new \Template(config: $config, is_logged_in: $is_logged_in);
 $page->setTemplate("profile/index.tpl.php");
 $page->set("username", $is_logged_in->getLoggedInUsername());
 $page->set("site_title", $is_logged_in->getSiteTitle());
@@ -98,7 +98,7 @@ $page->set("success_message", $success_message);
 
 $inner = $page->grabTheGoods();
 
-$layout = new \Template(config: $config);
+$layout = new \Template(config: $config, is_logged_in: $is_logged_in);
 $layout->setTemplate("layout/base.tpl.php");
 $layout->set("username", $is_logged_in->getLoggedInUsername());
 $layout->set("page_title", "Change Password");

@@ -14,12 +14,12 @@ if ($is_logged_in->isLoggedIn()) {
     exit;
 } else {
     if(!$is_logged_in->isLoggedIn()){
-        $page = new \Template(config: $config);
+        $page = new \Template(config: $config, is_logged_in: $is_logged_in);
         $page->setTemplate("layout/welcome_base.tpl.php");
         $page->set("page_title", "Log In - Meiso Gambare");
 
         // Get the inner content
-        $inner_page = new \Template(config: $config);
+        $inner_page = new \Template(config: $config, is_logged_in: $is_logged_in);
         $inner_page->setTemplate("login/login_content.tpl.php");
 
         // Check if user just registered
