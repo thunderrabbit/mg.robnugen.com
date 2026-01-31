@@ -1,7 +1,6 @@
 <div class="dashboard-container">
     <header class="dashboard-header">
         <h1><?= $is_edit ? 'Edit Todo' : 'Create New Todo' ?></h1>
-        <a href="/" class="btn-secondary">Cancel</a>
     </header>
 
     <div class="card">
@@ -36,12 +35,6 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="target_count">Target Count</label>
-                        <input type="number" id="target_count" name="target_count" value="<?= $todo['target_count'] ?? 1 ?>" min="1" class="form-control">
-                        <small class="help-text">Default is 1 (checkbox style)</small>
-                    </div>
-
-                    <div class="form-group">
                         <label for="target_duration_seconds">Target Duration</label>
                         <div class="duration-input-group">
                             <input type="number" id="target_duration_minutes" class="form-control" placeholder="Minutes" value="<?= isset($todo['target_duration_seconds']) ? floor($todo['target_duration_seconds'] / 60) : '' ?>">
@@ -49,13 +42,19 @@
                         </div>
                         <small class="help-text">Required if 'Is Timer' or Activity selected</small>
                     </div>
+
+                    <div class="form-group">
+                        <label for="target_count">Target Count</label>
+                        <input type="number" id="target_count" name="target_count" value="<?= $todo['target_count'] ?? 1 ?>" min="1" class="form-control">
+                        <small class="help-text">Default is 1 (checkbox style)</small>
+                    </div>
                 </div>
             </fieldset>
 
             <fieldset class="form-section">
-                <legend>Activity Link (Optional)</legend>
+                <legend>Activity Type (Optional)</legend>
                 <div class="form-group">
-                    <label for="activity_id">Link to Activity</label>
+                    <label for="activity_id">Select</label>
                     <select id="activity_id" name="activity_id" class="form-control">
                         <option value="">-- None --</option>
                         <?php foreach ($activities as $activity): ?>
@@ -90,7 +89,8 @@
                 <div class="form-group">
                     <label for="do_dates">Dates of Month</label>
                     <input type="text" id="do_dates" name="do_dates" class="form-control" placeholder="e.g., 1, 15, 30" value="<?= htmlspecialchars($todo['do_dates'] ?? '') ?>">
-                    <small class="help-text">Comma-separated dates (1-31)</small>
+                    <!-- confusing
+                    <small class="help-text">Comma-separated dates (1-31)</small>   -->
                 </div>
             </fieldset>
 
@@ -112,6 +112,9 @@
 
             <div class="form-actions">
                 <button type="submit" class="btn-primary"><?= $btn_text ?? 'Create Todo' ?></button>
+            </div>
+            <div class="form-actions">
+                <a href="/" class="btn-secondary">Cancel</a>
             </div>
         </form>
     </div>
