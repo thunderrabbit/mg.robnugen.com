@@ -44,7 +44,6 @@ if (isset($is_logged_in) && is_object($is_logged_in) && method_exists($is_logged
 
         <?php if ($user_is_admin): ?>
             | <a href="/admin/">Admin</a>
-            | <a href="/admin/workers">Workers</a>
         <?php endif; ?>
 
     <?php endif; ?>
