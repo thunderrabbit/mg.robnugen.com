@@ -13,8 +13,24 @@
 
         <div class="form-row">
             <label for="password">Password:</label>
-            <input type="password" name="pass" id="password" required>
+            <div style="display: flex; align-items: center;">
+                <input type="password" name="pass" id="password" required style="flex-grow: 1;">
+                <button type="button" id="togglePassword" style="margin-left: 8px; cursor: pointer; padding: 2px 6px;">Show</button>
+            </div>
         </div>
+
+    <script>
+        const togglePassword = document.querySelector('#togglePassword');
+        const password = document.querySelector('#password');
+
+        togglePassword.addEventListener('click', function (e) {
+            // toggle the type attribute
+            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+            password.setAttribute('type', type);
+            // toggle the eye slash icon
+            this.textContent = type === 'password' ? 'Show' : 'Hide';
+        });
+    </script>
 
         <div class="form-row">
             <input type="submit" value="Log In">
