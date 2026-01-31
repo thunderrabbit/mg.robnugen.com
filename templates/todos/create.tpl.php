@@ -25,26 +25,26 @@
                 <div class="checkbox-group">
                     <label>
                         <input type="checkbox" name="is_timer" id="is_timer" value="1" <?= (isset($todo) && $todo['is_timer']) ? 'checked' : '' ?>>
-                        Is Timer (requires duration)
+                        Timed?
                     </label>
                     <label>
                         <input type="checkbox" name="is_counter" id="is_counter" value="1" <?= (isset($todo) && $todo['is_counter']) ? 'checked' : '' ?>>
-                        Is Counter (requires target count)
+                        More than once per day?
                     </label>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="target_duration_seconds">Target Duration</label>
+                        <label for="target_duration_seconds">Ideal Duration</label>
                         <div class="duration-input-group">
                             <input type="number" id="target_duration_minutes" class="form-control" placeholder="Minutes" value="<?= isset($todo['target_duration_seconds']) ? floor($todo['target_duration_seconds'] / 60) : '' ?>">
                             <input type="hidden" name="target_duration_seconds" id="target_duration_seconds" value="<?= $todo['target_duration_seconds'] ?? '' ?>">
                         </div>
-                        <small class="help-text">Required if 'Is Timer' or Activity selected</small>
+                        <small class="help-text">(Optional) minutes of timed activity</small>
                     </div>
 
                     <div class="form-group">
-                        <label for="target_count">Target Count</label>
+                        <label for="target_count">How many per day?</label>
                         <input type="number" id="target_count" name="target_count" value="<?= $todo['target_count'] ?? 1 ?>" min="1" class="form-control">
                         <small class="help-text">Default is 1 (checkbox style)</small>
                     </div>
