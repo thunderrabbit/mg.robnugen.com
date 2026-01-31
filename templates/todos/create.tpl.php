@@ -41,10 +41,8 @@
                 <div class="checkbox-group">
                     <!-- Timer is always on by default now (we *always* see a start button (which can be ignored)) -->
                     <input type="hidden" name="is_timer" id="is_timer" value="1">
-                    <label>
-                        <input type="checkbox" name="is_counter" id="is_counter" value="1" <?= (isset($todo) && $todo['is_counter']) ? 'checked' : '' ?>>
-                        More than once per day?
-                    </label>
+                    <!-- Counter is controlled by JS based on target_count -->
+                    <input type="checkbox" name="is_counter" id="is_counter" value="1" <?= (isset($todo) && $todo['is_counter']) ? 'checked' : '' ?> style="display:none;">
                 </div>
 
                 <div class="form-row">
@@ -125,15 +123,32 @@
     const minInput = document.getElementById('target_duration_minutes');
     const secInput = document.getElementById('target_duration_seconds');
 
-    minInput.addEventListener('input', function() {
-        if (this.value) {
-            secInput.value = parseInt(this.value) * 60;
-        } else {
-            secInput.value = '';
-        }
-    });
+    if (minInput && secInput) {
+        minInput.addEventListener('input', function() {
+            if (this.value) {
+                secInput.value = parseInt(this.value) * 60;
+            } else {
+                secInput.value = '';
+            }
+        });
+    }
 
-    // Validations could be added here
+    // Auto-check "is_counter" if target_count > 1
+    const targetCountInput = document.getElementById('target_count');
+    const isCounterCheckbox = document.getElementById('is_counter');
+
+    function updateCounterCheckbox() {
+        if (targetCountInput && isCounterCheckbox) {
+            const count = parseInt(targetCountInput.value) || 0;
+            isCounterCheckbox.checked = count > 1;
+        }
+    }
+
+    if (targetCountInput) {
+        targetCountInput.addEventListener('input', updateCounterCheckbox);
+        // Run once on load to set initial state
+        updateCounterCheckbox();
+    }
 </script>
 
 <style>
