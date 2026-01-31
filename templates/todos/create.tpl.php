@@ -45,12 +45,12 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="target_duration_seconds">Ideal Duration</label>
+                        <label for="target_duration_seconds">Ideal Duration (Optional)</label>
                         <div class="duration-input-group">
                             <input type="number" id="target_duration_minutes" class="form-control" placeholder="Minutes" value="<?= isset($todo['target_duration_seconds']) ? floor($todo['target_duration_seconds'] / 60) : '' ?>">
                             <input type="hidden" name="target_duration_seconds" id="target_duration_seconds" value="<?= $todo['target_duration_seconds'] ?? '' ?>">
                         </div>
-                        <small class="help-text">(Optional) minutes of timed activity</small>
+                        <small class="help-text">Minutes of timed activity</small>
                     </div>
 
                     <div class="form-group">
