@@ -36,6 +36,7 @@ try {
     $oneMinuteAgo = (clone $now)->modify('-1 minute');
     $filteredTodos = [];
 
+    foreach ($todos as &$todo) {
         // Check if this is a recurring todo (has days or dates set)
         $isRecurring = !empty($todo['do_days']) || !empty($todo['do_dates']);
 
