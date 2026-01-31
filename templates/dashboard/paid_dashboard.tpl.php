@@ -44,7 +44,6 @@
 
 	<div class="empty-state" style="display:none;">
 		<p>None</p>
-		<a href="/mg/" class="btn-primary">Start Your First Timer</a>
 	</div>
 
 	<section class="completed-sessions-section">
