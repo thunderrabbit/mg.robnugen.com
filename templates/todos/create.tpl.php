@@ -14,7 +14,7 @@
                 <input type="text" id="title" name="title" required class="form-control" placeholder="e.g., Morning Meditation" value="<?= htmlspecialchars($todo['title'] ?? '') ?>">
             </div>
 
-            <div class="form-group">
+            <div class="form-group" style="display:none;">
                 <label for="description">Description</label>
                 <textarea id="description" name="description" class="form-control" rows="3" placeholder="Optional details..."><?= htmlspecialchars($todo['description'] ?? '') ?></textarea>
             </div>
