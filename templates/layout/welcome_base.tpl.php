@@ -103,8 +103,10 @@
             background: #2980b9;
         }
     </style>
+    <link rel="stylesheet" href="/css/menu.css">
 </head>
 <body>
+    <?php include __DIR__ . '/../partials/menu.tpl.php'; ?>
     <h1>🧘 Meiso Gambare</h1>
     <p class="subtitle">Your simple meditation timer v.<?= SEMVER ?></p>
 
