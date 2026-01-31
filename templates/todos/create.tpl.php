@@ -31,13 +31,11 @@
                             </option>
                         <?php endforeach; ?>
                     </select>
-                    <small class="help-text">Completing this activity will complete this todo.</small>
+                    <small class="help-text">This activity will be selected when you start this todo.</small>
                 </div>
             </fieldset>
 
             <fieldset class="form-section">
-                <legend>Type & Goal</legend>
-
                 <div class="checkbox-group">
                     <!-- Timer is always on by default now (we *always* see a start button (which can be ignored)) -->
                     <input type="hidden" name="is_timer" id="is_timer" value="1">
