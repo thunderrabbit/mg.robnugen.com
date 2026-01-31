@@ -23,7 +23,7 @@
 			<div class="loading">Loading todos...</div>
 		</div>
 		<div class="todos-empty-state" style="display:none;">
-			<p>No todos scheduled for today</p>
+			<p>None</p>
 		</div>
 	</section>
 
@@ -43,7 +43,7 @@
 	</div>
 
 	<div class="empty-state" style="display:none;">
-		<p>No active sessions</p>
+		<p>None</p>
 		<a href="/mg/" class="btn-primary">Start Your First Timer</a>
 	</div>
 
@@ -54,7 +54,7 @@
 			<div class="loading">Loading completed sessions...</div>
 		</div>
 		<div class="completed-empty-state" style="display:none;">
-			<p>No completed sessions yet</p>
+			<p>None</p>
 		</div>
 		<button class="load-more" id="load-more-sessions" style="display:none;">Load More</button>
 	</section>
