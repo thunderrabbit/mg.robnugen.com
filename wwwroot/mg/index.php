@@ -90,8 +90,10 @@ if ($todo_id && $is_logged_in->isLoggedIn()) {
 	</div>
 	<div id="post_timer_links" class="hidden">
 		<a href="/mg/" class="post-timer-link">Start New Timer</a>
-		<?php if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()): ?>
+		<?php if ($is_logged_in->isLoggedIn() && ($is_logged_in->isAdmin() || $is_logged_in->isPaid())): ?>
 		<a href="/" class="post-timer-link">Dashboard</a>
+		<?php endif; ?>
+		<?php if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()): ?>
 		<a href="/admin/" class="post-timer-link">Admin</a>
 		<?php endif; ?>
 	</div>
