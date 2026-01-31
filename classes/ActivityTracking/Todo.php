@@ -103,6 +103,30 @@ class Todo {
     }
 
     /**
+     * Get total completion status for a todo (across all time)
+     *
+     * @param int $todo_id
+     * @return array [count => int, last_logged => string|null]
+     */
+    public function getCompletionStatus(int $todo_id): array {
+        $stmt = $this->pdo->prepare("
+            SELECT
+                COUNT(*) as count,
+                MAX(date_logged) as last_logged
+            FROM todo_logs
+            WHERE todo_id = ?
+        ");
+
+        $stmt->execute([$todo_id]);
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        return [
+            'count' => (int)($result['count'] ?? 0),
+            'last_logged' => $result['last_logged'] ?? null
+        ];
+    }
+
+    /**
      * Log a todo completion
      *
      * @param int $todo_id
