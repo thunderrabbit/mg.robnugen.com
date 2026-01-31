@@ -621,6 +621,21 @@ $(document).ready(function() {
 	// Apply URL parameters (may override local storage values)
 	applyURLParams();
 
+    // Live update for countdown minutes with debounce
+    var debounceTimer;
+    $('#countdown_minutes').on('input', function() {
+        clearTimeout(debounceTimer);
+        var val = $(this).val();
+
+        debounceTimer = setTimeout(function() {
+            var minutes = parseFloat(val);
+            if (!isNaN(minutes) && minutes > 0) {
+                // meisoPrefs.setMeditationTime(minutes); // Optional: save while typing? Maybe wait for start.
+                clock.setTime(minutes * 60);
+            }
+        }, 500); // 500ms debounce
+    });
+
 	// Load available activities for user
 	loadActivities();
 
