@@ -20,6 +20,22 @@
             </div>
 
             <fieldset class="form-section">
+                <legend>Activity Type (Optional)</legend>
+                <div class="form-group">
+                    <label for="activity_id">Select</label>
+                    <select id="activity_id" name="activity_id" class="form-control">
+                        <option value="">-- None --</option>
+                        <?php foreach ($activities as $activity): ?>
+                            <option value="<?= $activity['activity_id'] ?>" <?= (isset($todo) && $todo['activity_id'] == $activity['activity_id']) ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($activity['activity_name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <small class="help-text">Completing this activity will complete this todo.</small>
+                </div>
+            </fieldset>
+
+            <fieldset class="form-section">
                 <legend>Type & Goal</legend>
 
                 <div class="checkbox-group">
@@ -51,21 +67,7 @@
                 </div>
             </fieldset>
 
-            <fieldset class="form-section">
-                <legend>Activity Type (Optional)</legend>
-                <div class="form-group">
-                    <label for="activity_id">Select</label>
-                    <select id="activity_id" name="activity_id" class="form-control">
-                        <option value="">-- None --</option>
-                        <?php foreach ($activities as $activity): ?>
-                            <option value="<?= $activity['activity_id'] ?>" <?= (isset($todo) && $todo['activity_id'] == $activity['activity_id']) ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($activity['activity_name']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                    <small class="help-text">Completing this activity will complete this todo.</small>
-                </div>
-            </fieldset>
+
 
             <fieldset class="form-section">
                 <legend>Recurrence</legend>
