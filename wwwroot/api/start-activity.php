@@ -69,9 +69,10 @@ try {
     // Store ak_id in session for later
     $_SESSION['active_ak_id'] = $ak_id;
 
-    // Generate session key for admin users
+    // Generate session key for admin and paid users
     $session_key = null;
-    if ($is_admin) {
+    $is_paid = $is_logged_in->isPaid();
+    if ($is_admin || $is_paid) {
         $sessionKeyHelper = new \ActivityTracking\SessionKey($pdo);
         $session_key = $sessionKeyHelper->createSessionKey($ak_id);
     }
@@ -82,7 +83,7 @@ try {
         'message' => 'Activity started successfully'
     ];
 
-    // Include session_key in response only for admin users
+    // Include session_key in response for admin and paid users
     if ($session_key !== null) {
         $response['session_key'] = $session_key;
     }
