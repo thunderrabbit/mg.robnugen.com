@@ -1,4 +1,4 @@
 <?php
 
-const SENTIMENTAL_VERSION = "QA with Misa";
-const SEMVER = "0.8.9";
+const SENTIMENTAL_VERSION = "Update site title";
+const SEMVER = "0.8.10";
