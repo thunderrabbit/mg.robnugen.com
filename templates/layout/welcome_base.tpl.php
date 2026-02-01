@@ -102,6 +102,33 @@
         .form-row input[type="submit"]:hover {
             background: #2980b9;
         }
+        .form-row input[type="submit"]:hover {
+            background: #2980b9;
+        }
+        /* Navigation Arrows */
+        .nav-arrow {
+            display: inline-block;
+            padding: 10px 20px;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            margin: 0 10px;
+        }
+        .nav-arrow.disabled {
+            opacity: 0.3;
+            cursor: default;
+        }
+    </style>
+    <style>
+        .arrow-older {
+            background-color: <?= $is_logged_in->getArrowColorOlder() ?>;
+            color: <?= Utilities::getContrastColor($is_logged_in->getArrowColorOlder()) ?> !important;
+        }
+        .arrow-newer {
+            background-color: <?= $is_logged_in->getArrowColorNewer() ?>;
+            color: <?= Utilities::getContrastColor($is_logged_in->getArrowColorNewer()) ?> !important;
+        }
     </style>
     <link rel="stylesheet" href="/css/menu.css">
 </head>
