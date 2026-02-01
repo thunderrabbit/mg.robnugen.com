@@ -63,10 +63,3 @@
         <?php endif; ?>
     </div>
 </div>
-
-<style>
-    .nav-arrow.disabled {
-        opacity: 0.3;
-        cursor: default;
-    }
-</style>
