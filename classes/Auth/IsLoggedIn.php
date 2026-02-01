@@ -69,8 +69,8 @@ class IsLoggedIn
 
     private string $siteTitle = '';
     private string $siteSubtitle = '';
-    private string $arrowColorOlder = '#2EC27E'; // Default: Green
-    private string $arrowColorNewer = '#1C71D8'; // Default: Blue
+    private string $arrowColorOlder = '#4CAF50'; // Default: Green
+    private string $arrowColorNewer = '#2196F3'; // Default: Blue
 
     private function setUsernameOfLoggedInID(int $user_id): void
     {
