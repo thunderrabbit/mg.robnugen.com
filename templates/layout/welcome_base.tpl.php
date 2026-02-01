@@ -126,6 +126,10 @@
 
     <?= $page_content ?>
 
-    <p style="color: #7f8c8d; font-size: 0.9em; margin-top: 40px;">Free to get started • No email or credit card required</p>
+    <?php if (!$is_logged_in->isLoggedIn()): ?>
+        <p style="color: #7f8c8d; font-size: 0.9em; margin-top: 40px;">Free to get started • No email or credit card required</p>
+    <?php elseif (!$is_logged_in->isPaid() && !$is_logged_in->isAdmin()): ?>
+        <p style="color: #7f8c8d; font-size: 0.9em; margin-top: 40px;">Upgrade for multiple timers, recurring todos, and more!</p>
+    <?php endif; ?>
 </body>
 </html>
