@@ -46,3 +46,19 @@ body {
     text-align: right;
     color: #555;
 }
+
+/* Navigation Arrows */
+.nav-arrow {
+    display: inline-block;
+    padding: 10px 20px;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    font-weight: bold;
+    margin: 0 10px;
+}
+
+.nav-arrow.disabled {
+    opacity: 0.3;
+    cursor: default;
+}
