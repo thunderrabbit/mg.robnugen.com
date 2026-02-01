@@ -28,25 +28,7 @@
 	</section>
 
     <div class="dashboard-nav">
-        <style>
-            .nav-arrow {
-                display: inline-block;
-                padding: 10px 20px;
-                color: white;
-                text-decoration: none;
-                border-radius: 5px;
-                font-weight: bold;
-                margin: 0 10px;
-            }
-            .arrow-older {
-                background-color: #E1AD01; /* Mustard */
-                color: black !important; /* Force black text */
-            }
-            .arrow-newer {
-                background-color: #FF00FF; /* Fuchsia */
-                color: white !important;
-            }
-        </style>
+
         <a href="/todos/history.php" class="nav-arrow arrow-older" title="View Completed Todos">← Older</a>
         <a href="/todos/upcoming.php" class="nav-arrow arrow-newer" title="View Future Todos">Newer →</a>
     </div>

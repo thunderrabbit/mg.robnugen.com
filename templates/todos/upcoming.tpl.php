@@ -55,30 +55,7 @@
     <!-- Pagination -->
     <!-- Pagination -->
     <div class="dashboard-nav" style="justify-content: center; gap: 20px;">
-        <style>
-            .nav-arrow {
-                display: inline-block;
-                padding: 10px 20px;
-                color: white;
-                text-decoration: none;
-                border-radius: 5px;
-                font-weight: bold;
-                margin: 0 10px;
-            }
-            .arrow-older {
-                background-color: #E1AD01; /* Mustard */
-                color: black !important;
-            }
-            .arrow-newer {
-                background-color: #FF00FF; /* Fuchsia */
-                color: white !important;
-            }
-            /* Override disabled opacity while keeping color */
-            .nav-arrow.disabled {
-                opacity: 0.3;
-                cursor: default;
-            }
-        </style>
+
 
         <!-- LEFT: Sooner (Prev page or Dashboard) -->
         <?php if ($current_page > 1): ?>
