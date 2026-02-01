@@ -105,20 +105,7 @@
         .form-row input[type="submit"]:hover {
             background: #2980b9;
         }
-        /* Navigation Arrows */
-        .nav-arrow {
-            display: inline-block;
-            padding: 10px 20px;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            font-weight: bold;
-            margin: 0 10px;
-        }
-        .nav-arrow.disabled {
-            opacity: 0.3;
-            cursor: default;
-        }
+
     </style>
     <style>
         .arrow-older {
