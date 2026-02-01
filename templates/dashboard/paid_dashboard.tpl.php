@@ -28,8 +28,8 @@
 	</section>
 
     <div class="dashboard-nav">
-        <a href="/todos/history.php" class="nav-arrow" title="View Completed Todos">← Completed</a>
-        <a href="/todos/upcoming.php" class="nav-arrow" title="View Future Todos">Upcoming →</a>
+        <a href="/todos/history.php" class="nav-arrow" title="View Completed Todos">← Older</a>
+        <a href="/todos/upcoming.php" class="nav-arrow" title="View Future Todos">Newer →</a>
     </div>
 
 	<header class="dashboard-header">
