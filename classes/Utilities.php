@@ -58,4 +58,34 @@ class Utilities {
 
         return $realTarget;
     }
+    /**
+     * Determine best text color (black or white) given a background hex color.
+     * @param string $hexColor
+     * @return string 'black' or 'white'
+     */
+    public static function getContrastColor(string $hexColor): string
+    {
+        // Sanitize
+        $hexColor = preg_replace('/[^0-9a-fA-F]/', '', $hexColor);
+
+        // Check valid length
+        if (strlen($hexColor) == 6) {
+            $r = hexdec(substr($hexColor, 0, 2));
+            $g = hexdec(substr($hexColor, 2, 2));
+            $b = hexdec(substr($hexColor, 4, 2));
+        } elseif (strlen($hexColor) == 3) {
+            $r = hexdec(str_repeat(substr($hexColor, 0, 1), 2));
+            $g = hexdec(str_repeat(substr($hexColor, 1, 1), 2));
+            $b = hexdec(str_repeat(substr($hexColor, 2, 1), 2));
+        } else {
+            return 'black'; // Default to black if invalid
+        }
+
+        // Calculate luminance
+        // Formula: 0.299*R + 0.587*G + 0.114*B
+        $luminance = (0.299 * $r + 0.587 * $g + 0.114 * $b);
+
+        // If luminance > 128 (bright), use black text. Otherwise white.
+        return ($luminance > 128) ? 'black' : 'white';
+    }
 }

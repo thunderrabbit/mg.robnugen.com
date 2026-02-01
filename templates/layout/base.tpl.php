@@ -7,6 +7,16 @@
     <title><?= $page_title ?? ($is_logged_in->isLoggedIn() ? htmlspecialchars($is_logged_in->getSiteTitle()) : 'Meiso Gambare') ?></title>
     <link rel="stylesheet" href="/css/styles.css">
     <link rel="stylesheet" href="/css/menu.css">
+    <style>
+        .arrow-older {
+            background-color: <?= $is_logged_in->getArrowColorOlder() ?>;
+            color: <?= Utilities::getContrastColor($is_logged_in->getArrowColorOlder()) ?> !important;
+        }
+        .arrow-newer {
+            background-color: <?= $is_logged_in->getArrowColorNewer() ?>;
+            color: <?= Utilities::getContrastColor($is_logged_in->getArrowColorNewer()) ?> !important;
+        }
+    </style>
 </head>
 <body>
     <?php include __DIR__ . '/../partials/menu.tpl.php'; ?>

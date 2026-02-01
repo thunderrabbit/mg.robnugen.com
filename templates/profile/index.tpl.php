@@ -15,6 +15,26 @@
 
     <form action="/profile/" method="POST" class="mainForm" style="margin-bottom: 30px;">
         <input type="hidden" name="update_settings_action" value="1">
+
+        <fieldset>
+            <legend>Navigation Arrow Colors</legend>
+            <div class="PageRow noborder">
+                <label for="arrow_color_older">Older Arrow Color:</label>
+                <div class="PageInput">
+                    <input type="color" id="arrow_color_older" name="arrow_color_older" value="<?= htmlspecialchars($arrow_color_older) ?>" style="height: 40px; width: 60px; padding: 2px;">
+                </div>
+                <div class="fix"></div>
+            </div>
+
+            <div class="PageRow noborder">
+                <label for="arrow_color_newer">Newer Arrow Color:</label>
+                <div class="PageInput">
+                    <input type="color" id="arrow_color_newer" name="arrow_color_newer" value="<?= htmlspecialchars($arrow_color_newer) ?>" style="height: 40px; width: 60px; padding: 2px;">
+                </div>
+                <div class="fix"></div>
+            </div>
+        </fieldset>
+
         <fieldset>
             <legend>Site Customization</legend>
             <div class="PageRow noborder">
