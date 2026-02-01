@@ -1,4 +1,4 @@
 <?php
 
-const SENTIMENTAL_VERSION = "Fix todo page";
-const SEMVER = "0.8.12";
+const SENTIMENTAL_VERSION = "Clean up history and future arrows";
+const SEMVER = "0.8.13";
