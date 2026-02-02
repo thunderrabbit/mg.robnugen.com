@@ -1,4 +1,4 @@
 <?php
 
-const SENTIMENTAL_VERSION = "Remove all traces of GLOBALS";
-const SEMVER = "0.8.14";
+const SENTIMENTAL_VERSION = "Fix sortable handle for mobile";
+const SEMVER = "0.8.15";
