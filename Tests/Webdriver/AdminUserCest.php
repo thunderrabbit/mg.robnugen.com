@@ -34,6 +34,27 @@ class AdminUserCest
         $I->see('entries (newest first)');
     }
 
+    public function canCreateTodo(AcceptanceTester $I)
+    {
+        $I->amOnPage('/todos/create.php');
+        $I->see('Create New Todo');
+        $I->seeElement('#title');
+        $I->seeElement('button[type=submit]');
+
+        // Fill in the form with test data
+        $todoTitle = 'Test Todo ' . time();
+        $I->fillField('#title', $todoTitle);
+        $I->fillField('#target_duration_minutes', '5');
+        $I->fillField('#target_count', '1');
+
+        // Submit the form
+        $I->click('button[type=submit]');
+
+        // Should redirect to dashboard with success message
+        $I->seeInCurrentUrl('/?msg=todo_created');
+        $I->see("Today's Todos");
+    }
+
     // === NEGATIVE TESTS ===
 
     public function doesNotSeeWelcomePage(AcceptanceTester $I)

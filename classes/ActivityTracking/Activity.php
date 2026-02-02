@@ -37,7 +37,7 @@ class Activity {
                   AND (type = 'FREE')
                 ORDER BY activity_name
             ");
-            $stmt->execute([$user_id]);
+            $stmt->execute();
         }
 
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
