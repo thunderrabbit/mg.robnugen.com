@@ -66,7 +66,7 @@
                                 <a href="/todos/create.php?todo_id=<?= $todo['todo_id'] ?>" class="btn-sm btn-edit">Edit</a>
                                 <a href="/todos/delete.php?todo_id=<?= $todo['todo_id'] ?>"
                                    class="btn-sm btn-delete"
-                                   onclick="return confirm('Are you sure you want to delete this todo? This action cannot be undone.');">Delete</a>
+                                   onclick="return confirm('Are you sure you want to archive this todo?');">Archive</a>
                             </td>
                         </tr>
                         <?php endforeach; ?>
