@@ -64,6 +64,9 @@
                             </td>
                             <td>
                                 <a href="/todos/create.php?todo_id=<?= $todo['todo_id'] ?>" class="btn-sm btn-edit">Edit</a>
+                                <a href="/todos/delete.php?todo_id=<?= $todo['todo_id'] ?>"
+                                   class="btn-sm btn-delete"
+                                   onclick="return confirm('Are you sure you want to delete this todo? This action cannot be undone.');">Delete</a>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -123,6 +126,11 @@
         border-color: #3b82f6;
         color: #3b82f6;
         background: rgba(59, 130, 246, 0.05);
+    }
+    .btn-delete:hover {
+        border-color: #ef4444;
+        color: #ef4444;
+        background: rgba(239, 68, 68, 0.05);
     }
     .btn-disabled {
         cursor: not-allowed;

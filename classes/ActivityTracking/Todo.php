@@ -366,6 +366,29 @@ class Todo {
     }
 
     /**
+     * Delete a todo (soft delete by setting is_active = 0)
+     *
+     * @param int $todo_id
+     * @param int $user_id User ID for ownership verification
+     * @return bool Success
+     */
+    public function deleteTodo(int $todo_id, int $user_id): bool {
+        // Verify ownership before deleting
+        if (!$this->verifyOwnership($todo_id, $user_id)) {
+            return false;
+        }
+
+        $stmt = $this->pdo->prepare("
+            UPDATE todos
+            SET is_active = 0
+            WHERE todo_id = ?
+        ");
+
+        return $stmt->execute([$todo_id]);
+    }
+
+
+    /**
      * Get completed todo history with pagination
      *
      * @param int $user_id
