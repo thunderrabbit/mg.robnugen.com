@@ -3,8 +3,8 @@
  * Menu Partial
  *
  * Logic:
- * - Admin: Home (/), Timer (/mg/), Profile (Dropdown), Admin (/admin/), Workers (/admin/workers)
- * - Paid: Home (/), Timer (/mg/), Profile (Dropdown)
+ * - Admin: Home (/), Timer (/mg/), Todos (/todos/), Profile (Dropdown), Admin (/admin/), Workers (/admin/workers)
+ * - Paid: Home (/), Timer (/mg/), Todos (/todos/), Profile (Dropdown)
  * - Free: Home (/), Timer (/mg/)
  *
  * Note: The "Home" link points to `/` which handles "Welcome" or "Dashboard" based on login status.
@@ -33,6 +33,10 @@ if (isset($is_logged_in) && is_object($is_logged_in) && method_exists($is_logged
 <div class="NavBar" id="main-menu">
     <a href="/">Home</a> |
     <a href="/mg/">Timer</a> |
+
+    <?php if ($user_is_admin || $user_is_paid): ?>
+        <a href="/todos/">Todos</a> |
+    <?php endif; ?>
 
     <?php if ($user_is_logged_in): ?>
         <div class="dropdown">
