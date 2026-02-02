@@ -25,13 +25,14 @@
 		<div class="todos-empty-state" style="display:none;">
 			<p>None</p>
 		</div>
+
+		<div class="dashboard-nav">
+			<br>
+			<a href="/todos/history.php" class="nav-arrow arrow-older" title="View Completed Todos">← Older</a>
+			<a href="/todos/upcoming.php" class="nav-arrow arrow-newer" title="View Future Todos">Newer →</a>
+		</div>
+
 	</section>
-
-    <div class="dashboard-nav">
-
-        <a href="/todos/history.php" class="nav-arrow arrow-older" title="View Completed Todos">← Older</a>
-        <a href="/todos/upcoming.php" class="nav-arrow arrow-newer" title="View Future Todos">Newer →</a>
-    </div>
 
 	<header class="dashboard-header">
 		<h1>My Active Sessions</h1>
