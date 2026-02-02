@@ -8,8 +8,14 @@ include_once $matches[1] . '/prepend.php';
 if ($is_logged_in->isLoggedIn()) {
     // We logged in.. yay!
     // Check if there's a return URL saved
-    $return_url = $_SESSION['return_url'] ?? '/mg/';
-    unset($_SESSION['return_url']); // Clear it
+    if (isset($_SESSION['return_url'])) {
+        $return_url = $_SESSION['return_url'];
+        unset($_SESSION['return_url']); // Clear it
+    } else {
+        // Default redirect based on user role
+        // Admin and paid users go to dashboard (/), free users go to timer (/mg/)
+        $return_url = ($is_logged_in->isAdmin() || $is_logged_in->isPaid()) ? '/' : '/mg/';
+    }
     header(header: "Location: $return_url");
     exit;
 } else {
