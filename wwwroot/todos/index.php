@@ -7,9 +7,14 @@
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
 
-// Authentication Check
+// Authentication Check - Allow admins and paid users only
 if (!$is_logged_in->isLoggedIn()) {
     header("Location: /login/");
+    exit;
+}
+
+if (!$is_logged_in->isAdmin() && !$is_logged_in->isPaid()) {
+    header("Location: /?msg=upgrade_required");
     exit;
 }
 
