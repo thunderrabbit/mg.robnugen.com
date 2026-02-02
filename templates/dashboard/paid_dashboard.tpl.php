@@ -29,7 +29,7 @@
 		<div class="dashboard-nav">
 			<br>
 			<a href="/todos/history.php" class="nav-arrow arrow-older" title="View Completed Todos">← Older</a>
-			<a href="/todos/upcoming.php" class="nav-arrow arrow-newer" title="View Future Todos">Future →</a>
+			<a href="/todos/upcoming.php" class="nav-arrow arrow-newer" title="View Future Todos">Tomorrow →</a>
 		</div>
 
 	</section>
