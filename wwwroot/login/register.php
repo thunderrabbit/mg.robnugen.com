@@ -76,6 +76,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 
 } else {
+    $is_logged_in = new \Auth\IsLoggedIn($mla_database, $config);
+    $is_logged_in->checkLogin($mla_request);
     $page = new \Template(config: $config, is_logged_in: $is_logged_in);
     $page->setTemplate("layout/welcome_base.tpl.php");
     $page->set("page_title", "Create Account - Meiso Gambare");
