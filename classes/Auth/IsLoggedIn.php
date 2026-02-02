@@ -38,7 +38,6 @@ class IsLoggedIn
         {
             $found_user_id = $this->getUserIdForCookieInDatabase(
                 cookie: $mla_request->cookie[$this->di_config->cookie_name],
-                ip_address: $current_ip,
                 user_agent: $_SERVER['HTTP_USER_AGENT'] ?? ''
             );
             if(empty($found_user_id))
@@ -167,12 +166,11 @@ class IsLoggedIn
             'user_id' => $user_id,
             'cookie' => $cookie,
             'last_access' => date(format: "Y-m-d H:i:s"),
-            'user_agent_md5' => md5($_SERVER['HTTP_USER_AGENT'] ?? ''),
-            'ip_address' => \Auth\IPBin::ipToBinary(ip: $_SERVER['REMOTE_ADDR'])
+            'user_agent_md5' => md5($_SERVER['HTTP_USER_AGENT'] ?? '')
         ];
 
         // Insert using native PDO
-        $stmt = $this->di_pdo->prepare("INSERT INTO `cookies` (`user_id`, `cookie`, `last_access`, `user_agent_md5`, `ip_address`) VALUES (?, ?, ?, ?, ?)");
+        $stmt = $this->di_pdo->prepare("INSERT INTO `cookies` (`user_id`, `cookie`, `last_access`, `user_agent_md5`) VALUES (?, ?, ?, ?)");
         $stmt->execute(array_values($record));
 
         $cookie_options = [
@@ -228,41 +226,35 @@ class IsLoggedIn
 
     private function getUserIdForCookieInDatabase(
         string $cookie,
-        string $ip_address,
         string $user_agent
     ): int
     {
-        $varbinary_ip = \Auth\IPBin::ipToBinary($ip_address);
-        $stmt = $this->di_pdo->prepare("SELECT `user_id`, `ip_address` FROM `cookies` WHERE `cookie` = ? LIMIT 1");
-        $stmt->execute([$cookie]);
+        // Validate cookie and user agent match
+        $stmt = $this->di_pdo->prepare("SELECT `user_id` FROM `cookies` WHERE `cookie` = ? AND `user_agent_md5` = ? LIMIT 1");
+        $stmt->execute([$cookie, md5($user_agent)]);
         $result = $stmt->fetchAll();
 
         if(count($result) > 0)
         {
-            $stored_ip = \Auth\IPBin::binaryToIp($result[0]['ip_address']);
-            $user_id = $result[0]['user_id'];
-
-            // Check IP match
-            if($varbinary_ip !== $result[0]['ip_address']) {
-                $this->logAuth("user_id: {$user_id}, IP: {$ip_address} - Cookie IP MISMATCH (stored IP: {$stored_ip})");
-                return 0;
-            }
-
-            // Check user agent match
-            $stmt2 = $this->di_pdo->prepare("SELECT `user_id` FROM `cookies` WHERE `cookie` = ? AND `user_agent_md5` = ? LIMIT 1");
-            $stmt2->execute([$cookie, md5($user_agent)]);
-            $result2 = $stmt2->fetchAll();
-
-            if(count($result2) === 0) {
-                $this->logAuth("user_id: {$user_id}, IP: {$ip_address} - Cookie USER AGENT MISMATCH");
-                return 0;
-            }
-
-            return $user_id;
+            return $result[0]['user_id'];
         }
         else
         {
-            $this->logAuth("user_id: N/A, IP: {$ip_address} - Cookie NOT FOUND in database");
+            // Log why authentication failed
+            $stmt2 = $this->di_pdo->prepare("SELECT `user_id` FROM `cookies` WHERE `cookie` = ? LIMIT 1");
+            $stmt2->execute([$cookie]);
+            $result2 = $stmt2->fetchAll();
+
+            if(count($result2) > 0) {
+                // Cookie exists but user agent doesn't match
+                $user_id = $result2[0]['user_id'];
+                $current_ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+                $this->logAuth("user_id: {$user_id}, IP: {$current_ip} - Cookie USER AGENT MISMATCH");
+            } else {
+                // Cookie doesn't exist at all
+                $current_ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+                $this->logAuth("user_id: N/A, IP: {$current_ip} - Cookie NOT FOUND in database");
+            }
             return 0;
         }
     }

@@ -12,7 +12,7 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
 
 - **Template System**: `classes/Template.php` - Custom templating engine with layout nesting via `grabTheGoods()` method
 - **Database Layer**: `classes/Database/` - PDO-based database abstraction with migration system
-- **Authentication**: `classes/Auth/` - Cookie-based login system with IP tracking
+- **Authentication**: `classes/Auth/` - Cookie-based login system with browser matching
 - **Configuration**: Must create `classes/Config.php` from `classes/ConfigSample.php` with actual database credentials
 - **Bootstrap**: `prepend.php` - Application initialization, autoloader, and database checks
 
@@ -48,7 +48,6 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
 
 - Session-based with database-stored cookies
 - First-time setup redirects to admin user creation unless visiting `/login/register.php`
-- IP address tracking via `Auth\IPBin` class
 - Login state managed by `Auth\IsLoggedIn` class
 
 ## Important Files
