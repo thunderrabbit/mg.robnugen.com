@@ -15,7 +15,7 @@ $user_is_admin = $is_admin ?? false;
 $user_is_paid = $is_paid ?? false;
 $user_is_logged_in = isset($is_logged_in) && is_bool($is_logged_in) ? $is_logged_in : ($user_is_admin || $user_is_paid);
 
-// If using the global $is_logged_in object (or local in scope)
+// If using the $is_logged_in object (should always be available via Template system)
 // Note: In some scopes $is_logged_in is an object, in others (templates) it might be bool.
 // We check for the object capability.
 // We use a different variable name to avoid overwriting the object if it exists.
@@ -23,11 +23,8 @@ if (isset($is_logged_in) && is_object($is_logged_in) && method_exists($is_logged
     if (!$user_is_logged_in && $is_logged_in->isLoggedIn()) $user_is_logged_in = true;
     if (!$user_is_admin && $is_logged_in->isAdmin()) $user_is_admin = true;
     if (!$user_is_paid && $is_logged_in->isPaid()) $user_is_paid = true;
-} elseif (isset($GLOBALS['is_logged_in']) && is_object($GLOBALS['is_logged_in'])) {
-    if (!$user_is_logged_in && $GLOBALS['is_logged_in']->isLoggedIn()) $user_is_logged_in = true;
-    if (!$user_is_admin && $GLOBALS['is_logged_in']->isAdmin()) $user_is_admin = true;
-    if (!$user_is_paid && $GLOBALS['is_logged_in']->isPaid()) $user_is_paid = true;
 }
+
 
 ?>
 <div class="NavBar" id="main-menu">
