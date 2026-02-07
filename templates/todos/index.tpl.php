@@ -25,7 +25,7 @@
                     </thead>
                     <tbody>
                         <?php foreach ($todos as $todo): ?>
-                        <tr>
+                        <tr id="todo-row-<?= $todo['todo_id'] ?>">
                             <td>
                                 <strong><?= htmlspecialchars($todo['title']) ?></strong>
                                 <?php if (!empty($todo['description'])): ?>
@@ -64,8 +64,9 @@
                             </td>
                             <td>
                                 <a href="/todos/create.php?todo_id=<?= $todo['todo_id'] ?>" class="btn-sm btn-edit">Edit</a>
-                                <a href="/todos/delete.php?todo_id=<?= $todo['todo_id'] ?>"
-                                   class="btn-sm btn-delete"
+                                <a href="/todos/archive.php?todo_id=<?= $todo['todo_id'] ?>"
+                                   class="btn-sm btn-delete action-archive"
+                                   data-todo-id="<?= $todo['todo_id'] ?>"
                                    onclick="return confirm('Are you sure you want to archive this todo?');">Archive</a>
                             </td>
                         </tr>
