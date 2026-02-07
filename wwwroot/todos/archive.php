@@ -1,7 +1,7 @@
 <?php
 /**
- * Delete Todo Endpoint
- * Handles deletion of todos with ownership verification
+ * Archive Todo Endpoint
+ * Handles archiving of todos with ownership verification
  */
 
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
