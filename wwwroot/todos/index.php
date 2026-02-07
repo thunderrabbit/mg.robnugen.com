@@ -25,6 +25,19 @@ $todoHelper = new \ActivityTracking\Todo($pdo);
 // Get all active todos
 $todos = $todoHelper->getAllTodos($user_id);
 
+// Check completion status for non-repeating todos
+foreach ($todos as &$todo) {
+    // Non-repeating if no days or dates scheduled
+    if (empty($todo['do_days']) && empty($todo['do_dates'])) {
+        $status = $todoHelper->getCompletionStatus($todo['todo_id']);
+        if ($status['count'] > 0) {
+            $todo['is_completed'] = true;
+            $todo['completed_at'] = $status['last_logged'];
+        }
+    }
+}
+unset($todo); // Break reference
+
 // Prepare View
 $page = new \Template($config, $is_logged_in);
 $page->setTemplate("layout/welcome_base.tpl.php");
