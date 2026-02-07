@@ -31,7 +31,19 @@ if (!$todo_id) {
 }
 
 // Verify ownership and delete
-if ($todoHelper->deleteTodo($todo_id, $user_id)) {
+// Verify ownership and delete
+$success = $todoHelper->deleteTodo($todo_id, $user_id);
+
+// Check if this is an AJAX request
+$isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest');
+
+if ($isAjax) {
+    header('Content-Type: application/json');
+    echo json_encode(['success' => $success]);
+    exit;
+}
+
+if ($success) {
     header("Location: /todos/?msg=todo_deleted");
     exit;
 } else {

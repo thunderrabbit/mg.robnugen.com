@@ -143,3 +143,47 @@
         color: var(--text-muted);
     }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const archiveLinks = document.querySelectorAll('.action-archive');
+
+    archiveLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            if (!confirm('Are you sure you want to archive this todo?')) {
+                return;
+            }
+
+            const todoId = this.dataset.todoId;
+            const row = document.getElementById('todo-row-' + todoId);
+            const originalDisplay = row.style.display;
+
+            // Optimistically hide the row
+            row.style.display = 'none';
+
+            fetch(this.href, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to archive');
+                }
+                // Success - row is already hidden, remove it from DOM to be clean
+                row.remove();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to archive todo: ' + error.message);
+                // Revert optimistic update
+                row.style.display = originalDisplay;
+            });
+        });
+    });
+});
+</script>
