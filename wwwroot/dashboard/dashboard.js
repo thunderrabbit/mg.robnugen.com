@@ -36,17 +36,24 @@ function createTodoWidget(todo) {
 		statusClass += ' has-timer';
 	}
 
-	var timeDisplay = todo.do_time ? '<span class="todo-time">' + todo.do_time.substring(0, 5) + '</span>' : '';
+	// Determine what should be the sort handle
+	var sortHandle = '';
+	var sortIcon = ''; // Icon to show on the left if no time/date
+	if (todo.do_time) {
+		// Time is the handle
+		sortHandle = '<span class="todo-sort-area todo-time">' + todo.do_time.substring(0, 5) + '</span>';
+	} else if (todo.due_date) {
+		// Date is the handle
+		sortHandle = '<span class="todo-sort-area todo-date">' + formatTodoDate(todo.due_date) + '</span>';
+	} else {
+		// No time or date, add a sort icon handle on the left
+		sortIcon = '<span class="todo-sort-area todo-sort-handle" title="Drag to reorder">⋮⋮</span>';
+	}
 
 	var durationDisplay = '';
 	if (isTimer && todo.target_duration_seconds) {
 		durationDisplay = '<span class="todo-duration">' + formatDuration(parseInt(todo.target_duration_seconds)) + '</span>';
 	}
-
-    var dateDisplay = '';
-    if (todo.due_date) {
-        dateDisplay = '<span class="todo-date">' + formatTodoDate(todo.due_date) + '</span>';
-    }
 
 	var startButton = '';
 	if (isTimer && hasActivityId) {
@@ -69,8 +76,8 @@ function createTodoWidget(todo) {
 		'data-todo-id': todo.todo_id,
 		'data-interval': intervalSeconds,
 		'html': '<div class="todo-header">' +
-				timeDisplay +
-				dateDisplay +
+				sortIcon +
+				sortHandle +
 				'<span class="todo-title">' + todo.title + '</span>' +
 				'<a href="/todos/create.php?todo_id=' + todo.todo_id + '" class="todo-edit-icon" title="Edit">✎</a>' +
 				durationDisplay +
@@ -110,7 +117,7 @@ function renderTodos(todos) {
         var el = document.getElementById('todos-container');
         sortableInstance = Sortable.create(el, {
             animation: 150,
-            handle: '.todo-widget', // or maybe a specific handle? For now, whole widget.
+            handle: '.todo-sort-area', // Time, date, or sort icon
             onEnd: function (evt) {
                 handleTodoDrop(evt);
             },
