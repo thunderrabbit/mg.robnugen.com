@@ -66,8 +66,7 @@
                                 <a href="/todos/create.php?todo_id=<?= $todo['todo_id'] ?>" class="btn-sm btn-edit">Edit</a>
                                 <a href="/todos/archive.php?todo_id=<?= $todo['todo_id'] ?>"
                                    class="btn-sm btn-delete action-archive"
-                                   data-todo-id="<?= $todo['todo_id'] ?>"
-                                   onclick="return confirm('Are you sure you want to archive this todo?');">Archive</a>
+                                   data-todo-id="<?= $todo['todo_id'] ?>">Archive</a>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -151,10 +150,6 @@ document.addEventListener('DOMContentLoaded', function() {
     archiveLinks.forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
-
-            if (!confirm('Are you sure you want to archive this todo?')) {
-                return;
-            }
 
             const todoId = this.dataset.todoId;
             const row = document.getElementById('todo-row-' + todoId);
