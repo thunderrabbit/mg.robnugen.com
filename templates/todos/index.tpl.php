@@ -50,13 +50,17 @@
                             </td>
                             <td>
                                 <?php
-                                $schedule = [];
-                                if ($todo['do_days']) $schedule[] = $todo['do_days'];
-                                if ($todo['do_dates']) $schedule[] = 'Dates: ' . $todo['do_dates'];
-                                if ($todo['do_time']) $schedule[] = 'At: ' . date('g:ia', strtotime($todo['do_time']));
-                                if ($todo['due_date']) $schedule[] = 'Due: ' . $todo['due_date'];
+                                if (!empty($todo['is_completed'])) {
+                                    echo '<span class="text-success">Done (' . date('Y-m-d', strtotime($todo['completed_at'])) . ')</span>';
+                                } else {
+                                    $schedule = [];
+                                    if ($todo['do_days']) $schedule[] = $todo['do_days'];
+                                    if ($todo['do_dates']) $schedule[] = 'Dates: ' . $todo['do_dates'];
+                                    if ($todo['do_time']) $schedule[] = 'At: ' . date('g:ia', strtotime($todo['do_time']));
+                                    if ($todo['due_date']) $schedule[] = 'Due: ' . $todo['due_date'];
 
-                                echo !empty($schedule) ? implode('<br>', $schedule) : 'Anytime';
+                                    echo !empty($schedule) ? implode('<br>', $schedule) : 'Anytime';
+                                }
                                 ?>
                             </td>
                             <td>
@@ -100,6 +104,9 @@
     .todo-desc {
         font-size: 0.85rem;
         color: var(--text-muted);
+    }
+    .text-success {
+        color: #10b981;
     }
     .badge {
         display: inline-block;
