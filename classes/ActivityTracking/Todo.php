@@ -51,7 +51,7 @@ class Todo {
                 (t.due_date IS NOT NULL AND DATE(t.due_date) = ?)            -- Specific Due Date
                 OR
                 -- specific date is before today but not 2 weeks old
-                (t.due_date IS NOT NULL AND DATE(t.due_date) < ? AND DATE(t.due_date) > DATE_SUB(?, INTERVAL 2 WEEK))
+                (t.due_date IS NOT NULL AND DATE(t.due_date) < ? AND DATE(t.due_date) > DATE_SUB(?, INTERVAL 2 YEAR))
                 OR
                 (t.do_days IS NULL AND t.do_dates IS NULL AND t.due_date IS NULL) -- Unscheduled / Anytime
             )
