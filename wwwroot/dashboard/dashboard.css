@@ -273,6 +273,49 @@
 	font-weight: 600;
 }
 
+/* Completed Task Styles */
+.completed-task {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.completed-check {
+    color: #4CAF50;
+    font-size: 18px;
+    line-height: 1;
+}
+
+.completed-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    text-decoration: line-through;
+    text-decoration-color: #a5d6a7;
+    color: #558b55;
+}
+
+.completed-activity-name {
+    margin-left: 26px; /* Align with title */
+    margin-bottom: 8px;
+    line-height: 1.2;
+}
+
+.completed-activity-name small {
+    color: #888;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.completion-details {
+    margin-left: 26px;
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
 /* Load More Button */
 .load-more {
 	display: block;

@@ -649,9 +649,11 @@ function createCompletedSessionWidget(session) {
              bonusDisplay = '';
         }
 
-        durationDisplay = '<div class="duration">' +
+		if(actualSec > 0) {
+        durationDisplay = '<span class="duration">' +
 					'  Duration: ' + formatDuration(actualSec) + ' ' + bonusDisplay +
-					'</div>';
+					'</span>';
+		}
     }
 
 	// Build delete/undo button (removed logic for now as API expects specific ID types, maybe todo_log_id in future?)
@@ -689,9 +691,15 @@ function createCompletedSessionWidget(session) {
 	return $('<div>', {
 		'class': 'session-widget-container',
 		'html': '<a href="' + linkUrl + '" class="session-widget completed">' +
-				'<div class="activity-name">✅ ' + title + '<span class="text-muted">' + activityName + '</span></div>' +
-				'<div class="completion-date">' + dateDisplay + '</div>' +
-				durationDisplay +
+                '<div class="completed-task">' +
+                '  <span class="completed-check">✅</span> ' +
+                '  <span class="completed-title">' + title + '</span>' +
+                (activityName ? '<span class="completed-activity-name"><small>' + activityName + '</small></span>' : '') +
+                '</div>' +
+				'<div class="completion-details">' +
+                '  <span class="completion-date">' + dateDisplay + '</span>' +
+				  durationDisplay +
+                '</div>' +
 				'</a>' +
 				deleteBtn
 	});
