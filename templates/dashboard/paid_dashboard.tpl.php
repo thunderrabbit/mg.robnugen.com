@@ -39,7 +39,7 @@
 
 	</section>
 
-	<header class="dashboard-header">
+	<header class="dashboard-header" id="active-sessions-header">
 		<h1>My Active Sessions</h1>
 	</header>
 
