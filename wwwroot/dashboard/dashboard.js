@@ -626,47 +626,75 @@ function formatCompletedDate(utcDateString) {
 }
 
 // Create completed session widget HTML
+// Create completed session widget HTML (Now handles Fully Completed Todos)
 function createCompletedSessionWidget(session) {
-	var bonusDisplay;
-	if (session.bonus_sec > 60) {
-		bonusDisplay = '<span class="bonus-positive">inc. ' + formatDuration(session.bonus_sec) + ' bonus</span>';
-	} else if (session.bonus_sec < 0) {
-		bonusDisplay = '<span class="bonus-negative">Stopped early</span>';
-	} else {
-		bonusDisplay = '<span class="bonus-none">Exactly on time</span>';
-	}
+    // Determine title: use Todo Title. Fallback to activity name if available.
+    var title = session.title || session.activity_name || 'Untitled Todo';
+    var activityName = session.activity_name ? ' (' + session.activity_name + ')' : '';
 
-	// Build delete button data attribute
-	var deleteData = session.session_key ? 'data-session-key="' + session.session_key + '"' : 'data-ak-id="' + session.ak_id + '"';
+    var durationDisplay = '';
+    // Only show duration if it was a timed todo (is_timer=1 and duration > 0) or has actual_sec from session
+    if (session.is_timer == 1 || session.actual_sec > 0) {
+        var actualSec = session.actual_sec || session.duration_seconds || 0;
+        var bonusSec = session.bonus_sec || 0;
 
-	// Build the URL - use session_key if available, otherwise skip (no link)
-	if (session.session_key) {
-		var sessionUrl = '/mg/' + session.session_key;
-		return $('<div>', {
-			'class': 'session-widget-container',
-			'html': '<a href="' + sessionUrl + '" class="session-widget completed">' +
-					'<div class="activity-name">✅ ' + session.activity_name + '</div>' +
-					'<div class="completion-date">' + formatCompletedDate(session.updated_at_utc) + '</div>' +
-					'<div class="duration">' +
-					'  Duration: ' + formatDuration(session.actual_sec) + ' ' + bonusDisplay +
-					'</div>' +
-					'</a>' +
-					'<button class="delete-session-btn" ' + deleteData + ' title="Delete session">✕</button>'
-		});
-	} else {
-		// No session key - show as non-clickable div
-		return $('<div>', {
-			'class': 'session-widget-container',
-			'html': '<div class="session-widget completed no-link">' +
-					'<div class="activity-name">✅ ' + session.activity_name + '</div>' +
-					'<div class="completion-date">' + formatCompletedDate(session.updated_at_utc) + '</div>' +
-					'<div class="duration">' +
-					'  Duration: ' + formatDuration(session.actual_sec) + ' ' + bonusDisplay +
-					'</div>' +
-					'</div>' +
-					'<button class="delete-session-btn" ' + deleteData + ' title="Delete session">✕</button>'
-		});
-	}
+        var bonusDisplay;
+        if (bonusSec > 60) {
+            bonusDisplay = '<span class="bonus-positive">inc. ' + formatDuration(bonusSec) + ' bonus</span>';
+        } else if (bonusSec < 0) {
+            bonusDisplay = '<span class="bonus-negative">Stopped early</span>';
+        } else {
+             // For todos without session linkage but are timed, we might not have bonus info
+             // Just show nothing for bonus if 0
+             bonusDisplay = '';
+        }
+
+        durationDisplay = '<div class="duration">' +
+					'  Duration: ' + formatDuration(actualSec) + ' ' + bonusDisplay +
+					'</div>';
+    }
+
+	// Build delete/undo button (removed logic for now as API expects specific ID types, maybe todo_log_id in future?)
+    // For now, keep using delete-session-btn if we have session key.
+    // If it's a raw todo log without session, we might need a new delete endpoint or update delete-activity-session
+    // The current deleteSession function uses session_key or ak_id.
+    // Our new API returns ak_id (nullable) and log_id.
+    // If ak_id exists, we can use it. If not, we can't easily delete via existing API.
+    // Let's only show delete if ak_id exists for now to be safe, or if we update deleteSession.
+
+	var deleteBtn = '';
+    if (session.ak_id) {
+         deleteBtn = '<button class="delete-session-btn" data-ak-id="' + session.ak_id + '" title="Delete session">✕</button>';
+    }
+
+	// Build the URL - link to todo? or activity?
+    // If it has a session key (not in new API yet), we linked to /mg/.
+    // New API doesn't return session_key.
+    // Let's link to the todo edit page.
+    var linkUrl = '/todos/create.php?todo_id=' + session.todo_id;
+
+    // Use date_logged (local time string from DB)
+    // We need to parse it carefully or display as is if it's Y-m-d H:i:s
+    // formatCompletedDate expects UTC string.
+    // Let's write a simple formatter for the local string "YYYY-MM-DD HH:MM:SS"
+    var dateDisplay = session.date_logged;
+    try {
+        // Basic parser for "YYYY-MM-DD HH:MM:SS"
+        var parts = session.date_logged.split(/[- :]/);
+        var d = new Date(parts[0], parts[1]-1, parts[2], parts[3], parts[4], parts[5]);
+        var options = { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true };
+        dateDisplay = d.toLocaleString('en-US', options);
+    } catch(e) {}
+
+	return $('<div>', {
+		'class': 'session-widget-container',
+		'html': '<a href="' + linkUrl + '" class="session-widget completed">' +
+				'<div class="activity-name">✅ ' + title + '<span class="text-muted">' + activityName + '</span></div>' +
+				'<div class="completion-date">' + dateDisplay + '</div>' +
+				durationDisplay +
+				'</a>' +
+				deleteBtn
+	});
 }
 
 // Render completed sessions
@@ -700,7 +728,7 @@ function loadCompletedSessions(isLoadMore) {
 		currentOffset = 0;
 	}
 
-	$.get('/api/list-completed-sessions.php?limit=' + completedLimit + '&offset=' + currentOffset, function(response) {
+	$.get('/api/list-fully-completed-todos.php?limit=' + completedLimit + '&offset=' + currentOffset, function(response) {
 		if (response.success) {
 			renderCompletedSessions(response.completed_sessions, isLoadMore);
 
