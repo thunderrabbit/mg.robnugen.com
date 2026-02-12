@@ -53,7 +53,7 @@
 	</div>
 
 	<section class="completed-sessions-section">
-		<h2>Recent Completed Sessions</h2>
+		<h2>Completed</h2>
 		<div class="completed-sessions-list" id="completed-sessions">
 			<!-- Populated by JavaScript -->
 			<div class="loading">Loading completed sessions...</div>
