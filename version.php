@@ -1,4 +1,4 @@
 <?php
 
-const SENTIMENTAL_VERSION = "Fix sortable handle for mobile";
-const SEMVER = "0.8.15";
+const SENTIMENTAL_VERSION = "Show done dids instead of activities";
+const SEMVER = "0.9.0";
