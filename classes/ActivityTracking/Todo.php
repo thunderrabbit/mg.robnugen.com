@@ -446,4 +446,42 @@ class Todo {
         $stmt->execute([$user_id, $todayDate, $todayDate, $limit, $offset]);
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
+    /**
+     * Get fully completed todo history (where nth >= target_count)
+     *
+     * @param int $user_id
+     * @param int $limit
+     * @param int $offset
+     * @return array
+     */
+    public function getFullyCompletedHistory(int $user_id, int $limit = 50, int $offset = 0): array {
+        $stmt = $this->pdo->prepare("
+            SELECT
+                tl.log_id,
+                tl.todo_id,
+                tl.date_logged,
+                tl.timezone,
+                tl.duration_seconds,
+                tl.ak_id,
+                t.title,
+                t.target_count,
+                t.target_duration_seconds,
+                t.is_timer,
+                ak.activity_id,
+                ak.bonus_sec,
+                ak.actual_sec,
+                a.activity_name
+            FROM todo_logs tl
+            JOIN todos t ON tl.todo_id = t.todo_id
+            LEFT JOIN activity_kai ak ON tl.ak_id = ak.ak_id
+            LEFT JOIN activities a ON ak.activity_id = a.activity_id
+            WHERE tl.user_id = ?
+            AND tl.nth >= t.target_count
+            ORDER BY tl.date_logged DESC
+            LIMIT ? OFFSET ?
+        ");
+
+        $stmt->execute([$user_id, $limit, $offset]);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
 }
