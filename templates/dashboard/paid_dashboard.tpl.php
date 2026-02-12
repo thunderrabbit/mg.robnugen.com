@@ -34,13 +34,13 @@
 			<a href="/todos/history.php" class="nav-arrow arrow-older" title="View Completed Todos">← Older</a>
 			<a href="/todos/upcoming.php" class="nav-arrow arrow-newer" title="View Future Todos">Tomorrow →</a>
             <?php } ?>
+			<a href="/mg/" class="btn-new-timer">+ Start New Timer</a>
 		</div>
 
 	</section>
 
 	<header class="dashboard-header">
 		<h1>My Active Sessions</h1>
-		<a href="/mg/" class="btn-new-timer">+ Start New Timer</a>
 	</header>
 
 	<div class="active-sessions-grid" id="active-sessions">
