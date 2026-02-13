@@ -716,19 +716,34 @@ function cancelEdit($el) {
 }
 
 // Save inline edit (Mock for now)
+// Save inline edit
 function saveEdit($el, newValue) {
     var field = $el.data('field');
-    console.log('Saving ' + field + ': ' + newValue);
+    var todoId = $el.closest('.todo-widget').data('todo-id');
+    var originalValue = $el.data('value'); // For reverting
+    var originalText = $el.data('original-content'); // For reverting text specifically
 
-    // Optimistic mock update for Phase 3 testing
-    if (field === 'do_time' || field === 'due_date') {
-        $el.data('value', newValue);
+    // 1. Optimistic Update
+    var displayValue = newValue;
+
+    // Formatting logic for display
+    if (field === 'do_time') {
+        // Input is HH:MM, sometimes HH:MM:SS. Strip seconds for display.
+        if (displayValue && displayValue.length > 5) {
+            displayValue = displayValue.substring(0, 5);
+        }
+    } else if (field === 'due_date') {
+        // Input is YYYY-MM-DD. Format to DD-Mon-YYYY.
+        displayValue = formatTodoDate(newValue);
     }
 
-    // For visual confirmation only:
-    $el.text(newValue);
+    // Update DOM immediately
+    $el.text(displayValue);
+    // Update data-value for next edit sort of (we should wait for server really but this is "optimistic")
+    // Actually, keep data-value as the raw value (simulating what server would return/store)
+    $el.data('value', newValue);
 
-    // Flash success
+    // Flash success styling immediately
     $el.css('background-color', '#e8f5e9');
     setTimeout(function() { $el.css('background-color', ''); }, 500);
 }
