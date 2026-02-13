@@ -33,7 +33,7 @@ $field = $input['field'];
 $value = $input['value'] ?? null;
 
 // Allowlist of editable fields
-$allowed_fields = ['title', 'do_time', 'due_date'];
+$allowed_fields = ['title', 'do_time', 'due_date', 'target_duration_seconds'];
 if (!in_array($field, $allowed_fields)) {
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => 'Invalid field']);
@@ -74,6 +74,15 @@ switch ($field) {
             }
         } else {
             $value = null;
+        }
+        break;
+
+    case 'target_duration_seconds':
+        $value = (int)$value;
+        if ($value < 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Duration cannot be negative']);
+            exit;
         }
         break;
 }

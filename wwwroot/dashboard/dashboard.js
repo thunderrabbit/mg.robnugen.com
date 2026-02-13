@@ -48,7 +48,7 @@ function createTodoWidget(todo) {
 
 	var durationDisplay = '';
 	if (isTimer && todo.target_duration_seconds) {
-		durationDisplay = '<span class="todo-duration">' + formatDuration(parseInt(todo.target_duration_seconds)) + '</span>';
+		durationDisplay = '<span class="todo-duration editable" data-field="target_duration_seconds" data-value="' + todo.target_duration_seconds + '">' + formatDuration(parseInt(todo.target_duration_seconds)) + '</span>';
 	}
 
 	var startButton = '';
@@ -399,6 +399,36 @@ function updateTodoTime(todoId, newTime, callback) {
 }
 
 
+// Parse duration string (e.g. "1h 30m", "90m", "1.5h") to seconds
+function parseDuration(str) {
+    if (!str) return 0;
+    str = str.toLowerCase().trim();
+
+    var totalSeconds = 0;
+
+    // Check for hours
+    var hoursMatch = str.match(/(\d+(?:\.\d+)?)\s*h/);
+    if (hoursMatch) {
+        totalSeconds += parseFloat(hoursMatch[1]) * 3600;
+    }
+
+    // Check for moments/minutes
+    var minutesMatch = str.match(/(\d+(?:\.\d+)?)\s*m/);
+    if (minutesMatch) {
+        totalSeconds += parseFloat(minutesMatch[1]) * 60;
+    }
+
+    // Fallback: if just a number, assume minutes
+    if (!hoursMatch && !minutesMatch) {
+        var num = parseFloat(str);
+        if (!isNaN(num)) {
+            totalSeconds = num * 60;
+        }
+    }
+
+    return Math.round(totalSeconds);
+}
+
 // Format seconds into human-readable duration (e.g., "5 minutes", "1h 30m", "2d 5h")
 function formatDuration(seconds) {
 	var days = Math.floor(seconds / 86400);
@@ -670,13 +700,19 @@ function makeEditable($el) {
 
     // Determine input type
     var inputType = 'text';
+    var displayValue = originalValue;
+
     if (field === 'do_time') inputType = 'time';
     if (field === 'due_date') inputType = 'date';
+    if (field === 'target_duration_seconds') {
+        // Convert seconds to "1h 30m" format for editing
+        displayValue = formatDuration(parseInt(originalValue));
+    }
 
     // Create input
     var $input = $('<input>', {
         type: inputType,
-        value: originalValue,
+        value: displayValue,
         'class': 'inline-editor',
         css: {
             width: Math.max(width, 80) + 'px', // Min width for usability
@@ -692,6 +728,10 @@ function makeEditable($el) {
     $el.data('original-content', $el.html());
     $el.html($input);
     $input.focus();
+
+    // Select all text + allow immediate typing
+    // setTimeout needed for some browsers to handle focus -> select correctly
+    setTimeout(function() { $input.select(); }, 10);
 
     // Event handlers
     $input.on('blur', function() {
@@ -723,6 +763,12 @@ function saveEdit($el, newValue) {
     var originalValue = $el.data('value'); // For reverting
     var originalText = $el.data('original-content'); // For reverting text specifically
 
+    // Logic for value conversion
+    var apiValue = newValue;
+    if (field === 'target_duration_seconds') {
+        apiValue = parseDuration(newValue);
+    }
+
     // 1. Optimistic Update
     var displayValue = newValue;
 
@@ -735,13 +781,19 @@ function saveEdit($el, newValue) {
     } else if (field === 'due_date') {
         // Input is YYYY-MM-DD. Format to DD-Mon-YYYY.
         displayValue = formatTodoDate(newValue);
+    } else if (field === 'target_duration_seconds') {
+        // Format seconds back to pretty string
+        displayValue = formatDuration(apiValue);
     }
 
     // Update DOM immediately
     $el.text(displayValue);
-    // Update data-value for next edit sort of (we should wait for server really but this is "optimistic")
-    // Actually, keep data-value as the raw value (simulating what server would return/store)
-    $el.data('value', newValue);
+    // Update data-value
+    if (field === 'target_duration_seconds') {
+        $el.data('value', apiValue);
+    } else {
+        $el.data('value', newValue);
+    }
 
     // Flash success styling immediately
     $el.css('background-color', '#e8f5e9');
@@ -754,7 +806,7 @@ function saveEdit($el, newValue) {
         data: JSON.stringify({
             todo_id: todoId,
             field: field,
-            value: newValue
+            value: apiValue
         }),
         success: function(response) {
             if (response.success) {
