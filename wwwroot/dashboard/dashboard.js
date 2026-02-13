@@ -36,23 +36,19 @@ function createTodoWidget(todo) {
 		statusClass += ' has-timer';
 	}
 
-	// Determine what should be the sort handle
-	var sortHandle = '';
-	var sortIcon = ''; // Icon to show on the left if no time/date
+	// Determine sort handle - now always the dedicated handle
+    var sortHandle = '<span class="todo-sort-area todo-sort-handle" title="Drag to reorder">⋮⋮</span>';
+
+    	var timeDisplay = '';
 	if (todo.do_time) {
-		// Time is the handle
-		sortHandle = '<span class="todo-sort-area todo-time">' + todo.do_time.substring(0, 5) + '</span>';
+		timeDisplay = '<span class="todo-time editable" data-field="do_time" data-value="' + todo.do_time + '">' + todo.do_time.substring(0, 5) + '</span>';
 	} else if (todo.due_date) {
-		// Date is the handle
-		sortHandle = '<span class="todo-sort-area todo-date">' + formatTodoDate(todo.due_date) + '</span>';
-	} else {
-		// No time or date, add a sort icon handle on the left
-		sortIcon = '<span class="todo-sort-area todo-sort-handle" title="Drag to reorder">⋮⋮</span>';
+		timeDisplay = '<span class="todo-date editable" data-field="due_date" data-value="' + todo.due_date + '">' + formatTodoDate(todo.due_date) + '</span>';
 	}
 
 	var durationDisplay = '';
 	if (isTimer && todo.target_duration_seconds) {
-		durationDisplay = '<span class="todo-duration">' + formatDuration(parseInt(todo.target_duration_seconds)) + '</span>';
+		durationDisplay = '<span class="todo-duration editable" data-field="target_duration_seconds" data-value="' + todo.target_duration_seconds + '">' + formatDuration(parseInt(todo.target_duration_seconds)) + '</span>';
 	}
 
 	var startButton = '';
@@ -76,9 +72,9 @@ function createTodoWidget(todo) {
 		'data-todo-id': todo.todo_id,
 		'data-interval': intervalSeconds,
 		'html': '<div class="todo-header">' +
-				sortIcon +
 				sortHandle +
-				'<span class="todo-title">' + todo.title + '</span>' +
+				timeDisplay +
+				'<span class="todo-title editable" data-field="title">' + todo.title + '</span>' +
 				'<a href="/todos/create.php?todo_id=' + todo.todo_id + '" class="todo-edit-icon" title="Edit">✎</a>' +
 				durationDisplay +
 				progressText +
@@ -88,6 +84,9 @@ function createTodoWidget(todo) {
 				startButton +
 				'</div>'
 	});
+
+    // Attach long-press handlers
+    attachLongPressHandler(widget.find('.editable'));
 
 	return widget;
 }
@@ -117,7 +116,7 @@ function renderTodos(todos) {
         var el = document.getElementById('todos-container');
         sortableInstance = Sortable.create(el, {
             animation: 150,
-            handle: '.todo-sort-area', // Time, date, or sort icon
+            handle: '.todo-sort-handle', // Dedicated handle only
             onEnd: function (evt) {
                 handleTodoDrop(evt);
             },
@@ -400,6 +399,36 @@ function updateTodoTime(todoId, newTime, callback) {
 }
 
 
+// Parse duration string (e.g. "1h 30m", "90m", "1.5h") to seconds
+function parseDuration(str) {
+    if (!str) return 0;
+    str = str.toLowerCase().trim();
+
+    var totalSeconds = 0;
+
+    // Check for hours
+    var hoursMatch = str.match(/(\d+(?:\.\d+)?)\s*h/);
+    if (hoursMatch) {
+        totalSeconds += parseFloat(hoursMatch[1]) * 3600;
+    }
+
+    // Check for moments/minutes
+    var minutesMatch = str.match(/(\d+(?:\.\d+)?)\s*m/);
+    if (minutesMatch) {
+        totalSeconds += parseFloat(minutesMatch[1]) * 60;
+    }
+
+    // Fallback: if just a number, assume minutes
+    if (!hoursMatch && !minutesMatch) {
+        var num = parseFloat(str);
+        if (!isNaN(num)) {
+            totalSeconds = num * 60;
+        }
+    }
+
+    return Math.round(totalSeconds);
+}
+
 // Format seconds into human-readable duration (e.g., "5 minutes", "1h 30m", "2d 5h")
 function formatDuration(seconds) {
 	var days = Math.floor(seconds / 86400);
@@ -626,6 +655,198 @@ function formatCompletedDate(utcDateString) {
 }
 
 // Create completed session widget HTML
+// Long press handler for inline editing
+function attachLongPressHandler($elements) {
+    if (!$elements || !$elements.length) return;
+
+    var pressTimer;
+    var isLongPress = false;
+
+    // Mouse events
+    $elements.on('mousedown', function(e) {
+        if (e.which !== 1) return; // Only left click
+        isLongPress = false;
+        var $el = $(this);
+        pressTimer = setTimeout(function() {
+            isLongPress = true;
+            $el.css('background-color', '');
+            makeEditable($el);
+        }, 500);
+    }).on('mouseup mouseleave', function() {
+        clearTimeout(pressTimer);
+    });
+
+    // Touch events for mobile
+    $elements.on('touchstart', function(e) {
+        isLongPress = false;
+        var $el = $(this);
+        pressTimer = setTimeout(function() {
+            isLongPress = true;
+            $el.css('background-color', ''); // Clear highlight before editing
+            makeEditable($el);
+        }, 500);
+    }).on('touchend touchcancel', function() {
+        clearTimeout(pressTimer);
+    });
+}
+
+// Transform element into inline editor
+function makeEditable($el) {
+    if ($el.find('input').length > 0) return; // Already editing
+
+    var field = $el.data('field');
+    var originalValue = $el.data('value') || $el.text();
+    var width = $el.outerWidth() + 20;
+
+    // Determine input type
+    var inputType = 'text';
+    var displayValue = originalValue;
+
+    if (field === 'do_time') inputType = 'time';
+    if (field === 'due_date') inputType = 'date';
+    if (field === 'target_duration_seconds') {
+        // Convert seconds to "1h 30m" format for editing
+        displayValue = formatDuration(parseInt(originalValue));
+    }
+
+    // Create input
+    var $input = $('<input>', {
+        type: inputType,
+        value: displayValue,
+        'class': 'inline-editor',
+        css: {
+            width: Math.max(width, 80) + 'px', // Min width for usability
+            padding: '2px 4px',
+            border: '1px solid #2196F3',
+            borderRadius: '4px',
+            fontSize: 'inherit',
+            fontFamily: 'inherit'
+        }
+    });
+
+    // Save original content to restore on cancel
+    $el.data('original-content', $el.html());
+    $el.html($input);
+    $input.focus();
+
+    // Select all text + allow immediate typing
+    // setTimeout needed for some browsers to handle focus -> select correctly
+    setTimeout(function() { $input.select(); }, 10);
+
+    // Event handlers
+    $input.on('blur', function() {
+        cancelEdit($el);
+    });
+
+    $input.on('keydown', function(e) {
+        if (e.key === 'Enter') {
+            saveEdit($el, $(this).val());
+        } else if (e.key === 'Escape') {
+            cancelEdit($el);
+        }
+    });
+}
+
+// Cancel inline edit
+function cancelEdit($el) {
+    // Restore original content
+    if ($el.data('original-content')) {
+        $el.html($el.data('original-content'));
+    }
+}
+
+// Save inline edit (Mock for now)
+// Save inline edit
+function saveEdit($el, newValue) {
+    var field = $el.data('field');
+    var todoId = $el.closest('.todo-widget').data('todo-id');
+    var originalValue = $el.data('value'); // For reverting
+    var originalText = $el.data('original-content'); // For reverting text specifically
+
+    // Logic for value conversion
+    var apiValue = newValue;
+    if (field === 'target_duration_seconds') {
+        apiValue = parseDuration(newValue);
+    }
+
+    // 1. Optimistic Update
+    var displayValue = newValue;
+
+    // Formatting logic for display
+    if (field === 'do_time') {
+        // Input is HH:MM, sometimes HH:MM:SS. Strip seconds for display.
+        if (displayValue && displayValue.length > 5) {
+            displayValue = displayValue.substring(0, 5);
+        }
+    } else if (field === 'due_date') {
+        // Input is YYYY-MM-DD. Format to DD-Mon-YYYY.
+        displayValue = formatTodoDate(newValue);
+    } else if (field === 'target_duration_seconds') {
+        // Format seconds back to pretty string
+        displayValue = formatDuration(apiValue);
+    }
+
+    // Update DOM immediately
+    $el.text(displayValue);
+    // Update data-value
+    if (field === 'target_duration_seconds') {
+        $el.data('value', apiValue);
+    } else {
+        $el.data('value', newValue);
+    }
+
+    // Flash success styling immediately
+    $el.css('background-color', '#e8f5e9');
+
+    // 2. Send to Server
+    $.ajax({
+        url: '/api/todos/update_field.php',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            todo_id: todoId,
+            field: field,
+            value: apiValue
+        }),
+        success: function(response) {
+            if (response.success) {
+                // Success confirmed. Remove flash after delay.
+                setTimeout(function() { $el.css('background-color', ''); }, 500);
+            } else {
+                // Server error
+                revertEdit($el, originalText, originalValue);
+                alert('Failed to save: ' + (response.error || 'Unknown error'));
+            }
+        },
+        error: function(xhr) {
+            // Network/Server error
+            revertEdit($el, originalText, originalValue);
+            var error = xhr.responseJSON ? xhr.responseJSON.error : 'Connection failed';
+            alert('Failed to save: ' + error);
+        }
+    });
+
+}
+
+function revertEdit($el, originalText, originalValue) {
+    // Restore original content (which was html/text)
+    if (originalText !== undefined) {
+        $el.html(originalText);
+    } else if ($el.data('original-content')) {
+        $el.html($el.data('original-content'));
+    }
+
+    // Also revert data-value
+    if (originalValue !== undefined) {
+        $el.data('value', originalValue);
+    }
+
+    // Flash error
+    $el.css('background-color', '#ffebee');
+
+	setTimeout(function() { $el.css('background-color', ''); }, 500);
+}
+
 // Create completed session widget HTML (Now handles Fully Completed Todos)
 function createCompletedSessionWidget(session) {
     // Determine title: use Todo Title. Fallback to activity name if available.
