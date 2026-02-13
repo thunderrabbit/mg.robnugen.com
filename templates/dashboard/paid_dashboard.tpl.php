@@ -17,8 +17,20 @@
 	<section class="todos-section">
 		<header class="dashboard-header">
 			<h1>Today's Todos</h1>
-            <a href="/todos/create.php" class="btn-new-timer">+ Create New Todo</a>
+            <div class="dashboard-actions">
+                <a href="/todos/create.php" class="btn-new-timer">+ Create New Todo</a>
+                <button id="btn-quickadd-toggle" class="btn-quickadd">Quickadd Multiple</button>
+            </div>
 		</header>
+
+        <div id="quickadd-container" class="quickadd-container" style="display:none;">
+            <textarea id="quickadd-input" rows=9 cols=80 placeholder="Enter multiple todos, one per line.&#10;Examples:&#10;Buy milk&#10;18:00 Cook dinner (45m)&#10;09:00 15-Feb-2026 Dentist Appointment"></textarea>
+            <div class="quickadd-controls">
+                <button id="btn-quickadd-save" class="btn-save">Save Todos</button>
+                <button id="btn-quickadd-cancel" class="btn-cancel">Cancel</button>
+            </div>
+            <div id="quickadd-feedback" class="quickadd-feedback"></div>
+        </div>
 		<div class="todos-grid" id="todos-container">
 			<div class="loading">Loading todos...</div>
 		</div>
