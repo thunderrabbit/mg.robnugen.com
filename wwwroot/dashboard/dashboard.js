@@ -597,6 +597,138 @@ function startElapsedTimeUpdates() {
 	}, 1000);
 }
 
+// ===== QUICKADD MULTIPLE TODOS =====
+
+function toggleQuickAdd() {
+    var $container = $('#quickadd-container');
+    if ($container.is(':visible')) {
+        $container.slideUp();
+    } else {
+        $container.slideDown();
+        $('#quickadd-input').focus();
+    }
+}
+
+function parseQuickAddLine(line) {
+    line = line.trim();
+    if (!line) return null;
+
+    var todo = {
+        title: line,
+        do_time: null,
+        due_date: null,
+        target_duration_seconds: null
+    };
+
+    // 1. Check for Time at start (HH:MM)
+    var timeMatch = line.match(/^(\d{1,2}:\d{2})\s*/);
+    if (timeMatch) {
+        todo.do_time = timeMatch[1]; // Use as is, backend validation will catch weirdness or we can pad hours
+        line = line.substring(timeMatch[0].length);
+    }
+
+    // 2. Check for Date at start (after time extraction)
+    // Supports DD-Mon-YYYY, DD/MM/YYYY, YYYY-MM-DD
+    // Simple regex for likely date formats
+    var dateMatch = line.match(/^(\d{1,2}-\w{3}-\d{4}|\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}\/\d{4})\s*/);
+    if (dateMatch) {
+        // Need to standardize date format for backend (YYYY-MM-DD)
+        // Let's use a helper or Date.parse?
+        var dateStr = dateMatch[1];
+        var d = new Date(dateStr);
+        if (!isNaN(d.getTime())) {
+             // Format to YYYY-MM-DD
+             var month = '' + (d.getMonth() + 1);
+             var day = '' + d.getDate();
+             var year = d.getFullYear();
+
+             if (month.length < 2) month = '0' + month;
+             if (day.length < 2) day = '0' + day;
+
+             todo.due_date = [year, month, day].join('-');
+        }
+        line = line.substring(dateMatch[0].length);
+    }
+
+    // 3. Check for Duration at end (e.g. (45m), (1h))
+    // Look for last occurrence of parens with duration-like content
+    var durationMatch = line.match(/\(([^)]+)\)$/);
+    if (durationMatch) {
+        var potentialDuration = durationMatch[1];
+        var seconds = parseDuration(potentialDuration);
+        if (seconds > 0) {
+            todo.target_duration_seconds = seconds;
+            // Remove from line
+            line = line.substring(0, line.lastIndexOf('(')).trim();
+        }
+    }
+
+    todo.title = line.trim();
+    return todo;
+}
+
+
+function saveQuickAddTodos() {
+    var text = $('#quickadd-input').val();
+    if (!text.trim()) return;
+
+    var lines = text.split('\n');
+    var todos = [];
+
+    lines.forEach(function(line) {
+        var todo = parseQuickAddLine(line);
+        if (todo) {
+            todos.push(todo);
+        }
+    });
+
+    if (todos.length === 0) return;
+
+    // Disable button
+    $('#btn-quickadd-save').prop('disabled', true).text('Saving...');
+
+    $.ajax({
+        url: '/api/todos/create_batch.php',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ todos: todos }),
+        success: function(response) {
+            if (response.success) {
+                // Clear input and hide
+                $('#quickadd-input').val('');
+                $('#quickadd-container').slideUp();
+
+                // Reload todos
+                // We want to highlight the new ones.
+                // Pass IDs to render logic?
+                // renderTodos clears the list, so we might need a way to pass "highlight IDs" to it.
+                // Or just add a global var or param.
+
+                window.highlightIds = response.created_ids || [];
+                loadTodos(); // This calls renderTodos
+
+            } else {
+                alert('Failed to save todos: ' + (response.error || 'Unknown error'));
+            }
+        },
+        error: function(xhr) {
+             var error = xhr.responseJSON ? xhr.responseJSON.error : 'Connection failed';
+             alert('Failed to save todos: ' + error);
+        },
+        complete: function() {
+            $('#btn-quickadd-save').prop('disabled', false).text('Save Todos');
+        }
+    });
+}
+
+
+$(document).ready(function() {
+    // Event listeners for Quickadd
+    $('#btn-quickadd-toggle').on('click', toggleQuickAdd);
+    $('#btn-quickadd-cancel').on('click', toggleQuickAdd);
+    $('#btn-quickadd-save').on('click', saveQuickAddTodos);
+});
+
 // Load active sessions from API
 function loadActiveSessions() {
 	$.get('/api/list-active-sessions.php', function(response) {
