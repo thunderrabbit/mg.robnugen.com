@@ -39,13 +39,11 @@ function createTodoWidget(todo) {
 	// Determine sort handle - now always the dedicated handle
     var sortHandle = '<span class="todo-sort-area todo-sort-handle" title="Drag to reorder">⋮⋮</span>';
 
-    // Time and Date are no longer drag handles, but data-sort-value could be useful?
-    // Sortable uses the handle option, so we just need to make sure time/date don't match the handle selector.
-	var timeDisplay = '';
+    	var timeDisplay = '';
 	if (todo.do_time) {
-		timeDisplay = '<span class="todo-time" data-value="' + todo.do_time + '">' + todo.do_time.substring(0, 5) + '</span>';
+		timeDisplay = '<span class="todo-time editable" data-field="do_time" data-value="' + todo.do_time + '">' + todo.do_time.substring(0, 5) + '</span>';
 	} else if (todo.due_date) {
-		timeDisplay = '<span class="todo-date" data-value="' + todo.due_date + '">' + formatTodoDate(todo.due_date) + '</span>';
+		timeDisplay = '<span class="todo-date editable" data-field="due_date" data-value="' + todo.due_date + '">' + formatTodoDate(todo.due_date) + '</span>';
 	}
 
 	var durationDisplay = '';
@@ -76,7 +74,7 @@ function createTodoWidget(todo) {
 		'html': '<div class="todo-header">' +
 				sortHandle +
 				timeDisplay +
-				'<span class="todo-title">' + todo.title + '</span>' +
+				'<span class="todo-title editable" data-field="title">' + todo.title + '</span>' +
 				'<a href="/todos/create.php?todo_id=' + todo.todo_id + '" class="todo-edit-icon" title="Edit">✎</a>' +
 				durationDisplay +
 				progressText +
@@ -86,6 +84,9 @@ function createTodoWidget(todo) {
 				startButton +
 				'</div>'
 	});
+
+    // Attach long-press handlers
+    attachLongPressHandler(widget.find('.editable'));
 
 	return widget;
 }
@@ -624,6 +625,44 @@ function formatCompletedDate(utcDateString) {
 }
 
 // Create completed session widget HTML
+// Long press handler for inline editing
+function attachLongPressHandler($elements) {
+    if (!$elements || !$elements.length) return;
+
+    var pressTimer;
+    var isLongPress = false;
+
+    // Mouse events
+    $elements.on('mousedown', function(e) {
+        if (e.which !== 1) return; // Only left click
+        isLongPress = false;
+        var $el = $(this);
+        pressTimer = setTimeout(function() {
+            isLongPress = true;
+            console.log('longclicked ' + $el.data('field'));
+            // Trigger visual feedback (e.g. highlight)
+            $el.css('background-color', '#fff9c4');
+            setTimeout(function() { $el.css('background-color', ''); }, 200);
+        }, 500);
+    }).on('mouseup mouseleave', function() {
+        clearTimeout(pressTimer);
+    });
+
+    // Touch events for mobile
+    $elements.on('touchstart', function(e) {
+        isLongPress = false;
+        var $el = $(this);
+        pressTimer = setTimeout(function() {
+            isLongPress = true;
+            console.log('longclicked ' + $el.data('field'));
+            $el.css('background-color', '#fff9c4');
+            setTimeout(function() { $el.css('background-color', ''); }, 200);
+        }, 500);
+    }).on('touchend touchcancel', function() {
+        clearTimeout(pressTimer);
+    });
+}
+
 // Create completed session widget HTML (Now handles Fully Completed Todos)
 function createCompletedSessionWidget(session) {
     // Determine title: use Todo Title. Fallback to activity name if available.
