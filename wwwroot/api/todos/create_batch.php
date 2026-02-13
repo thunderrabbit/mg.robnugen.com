@@ -60,12 +60,7 @@ try {
         if (!empty($todoData['due_date'])) {
             $options['due_date'] = $todoData['due_date'];
         } else {
-             // Default to today if not specified?
-             // Requirement said "Quickadd Multiple Todos for today", so yes implicitly today.
-             // But existing logic might handle default.
-             // Let's set it explicitly to today if null, to match user expectation.
-             // Actually, createTodo might default to null (no due date).
-             // Given the prompt "for today", I should probably default to today.
+             // Default to today if not specified
              $options['due_date'] = date('Y-m-d');
         }
 
