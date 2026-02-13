@@ -76,7 +76,13 @@ try {
         }
 
         // Create
-        $newId = $todoHelper->createTodo($title, $user_id, $options);
+        // Todo::createTodo signature: array $data
+        $todoDataForCreate = array_merge([
+            'title' => $title,
+            'user_id' => $user_id
+        ], $options);
+
+        $newId = $todoHelper->createTodo($todoDataForCreate);
 
         if ($newId) {
             $createdIds[] = $newId;
