@@ -639,10 +639,8 @@ function attachLongPressHandler($elements) {
         var $el = $(this);
         pressTimer = setTimeout(function() {
             isLongPress = true;
-            console.log('longclicked ' + $el.data('field'));
-            // Trigger visual feedback (e.g. highlight)
-            $el.css('background-color', '#fff9c4');
-            setTimeout(function() { $el.css('background-color', ''); }, 200);
+            $el.css('background-color', '');
+            makeEditable($el);
         }, 500);
     }).on('mouseup mouseleave', function() {
         clearTimeout(pressTimer);
@@ -654,13 +652,85 @@ function attachLongPressHandler($elements) {
         var $el = $(this);
         pressTimer = setTimeout(function() {
             isLongPress = true;
-            console.log('longclicked ' + $el.data('field'));
-            $el.css('background-color', '#fff9c4');
-            setTimeout(function() { $el.css('background-color', ''); }, 200);
+            $el.css('background-color', ''); // Clear highlight before editing
+            makeEditable($el);
         }, 500);
     }).on('touchend touchcancel', function() {
         clearTimeout(pressTimer);
     });
+}
+
+// Transform element into inline editor
+function makeEditable($el) {
+    if ($el.find('input').length > 0) return; // Already editing
+
+    var field = $el.data('field');
+    var originalValue = $el.data('value') || $el.text();
+    var width = $el.outerWidth() + 20;
+
+    // Determine input type
+    var inputType = 'text';
+    if (field === 'do_time') inputType = 'time';
+    if (field === 'due_date') inputType = 'date';
+
+    // Create input
+    var $input = $('<input>', {
+        type: inputType,
+        value: originalValue,
+        'class': 'inline-editor',
+        css: {
+            width: Math.max(width, 80) + 'px', // Min width for usability
+            padding: '2px 4px',
+            border: '1px solid #2196F3',
+            borderRadius: '4px',
+            fontSize: 'inherit',
+            fontFamily: 'inherit'
+        }
+    });
+
+    // Save original content to restore on cancel
+    $el.data('original-content', $el.html());
+    $el.html($input);
+    $input.focus();
+
+    // Event handlers
+    $input.on('blur', function() {
+        cancelEdit($el);
+    });
+
+    $input.on('keydown', function(e) {
+        if (e.key === 'Enter') {
+            saveEdit($el, $(this).val());
+        } else if (e.key === 'Escape') {
+            cancelEdit($el);
+        }
+    });
+}
+
+// Cancel inline edit
+function cancelEdit($el) {
+    // Restore original content
+    if ($el.data('original-content')) {
+        $el.html($el.data('original-content'));
+    }
+}
+
+// Save inline edit (Mock for now)
+function saveEdit($el, newValue) {
+    var field = $el.data('field');
+    console.log('Saving ' + field + ': ' + newValue);
+
+    // Optimistic mock update for Phase 3 testing
+    if (field === 'do_time' || field === 'due_date') {
+        $el.data('value', newValue);
+    }
+
+    // For visual confirmation only:
+    $el.text(newValue);
+
+    // Flash success
+    $el.css('background-color', '#e8f5e9');
+    setTimeout(function() { $el.css('background-color', ''); }, 500);
 }
 
 // Create completed session widget HTML (Now handles Fully Completed Todos)
