@@ -745,7 +745,54 @@ function saveEdit($el, newValue) {
 
     // Flash success styling immediately
     $el.css('background-color', '#e8f5e9');
-    setTimeout(function() { $el.css('background-color', ''); }, 500);
+
+    // 2. Send to Server
+    $.ajax({
+        url: '/api/todos/update_field.php',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            todo_id: todoId,
+            field: field,
+            value: newValue
+        }),
+        success: function(response) {
+            if (response.success) {
+                // Success confirmed. Remove flash after delay.
+                setTimeout(function() { $el.css('background-color', ''); }, 500);
+            } else {
+                // Server error
+                revertEdit($el, originalText, originalValue);
+                alert('Failed to save: ' + (response.error || 'Unknown error'));
+            }
+        },
+        error: function(xhr) {
+            // Network/Server error
+            revertEdit($el, originalText, originalValue);
+            var error = xhr.responseJSON ? xhr.responseJSON.error : 'Connection failed';
+            alert('Failed to save: ' + error);
+        }
+    });
+
+}
+
+function revertEdit($el, originalText, originalValue) {
+    // Restore original content (which was html/text)
+    if (originalText !== undefined) {
+        $el.html(originalText);
+    } else if ($el.data('original-content')) {
+        $el.html($el.data('original-content'));
+    }
+
+    // Also revert data-value
+    if (originalValue !== undefined) {
+        $el.data('value', originalValue);
+    }
+
+    // Flash error
+    $el.css('background-color', '#ffebee');
+
+	setTimeout(function() { $el.css('background-color', ''); }, 500);
 }
 
 // Create completed session widget HTML (Now handles Fully Completed Todos)
