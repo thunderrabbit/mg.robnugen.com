@@ -36,18 +36,16 @@ function createTodoWidget(todo) {
 		statusClass += ' has-timer';
 	}
 
-	// Determine what should be the sort handle
-	var sortHandle = '';
-	var sortIcon = ''; // Icon to show on the left if no time/date
+	// Determine sort handle - now always the dedicated handle
+    var sortHandle = '<span class="todo-sort-area todo-sort-handle" title="Drag to reorder">⋮⋮</span>';
+
+    // Time and Date are no longer drag handles, but data-sort-value could be useful?
+    // Sortable uses the handle option, so we just need to make sure time/date don't match the handle selector.
+	var timeDisplay = '';
 	if (todo.do_time) {
-		// Time is the handle
-		sortHandle = '<span class="todo-sort-area todo-time">' + todo.do_time.substring(0, 5) + '</span>';
+		timeDisplay = '<span class="todo-time" data-value="' + todo.do_time + '">' + todo.do_time.substring(0, 5) + '</span>';
 	} else if (todo.due_date) {
-		// Date is the handle
-		sortHandle = '<span class="todo-sort-area todo-date">' + formatTodoDate(todo.due_date) + '</span>';
-	} else {
-		// No time or date, add a sort icon handle on the left
-		sortIcon = '<span class="todo-sort-area todo-sort-handle" title="Drag to reorder">⋮⋮</span>';
+		timeDisplay = '<span class="todo-date" data-value="' + todo.due_date + '">' + formatTodoDate(todo.due_date) + '</span>';
 	}
 
 	var durationDisplay = '';
@@ -76,8 +74,8 @@ function createTodoWidget(todo) {
 		'data-todo-id': todo.todo_id,
 		'data-interval': intervalSeconds,
 		'html': '<div class="todo-header">' +
-				sortIcon +
 				sortHandle +
+				timeDisplay +
 				'<span class="todo-title">' + todo.title + '</span>' +
 				'<a href="/todos/create.php?todo_id=' + todo.todo_id + '" class="todo-edit-icon" title="Edit">✎</a>' +
 				durationDisplay +
@@ -117,7 +115,7 @@ function renderTodos(todos) {
         var el = document.getElementById('todos-container');
         sortableInstance = Sortable.create(el, {
             animation: 150,
-            handle: '.todo-sort-area', // Time, date, or sort icon
+            handle: '.todo-sort-handle', // Dedicated handle only
             onEnd: function (evt) {
                 handleTodoDrop(evt);
             },
