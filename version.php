@@ -1,4 +1,4 @@
 <?php
 
-const SENTIMENTAL_VERSION = "Show done dids instead of activities";
-const SEMVER = "0.9.0";
+const SENTIMENTAL_VERSION = "Allow easy editing of multiple todos";
+const SEMVER = "0.9.1";
