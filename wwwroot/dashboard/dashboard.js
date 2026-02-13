@@ -67,8 +67,14 @@ function createTodoWidget(todo) {
 		progressText = '<span class="todo-progress">' + completedCount + '/' + targetCount + '</span>';
 	}
 
+	// Check for highlighting
+	var extraClasses = '';
+	if (window.highlightIds && window.highlightIds.indexOf(todo.todo_id) !== -1) {
+		extraClasses = ' newly-added';
+	}
+
 	var widget = $('<div>', {
-		'class': 'todo-widget ' + statusClass,
+		'class': 'todo-widget ' + statusClass + extraClasses,
 		'data-todo-id': todo.todo_id,
 		'data-interval': intervalSeconds,
 		'html': '<div class="todo-header">' +
