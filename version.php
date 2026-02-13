@@ -1,4 +1,4 @@
 <?php
 
-const SENTIMENTAL_VERSION = "Allow easy editing of multiple todos";
-const SEMVER = "0.9.1";
+const SENTIMENTAL_VERSION = "Allow easy adding of multiple todos";
+const SEMVER = "0.9.2";
