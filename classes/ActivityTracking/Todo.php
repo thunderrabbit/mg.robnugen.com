@@ -51,7 +51,7 @@ class Todo {
                 (t.due_date IS NOT NULL AND DATE(t.due_date) = ?)            -- Specific Due Date
                 OR
                 -- specific date is before today but not 2 weeks old
-                (t.due_date IS NOT NULL AND DATE(t.due_date) < ? AND DATE(t.due_date) > DATE_SUB(?, INTERVAL 2 WEEK))
+                (t.due_date IS NOT NULL AND DATE(t.due_date) < ? AND DATE(t.due_date) > DATE_SUB(?, INTERVAL 2 YEAR))
                 OR
                 (t.do_days IS NULL AND t.do_dates IS NULL AND t.due_date IS NULL) -- Unscheduled / Anytime
             )
@@ -100,6 +100,30 @@ class Todo {
 
         $stmt->execute([$todo_id, $date]);
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Get total completion status for a todo (across all time)
+     *
+     * @param int $todo_id
+     * @return array [count => int, last_logged => string|null]
+     */
+    public function getCompletionStatus(int $todo_id): array {
+        $stmt = $this->pdo->prepare("
+            SELECT
+                COUNT(*) as count,
+                MAX(date_logged) as last_logged
+            FROM todo_logs
+            WHERE todo_id = ?
+        ");
+
+        $stmt->execute([$todo_id]);
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        return [
+            'count' => (int)($result['count'] ?? 0),
+            'last_logged' => $result['last_logged'] ?? null
+        ];
     }
 
     /**
@@ -342,6 +366,29 @@ class Todo {
     }
 
     /**
+     * Delete a todo (soft delete by setting is_active = 0)
+     *
+     * @param int $todo_id
+     * @param int $user_id User ID for ownership verification
+     * @return bool Success
+     */
+    public function deleteTodo(int $todo_id, int $user_id): bool {
+        // Verify ownership before deleting
+        if (!$this->verifyOwnership($todo_id, $user_id)) {
+            return false;
+        }
+
+        $stmt = $this->pdo->prepare("
+            UPDATE todos
+            SET is_active = 0
+            WHERE todo_id = ?
+        ");
+
+        return $stmt->execute([$todo_id]);
+    }
+
+
+    /**
      * Get completed todo history with pagination
      *
      * @param int $user_id
@@ -397,6 +444,44 @@ class Todo {
         ");
 
         $stmt->execute([$user_id, $todayDate, $todayDate, $limit, $offset]);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+    /**
+     * Get fully completed todo history (where nth >= target_count)
+     *
+     * @param int $user_id
+     * @param int $limit
+     * @param int $offset
+     * @return array
+     */
+    public function getFullyCompletedHistory(int $user_id, int $limit = 50, int $offset = 0): array {
+        $stmt = $this->pdo->prepare("
+            SELECT
+                tl.log_id,
+                tl.todo_id,
+                tl.date_logged,
+                tl.timezone,
+                tl.duration_seconds,
+                tl.ak_id,
+                t.title,
+                t.target_count,
+                t.target_duration_seconds,
+                t.is_timer,
+                ak.activity_id,
+                ak.bonus_sec,
+                ak.actual_sec,
+                a.activity_name
+            FROM todo_logs tl
+            JOIN todos t ON tl.todo_id = t.todo_id
+            LEFT JOIN activity_kai ak ON tl.ak_id = ak.ak_id
+            LEFT JOIN activities a ON ak.activity_id = a.activity_id
+            WHERE tl.user_id = ?
+            AND tl.nth >= t.target_count
+            ORDER BY tl.date_logged DESC
+            LIMIT ? OFFSET ?
+        ");
+
+        $stmt->execute([$user_id, $limit, $offset]);
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 }

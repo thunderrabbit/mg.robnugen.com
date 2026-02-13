@@ -37,19 +37,60 @@ try {
     $filteredTodos = [];
 
     foreach ($todos as &$todo) {
+        // Check if this is a recurring todo (has days or dates set)
+        $isRecurring = !empty($todo['do_days']) || !empty($todo['do_dates']);
+
+        // For recurring items, we only care about completion TODAY
+        // For one-time items, we care if it's completed AT ALL
+
         $completions = $todoHelper->getCompletionsForDate($todo['todo_id'], $today);
         $todo['completed_count'] = count($completions);
         $todo['completions'] = $completions;
 
-        // Calculate which nth values are completed
+        // Calculate which nth values are completed (always relevant for today's view)
         $completed_nths = array_column($completions, 'nth');
         $todo['completed_nths'] = array_map('intval', $completed_nths);
 
-        // Check if fully completed more than 1 minute ago
         $targetCount = (int)($todo['target_count'] ?? 1);
-        $isFullyCompleted = $todo['completed_count'] >= $targetCount;
 
-        if ($isFullyCompleted && !empty($completions)) {
+        if (!$isRecurring && !empty($todo['due_date'])) {
+            // ONE-TIME TODO Logic
+
+            // If completed today, we already have that info in $completions
+            $completedToday = !empty($completions) && count($completions) >= $targetCount;
+
+            if ($completedToday) {
+                // It was finished today. Keep it visible (marked complete)
+                // Optionally check the 1-minute rule if we want it to disappear fast,
+                // but user requested "keep them briefly visible"
+                 $lastCompletion = end($completions);
+                 $lastCompletedAt = new \DateTime($lastCompletion['date_logged'], $tz);
+
+                 // If completed very recently (e.g. today), we keep it.
+                 // The existing code below handles the "1 minute ago" logic for 'fully completed' items,
+                 // effectively hiding them. We might want to respect that logic here too.
+            } else {
+                 // Not completed *today*. But was it completed *yesterday*?
+                 $overallStatus = $todoHelper->getCompletionStatus($todo['todo_id']);
+                 $totalCompleted = $overallStatus['count'];
+
+                 if ($totalCompleted >= $targetCount) {
+                     // It is fully completed overall.
+                     // And since it wasn't valid "today" (otherwise captured above),
+                     // it must have been completed in the past.
+                     // HIDE IT.
+                     continue;
+                 }
+                 // If incomplete overall, keep it (it's overdue).
+            }
+        }
+
+        // --- Existing "Hide if completed > 1 min ago" Logic (Applies to both types) ---
+        // This handles removing items from the list after they are "done" for the day.
+
+        $isFullyCompletedForToday = $todo['completed_count'] >= $targetCount;
+
+        if ($isFullyCompletedForToday && !empty($completions)) {
             // Get the most recent completion timestamp
             $lastCompletion = end($completions);
             $lastCompletedAt = new \DateTime($lastCompletion['date_logged'], $tz);

@@ -36,17 +36,20 @@ function createTodoWidget(todo) {
 		statusClass += ' has-timer';
 	}
 
-	var timeDisplay = todo.do_time ? '<span class="todo-time">' + todo.do_time.substring(0, 5) + '</span>' : '';
+	// Determine sort handle - now always the dedicated handle
+    var sortHandle = '<span class="todo-sort-area todo-sort-handle" title="Drag to reorder">⋮⋮</span>';
+
+    	var timeDisplay = '';
+	if (todo.do_time) {
+		timeDisplay = '<span class="todo-time editable" data-field="do_time" data-value="' + todo.do_time + '">' + todo.do_time.substring(0, 5) + '</span>';
+	} else if (todo.due_date) {
+		timeDisplay = '<span class="todo-date editable" data-field="due_date" data-value="' + todo.due_date + '">' + formatTodoDate(todo.due_date) + '</span>';
+	}
 
 	var durationDisplay = '';
 	if (isTimer && todo.target_duration_seconds) {
-		durationDisplay = '<span class="todo-duration">' + formatDuration(parseInt(todo.target_duration_seconds)) + '</span>';
+		durationDisplay = '<span class="todo-duration editable" data-field="target_duration_seconds" data-value="' + todo.target_duration_seconds + '">' + formatDuration(parseInt(todo.target_duration_seconds)) + '</span>';
 	}
-
-    var dateDisplay = '';
-    if (todo.due_date) {
-        dateDisplay = '<span class="todo-date">' + formatTodoDate(todo.due_date) + '</span>';
-    }
 
 	var startButton = '';
 	if (isTimer && hasActivityId) {
@@ -69,9 +72,9 @@ function createTodoWidget(todo) {
 		'data-todo-id': todo.todo_id,
 		'data-interval': intervalSeconds,
 		'html': '<div class="todo-header">' +
+				sortHandle +
 				timeDisplay +
-				dateDisplay +
-				'<span class="todo-title">' + todo.title + '</span>' +
+				'<span class="todo-title editable" data-field="title">' + todo.title + '</span>' +
 				'<a href="/todos/create.php?todo_id=' + todo.todo_id + '" class="todo-edit-icon" title="Edit">✎</a>' +
 				durationDisplay +
 				progressText +
@@ -81,6 +84,9 @@ function createTodoWidget(todo) {
 				startButton +
 				'</div>'
 	});
+
+    // Attach long-press handlers
+    attachLongPressHandler(widget.find('.editable'));
 
 	return widget;
 }
@@ -110,7 +116,7 @@ function renderTodos(todos) {
         var el = document.getElementById('todos-container');
         sortableInstance = Sortable.create(el, {
             animation: 150,
-            handle: '.todo-widget', // or maybe a specific handle? For now, whole widget.
+            handle: '.todo-sort-handle', // Dedicated handle only
             onEnd: function (evt) {
                 handleTodoDrop(evt);
             },
@@ -393,6 +399,36 @@ function updateTodoTime(todoId, newTime, callback) {
 }
 
 
+// Parse duration string (e.g. "1h 30m", "90m", "1.5h") to seconds
+function parseDuration(str) {
+    if (!str) return 0;
+    str = str.toLowerCase().trim();
+
+    var totalSeconds = 0;
+
+    // Check for hours
+    var hoursMatch = str.match(/(\d+(?:\.\d+)?)\s*h/);
+    if (hoursMatch) {
+        totalSeconds += parseFloat(hoursMatch[1]) * 3600;
+    }
+
+    // Check for moments/minutes
+    var minutesMatch = str.match(/(\d+(?:\.\d+)?)\s*m/);
+    if (minutesMatch) {
+        totalSeconds += parseFloat(minutesMatch[1]) * 60;
+    }
+
+    // Fallback: if just a number, assume minutes
+    if (!hoursMatch && !minutesMatch) {
+        var num = parseFloat(str);
+        if (!isNaN(num)) {
+            totalSeconds = num * 60;
+        }
+    }
+
+    return Math.round(totalSeconds);
+}
+
 // Format seconds into human-readable duration (e.g., "5 minutes", "1h 30m", "2d 5h")
 function formatDuration(seconds) {
 	var days = Math.floor(seconds / 86400);
@@ -496,10 +532,12 @@ function renderActiveSessions(sessions) {
 
 	if (sessions.length === 0) {
 		$('.empty-state').show();
+        $('#active-sessions-header').hide();
 		return;
 	}
 
 	$('.empty-state').hide();
+    $('#active-sessions-header').show();
 
 	sessions.forEach(function(session) {
 		var widget = createSessionWidget(session);
@@ -514,6 +552,7 @@ function renderActiveSessions(sessions) {
 function showEmptyState() {
 	$('#active-sessions').empty();
 	$('.empty-state').show();
+    $('#active-sessions-header').hide();
 }
 
 // Update elapsed times every second
@@ -616,47 +655,275 @@ function formatCompletedDate(utcDateString) {
 }
 
 // Create completed session widget HTML
+// Long press handler for inline editing
+function attachLongPressHandler($elements) {
+    if (!$elements || !$elements.length) return;
+
+    var pressTimer;
+    var isLongPress = false;
+
+    // Mouse events
+    $elements.on('mousedown', function(e) {
+        if (e.which !== 1) return; // Only left click
+        isLongPress = false;
+        var $el = $(this);
+        pressTimer = setTimeout(function() {
+            isLongPress = true;
+            $el.css('background-color', '');
+            makeEditable($el);
+        }, 500);
+    }).on('mouseup mouseleave', function() {
+        clearTimeout(pressTimer);
+    });
+
+    // Touch events for mobile
+    $elements.on('touchstart', function(e) {
+        isLongPress = false;
+        var $el = $(this);
+        pressTimer = setTimeout(function() {
+            isLongPress = true;
+            $el.css('background-color', ''); // Clear highlight before editing
+            makeEditable($el);
+        }, 500);
+    }).on('touchend touchcancel', function() {
+        clearTimeout(pressTimer);
+    });
+}
+
+// Transform element into inline editor
+function makeEditable($el) {
+    if ($el.find('input').length > 0) return; // Already editing
+
+    var field = $el.data('field');
+    var originalValue = $el.data('value') || $el.text();
+    var width = $el.outerWidth() + 20;
+
+    // Determine input type
+    var inputType = 'text';
+    var displayValue = originalValue;
+
+    if (field === 'do_time') inputType = 'time';
+    if (field === 'due_date') inputType = 'date';
+    if (field === 'target_duration_seconds') {
+        // Convert seconds to "1h 30m" format for editing
+        displayValue = formatDuration(parseInt(originalValue));
+    }
+
+    // Create input
+    var $input = $('<input>', {
+        type: inputType,
+        value: displayValue,
+        'class': 'inline-editor',
+        css: {
+            width: Math.max(width, 80) + 'px', // Min width for usability
+            padding: '2px 4px',
+            border: '1px solid #2196F3',
+            borderRadius: '4px',
+            fontSize: 'inherit',
+            fontFamily: 'inherit'
+        }
+    });
+
+    // Save original content to restore on cancel
+    $el.data('original-content', $el.html());
+    $el.html($input);
+    $input.focus();
+
+    // Select all text + allow immediate typing
+    // setTimeout needed for some browsers to handle focus -> select correctly
+    setTimeout(function() { $input.select(); }, 10);
+
+    // Event handlers
+    $input.on('blur', function() {
+        cancelEdit($el);
+    });
+
+    $input.on('keydown', function(e) {
+        if (e.key === 'Enter') {
+            saveEdit($el, $(this).val());
+        } else if (e.key === 'Escape') {
+            cancelEdit($el);
+        }
+    });
+}
+
+// Cancel inline edit
+function cancelEdit($el) {
+    // Restore original content
+    if ($el.data('original-content')) {
+        $el.html($el.data('original-content'));
+    }
+}
+
+// Save inline edit (Mock for now)
+// Save inline edit
+function saveEdit($el, newValue) {
+    var field = $el.data('field');
+    var todoId = $el.closest('.todo-widget').data('todo-id');
+    var originalValue = $el.data('value'); // For reverting
+    var originalText = $el.data('original-content'); // For reverting text specifically
+
+    // Logic for value conversion
+    var apiValue = newValue;
+    if (field === 'target_duration_seconds') {
+        apiValue = parseDuration(newValue);
+    }
+
+    // 1. Optimistic Update
+    var displayValue = newValue;
+
+    // Formatting logic for display
+    if (field === 'do_time') {
+        // Input is HH:MM, sometimes HH:MM:SS. Strip seconds for display.
+        if (displayValue && displayValue.length > 5) {
+            displayValue = displayValue.substring(0, 5);
+        }
+    } else if (field === 'due_date') {
+        // Input is YYYY-MM-DD. Format to DD-Mon-YYYY.
+        displayValue = formatTodoDate(newValue);
+    } else if (field === 'target_duration_seconds') {
+        // Format seconds back to pretty string
+        displayValue = formatDuration(apiValue);
+    }
+
+    // Update DOM immediately
+    $el.text(displayValue);
+    // Update data-value
+    if (field === 'target_duration_seconds') {
+        $el.data('value', apiValue);
+    } else {
+        $el.data('value', newValue);
+    }
+
+    // Flash success styling immediately
+    $el.css('background-color', '#e8f5e9');
+
+    // 2. Send to Server
+    $.ajax({
+        url: '/api/todos/update_field.php',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            todo_id: todoId,
+            field: field,
+            value: apiValue
+        }),
+        success: function(response) {
+            if (response.success) {
+                // Success confirmed. Remove flash after delay.
+                setTimeout(function() { $el.css('background-color', ''); }, 500);
+            } else {
+                // Server error
+                revertEdit($el, originalText, originalValue);
+                alert('Failed to save: ' + (response.error || 'Unknown error'));
+            }
+        },
+        error: function(xhr) {
+            // Network/Server error
+            revertEdit($el, originalText, originalValue);
+            var error = xhr.responseJSON ? xhr.responseJSON.error : 'Connection failed';
+            alert('Failed to save: ' + error);
+        }
+    });
+
+}
+
+function revertEdit($el, originalText, originalValue) {
+    // Restore original content (which was html/text)
+    if (originalText !== undefined) {
+        $el.html(originalText);
+    } else if ($el.data('original-content')) {
+        $el.html($el.data('original-content'));
+    }
+
+    // Also revert data-value
+    if (originalValue !== undefined) {
+        $el.data('value', originalValue);
+    }
+
+    // Flash error
+    $el.css('background-color', '#ffebee');
+
+	setTimeout(function() { $el.css('background-color', ''); }, 500);
+}
+
+// Create completed session widget HTML (Now handles Fully Completed Todos)
 function createCompletedSessionWidget(session) {
-	var bonusDisplay;
-	if (session.bonus_sec > 60) {
-		bonusDisplay = '<span class="bonus-positive">inc. ' + formatDuration(session.bonus_sec) + ' bonus</span>';
-	} else if (session.bonus_sec < 0) {
-		bonusDisplay = '<span class="bonus-negative">Stopped early</span>';
-	} else {
-		bonusDisplay = '<span class="bonus-none">Exactly on time</span>';
-	}
+    // Determine title: use Todo Title. Fallback to activity name if available.
+    var title = session.title || session.activity_name || 'Untitled Todo';
+    var activityName = session.activity_name ? ' (' + session.activity_name + ')' : '';
 
-	// Build delete button data attribute
-	var deleteData = session.session_key ? 'data-session-key="' + session.session_key + '"' : 'data-ak-id="' + session.ak_id + '"';
+    var durationDisplay = '';
+    // Only show duration if it was a timed todo (is_timer=1 and duration > 0) or has actual_sec from session
+    if (session.is_timer == 1 || session.actual_sec > 0) {
+        var actualSec = session.actual_sec || session.duration_seconds || 0;
+        var bonusSec = session.bonus_sec || 0;
 
-	// Build the URL - use session_key if available, otherwise skip (no link)
-	if (session.session_key) {
-		var sessionUrl = '/mg/' + session.session_key;
-		return $('<div>', {
-			'class': 'session-widget-container',
-			'html': '<a href="' + sessionUrl + '" class="session-widget completed">' +
-					'<div class="activity-name">✅ ' + session.activity_name + '</div>' +
-					'<div class="completion-date">' + formatCompletedDate(session.updated_at_utc) + '</div>' +
-					'<div class="duration">' +
-					'  Duration: ' + formatDuration(session.actual_sec) + ' ' + bonusDisplay +
-					'</div>' +
-					'</a>' +
-					'<button class="delete-session-btn" ' + deleteData + ' title="Delete session">✕</button>'
-		});
-	} else {
-		// No session key - show as non-clickable div
-		return $('<div>', {
-			'class': 'session-widget-container',
-			'html': '<div class="session-widget completed no-link">' +
-					'<div class="activity-name">✅ ' + session.activity_name + '</div>' +
-					'<div class="completion-date">' + formatCompletedDate(session.updated_at_utc) + '</div>' +
-					'<div class="duration">' +
-					'  Duration: ' + formatDuration(session.actual_sec) + ' ' + bonusDisplay +
-					'</div>' +
-					'</div>' +
-					'<button class="delete-session-btn" ' + deleteData + ' title="Delete session">✕</button>'
-		});
-	}
+        var bonusDisplay;
+        if (bonusSec > 60) {
+            bonusDisplay = '<span class="bonus-positive">inc. ' + formatDuration(bonusSec) + ' bonus</span>';
+        } else if (bonusSec < 0) {
+            bonusDisplay = '<span class="bonus-negative">Stopped early</span>';
+        } else {
+             // For todos without session linkage but are timed, we might not have bonus info
+             // Just show nothing for bonus if 0
+             bonusDisplay = '';
+        }
+
+		if(actualSec > 0) {
+        durationDisplay = '<span class="duration">' +
+					'  Duration: ' + formatDuration(actualSec) + ' ' + bonusDisplay +
+					'</span>';
+		}
+    }
+
+	// Build delete/undo button (removed logic for now as API expects specific ID types, maybe todo_log_id in future?)
+    // For now, keep using delete-session-btn if we have session key.
+    // If it's a raw todo log without session, we might need a new delete endpoint or update delete-activity-session
+    // The current deleteSession function uses session_key or ak_id.
+    // Our new API returns ak_id (nullable) and log_id.
+    // If ak_id exists, we can use it. If not, we can't easily delete via existing API.
+    // Let's only show delete if ak_id exists for now to be safe, or if we update deleteSession.
+
+	var deleteBtn = '';
+    if (session.ak_id) {
+         deleteBtn = '<button class="delete-session-btn" data-ak-id="' + session.ak_id + '" title="Delete session">✕</button>';
+    }
+
+	// Build the URL - link to todo? or activity?
+    // If it has a session key (not in new API yet), we linked to /mg/.
+    // New API doesn't return session_key.
+    // Let's link to the todo edit page.
+    var linkUrl = '/todos/create.php?todo_id=' + session.todo_id;
+
+    // Use date_logged (local time string from DB)
+    // We need to parse it carefully or display as is if it's Y-m-d H:i:s
+    // formatCompletedDate expects UTC string.
+    // Let's write a simple formatter for the local string "YYYY-MM-DD HH:MM:SS"
+    var dateDisplay = session.date_logged;
+    try {
+        // Basic parser for "YYYY-MM-DD HH:MM:SS"
+        var parts = session.date_logged.split(/[- :]/);
+        var d = new Date(parts[0], parts[1]-1, parts[2], parts[3], parts[4], parts[5]);
+        var options = { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true };
+        dateDisplay = d.toLocaleString('en-US', options);
+    } catch(e) {}
+
+	return $('<div>', {
+		'class': 'session-widget-container',
+		'html': '<a href="' + linkUrl + '" class="session-widget completed">' +
+                '<div class="completed-task">' +
+                '  <span class="completed-check">✅</span> ' +
+                '  <span class="completed-title">' + title + '</span>' +
+                (activityName ? '<span class="completed-activity-name"><small>' + activityName + '</small></span>' : '') +
+                '</div>' +
+				'<div class="completion-details">' +
+                '  <span class="completion-date">' + dateDisplay + '</span>' +
+				  durationDisplay +
+                '</div>' +
+				'</a>' +
+				deleteBtn
+	});
 }
 
 // Render completed sessions
@@ -690,7 +957,7 @@ function loadCompletedSessions(isLoadMore) {
 		currentOffset = 0;
 	}
 
-	$.get('/api/list-completed-sessions.php?limit=' + completedLimit + '&offset=' + currentOffset, function(response) {
+	$.get('/api/list-fully-completed-todos.php?limit=' + completedLimit + '&offset=' + currentOffset, function(response) {
 		if (response.success) {
 			renderCompletedSessions(response.completed_sessions, isLoadMore);
 

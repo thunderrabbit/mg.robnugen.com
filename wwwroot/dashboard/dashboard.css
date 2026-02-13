@@ -273,6 +273,49 @@
 	font-weight: 600;
 }
 
+/* Completed Task Styles */
+.completed-task {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.completed-check {
+    color: #4CAF50;
+    font-size: 18px;
+    line-height: 1;
+}
+
+.completed-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    text-decoration: line-through;
+    text-decoration-color: #a5d6a7;
+    color: #558b55;
+}
+
+.completed-activity-name {
+    margin-left: 26px; /* Align with title */
+    margin-bottom: 8px;
+    line-height: 1.2;
+}
+
+.completed-activity-name small {
+    color: #888;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.completion-details {
+    margin-left: 26px;
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
 /* Load More Button */
 .load-more {
 	display: block;
@@ -434,6 +477,30 @@
 	font-weight: 500;
 	white-space: nowrap;
 	flex-shrink: 0;
+}
+
+/* Sort handle styles - makes time/date/icon draggable */
+.todo-sort-area {
+	cursor: grab;
+	user-select: none;
+}
+
+.todo-sort-area:active {
+	cursor: grabbing;
+}
+
+/* Sort icon handle for todos without time or date */
+.todo-sort-handle {
+	font-size: 1.2rem;
+	color: #9e9e9e;
+	margin-right: 4px;
+	opacity: 0.6;
+	flex-shrink: 0;
+}
+
+.todo-sort-handle:hover {
+	opacity: 1;
+	color: #757575;
 }
 
 .todo-duration {

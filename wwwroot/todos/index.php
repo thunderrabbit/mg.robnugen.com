@@ -7,9 +7,14 @@
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
 
-// Authentication Check
+// Authentication Check - Allow admins and paid users only
 if (!$is_logged_in->isLoggedIn()) {
     header("Location: /login/");
+    exit;
+}
+
+if (!$is_logged_in->isAdmin() && !$is_logged_in->isPaid()) {
+    header("Location: /?msg=upgrade_required");
     exit;
 }
 
@@ -20,12 +25,25 @@ $todoHelper = new \ActivityTracking\Todo($pdo);
 // Get all active todos
 $todos = $todoHelper->getAllTodos($user_id);
 
+// Check completion status for non-repeating todos
+foreach ($todos as &$todo) {
+    // Non-repeating if no days or dates scheduled
+    if (empty($todo['do_days']) && empty($todo['do_dates'])) {
+        $status = $todoHelper->getCompletionStatus($todo['todo_id']);
+        if ($status['count'] > 0) {
+            $todo['is_completed'] = true;
+            $todo['completed_at'] = $status['last_logged'];
+        }
+    }
+}
+unset($todo); // Break reference
+
 // Prepare View
-$page = new \Template($config);
+$page = new \Template($config, $is_logged_in);
 $page->setTemplate("layout/welcome_base.tpl.php");
 $page->set("page_title", "My Todos - Meiso Gambare");
 
-$inner_page = new \Template($config);
+$inner_page = new \Template($config, $is_logged_in);
 $inner_page->setTemplate("todos/index.tpl.php");
 $inner_page->set("todos", $todos);
 

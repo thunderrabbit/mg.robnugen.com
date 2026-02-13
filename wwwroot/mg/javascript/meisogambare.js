@@ -197,6 +197,7 @@ var hideStuffs = function() {
 	$('.duration-field-wrapper').hide(hide_duration);
 	$('.share').hide(reveal_duration);
 	$('#post_timer_links').hide(hide_duration);
+    $('body').addClass('distraction-free');
 }
 
 var revealStopButton = function() {
@@ -229,6 +230,7 @@ var revealStuffs = function() {
 	$('.start').show(hide_duration);
 	$('.duration-field-wrapper').show(hide_duration);
 	$('#post_timer_links').show(reveal_duration);
+    $('body').removeClass('distraction-free');
 }
 
 var setSuccessString = function() {
@@ -618,6 +620,21 @@ $(document).ready(function() {
 
 	// Apply URL parameters (may override local storage values)
 	applyURLParams();
+
+    // Live update for countdown minutes with debounce
+    var debounceTimer;
+    $('#countdown_minutes').on('input', function() {
+        clearTimeout(debounceTimer);
+        var val = $(this).val();
+
+        debounceTimer = setTimeout(function() {
+            var minutes = parseFloat(val);
+            if (!isNaN(minutes) && minutes > 0) {
+                // meisoPrefs.setMeditationTime(minutes); // Optional: save while typing? Maybe wait for start.
+                clock.setTime(minutes * 60);
+            }
+        }, 500); // 500ms debounce
+    });
 
 	// Load available activities for user
 	loadActivities();

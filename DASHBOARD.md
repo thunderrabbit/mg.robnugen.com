@@ -83,7 +83,6 @@ Each active session widget shows:
 
   <div class="empty-state" style="display:none;">
     <p>No active sessions</p>
-    <a href="/mg/" class="btn-primary">Start Your First Timer</a>
   </div>
 </div>
 ```

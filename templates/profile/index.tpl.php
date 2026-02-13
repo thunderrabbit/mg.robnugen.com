@@ -13,8 +13,57 @@
         </div>
     <?php endif; ?>
 
-    <form action="/profile/" method="POST" class="mainForm">
+    <form action="/profile/" method="POST" class="mainForm" style="margin-bottom: 30px;">
+        <input type="hidden" name="update_settings_action" value="1">
+
         <fieldset>
+            <legend>Navigation Arrow Colors</legend>
+            <div class="PageRow noborder">
+                <label for="arrow_color_older">Older Arrow Color:</label>
+                <div class="PageInput">
+                    <input type="color" id="arrow_color_older" name="arrow_color_older" value="<?= htmlspecialchars($arrow_color_older) ?>" style="height: 40px; width: 60px; padding: 2px;">
+                </div>
+                <div class="fix"></div>
+            </div>
+
+            <div class="PageRow noborder">
+                <label for="arrow_color_newer">Newer Arrow Color:</label>
+                <div class="PageInput">
+                    <input type="color" id="arrow_color_newer" name="arrow_color_newer" value="<?= htmlspecialchars($arrow_color_newer) ?>" style="height: 40px; width: 60px; padding: 2px;">
+                </div>
+                <div class="fix"></div>
+            </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Site Customization</legend>
+            <div class="PageRow noborder">
+                <label for="site_title">Site Title:</label>
+                <div class="PageInput">
+                    <input type="text" name="site_title" id="site_title" value="<?= htmlspecialchars($site_title === 'Meiso Gambare' ? '' : $site_title) ?>" placeholder="Meiso Gambare" />
+                </div>
+                <div class="fix"></div>
+            </div>
+
+            <div class="PageRow noborder">
+                <label for="site_subtitle">Site Subtitle:</label>
+                <div class="PageInput">
+                    <input type="text" name="site_subtitle" id="site_subtitle" value="<?= htmlspecialchars($site_subtitle === 'Your simple meditation timer' ? '' : $site_subtitle) ?>" placeholder="Your simple meditation timer" />
+                </div>
+                <div class="fix"></div>
+            </div>
+
+            <div class="PageRow noborder">
+                <input type="submit" value="Save Settings" class="greyishBtn submitForm" />
+                <div class="fix"></div>
+            </div>
+        </fieldset>
+    </form>
+
+    <form action="/profile/" method="POST" class="mainForm">
+        <input type="hidden" name="change_password_action" value="1">
+        <fieldset>
+            <legend>Change Password</legend>
             <div class="PageRow noborder">
                 <label for="current_password">Current Password:</label>
                 <div class="PageInput">

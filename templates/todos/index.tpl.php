@@ -25,7 +25,7 @@
                     </thead>
                     <tbody>
                         <?php foreach ($todos as $todo): ?>
-                        <tr>
+                        <tr id="todo-row-<?= $todo['todo_id'] ?>">
                             <td>
                                 <strong><?= htmlspecialchars($todo['title']) ?></strong>
                                 <?php if (!empty($todo['description'])): ?>
@@ -50,13 +50,17 @@
                             </td>
                             <td>
                                 <?php
-                                $schedule = [];
-                                if ($todo['do_days']) $schedule[] = $todo['do_days'];
-                                if ($todo['do_dates']) $schedule[] = 'Dates: ' . $todo['do_dates'];
-                                if ($todo['do_time']) $schedule[] = 'At: ' . date('g:ia', strtotime($todo['do_time']));
-                                if ($todo['due_date']) $schedule[] = 'Due: ' . $todo['due_date'];
+                                if (!empty($todo['is_completed'])) {
+                                    echo '<span class="text-success">Done (' . date('Y-m-d', strtotime($todo['completed_at'])) . ')</span>';
+                                } else {
+                                    $schedule = [];
+                                    if ($todo['do_days']) $schedule[] = $todo['do_days'];
+                                    if ($todo['do_dates']) $schedule[] = 'Dates: ' . $todo['do_dates'];
+                                    if ($todo['do_time']) $schedule[] = 'At: ' . date('g:ia', strtotime($todo['do_time']));
+                                    if ($todo['due_date']) $schedule[] = 'Due: ' . $todo['due_date'];
 
-                                echo !empty($schedule) ? implode('<br>', $schedule) : 'Anytime';
+                                    echo !empty($schedule) ? implode('<br>', $schedule) : 'Anytime';
+                                }
                                 ?>
                             </td>
                             <td>
@@ -64,6 +68,9 @@
                             </td>
                             <td>
                                 <a href="/todos/create.php?todo_id=<?= $todo['todo_id'] ?>" class="btn-sm btn-edit">Edit</a>
+                                <a href="/todos/archive.php?todo_id=<?= $todo['todo_id'] ?>"
+                                   class="btn-sm btn-delete action-archive"
+                                   data-todo-id="<?= $todo['todo_id'] ?>">Archive</a>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -98,6 +105,9 @@
         font-size: 0.85rem;
         color: var(--text-muted);
     }
+    .text-success {
+        color: #10b981;
+    }
     .badge {
         display: inline-block;
         padding: 0.25rem 0.5rem;
@@ -124,6 +134,11 @@
         color: #3b82f6;
         background: rgba(59, 130, 246, 0.05);
     }
+    .btn-delete:hover {
+        border-color: #ef4444;
+        color: #ef4444;
+        background: rgba(239, 68, 68, 0.05);
+    }
     .btn-disabled {
         cursor: not-allowed;
         opacity: 0.6;
@@ -134,3 +149,43 @@
         color: var(--text-muted);
     }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const archiveLinks = document.querySelectorAll('.action-archive');
+
+    archiveLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            const todoId = this.dataset.todoId;
+            const row = document.getElementById('todo-row-' + todoId);
+            const originalDisplay = row.style.display;
+
+            // Optimistically hide the row
+            row.style.display = 'none';
+
+            fetch(this.href, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to archive');
+                }
+                // Success - row is already hidden, remove it from DOM to be clean
+                row.remove();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to archive todo: ' + error.message);
+                // Revert optimistic update
+                row.style.display = originalDisplay;
+            });
+        });
+    });
+});
+</script>

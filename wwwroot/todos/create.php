@@ -7,9 +7,14 @@
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
 
-// Authentication Check
+// Authentication Check - Allow admins and paid users only
 if (!$is_logged_in->isLoggedIn()) {
     header("Location: /login/");
+    exit;
+}
+
+if (!$is_logged_in->isAdmin() && !$is_logged_in->isPaid()) {
+    header("Location: /?msg=upgrade_required");
     exit;
 }
 
@@ -131,11 +136,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Prepare View
-$page = new \Template($config);
+$page = new \Template($config, $is_logged_in);
 $page->setTemplate("layout/welcome_base.tpl.php");
 $page->set("page_title", $page_title);
 
-$inner_page = new \Template($config);
+$inner_page = new \Template($config, $is_logged_in);
 $inner_page->setTemplate("todos/create.tpl.php");
 
 // Pass data to template

@@ -102,14 +102,34 @@
         .form-row input[type="submit"]:hover {
             background: #2980b9;
         }
+        .form-row input[type="submit"]:hover {
+            background: #2980b9;
+        }
+
     </style>
+    <style>
+        .arrow-older {
+            background-color: <?= $is_logged_in->getArrowColorOlder() ?>;
+            color: <?= Utilities::getContrastColor($is_logged_in->getArrowColorOlder()) ?> !important;
+        }
+        .arrow-newer {
+            background-color: <?= $is_logged_in->getArrowColorNewer() ?>;
+            color: <?= Utilities::getContrastColor($is_logged_in->getArrowColorNewer()) ?> !important;
+        }
+    </style>
+    <link rel="stylesheet" href="/css/menu.css">
 </head>
 <body>
-    <h1>🧘 Meiso Gambare</h1>
-    <p class="subtitle">Your simple meditation timer v.<?= SEMVER ?></p>
+    <?php include __DIR__ . '/../partials/menu.tpl.php'; ?>
+    <h1>🧘 <?= $is_logged_in->isLoggedIn() ? htmlspecialchars($is_logged_in->getSiteTitle()) : 'Meiso Gambare' ?></h1>
+    <p class="subtitle"><?= $is_logged_in->isLoggedIn() ? htmlspecialchars($is_logged_in->getSiteSubtitle()) : 'Your simple meditation timer' ?> v.<?= SEMVER ?></p>
 
     <?= $page_content ?>
 
-    <p style="color: #7f8c8d; font-size: 0.9em; margin-top: 40px;">Free to get started • No email or credit card required</p>
+    <?php if (!$is_logged_in->isLoggedIn()): ?>
+        <p style="color: #7f8c8d; font-size: 0.9em; margin-top: 40px;">Free to get started • No email or credit card required</p>
+    <?php elseif (!$is_logged_in->isPaid() && !$is_logged_in->isAdmin()): ?>
+        <p style="color: #7f8c8d; font-size: 0.9em; margin-top: 40px;">Upgrade for multiple timers, recurring todos, and more!</p>
+    <?php endif; ?>
 </body>
 </html>

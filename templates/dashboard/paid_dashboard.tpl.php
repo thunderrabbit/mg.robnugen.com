@@ -23,18 +23,24 @@
 			<div class="loading">Loading todos...</div>
 		</div>
 		<div class="todos-empty-state" style="display:none;">
-			<p>No todos scheduled for today</p>
+			<p>None</p>
 		</div>
+
+		<div class="dashboard-nav">
+			<br>
+<?php // Rob removed these on 12 Feb 2026 because no one is using them recently.
+            if(false){
+            ?>
+			<a href="/todos/history.php" class="nav-arrow arrow-older" title="View Completed Todos">← Older</a>
+			<a href="/todos/upcoming.php" class="nav-arrow arrow-newer" title="View Future Todos">Tomorrow →</a>
+            <?php } ?>
+			<a href="/mg/" class="btn-new-timer">+ Start New Timer</a>
+		</div>
+
 	</section>
 
-    <div class="dashboard-nav">
-        <a href="/todos/history.php" class="nav-arrow" title="View Completed Todos">← Completed</a>
-        <a href="/todos/upcoming.php" class="nav-arrow" title="View Future Todos">Upcoming →</a>
-    </div>
-
-	<header class="dashboard-header">
+	<header class="dashboard-header" id="active-sessions-header">
 		<h1>My Active Sessions</h1>
-		<a href="/mg/" class="btn-new-timer">+ Start New Timer</a>
 	</header>
 
 	<div class="active-sessions-grid" id="active-sessions">
@@ -43,18 +49,17 @@
 	</div>
 
 	<div class="empty-state" style="display:none;">
-		<p>No active sessions</p>
-		<a href="/mg/" class="btn-primary">Start Your First Timer</a>
+		<p>None</p>
 	</div>
 
 	<section class="completed-sessions-section">
-		<h2>Recent Completed Sessions</h2>
+		<h2>Completed</h2>
 		<div class="completed-sessions-list" id="completed-sessions">
 			<!-- Populated by JavaScript -->
 			<div class="loading">Loading completed sessions...</div>
 		</div>
 		<div class="completed-empty-state" style="display:none;">
-			<p>No completed sessions yet</p>
+			<p>None</p>
 		</div>
 		<button class="load-more" id="load-more-sessions" style="display:none;">Load More</button>
 	</section>

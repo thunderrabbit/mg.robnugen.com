@@ -8,18 +8,24 @@ include_once $matches[1] . '/prepend.php';
 if ($is_logged_in->isLoggedIn()) {
     // We logged in.. yay!
     // Check if there's a return URL saved
-    $return_url = $_SESSION['return_url'] ?? '/mg/';
-    unset($_SESSION['return_url']); // Clear it
+    if (isset($_SESSION['return_url'])) {
+        $return_url = $_SESSION['return_url'];
+        unset($_SESSION['return_url']); // Clear it
+    } else {
+        // Default redirect based on user role
+        // Admin and paid users go to dashboard (/), free users go to timer (/mg/)
+        $return_url = ($is_logged_in->isAdmin() || $is_logged_in->isPaid()) ? '/' : '/mg/';
+    }
     header(header: "Location: $return_url");
     exit;
 } else {
     if(!$is_logged_in->isLoggedIn()){
-        $page = new \Template(config: $config);
+        $page = new \Template(config: $config, is_logged_in: $is_logged_in);
         $page->setTemplate("layout/welcome_base.tpl.php");
         $page->set("page_title", "Log In - Meiso Gambare");
 
         // Get the inner content
-        $inner_page = new \Template(config: $config);
+        $inner_page = new \Template(config: $config, is_logged_in: $is_logged_in);
         $inner_page->setTemplate("login/login_content.tpl.php");
 
         // Check if user just registered

@@ -33,12 +33,12 @@ class AcceptanceTester extends \Codeception\Actor
     public function __construct(\Codeception\Scenario $scenario)
     {
         parent::__construct($scenario);
-        $this->admin_username = getenv('ADMIN_USER');
-        $this->admin_password = getenv('ADMIN_PASS');
-        $this->paid_username = getenv('PAID_USER');
-        $this->paid_password = getenv('PAID_PASS');
-        $this->free_username = getenv('FREE_USER');
-        $this->free_password = getenv('FREE_PASS');
+        $this->admin_username = getenv('MG_ADMIN_USER');
+        $this->admin_password = getenv('MG_ADMIN_PASS');
+        $this->paid_username = getenv('MG_PAID_USER');
+        $this->paid_password = getenv('MG_PAID_PASS');
+        $this->free_username = getenv('MG_FREE_USER');
+        $this->free_password = getenv('MG_FREE_PASS');
     }
 
     /**

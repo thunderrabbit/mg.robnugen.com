@@ -38,7 +38,6 @@ class IsLoggedIn
         {
             $found_user_id = $this->getUserIdForCookieInDatabase(
                 cookie: $mla_request->cookie[$this->di_config->cookie_name],
-                ip_address: $current_ip,
                 user_agent: $_SERVER['HTTP_USER_AGENT'] ?? ''
             );
             if(empty($found_user_id))
@@ -67,24 +66,70 @@ class IsLoggedIn
         $this->setUsernameOfLoggedInID($this->who_is_logged_in);
     }
 
+    private string $siteTitle = '';
+    private string $siteSubtitle = '';
+    private string $arrowColorOlder = '#4CAF50'; // Default: Green
+    private string $arrowColorNewer = '#2196F3'; // Default: Blue
+
     private function setUsernameOfLoggedInID(int $user_id): void
     {
         if ($user_id <= 0) {
             return;
         }
-        // set the session variable for username
-        $stmt = $this->di_pdo->prepare("SELECT `username` FROM `users` WHERE `user_id` = ? LIMIT 1");
+        // Change from setUsernameOfLoggedInID to loadUserData effectively
+
+        // Fetch username and settings
+        $sql = "
+            SELECT u.username, s.site_title, s.site_subtitle, s.arrow_color_older, s.arrow_color_newer
+            FROM users u
+            LEFT JOIN user_settings s ON u.user_id = s.user_id
+            WHERE u.user_id = ?
+            LIMIT 1
+        ";
+        $stmt = $this->di_pdo->prepare($sql);
         $stmt->execute([$user_id]);
         $result = $stmt->fetchAll();
 
         if (count($result) > 0) {
             $this->loggedInUsername = $result[0]['username'] ?? 'ummmmmm wtf';
+            $this->siteTitle = $result[0]['site_title'] ?? '';
+            $this->siteSubtitle = $result[0]['site_subtitle'] ?? '';
+            if (!empty($result[0]['arrow_color_older'])) {
+                $this->arrowColorOlder = $result[0]['arrow_color_older'];
+            }
+            if (!empty($result[0]['arrow_color_newer'])) {
+                $this->arrowColorNewer = $result[0]['arrow_color_newer'];
+            }
         }
     }
 
     public function getLoggedInUsername(): string
     {
         return $this->loggedInUsername;
+    }
+
+    public function getSiteTitle(): string
+    {
+        return !empty($this->siteTitle) ? $this->siteTitle : 'Meiso Gambare';
+    }
+
+    public function getSiteSubtitle(): string
+    {
+        // NOTE: We don't have access to SEMVER constant here cleanly unless global,
+        // but typically this is used in templates where SEMVER is available.
+        // For the default, we return the text without version, let template handle version if needed?
+        // Proposal said: "Your simple meditation timer"
+        return !empty($this->siteSubtitle) ? $this->siteSubtitle : 'Your simple meditation timer';
+    }
+
+    public function getArrowColorOlder(): string
+    {
+        return $this->arrowColorOlder;
+    }
+
+    public function getArrowColorNewer(): string
+    {
+        return $this->arrowColorNewer;
     }
 
     public function getUserRole(): string
@@ -121,12 +166,11 @@ class IsLoggedIn
             'user_id' => $user_id,
             'cookie' => $cookie,
             'last_access' => date(format: "Y-m-d H:i:s"),
-            'user_agent_md5' => md5($_SERVER['HTTP_USER_AGENT'] ?? ''),
-            'ip_address' => \Auth\IPBin::ipToBinary(ip: $_SERVER['REMOTE_ADDR'])
+            'user_agent_md5' => md5($_SERVER['HTTP_USER_AGENT'] ?? '')
         ];
 
         // Insert using native PDO
-        $stmt = $this->di_pdo->prepare("INSERT INTO `cookies` (`user_id`, `cookie`, `last_access`, `user_agent_md5`, `ip_address`) VALUES (?, ?, ?, ?, ?)");
+        $stmt = $this->di_pdo->prepare("INSERT INTO `cookies` (`user_id`, `cookie`, `last_access`, `user_agent_md5`) VALUES (?, ?, ?, ?)");
         $stmt->execute(array_values($record));
 
         $cookie_options = [
@@ -182,41 +226,35 @@ class IsLoggedIn
 
     private function getUserIdForCookieInDatabase(
         string $cookie,
-        string $ip_address,
         string $user_agent
     ): int
     {
-        $varbinary_ip = \Auth\IPBin::ipToBinary($ip_address);
-        $stmt = $this->di_pdo->prepare("SELECT `user_id`, `ip_address` FROM `cookies` WHERE `cookie` = ? LIMIT 1");
-        $stmt->execute([$cookie]);
+        // Validate cookie and user agent match
+        $stmt = $this->di_pdo->prepare("SELECT `user_id` FROM `cookies` WHERE `cookie` = ? AND `user_agent_md5` = ? LIMIT 1");
+        $stmt->execute([$cookie, md5($user_agent)]);
         $result = $stmt->fetchAll();
 
         if(count($result) > 0)
         {
-            $stored_ip = \Auth\IPBin::binaryToIp($result[0]['ip_address']);
-            $user_id = $result[0]['user_id'];
-
-            // Check IP match
-            if($varbinary_ip !== $result[0]['ip_address']) {
-                $this->logAuth("user_id: {$user_id}, IP: {$ip_address} - Cookie IP MISMATCH (stored IP: {$stored_ip})");
-                return 0;
-            }
-
-            // Check user agent match
-            $stmt2 = $this->di_pdo->prepare("SELECT `user_id` FROM `cookies` WHERE `cookie` = ? AND `user_agent_md5` = ? LIMIT 1");
-            $stmt2->execute([$cookie, md5($user_agent)]);
-            $result2 = $stmt2->fetchAll();
-
-            if(count($result2) === 0) {
-                $this->logAuth("user_id: {$user_id}, IP: {$ip_address} - Cookie USER AGENT MISMATCH");
-                return 0;
-            }
-
-            return $user_id;
+            return $result[0]['user_id'];
         }
         else
         {
-            $this->logAuth("user_id: N/A, IP: {$ip_address} - Cookie NOT FOUND in database");
+            // Log why authentication failed
+            $stmt2 = $this->di_pdo->prepare("SELECT `user_id` FROM `cookies` WHERE `cookie` = ? LIMIT 1");
+            $stmt2->execute([$cookie]);
+            $result2 = $stmt2->fetchAll();
+
+            if(count($result2) > 0) {
+                // Cookie exists but user agent doesn't match
+                $user_id = $result2[0]['user_id'];
+                $current_ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+                $this->logAuth("user_id: {$user_id}, IP: {$current_ip} - Cookie USER AGENT MISMATCH");
+            } else {
+                // Cookie doesn't exist at all
+                $current_ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+                $this->logAuth("user_id: N/A, IP: {$current_ip} - Cookie NOT FOUND in database");
+            }
             return 0;
         }
     }
