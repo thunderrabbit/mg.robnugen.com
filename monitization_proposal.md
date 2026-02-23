@@ -258,57 +258,178 @@ No heavy infrastructure.
 
 # 10. Technical Implementation Plan
 
-## Phase 1 — Codebase Review
+> **Codebase review complete.** The ledger already exists. The gaps are: API key auth, usage tracking, and billing.
 
-* Identify where sessions are stored
-* Abstract DB logic into a reusable function layer
-* Isolate “ledger core”
+## What Already Exists (No Work Needed)
 
-Deliverable:
-Internal service layer for sessions.
+The core ledger is fully built:
 
----
+| Concept | Already Exists |
+|---------|---------------|
+| Session storage | `activity_kai` table — `ak_id`, `user_id`, `actual_sec` (NULL = active), `intended_sec`, `start_local_dt` |
+| Activity types | `activities` table — FREE / PUBLIC / PRIVATE enum |
+| Public session sharing | `activity_session_keys` — 11-char YouTube-style keys |
+| Session CRUD endpoints | `/api/start-activity.php`, `/api/stop-activity.php`, `/api/list-completed-sessions.php`, `/api/get-session.php` |
+| JSON API pattern | All existing endpoints return JSON, use PDO prepared statements |
+| Role-based access | `users.role` column: `'user'`, `'paid'`, `'admin'` |
+| DB migration system | `db_schemas/NN_name/` directories; tracked in `applied_DB_versions` |
 
-## Phase 2 — API Extraction
-
-Create:
-
-`/api/v1/sessions.php`
-
-Middleware:
-
-* Check API key
-* Check credit balance
-* Deduct credit
-* Log usage
-* Return JSON
+The PHP class that wraps the ledger is `ActivityTracking\ActivityKai`, with methods:
+`startActivity()`, `stopActivity()`, `getUserSessions()`, `verifyOwnership()`
 
 ---
 
-## Phase 3 — Stripe Integration
+## Phase 1 — API Key Authentication
 
-Adapt existing human billing proposal:
+**The biggest gap: all existing endpoints require cookie auth. External agents cannot use cookies.**
 
-Add:
+### New migration: `db_schemas/07_api_keys/`
 
-* Developer API plans
-* Webhook to credit accounts
-* Automated credit refills (optional)
+```sql
+-- create_api_keys.sql
+CREATE TABLE api_keys (
+    key_id      BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id     INT UNSIGNED NOT NULL,
+    api_key     CHAR(64) NOT NULL UNIQUE,
+    label       VARCHAR(255) NULL,
+    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_used   DATETIME NULL,
+    is_active   TINYINT(1) NOT NULL DEFAULT 1,
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+```
+
+### New class: `classes/Auth/ApiKey.php`
+
+Follows the existing `Auth\IsLoggedIn` pattern:
+
+```php
+class ApiKey {
+    public function validateKey(string $raw_key): ?int  // returns user_id or null
+    public function generateKey(int $user_id, string $label): string
+    public function revokeKey(int $key_id, int $user_id): bool
+}
+```
+
+### Middleware pattern (reuse in every v1 endpoint)
+
+```php
+// At top of each /api/v1/*.php, after prepend.php
+$auth_user_id = null;
+$raw_key = $_SERVER['HTTP_X_API_KEY'] ?? null;
+if ($raw_key) {
+    $apiKeyAuth = new Auth\ApiKey($pdo);
+    $auth_user_id = $apiKeyAuth->validateKey($raw_key);
+}
+if (!$auth_user_id) {
+    http_response_code(401);
+    echo json_encode(['error' => 'Invalid or missing API key']);
+    exit;
+}
+```
+
+**Deliverable:** Agents can authenticate with `X-API-Key: sk_...` header.
 
 ---
 
-## Phase 4 — Token-Based Marketing Positioning
+## Phase 2 — v1 API Endpoints
 
-Marketing message:
+Create `wwwroot/api/v1/` directory. Each endpoint wraps existing `ActivityKai` and `Activity` class methods — **no new DB logic needed**.
 
-> “Cheaper than building session storage yourself.”
+| New Endpoint | Wraps | Notes |
+|---|---|---|
+| `GET /api/v1/sessions` | `ActivityKai::getUserSessions()` | Add `limit`, `offset`, date filter params |
+| `POST /api/v1/sessions` | `ActivityKai::startActivity()` | Requires `activity_id`, `intended_sec`, `timezone` |
+| `PATCH /api/v1/sessions/{ak_id}/stop` | `ActivityKai::stopActivity()` | Requires `actual_sec` |
+| `GET /api/v1/sessions/{ak_id}` | `ActivityKai::getUserSessions()` filtered | Ownership via `verifyOwnership()` |
+| `GET /api/v1/activities` | `Activity::getActivitiesForUser()` | Returns available activity types |
+| `POST /api/v1/activities` | `Activity::createUserActivity()` | Creates PRIVATE activity |
+| `GET /api/v1/stats` | Direct SQL on `activity_kai` | Streak, total time, session count |
 
-Not:
-“Cool timer API.”
+`/api/v1/stats` is the highest-value endpoint for agents — it offloads streak and aggregate computation entirely.
 
-But:
+**Deliverable:** Five working v1 endpoints usable by any HTTP client.
 
-> “Persistent behavioral ledger for AI agents.”
+---
+
+## Phase 3 — Usage Tracking and Credit Enforcement
+
+### New migration: `db_schemas/08_api_usage/`
+
+```sql
+-- create_api_usage.sql
+CREATE TABLE api_usage (
+    usage_id    BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id     INT UNSIGNED NOT NULL,
+    key_id      BIGINT UNSIGNED NOT NULL,
+    endpoint    VARCHAR(128) NOT NULL,
+    credited    TINYINT(1) NOT NULL DEFAULT 1,
+    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id),
+    FOREIGN KEY (key_id) REFERENCES api_keys(key_id)
+);
+
+-- create_api_credits.sql
+CREATE TABLE api_credits (
+    credit_id       INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id         INT UNSIGNED NOT NULL UNIQUE,
+    credits_remaining INT UNSIGNED NOT NULL DEFAULT 0,
+    updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+```
+
+### Credit check added to middleware (after Phase 1 auth):
+
+```php
+$credits = $pdo->query(“SELECT credits_remaining FROM api_credits WHERE user_id = $auth_user_id”)->fetchColumn();
+if ($credits <= 0) {
+    http_response_code(402);
+    echo json_encode(['error' => 'No credits remaining', 'upgrade_url' => 'https://mg.robnugen.com/billing']);
+    exit;
+}
+// Deduct after successful response
+```
+
+**Deliverable:** Usage metered; 402 returned when exhausted.
+
+---
+
+## Phase 4 — Stripe Integration
+
+The existing `users.role` column (`'user'`, `'paid'`, `'admin'`) already provides the access tier hook. Stripe only needs to flip `role` to `'paid'` and top up `api_credits`.
+
+### New files needed:
+
+| File | Purpose |
+|------|---------|
+| `wwwroot/billing/index.php` | Pricing page with Stripe Checkout links |
+| `wwwroot/billing/webhook.php` | Receives Stripe events |
+| `wwwroot/billing/success.php` | Post-payment confirmation |
+| `classes/Billing/StripeWebhook.php` | Parses events, updates `users.role` + `api_credits` |
+
+### Webhook logic (in `StripeWebhook.php`):
+
+```php
+// On checkout.session.completed:
+$pdo->execute(“UPDATE users SET role = 'paid' WHERE user_id = ?”, [$user_id]);
+$pdo->execute(“INSERT INTO api_credits (user_id, credits_remaining) VALUES (?, ?)
+               ON DUPLICATE KEY UPDATE credits_remaining = credits_remaining + ?”,
+               [$user_id, $credits, $credits]);
+```
+
+No subscription tracking table needed at MVP — Stripe handles renewal; webhook tops up credits on each payment.
+
+### Config additions to `classes/Config.php`:
+
+```php
+public $stripe_secret_key     = 'sk_live_...';
+public $stripe_webhook_secret = 'whsec_...';
+public $stripe_price_developer = 'price_...';  // $5/mo → 5,000 credits
+public $stripe_price_growth    = 'price_...';  // $15/mo → 25,000 credits
+```
+
+**Deliverable:** Paying users get credits; free users get 0 credits (or a small trial allotment).
 
 ---
 
