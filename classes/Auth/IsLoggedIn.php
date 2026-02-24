@@ -50,6 +50,12 @@ class IsLoggedIn
                 $this->who_is_logged_in = $found_user_id;
             }
         } elseif(!empty($mla_request->post['username']) && !empty($mla_request->post['pass'])) {
+            $post_token    = $mla_request->post['csrf_token'] ?? '';
+            $session_token = $_SESSION['csrf_token'] ?? '';
+            if (!hash_equals($session_token, $post_token)) {
+                $this->logAuth("user_id: N/A, IP: {$current_ip} - Login blocked: CSRF token mismatch");
+                return;
+            }
             $found_user_id = $this->checkPHPHashedPassword($mla_request->post['username'], $mla_request->post['pass']);
             if(empty($found_user_id))
             {

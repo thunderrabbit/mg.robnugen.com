@@ -6,6 +6,7 @@
         </div>
     <?php endif; ?>
     <form action="" method="POST">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
         <div class="form-row">
             <label for="username">Username:</label>
             <input type="text" name="username" id="username" required>
