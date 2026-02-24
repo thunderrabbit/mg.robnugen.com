@@ -29,6 +29,7 @@ if ($method === 'GET' && $ak_id === null) {
     $from        = $_GET['from'] ?? null;
     $to          = $_GET['to']   ?? null;
     $activity_id = isset($_GET['activity_id']) ? (int)$_GET['activity_id'] : null;
+    $is_active   = isset($_GET['is_active']) ? (int)$_GET['is_active'] : null;
     $limit       = min((int)($_GET['limit']  ?? 20), 50);
     $offset      = max((int)($_GET['offset'] ?? 0),   0);
 
@@ -46,6 +47,11 @@ if ($method === 'GET' && $ak_id === null) {
     if ($activity_id) {
         $where[]  = 'ak.activity_id = ?';
         $params[] = $activity_id;
+    }
+    if ($is_active === 1) {
+        $where[]  = 'ak.actual_sec IS NULL';
+    } elseif ($is_active === 0) {
+        $where[]  = 'ak.actual_sec IS NOT NULL';
     }
 
     $where_sql = implode(' AND ', $where);

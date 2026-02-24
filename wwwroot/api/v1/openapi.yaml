@@ -126,6 +126,12 @@ paths:
             type: integer
           description: Filter by activity type
         - in: query
+          name: is_active
+          schema:
+            type: integer
+            enum: [0, 1]
+          description: "Filter by active status (1 = running, 0 = stopped)"
+        - in: query
           name: limit
           schema:
             type: integer
