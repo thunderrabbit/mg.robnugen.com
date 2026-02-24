@@ -39,6 +39,7 @@ if (isset($is_logged_in) && is_object($is_logged_in) && method_exists($is_logged
         <div class="dropdown">
             <a href="/profile/">Profile ▾</a>
             <div class="dropdown-menu">
+                <a href="/settings/">Settings</a>
                 <a href="/logout/">Logout</a>
             </div>
         </div>
