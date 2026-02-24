@@ -2,8 +2,10 @@
 -- All existing plaintext keys are invalidated and removed.
 -- After applying this migration, users must generate new API keys.
 
--- Remove all existing plaintext keys (they are no longer valid)
-TRUNCATE TABLE api_keys;
+-- Remove all existing plaintext keys (they are no longer valid).
+-- DELETE (not TRUNCATE) so the ON DELETE CASCADE on api_usage fires,
+-- cleaning up dependent usage rows automatically.
+DELETE FROM api_keys;
 
 -- Rename column and update index to reflect hash storage
 ALTER TABLE api_keys
