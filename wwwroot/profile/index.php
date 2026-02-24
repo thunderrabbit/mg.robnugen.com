@@ -14,7 +14,6 @@ if (!$is_logged_in->isLoggedIn()) {
 
 $error_message = '';
 $success_message = '';
-$new_api_key = '';  // only populated immediately after generation — shown once
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -83,25 +82,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $success_message = "Site settings updated successfully.";
     }
 
-    // API Key Logic
-    if (isset($_POST['api_key_action'])) {
-        $user_id = $is_logged_in->loggedInID();
-        $apiKeyHelper = new \Auth\ApiKey($mla_database);
-
-        if ($_POST['api_key_action'] === 'generate') {
-            $label = trim($_POST['api_key_label'] ?? '');
-            $new_api_key = $apiKeyHelper->generateKey($user_id, $label);
-            $success_message = "API key generated. Copy it now — it will not be shown again.";
-        } elseif ($_POST['api_key_action'] === 'revoke') {
-            $key_id = (int)($_POST['key_id'] ?? 0);
-            if ($key_id > 0 && $apiKeyHelper->revokeKey($key_id, $user_id)) {
-                $success_message = "API key revoked.";
-            } else {
-                $errors[] = "Could not revoke key.";
-            }
-        }
-    }
-
     // Set error message if there are errors
     if (!empty($errors)) {
         // HTML escape each error message individually, then join with <br>
@@ -109,17 +89,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error_message = implode("<br>", $escaped_errors);
     }
 }
-
-// Load API keys and credit balance for display
-$user_id = $is_logged_in->loggedInID();
-$apiKeyHelper = new \Auth\ApiKey($mla_database);
-$api_keys = $apiKeyHelper->getKeysForUser($user_id);
-
-$credits_stmt = $mla_database->prepare(
-    "SELECT credits_remaining FROM api_credits WHERE user_id = ? LIMIT 1"
-);
-$credits_stmt->execute([$user_id]);
-$credits_remaining = (int)($credits_stmt->fetchColumn() ?: 0);
 
 // Display the form
 $page = new \Template(config: $config, is_logged_in: $is_logged_in);
@@ -131,9 +100,6 @@ $page->set("arrow_color_older", $is_logged_in->getArrowColorOlder());
 $page->set("arrow_color_newer", $is_logged_in->getArrowColorNewer());
 $page->set("error_message", $error_message);
 $page->set("success_message", $success_message);
-$page->set("new_api_key", $new_api_key);
-$page->set("api_keys", $api_keys);
-$page->set("credits_remaining", $credits_remaining);
 
 $inner = $page->grabTheGoods();
 
