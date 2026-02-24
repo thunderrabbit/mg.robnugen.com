@@ -11,4 +11,12 @@ class Config {
     public $dbUser = "";
     public $dbPass = "";
     public $dbName = "";
+
+    // Stripe — copy these into Config.php and fill in real values
+    // Get keys from https://dashboard.stripe.com/apikeys
+    // Get webhook secret from https://dashboard.stripe.com/webhooks
+    public $stripe_secret_key      = '';   // sk_live_... or sk_test_...
+    public $stripe_webhook_secret  = '';   // whsec_...
+    public $stripe_price_developer = '';   // price_... for $5/mo Developer plan
+    public $stripe_price_growth    = '';   // price_... for $15/mo Growth plan
 }
