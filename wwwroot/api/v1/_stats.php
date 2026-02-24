@@ -19,7 +19,7 @@ if ($method !== 'GET') {
     exit;
 }
 
-require_credit($pdo, $auth_user_id);
+require_credit($pdo, $auth_user_id, $auth_key_id, $path);
 
 // ── Totals ────────────────────────────────────────────────────────────────────
 
