@@ -7,18 +7,20 @@ namespace Auth;
 
 class ApiKey
 {
+    private ?int $last_key_id = null;
+
     public function __construct(
         private \PDO $di_pdo,
     ) {}
 
     /**
      * Validates an API key and returns the associated user_id, or null if invalid/inactive.
-     * Also updates last_used timestamp on success.
+     * Also updates last_used timestamp on success and stores key_id for getLastKeyId().
      */
     public function validateKey(string $raw_key): ?int
     {
         $stmt = $this->di_pdo->prepare(
-            "SELECT user_id FROM api_keys WHERE api_key = ? AND is_active = 1 LIMIT 1"
+            "SELECT key_id, user_id FROM api_keys WHERE api_key = ? AND is_active = 1 LIMIT 1"
         );
         $stmt->execute([$raw_key]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -27,12 +29,23 @@ class ApiKey
             return null;
         }
 
+        $this->last_key_id = (int) $row['key_id'];
+
         $update = $this->di_pdo->prepare(
             "UPDATE api_keys SET last_used = NOW() WHERE api_key = ?"
         );
         $update->execute([$raw_key]);
 
         return (int) $row['user_id'];
+    }
+
+    /**
+     * Returns the key_id from the most recent successful validateKey() call.
+     * Needed for usage logging without a second DB query.
+     */
+    public function getLastKeyId(): ?int
+    {
+        return $this->last_key_id;
     }
 
     /**
