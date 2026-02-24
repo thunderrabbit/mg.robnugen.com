@@ -172,7 +172,7 @@ Endpoints:
 * `POST /api/v1/sessions`
 * `GET /api/v1/sessions?from=YYYY-MM-DD&to=YYYY-MM-DD&activity_id=N&limit=50&offset=0`
 * `GET /api/v1/sessions/{ak_id}`
-* `PATCH /api/v1/sessions/{ak_id}/stop`
+* `PATCH /api/v1/sessions/{ak_id}/stop` — no body required; server computes duration
 * `DELETE /api/v1/sessions/{ak_id}`
 * `GET /api/v1/stats`
 * `POST /api/v1/activities`
@@ -236,10 +236,22 @@ Agent developers integrate 5 endpoints instead of building a backend.
 
 # 8. Pricing Tiers (Token-Indexed)
 
+### What counts as one "session event"
+
+**Writes cost 1 credit. Reads are free.**
+
+* `POST /api/v1/sessions` → 1 credit
+* `GET /api/v1/stats` → 1 credit (pre-computed aggregation is the high-value offload)
+* `GET /api/v1/sessions`, `GET /api/v1/activities`, all other reads → 0 credits
+
+This keeps the barrier low for agents that query frequently, and aligns cost with actual data creation.
+
+---
+
 ### Developer Tier
 
 $5/month
-Up to 5,000 session events
+Up to 5,000 session writes + stats calls
 
 Equivalent token recreation cost:
 ~$10–$40 in model usage
@@ -251,7 +263,7 @@ You’re cheaper.
 ### Growth Tier
 
 $15/month
-Up to 25,000 session events
+Up to 25,000 session writes + stats calls
 
 Equivalent token recreation cost:
 ~$50–$200
@@ -308,7 +320,7 @@ The PHP class that wraps the ledger is `ActivityTracking\ActivityKai`, with meth
 
 ---
 
-## Phase 1 — API Key Authentication
+## Phase 1 — API Key Authentication + Trial Credits
 
 **The biggest gap: all existing endpoints require cookie auth. External agents cannot use cookies.**
 
@@ -357,7 +369,28 @@ if (!$auth_user_id) {
 }
 ```
 
-**Deliverable:** Agents can authenticate with `X-API-Key: sk_...` header.
+### Trial credits seeded at registration
+
+`wwwroot/login/register.php:62` already inserts the user row. Immediately after, seed credits:
+
+```php
+// After: $stmt->execute([$username, $hash, $role]);
+$new_user_id = $mla_database->lastInsertId();
+$trial_stmt = $mla_database->prepare(
+    "INSERT INTO api_credits (user_id, credits_remaining) VALUES (?, 100)"
+);
+$trial_stmt->execute([$new_user_id]);
+```
+
+100 trial credits = 100 session writes or stats calls. Enough to validate integration without paying.
+
+### API key management page
+
+`wwwroot/profile/index.php` already handles multiple POST actions (`change_password_action`, `update_settings_action`). Add a third action `api_key_action` to generate/revoke keys, and extend `templates/profile/index.tpl.php` to display the current key with a copy button.
+
+No new page needed — slots directly into the existing profile pattern.
+
+**Deliverable:** Agents can authenticate with `X-API-Key: sk_...` header. New users get 100 trial credits automatically.
 
 ---
 
@@ -368,8 +401,8 @@ Create `wwwroot/api/v1/` directory. Each endpoint wraps existing `ActivityKai` a
 | New Endpoint | Wraps | Notes |
 |---|---|---|
 | `GET /api/v1/sessions` | `ActivityKai::getUserSessions()` | Add `limit`, `offset`, date filter params |
-| `POST /api/v1/sessions` | `ActivityKai::startActivity()` | Requires `activity_id`, `intended_sec`, `timezone` |
-| `PATCH /api/v1/sessions/{ak_id}/stop` | `ActivityKai::stopActivity()` | Requires `actual_sec` |
+| `POST /api/v1/sessions` | `ActivityKai::startActivity()` | Requires `activity_id`, `timezone`. `intended_sec` optional (defaults to 0 for agent use) |
+| `PATCH /api/v1/sessions/{ak_id}/stop` | `ActivityKai::stopActivity()` | No body needed. Server computes `actual_sec = TIMESTAMPDIFF(SECOND, start_local_dt, NOW())`. Eliminates timer burden from agent. |
 | `GET /api/v1/sessions/{ak_id}` | `ActivityKai::getUserSessions()` filtered | Ownership via `verifyOwnership()` |
 | `GET /api/v1/activities` | `Activity::getActivitiesForUser()` | Returns available activity types |
 | `POST /api/v1/activities` | `Activity::createUserActivity()` | Creates PRIVATE activity |
@@ -458,7 +491,7 @@ public $stripe_price_developer = 'price_...';  // $5/mo → 5,000 credits
 public $stripe_price_growth    = 'price_...';  // $15/mo → 25,000 credits
 ```
 
-**Deliverable:** Paying users get credits; free users get 0 credits (or a small trial allotment).
+**Deliverable:** Paying users get credits topped up monthly. New users already have 100 trial credits from registration. Stripe only needs to add to the existing `api_credits` balance — no state migration required.
 
 ---
 
@@ -485,16 +518,17 @@ It’s the infrastructure pattern you’ll learn.
 
 # 12. Go / No-Go Criteria
 
-We proceed only if:
+Criteria updated after codebase review:
 
-* API extraction is simple (no major refactor)
-* Ledger abstraction is clean
-* Hosting performance is acceptable
-* Stripe integration is straightforward
-* Token savings narrative is credible
+| Criterion | Status | Notes |
+|-----------|--------|-------|
+| API extraction is simple (no major refactor) | ✅ Confirmed | Existing endpoints are thin wrappers over `ActivityKai`; v1 follows the same pattern |
+| Ledger abstraction is clean | ✅ Confirmed | `ActivityKai`, `Activity`, `SessionKey` are well-separated with clear method boundaries |
+| Hosting performance is acceptable | ⬜ To validate | DreamHost shared hosting; test under light concurrent load before launch |
+| Stripe integration is straightforward | ⬜ To build | Stripe account exists; webhook + credit top-up is ~100 lines of PHP |
+| Token savings narrative is credible | ✅ Confirmed | Server-side duration calculation + pre-computed stats are concrete, not theoretical |
 
-If not:
-We classify as learning experiment.
+Remaining open question: DreamHost shared hosting performance under real API load. If this fails, upgrade to DreamHost VPS (same codebase, no code changes needed) before declaring no-go.
 
 ---
 
