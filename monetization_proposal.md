@@ -1,4 +1,4 @@
-# Monitization Proposal
+# Monetization Proposal
 
 > “Does it cost the agent fewer tokens / less compute to call my API than to recreate this capability internally?”
 
