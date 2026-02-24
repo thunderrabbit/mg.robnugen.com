@@ -99,7 +99,7 @@ if ($method === 'GET' && $ak_id !== null && $sub_action === null) {
 // ── POST /sessions ───────────────────────────────────────────────────────────
 
 if ($method === 'POST' && $ak_id === null) {
-    require_credit($pdo, $auth_user_id);
+    require_credit($pdo, $auth_user_id, $auth_key_id, $path);
 
     $input        = json_decode(file_get_contents('php://input'), true) ?? [];
     $activity_id  = (int)($input['activity_id']  ?? 1);

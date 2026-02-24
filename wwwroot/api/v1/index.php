@@ -28,6 +28,7 @@ if (empty($raw_key)) {
 $pdo = \Database\Base::getPDO($config);
 $apiKeyAuth = new \Auth\ApiKey($pdo);
 $auth_user_id = $apiKeyAuth->validateKey($raw_key);
+$auth_key_id  = $apiKeyAuth->getLastKeyId();
 
 if (!$auth_user_id) {
     http_response_code(401);
@@ -41,11 +42,11 @@ $method    = $_SERVER['REQUEST_METHOD'];
 $uri_path  = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $path      = rtrim(preg_replace('#^/api/v1#', '', $uri_path), '/') ?: '/';
 
-// ── Credit enforcement ────────────────────────────────────────────────────────
+// ── Credit enforcement + usage logging ───────────────────────────────────────
 // Call at the top of any write endpoint before processing.
-// Uses an atomic UPDATE to avoid race conditions.
+// Atomically deducts 1 credit, then logs the call to api_usage.
 
-function require_credit(\PDO $pdo, int $user_id): void
+function require_credit(\PDO $pdo, int $user_id, int $key_id, string $endpoint): void
 {
     $stmt = $pdo->prepare(
         "UPDATE api_credits
@@ -61,6 +62,16 @@ function require_credit(\PDO $pdo, int $user_id): void
             'upgrade_url' => 'https://mg.robnugen.com/billing',
         ]);
         exit;
+    }
+
+    // Log to api_usage after successful deduction
+    try {
+        $log = $pdo->prepare(
+            "INSERT INTO api_usage (user_id, key_id, endpoint) VALUES (?, ?, ?)"
+        );
+        $log->execute([$user_id, $key_id, $endpoint]);
+    } catch (\Exception $e) {
+        // Never fail a request over logging
     }
 }
 
