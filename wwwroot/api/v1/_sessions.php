@@ -77,7 +77,10 @@ if ($method === 'GET' && $ak_id !== null && $sub_action === null) {
         SELECT ak.ak_id, ak.activity_id, a.activity_name,
                ak.start_local_dt, ak.intended_sec, ak.actual_sec, ak.bonus_sec,
                t.iana_name AS timezone,
-               CASE WHEN ak.actual_sec IS NULL THEN 1 ELSE 0 END AS is_active
+               CASE WHEN ak.actual_sec IS NULL THEN 1 ELSE 0 END AS is_active,
+               CASE WHEN ak.actual_sec IS NULL
+                    THEN TIMESTAMPDIFF(SECOND, ak.created_at_utc, UTC_TIMESTAMP())
+                    ELSE NULL END AS elapsed_sec
         FROM activity_kai ak
         JOIN activities a ON ak.activity_id = a.activity_id
         JOIN timezones  t ON ak.timezone_id  = t.timezone_id
