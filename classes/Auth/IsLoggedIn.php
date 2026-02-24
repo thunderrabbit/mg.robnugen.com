@@ -186,7 +186,7 @@ class IsLoggedIn
             'domain' => $this->di_config->domain_name,
             'secure' => true,   // HTTPS only
             'httponly' => true, // not accessible via JavaScript
-            'samesite' => 'Strict' // None || Lax  || Strict
+            'samesite' => 'Lax' // Lax allows cookie on cross-site top-level redirects (e.g. Stripe → success page)
         ];
         setcookie($this->di_config->cookie_name, $cookie, $cookie_options);
     }
