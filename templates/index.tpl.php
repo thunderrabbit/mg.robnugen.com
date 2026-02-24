@@ -1,5 +1,5 @@
 <div class="PagePanel">
-    Welcome back, <?= $username ?>!
+    Welcome back, <?= htmlspecialchars($username) ?>!
 </div>
 
 <h1>Slide Chat Forest</h1>
@@ -17,6 +17,6 @@
     <h2>Site Status</h2>
     <p>Everything is running smoothly.</p>
     <?php if (isset($site_version)): ?>
-        <p><small>Version: <?= $site_version ?></small></p>
+        <p><small>Version: <?= htmlspecialchars($site_version) ?></small></p>
     <?php endif; ?>
 </div>

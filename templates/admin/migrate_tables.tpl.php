@@ -27,7 +27,9 @@
 if ($has_pending_migrations) {
         echo "<h3>Pending DB Migrations</h3><ul>";
         foreach ($pending_migrations as $migration) {
-            echo "<li>$migration <button onclick=\"applyMigration('$migration', this)\">Apply</button></li>";
+            $safe_html = htmlspecialchars($migration);
+            $safe_js   = json_encode($migration);
+            echo "<li>{$safe_html} <button onclick=\"applyMigration({$safe_js}, this)\">Apply</button></li>";
         }
         echo "</ul>";
     }

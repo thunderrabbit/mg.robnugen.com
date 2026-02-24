@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content=""/>
-    <title><?= $page_title ?? ($is_logged_in->isLoggedIn() ? htmlspecialchars($is_logged_in->getSiteTitle()) : 'Meiso Gambare') ?></title>
+    <title><?= htmlspecialchars($page_title ?? ($is_logged_in->isLoggedIn() ? $is_logged_in->getSiteTitle() : 'Meiso Gambare')) ?></title>
     <link rel="stylesheet" href="/css/styles.css">
     <link rel="stylesheet" href="/css/menu.css">
     <style>
