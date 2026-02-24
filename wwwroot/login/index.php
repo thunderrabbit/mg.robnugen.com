@@ -11,6 +11,10 @@ if ($is_logged_in->isLoggedIn()) {
     if (isset($_SESSION['return_url'])) {
         $return_url = $_SESSION['return_url'];
         unset($_SESSION['return_url']); // Clear it
+        // Only allow safe relative paths (must start with / but not //)
+        if (!preg_match('#^/[^/]#', $return_url)) {
+            $return_url = '/';
+        }
     } else {
         // Default redirect based on user role
         // Admin and paid users go to dashboard (/), free users go to timer (/mg/)
