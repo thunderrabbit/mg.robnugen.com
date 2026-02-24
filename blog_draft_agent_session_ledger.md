@@ -4,21 +4,31 @@
 
 ---
 
-AI agents have a memory problem.
+AI agents have a time problem.
 
-Every time you start a new conversation with Claude, ChatGPT, or any other agent, it wakes up with no idea what happened before. It can reason brilliantly about anything you put in front of it — but ask it "how many times did I meditate last week?" and it has nothing. The data simply isn't there.
+Every time you start a new conversation, the agent wakes up with no idea when you last spoke — because fundamentally: **LLMs have no internal clock.** They don't know what time it is, what day it is, or how long your current conversation has lasted. From the model's perspective, five minutes and five years are indistinguishable.
 
-But there's a deeper problem that's easy to miss: **LLMs don't know when anything happened — including right now.**
-
-An LLM has no internal clock. It doesn't know what time it is. It doesn't know what day it is. It doesn't know how long your current conversation has been running, and it certainly doesn't know how long it's been since your *last* conversation. When you come back after a week away and say "okay, let's pick up where we left off," the agent has no concept that a week passed. It might have been five minutes or five years — from the model's perspective, there is no difference.
-
-This creates a subtle but real trap. Humans naturally assume a shared sense of time. We say things like "it's been a while" or "I've been doing this every day" and expect the agent to understand the weight of that. But the agent is reasoning in a kind of eternal present — it sees only what's in the current context window, with no felt sense of duration at all.
-
-This is why duration-tracking is especially hard to delegate to an AI agent. If you ask it to time your meditation session, it can't tell you how long you sat. If you ask whether you've been consistent lately, it has no way to know. It needs an external reference — something outside itself that actually *measured* the time.
+This time-blindness creates a real problem for tracking continuous work. If you ask an agent to log how much time you spent debugging a complex issue, it can't tell you how long you worked. If you ask whether you've been consistently putting in deep work lately, it has no way to know. It needs an external reference — something outside itself that actually *measured* the time.
 
 Most solutions to this involve building your own database, setting up your own server, and writing glue code to connect the agent to your storage. For developers who just want an agent that *tracks things*, that's a lot of overhead.
 
-So I built a simpler alternative: a behavioral session ledger that any agent can write to and read from, using just an API key.
+So I built a simpler alternative: a behavioral session ledger that any agent can write to and read from, using just an API key. The key design decision: **the server does the work agents are bad at.**
+
+- The server records the exact start time — the agent never needs to know it
+- The server computes elapsed duration — the agent never does date math
+- The server maintains the session ledger between conversations — the agent never manages state
+
+## Programmers, you've probably noticed:
+
+LLMs also have no reliable sense of how long *building things* takes.
+
+Ask one to estimate a project and it might say "three weeks." That estimate is drawn from training data describing how long things *used to* take — before AI assistance collapsed the feedback loop.
+
+This entire MCP server (schema design, API integration, security review, packaging) was built in a single session with Claude. Not days, not even hours. It took 294 seconds.
+
+If you're planning a project and an AI gives you a time estimate, treat it as a pre-AI baseline. With AI in the loop, the actual time is often an order of magnitude less.
+
+Track it. That's what this is for.
 
 ---
 
@@ -32,9 +42,7 @@ So I built a simpler alternative: a behavioral session ledger that any agent can
 - **List past sessions** — filter by date, activity, offset
 - **Get aggregated stats** — total sessions, total time, current streak, all pre-computed
 
-The key design decision: **the server does the work agents are bad at**. Agents live in a timeless world. They don't have clocks. They forget between conversations. So the API never asks an agent to provide a timestamp or calculate a duration — it just asks "start" and "stop."
-
----
+The key design decision: **the server does the work agents are bad at**. Agents live in a timeless world. They don't have clocks. They don't know how long it's been since you last spoke. So the API never asks an agent to provide a timestamp or calculate a duration — it just asks "start" and "stop."
 
 ## A Real Example: Timing My Lunch
 
@@ -143,12 +151,45 @@ The full API is documented in a standard OpenAPI 3.0 YAML file, so any agent fra
 
 ---
 
+## Using the MCP Server (No curl Required)
+
+The MCP server — called **Jikan** — is already published. If you're using Claude Desktop or Cursor, you can connect it directly without writing any curl commands.
+
+```bash
+git clone https://github.com/thunderrabbit/jikan.git
+cd jikan
+uv venv mgvenv && source mgvenv/bin/activate
+uv pip install -e .
+```
+
+Then add this to your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "jikan": {
+      "command": "uv",
+      "args": ["--directory", "/path/to/jikan", "run", "server.py"],
+      "env": {
+        "JIKAN_API_KEY": "sk_your_key_here"
+      }
+    }
+  }
+}
+```
+
+Config file location:
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Linux**: `~/.config/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+
+Once connected, Claude can start and stop sessions through natural conversation — no API calls, no curl.
+
+---
+
 ## What's Next
 
-I'm planning to:
-- Publish an MCP server wrapper so it works natively in Claude Desktop and Cursor
-- Add more activity types beyond meditation (exercise, focus sessions, sleep)
-- Build a dashboard showing cross-agent session history
+- Track streaks across multiple days
 
 If you're building agents and want persistent behavioral timing data without standing up your own database, give it a try. The 100 trial credits should be enough to kick the tires.
 
