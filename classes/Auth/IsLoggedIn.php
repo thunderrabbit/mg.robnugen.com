@@ -177,6 +177,8 @@ class IsLoggedIn
             'expires' => time() + $this->di_config->cookie_lifetime, // 30 days
             'path' => '/',
             'domain' => $this->di_config->domain_name,
+            'secure' => true,   // HTTPS only
+            'httponly' => true, // not accessible via JavaScript
             'samesite' => 'Strict' // None || Lax  || Strict
         ];
         setcookie($this->di_config->cookie_name, $cookie, $cookie_options);
@@ -284,6 +286,8 @@ class IsLoggedIn
             'expires' => time() - 3600,
             'path' => '/',
             'domain' => $this->di_config->domain_name,
+            'secure' => true,   // HTTPS only
+            'httponly' => true, // not accessible via JavaScript
             'samesite' => 'Strict' // None || Lax  || Strict
         ];
         setcookie($this->di_config->cookie_name, '', $cookie_options);
