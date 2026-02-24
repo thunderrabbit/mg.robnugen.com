@@ -150,7 +150,7 @@ I'm planning to:
 - Add more activity types beyond meditation (exercise, focus sessions, sleep)
 - Build a dashboard showing cross-agent session history
 
-If you're building agents and want persistent behavioral data without standing up your own database, give it a try. The 100 trial credits should be enough to kick the tires.
+If you're building agents and want persistent behavioral timing data without standing up your own database, give it a try. The 100 trial credits should be enough to kick the tires.
 
 ---
 
