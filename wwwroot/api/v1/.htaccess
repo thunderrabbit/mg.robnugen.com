@@ -1,0 +1,10 @@
+RewriteEngine On
+
+# Block direct HTTP access to handler files (underscore-prefixed)
+<FilesMatch "^_">
+    Require all denied
+</FilesMatch>
+
+# Route all requests (except real static files like openapi.yaml) through index.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.php [QSA,L]
