@@ -10,7 +10,7 @@ info:
     your own database. Cheaper than recreating session storage internally.
 
     **Authentication:** Pass your API key in the `X-API-Key` header.
-    Generate keys at https://mg.robnugen.com/profile/
+    Generate keys at https://mg.robnugen.com/settings/
 
     **Credits:**
     - `POST /sessions` costs 1 credit
