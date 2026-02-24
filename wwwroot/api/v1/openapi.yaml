@@ -63,6 +63,10 @@ components:
           type: integer
           enum: [0, 1]
           description: 1 if session is still running, 0 if stopped
+        elapsed_sec:
+          type: integer
+          nullable: true
+          description: Seconds elapsed since session started. Only present on GET /sessions/{ak_id}; null if session is stopped.
 
     Activity:
       type: object
