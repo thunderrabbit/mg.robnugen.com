@@ -62,6 +62,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $mla_database->prepare("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)");
         $stmt->execute([$username, $hash, $role]);
 
+        // Seed 100 trial API credits for new user
+        $new_user_id = $mla_database->lastInsertId();
+        $trial_stmt = $mla_database->prepare(
+            "INSERT INTO api_credits (user_id, credits_remaining) VALUES (?, 100)"
+        );
+        $trial_stmt->execute([$new_user_id]);
+
         // Redirect to login page with success message
         header("Location: /login/?registered=1");
         exit;
