@@ -1,12 +1,20 @@
-# I Built a Persistent Memory Layer for AI Agents — And Used It to Track My Lunch
+# I Built a Persistent Memory Layer for AI Agents — And Used It to Time My Lunch
 
-*Cross-posted to [mg.robnugen.com](https://mg.robnugen.com)*
+*Cross-posted to [robnugen.com](https://robnugen.com)*
 
 ---
 
 AI agents have a memory problem.
 
 Every time you start a new conversation with Claude, ChatGPT, or any other agent, it wakes up with no idea what happened before. It can reason brilliantly about anything you put in front of it — but ask it "how many times did I meditate last week?" and it has nothing. The data simply isn't there.
+
+But there's a deeper problem that's easy to miss: **LLMs don't know when anything happened — including right now.**
+
+An LLM has no internal clock. It doesn't know what time it is. It doesn't know what day it is. It doesn't know how long your current conversation has been running, and it certainly doesn't know how long it's been since your *last* conversation. When you come back after a week away and say "okay, let's pick up where we left off," the agent has no concept that a week passed. It might have been five minutes or five years — from the model's perspective, there is no difference.
+
+This creates a subtle but real trap. Humans naturally assume a shared sense of time. We say things like "it's been a while" or "I've been doing this every day" and expect the agent to understand the weight of that. But the agent is reasoning in a kind of eternal present — it sees only what's in the current context window, with no felt sense of duration at all.
+
+This is why duration-tracking is especially hard to delegate to an AI agent. If you ask it to time your meditation session, it can't tell you how long you sat. If you ask whether you've been consistent lately, it has no way to know. It needs an external reference — something outside itself that actually *measured* the time.
 
 Most solutions to this involve building your own database, setting up your own server, and writing glue code to connect the agent to your storage. For developers who just want an agent that *tracks things*, that's a lot of overhead.
 
