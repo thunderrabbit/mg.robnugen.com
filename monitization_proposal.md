@@ -58,6 +58,10 @@ If your API:
 
 Then it becomes economically attractive.
 
+There is also a second-order benefit: **state that survives model swaps.**
+
+An agent's internal memory is tied to its context window and model version. When models are upgraded, swapped, or replaced, internal state evaporates. A hosted ledger persists across all of those transitions — the user's history is always there regardless of which model or tool is calling.
+
 ---
 
 # 3. Why mg.robnugen.com Has Potential
@@ -80,6 +84,10 @@ That is the key asset.
 Not the timer.
 Not the UI.
 The ledger.
+
+There is a second asset: **a multi-agent hub.**
+
+A single user could have a sleep-tracking agent, a workout agent, and a meditation agent — all writing to the same session history. None of those agents needs to know about the others. mg becomes the shared truth layer. That is harder to replicate than a timer and more defensible than yet another to-do API.
 
 ---
 
@@ -162,7 +170,10 @@ Instead of generic “tasks,” position this as:
 Endpoints:
 
 * `POST /api/v1/sessions`
-* `GET /api/v1/sessions`
+* `GET /api/v1/sessions?from=YYYY-MM-DD&to=YYYY-MM-DD&activity_id=N&limit=50&offset=0`
+* `GET /api/v1/sessions/{ak_id}`
+* `PATCH /api/v1/sessions/{ak_id}/stop`
+* `DELETE /api/v1/sessions/{ak_id}`
 * `GET /api/v1/stats`
 * `POST /api/v1/activities`
 * `GET /api/v1/activities`
@@ -177,6 +188,24 @@ The API does:
 * Activity filtering
 
 This reduces reasoning load for agents.
+
+## Concrete Agent Workflows
+
+These are the "jobs to be done" that justify integration over local recreation:
+
+1. **"Start a 12-minute meditation timer and log it."**
+   Agent calls `POST /api/v1/sessions` with `activity_id=1, intended_sec=720`. Done. No schema, no DB, no state to carry in context.
+
+2. **"Summarize my last 14 days of sleep sessions."**
+   Agent calls `GET /api/v1/sessions?from=2026-02-10&activity_id=2` and receives a structured list. No raw SQL, no serialized history in the prompt.
+
+3. **"Detect habit streaks and create nudges."**
+   Agent calls `GET /api/v1/stats`. Streak is pre-computed server-side. Zero reasoning tokens spent on calendar arithmetic.
+
+4. **"Log workouts from three different coaching agents into one history."**
+   Each agent authenticates with the same user's API key and posts sessions. The ledger merges them transparently. No cross-agent coordination needed.
+
+These workflows are impossible to replicate cheaply in a model's context window. That is the sell.
 
 ---
 
@@ -348,7 +377,7 @@ Create `wwwroot/api/v1/` directory. Each endpoint wraps existing `ActivityKai` a
 
 `/api/v1/stats` is the highest-value endpoint for agents — it offloads streak and aggregate computation entirely.
 
-**Deliverable:** Five working v1 endpoints usable by any HTTP client.
+**Deliverable:** Working v1 endpoints usable by any HTTP client, plus an OpenAPI spec (`wwwroot/api/v1/openapi.yaml`) so agents and developer tools can discover and validate the API without reading documentation. This is the lowest-effort step that most increases agent integration speed.
 
 ---
 
