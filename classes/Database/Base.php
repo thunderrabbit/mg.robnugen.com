@@ -1,8 +1,6 @@
 <?php
 namespace Database;
 
-require_once __DIR__ . '/EDatabaseExceptions.php';
-
 const CONFIG_DATABASE_OUTPUT_ENCODING = "utf8mb4";
 
 class Base{
