@@ -17,6 +17,10 @@ $success_message = '';
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
+        http_response_code(403);
+        die('Invalid CSRF token');
+    }
     // Password Change Logic
     if (isset($_POST['change_password_action'])) {
         $current_password = $_POST['current_password'] ?? '';

@@ -15,6 +15,10 @@ $success_message = '';
 $new_api_key     = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_key_action'])) {
+    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
+        http_response_code(403);
+        die('Invalid CSRF token');
+    }
     $apiKeyHelper = new \Auth\ApiKey($mla_database);
     $errors = [];
 
