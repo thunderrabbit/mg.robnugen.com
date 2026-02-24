@@ -15,6 +15,7 @@
 
     <form action="/profile/" method="POST" class="mainForm" style="margin-bottom: 30px;">
         <input type="hidden" name="update_settings_action" value="1">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
 
         <fieldset>
             <legend>Navigation Arrow Colors</legend>
@@ -62,6 +63,7 @@
 
     <form action="/profile/" method="POST" class="mainForm">
         <input type="hidden" name="change_password_action" value="1">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
         <fieldset>
             <legend>Change Password</legend>
             <div class="PageRow noborder">

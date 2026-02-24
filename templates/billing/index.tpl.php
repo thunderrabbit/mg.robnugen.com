@@ -27,6 +27,7 @@
             </ul>
             <form action="/billing/checkout.php" method="POST">
                 <input type="hidden" name="plan" value="developer">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
                 <input type="submit" value="Subscribe — Developer" class="greyishBtn submitForm" style="width: 100%;">
             </form>
         </div>
@@ -41,6 +42,7 @@
             </ul>
             <form action="/billing/checkout.php" method="POST">
                 <input type="hidden" name="plan" value="growth">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
                 <input type="submit" value="Subscribe — Growth" class="greyishBtn submitForm" style="width: 100%; background: #5a9; color: #fff;">
             </form>
         </div>

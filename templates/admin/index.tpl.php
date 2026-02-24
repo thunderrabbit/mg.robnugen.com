@@ -1,5 +1,5 @@
 <div class="PagePanel">
-    What's up <?= $username ?>? <br />
+    What's up <?= htmlspecialchars($username) ?>? <br />
 </div>
 <h1>Welcome to the Meiso Gambare Admin Dashboard</h1>
 <p>This page can show numbers of workers, parts, snippets, etc</p>
@@ -19,5 +19,5 @@ if ($has_pending_migrations) {
 ?>
 
 <div class="fix">
-    <p>Sentimental version: <?= $site_version ?></p>
+    <p>Sentimental version: <?= htmlspecialchars($site_version) ?></p>
 </div>

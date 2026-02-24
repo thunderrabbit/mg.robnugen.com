@@ -33,7 +33,8 @@ class Base{
                 $hrs = floor($mins / 60);
                 $mins -= $hrs * 60;
                 $offset = sprintf('%+d:%02d', $hrs*$sgn, $mins);
-                self::$pdo->exec("SET time_zone='$offset'");
+                $stmt = self::$pdo->prepare("SET time_zone = ?");
+                $stmt->execute([$offset]);
 
             } catch (\PDOException $e) {
                 // Try once more with a sleep (mimic original behavior)
@@ -48,7 +49,8 @@ class Base{
                     $hrs = floor($mins / 60);
                     $mins -= $hrs * 60;
                     $offset = sprintf('%+d:%02d', $hrs*$sgn, $mins);
-                    self::$pdo->exec("SET time_zone='$offset'");
+                    $stmt = self::$pdo->prepare("SET time_zone = ?");
+                    $stmt->execute([$offset]);
                 } catch (\PDOException $e2) {
                     throw new \Database\EDatabaseException("Could not connect to server after trying with 1s sleep: " . $e2->getMessage());
                 }

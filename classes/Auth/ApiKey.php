@@ -19,10 +19,12 @@ class ApiKey
      */
     public function validateKey(string $raw_key): ?int
     {
+        $key_hash = hash('sha256', $raw_key);
+
         $stmt = $this->di_pdo->prepare(
-            "SELECT key_id, user_id FROM api_keys WHERE api_key = ? AND is_active = 1 LIMIT 1"
+            "SELECT key_id, user_id FROM api_keys WHERE api_key_hash = ? AND is_active = 1 LIMIT 1"
         );
-        $stmt->execute([$raw_key]);
+        $stmt->execute([$key_hash]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         if (!$row) {
@@ -32,9 +34,9 @@ class ApiKey
         $this->last_key_id = (int) $row['key_id'];
 
         $update = $this->di_pdo->prepare(
-            "UPDATE api_keys SET last_used = NOW() WHERE api_key = ?"
+            "UPDATE api_keys SET last_used = NOW() WHERE key_id = ?"
         );
-        $update->execute([$raw_key]);
+        $update->execute([$this->last_key_id]);
 
         return (int) $row['user_id'];
     }
@@ -49,17 +51,19 @@ class ApiKey
     }
 
     /**
-     * Generates a new API key for the user, stores it, and returns the raw key.
-     * Key format: 'sk_' prefix + 61 random chars = 64 chars total (fits CHAR(64)).
+     * Generates a new API key for the user, stores a SHA-256 hash, and returns the raw key.
+     * The raw key is shown to the user once and never stored — only the hash is kept.
+     * Key format: 'sk_' prefix + 61 random chars = 64 chars total.
      */
     public function generateKey(int $user_id, string $label = ''): string
     {
-        $raw_key = 'sk_' . \Utilities::randomString(61);
+        $raw_key  = 'sk_' . \Utilities::randomString(61);
+        $key_hash = hash('sha256', $raw_key);
 
         $stmt = $this->di_pdo->prepare(
-            "INSERT INTO api_keys (user_id, api_key, label) VALUES (?, ?, ?)"
+            "INSERT INTO api_keys (user_id, api_key_hash, label) VALUES (?, ?, ?)"
         );
-        $stmt->execute([$user_id, $raw_key, $label]);
+        $stmt->execute([$user_id, $key_hash, $label]);
 
         return $raw_key;
     }

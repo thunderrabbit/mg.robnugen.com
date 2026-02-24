@@ -27,6 +27,7 @@
 
     <form action="/settings/" method="POST" class="mainForm" style="margin-bottom: 20px;">
         <input type="hidden" name="api_key_action" value="generate">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
         <fieldset>
             <legend>Generate New Key</legend>
             <div class="PageRow noborder">
@@ -63,6 +64,7 @@
                         <form action="/settings/" method="POST" style="display:inline;" onsubmit="return confirm('Revoke this key? Any agent using it will immediately lose access.');">
                             <input type="hidden" name="api_key_action" value="revoke">
                             <input type="hidden" name="key_id" value="<?= (int)$key['key_id'] ?>">
+                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
                             <input type="submit" value="Revoke" class="greyishBtn" style="background:#c00; color:#fff;">
                         </form>
                     </td>
