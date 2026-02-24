@@ -73,7 +73,7 @@ try {
 } catch (\Exception $e) {
     http_response_code(500);
     echo json_encode([
-        'error' => 'Failed to retrieve activities: ' . $e->getMessage(),
+        'error' => 'Failed to retrieve activities',
         'activities' => [
             ['activity_id' => 1, 'activity_name' => 'Meditation']
         ],
