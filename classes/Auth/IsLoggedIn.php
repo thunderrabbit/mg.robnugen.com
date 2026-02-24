@@ -64,6 +64,7 @@ class IsLoggedIn
                 $this->who_is_logged_in = 0;
             } else {
                 $this->logAuth("user_id: {$found_user_id}, IP: {$current_ip} - Password login SUCCESS");
+                session_regenerate_id(true); // prevent session fixation
                 $this->setAutoLoginCookie($found_user_id);
                 $this->who_is_logged_in = $found_user_id;
             }
