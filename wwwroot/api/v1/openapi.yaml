@@ -1,0 +1,339 @@
+openapi: 3.0.3
+
+info:
+  title: Meiso Gambare Behavioral Session Ledger API
+  version: "1.0"
+  description: |
+    Persistent behavioral session ledger for AI agents.
+
+    Log, retrieve, and aggregate habit/activity sessions without building
+    your own database. Cheaper than recreating session storage internally.
+
+    **Authentication:** Pass your API key in the `X-API-Key` header.
+    Generate keys at https://mg.robnugen.com/profile/
+
+    **Credits:**
+    - `POST /sessions` costs 1 credit
+    - `GET /stats` costs 1 credit
+    - All other endpoints are free
+    - New accounts receive 100 trial credits
+
+servers:
+  - url: https://mg.robnugen.com/api/v1
+
+security:
+  - ApiKeyAuth: []
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    Session:
+      type: object
+      properties:
+        ak_id:
+          type: integer
+          description: Unique session ID
+        activity_id:
+          type: integer
+        activity_name:
+          type: string
+        start_local_dt:
+          type: string
+          format: date-time
+          description: Session start in the user's local timezone
+        intended_sec:
+          type: integer
+          description: Planned duration in seconds (0 if not specified)
+        actual_sec:
+          type: integer
+          nullable: true
+          description: Actual duration in seconds. Null while session is active.
+        bonus_sec:
+          type: integer
+          description: Seconds beyond intended duration (always 0 for agent-stopped sessions)
+        timezone:
+          type: string
+          description: IANA timezone name, e.g. "Asia/Tokyo"
+        is_active:
+          type: integer
+          enum: [0, 1]
+          description: 1 if session is still running, 0 if stopped
+
+    Activity:
+      type: object
+      properties:
+        activity_id:
+          type: integer
+        activity_name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        type:
+          type: string
+          enum: [FREE, PUBLIC, PRIVATE]
+
+    Stats:
+      type: object
+      properties:
+        total_sessions:
+          type: integer
+        total_seconds:
+          type: integer
+        current_streak_days:
+          type: integer
+          description: Consecutive days with at least one completed session
+        credits_remaining:
+          type: integer
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+
+paths:
+
+  /sessions:
+    get:
+      summary: List sessions
+      description: Returns completed and active sessions. All query params are optional.
+      parameters:
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date
+          description: "Start date filter (YYYY-MM-DD)"
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date
+          description: "End date filter (YYYY-MM-DD)"
+        - in: query
+          name: activity_id
+          schema:
+            type: integer
+          description: Filter by activity type
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessions:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Session"
+        "401":
+          description: Invalid or missing API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    post:
+      summary: Start a session (costs 1 credit)
+      description: |
+        Creates a new active session. The server records the current time
+        as `start_local_dt` using the provided timezone — the agent does
+        not need to track time.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                activity_id:
+                  type: integer
+                  default: 1
+                  description: "Activity type ID (1 = Meditation). Use GET /activities to list options."
+                timezone:
+                  type: string
+                  default: UTC
+                  description: "IANA timezone name, e.g. 'Asia/Tokyo'"
+                intended_sec:
+                  type: integer
+                  default: 0
+                  description: "Planned duration in seconds. Optional for agents."
+      responses:
+        "201":
+          description: Session started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session:
+                    $ref: "#/components/schemas/Session"
+        "400":
+          description: Invalid input
+        "402":
+          description: No credits remaining
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  upgrade_url:
+                    type: string
+
+  /sessions/{ak_id}:
+    get:
+      summary: Get a single session
+      parameters:
+        - in: path
+          name: ak_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session:
+                    $ref: "#/components/schemas/Session"
+        "404":
+          description: Session not found
+
+    delete:
+      summary: Delete a session
+      parameters:
+        - in: path
+          name: ak_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Session not found
+
+  /sessions/{ak_id}/stop:
+    patch:
+      summary: Stop an active session
+      description: |
+        Marks the session as complete. The server computes `actual_sec`
+        using `TIMESTAMPDIFF(SECOND, created_at_utc, UTC_TIMESTAMP())` —
+        the agent does not need to track elapsed time.
+
+        No request body required.
+      parameters:
+        - in: path
+          name: ak_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Session stopped
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session:
+                    type: object
+                    properties:
+                      ak_id:
+                        type: integer
+                      actual_sec:
+                        type: integer
+                      is_active:
+                        type: boolean
+        "409":
+          description: Session already stopped or not found
+
+  /activities:
+    get:
+      summary: List available activity types
+      description: Returns FREE and PUBLIC activities plus the user's own PRIVATE activities.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  activities:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Activity"
+
+    post:
+      summary: Create a custom activity
+      description: Creates a PRIVATE activity visible only to this user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - activity_name
+              properties:
+                activity_name:
+                  type: string
+                  maxLength: 64
+                description:
+                  type: string
+                  nullable: true
+      responses:
+        "201":
+          description: Activity created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  activity:
+                    $ref: "#/components/schemas/Activity"
+        "409":
+          description: Activity name already exists
+
+  /stats:
+    get:
+      summary: Get pre-computed aggregates (costs 1 credit)
+      description: |
+        Returns totals and current streak. Offloads calendar arithmetic
+        from the agent — zero reasoning tokens spent on date math.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stats:
+                    $ref: "#/components/schemas/Stats"
+        "402":
+          description: No credits remaining
