@@ -25,9 +25,9 @@
 		</div>
 	</section>
 
-	<section class="todos-section" style="display:none;">
+	<section class="todos-section">
 		<header class="dashboard-header">
-			<h1>Today's Todos</h1>
+			<h1 id="todos-heading" style="display:none;">Today's Todos</h1>
             <div class="dashboard-actions">
                 <a href="/todos/create.php" class="btn-new-timer">+ Create New Todo</a>
                 <?php if ($is_logged_in->isAdmin()): ?>
