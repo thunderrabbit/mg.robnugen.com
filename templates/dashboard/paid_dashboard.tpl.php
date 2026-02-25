@@ -30,7 +30,7 @@
 			<h1>Today's Todos</h1>
             <div class="dashboard-actions">
                 <a href="/todos/create.php" class="btn-new-timer">+ Create New Todo</a>
-                <?php if ($is_admin ?? false): ?>
+                <?php if ($is_logged_in->isAdmin()): ?>
                 <button id="btn-quickadd-toggle" class="btn-quickadd">Add Multiple Todos</button>
                 <?php endif; ?>
             </div>
