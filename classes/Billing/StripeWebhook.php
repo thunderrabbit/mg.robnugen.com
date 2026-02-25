@@ -77,9 +77,9 @@ class StripeWebhook
         );
         $stmt->execute([$customer_id, $user_id]);
 
-        // Upgrade role to paid
+        // Upgrade role to paid (never demote an admin)
         $stmt = $this->pdo->prepare(
-            "UPDATE users SET role = 'paid' WHERE user_id = ?"
+            "UPDATE users SET role = 'paid' WHERE user_id = ? AND role != 'admin'"
         );
         $stmt->execute([$user_id]);
 
@@ -117,7 +117,7 @@ class StripeWebhook
         $user_id = (int)$row['user_id'];
         $plan    = $invoice['subscription_details']['metadata']['plan'] ?? 'developer';
 
-        $stmt = $this->pdo->prepare("UPDATE users SET role = 'paid' WHERE user_id = ?");
+        $stmt = $this->pdo->prepare("UPDATE users SET role = 'paid' WHERE user_id = ? AND role != 'admin'");
         $stmt->execute([$user_id]);
 
         $this->addCredits($user_id, self::PLAN_CREDITS[$plan] ?? self::PLAN_CREDITS['developer']);
