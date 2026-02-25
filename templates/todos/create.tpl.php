@@ -61,6 +61,15 @@
             </fieldset>
 
             <fieldset class="form-section">
+                <legend>Preferred Time</legend>
+                <div class="form-group">
+                    <label for="do_time">Time of day</label>
+                    <input type="time" id="do_time" name="do_time" class="form-control" value="<?= htmlspecialchars($todo['do_time'] ?? '') ?>">
+                    <small class="help-text">When this todo appears on your daily list</small>
+                </div>
+            </fieldset>
+
+            <fieldset class="form-section">
                 <legend>Recurrence</legend>
 
                 <div class="form-group">
@@ -88,15 +97,6 @@
                 <div class="form-group">
                     <label for="due_date">Due Date</label>
                     <input type="date" id="due_date" name="due_date" class="form-control" value="<?= htmlspecialchars($todo['due_date'] ?? '') ?>">
-                </div>
-            </fieldset>
-
-            <fieldset class="form-section">
-                <legend>Preferred Time</legend>
-                <div class="form-group">
-                    <label for="do_time">Time of day</label>
-                    <input type="time" id="do_time" name="do_time" class="form-control" value="<?= htmlspecialchars($todo['do_time'] ?? '') ?>">
-                    <small class="help-text">When this todo appears on your daily list</small>
                 </div>
             </fieldset>
 
