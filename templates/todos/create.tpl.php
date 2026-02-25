@@ -138,6 +138,10 @@
 
     if (targetCountInput) {
         targetCountInput.addEventListener('input', updateCounterCheckbox);
+        targetCountInput.addEventListener('blur', function() {
+            if (!this.value || parseInt(this.value) < 1) this.value = 1;
+            updateCounterCheckbox();
+        });
         // Run once on load to set initial state
         updateCounterCheckbox();
     }
