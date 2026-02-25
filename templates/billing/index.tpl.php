@@ -51,7 +51,6 @@
 
     <p style="color: #888; font-size: 0.9em;">
         Payments are processed securely by <a href="https://stripe.com" target="_blank" rel="noopener">Stripe</a>.
-        Credits do not roll over between billing cycles.
     </p>
 
     <?php endif; ?>
