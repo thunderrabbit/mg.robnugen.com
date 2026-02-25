@@ -202,7 +202,6 @@
 .completed-sessions-section {
 	margin-top: 50px;
 	padding-top: 30px;
-	border-top: 2px solid #e0e0e0;
 }
 
 .completed-sessions-section h2 {
@@ -339,6 +338,20 @@
 
 .load-more:active {
 	background-color: #1565C0;
+}
+
+/* ===== ACTIVE SESSIONS SECTION ===== */
+
+.active-sessions-section {
+	margin-bottom: 50px;
+	padding-bottom: 30px;
+	border-bottom: 2px solid #e0e0e0;
+}
+
+.active-sessions-section .dashboard-header {
+	border-bottom: none;
+	margin-bottom: 20px;
+	padding-bottom: 0;
 }
 
 /* ===== TODOS SECTION ===== */

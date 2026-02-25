@@ -106,10 +106,11 @@ function renderTodos(todos) {
 	container.empty();
 
 	if (todos.length === 0) {
-		$('.todos-empty-state').show();
+		$('#todos-heading').hide();
 		return;
 	}
 
+	$('#todos-heading').show();
 	$('.todos-empty-state').hide();
 
 	todos.forEach(function(todo) {
@@ -537,13 +538,11 @@ function renderActiveSessions(sessions) {
 	container.empty();
 
 	if (sessions.length === 0) {
-		$('.empty-state').show();
-        $('#active-sessions-header').hide();
+		$('#active-timers-heading').hide();
 		return;
 	}
 
-	$('.empty-state').hide();
-    $('#active-sessions-header').show();
+	$('#active-timers-heading').show();
 
 	sessions.forEach(function(session) {
 		var widget = createSessionWidget(session);
@@ -557,8 +556,7 @@ function renderActiveSessions(sessions) {
 // Show empty state
 function showEmptyState() {
 	$('#active-sessions').empty();
-	$('.empty-state').show();
-    $('#active-sessions-header').hide();
+	$('#active-timers-heading').hide();
 }
 
 // Update elapsed times every second
@@ -1076,11 +1074,11 @@ function renderCompletedSessions(sessions, isLoadMore) {
 	}
 
 	if (sessions.length === 0 && !isLoadMore) {
-		$('.completed-empty-state').show();
-		$('#load-more-sessions').hide();
+		$('.completed-sessions-section').hide();
 		return;
 	}
 
+	$('.completed-sessions-section').show();
 	$('.completed-empty-state').hide();
 
 	sessions.forEach(function(session) {

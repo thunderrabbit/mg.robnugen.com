@@ -14,12 +14,25 @@
         </div>
     <?php endif; ?>
 
+	<section class="active-sessions-section">
+		<header class="dashboard-header" id="active-sessions-header">
+			<h1 id="active-timers-heading" style="display:none;">My Active Timers</h1>
+			<a href="/mg/" class="btn-new-timer">+ Start New Timer</a>
+		</header>
+
+		<div class="active-sessions-grid" id="active-sessions">
+			<!-- Populated by JavaScript -->
+		</div>
+	</section>
+
 	<section class="todos-section">
 		<header class="dashboard-header">
-			<h1>Today's Todos</h1>
+			<h1 id="todos-heading" style="display:none;">Today's Todos</h1>
             <div class="dashboard-actions">
                 <a href="/todos/create.php" class="btn-new-timer">+ Create New Todo</a>
+                <?php if ($is_logged_in->isAdmin()): ?>
                 <button id="btn-quickadd-toggle" class="btn-quickadd">Add Multiple Todos</button>
+                <?php endif; ?>
             </div>
 		</header>
 
@@ -37,34 +50,9 @@
 		<div class="todos-empty-state" style="display:none;">
 			<p>None</p>
 		</div>
-
-		<div class="dashboard-nav">
-			<br>
-<?php // Rob removed these on 12 Feb 2026 because no one is using them recently.
-            if(false){
-            ?>
-			<a href="/todos/history.php" class="nav-arrow arrow-older" title="View Completed Todos">← Older</a>
-			<a href="/todos/upcoming.php" class="nav-arrow arrow-newer" title="View Future Todos">Tomorrow →</a>
-            <?php } ?>
-			<a href="/mg/" class="btn-new-timer">+ Start New Timer</a>
-		</div>
-
 	</section>
 
-	<header class="dashboard-header" id="active-sessions-header">
-		<h1>My Active Sessions</h1>
-	</header>
-
-	<div class="active-sessions-grid" id="active-sessions">
-		<!-- Populated by JavaScript -->
-		<div class="loading">Loading active sessions...</div>
-	</div>
-
-	<div class="empty-state" style="display:none;">
-		<p>None</p>
-	</div>
-
-	<section class="completed-sessions-section">
+	<section class="completed-sessions-section" style="display:none;">
 		<h2>Completed</h2>
 		<div class="completed-sessions-list" id="completed-sessions">
 			<!-- Populated by JavaScript -->
