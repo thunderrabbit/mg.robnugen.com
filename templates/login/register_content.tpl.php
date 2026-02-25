@@ -12,9 +12,16 @@
         </div>
 
         <div class="form-row">
-            <input type="submit" value="Create Account">
+            <input type="submit" id="register-submit" value="Create Account">
         </div>
     </form>
+    <script>
+        document.querySelector('form').addEventListener('submit', function() {
+            var btn = document.getElementById('register-submit');
+            btn.disabled = true;
+            btn.value = 'Creating...';
+        });
+    </script>
 
     <p style="margin-top: 20px; color: #7f8c8d;">
         Already have an account? <a href="/login/" style="color: #3498db;">Log in</a>
