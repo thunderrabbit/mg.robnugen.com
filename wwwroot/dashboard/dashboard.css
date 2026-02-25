@@ -341,6 +341,14 @@
 	background-color: #1565C0;
 }
 
+/* ===== ACTIVE SESSIONS SECTION ===== */
+
+.active-sessions-section {
+	margin-bottom: 50px;
+	padding-bottom: 30px;
+	border-bottom: 2px solid #e0e0e0;
+}
+
 /* ===== TODOS SECTION ===== */
 
 .todos-section {

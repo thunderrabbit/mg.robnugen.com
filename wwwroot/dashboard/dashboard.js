@@ -538,12 +538,10 @@ function renderActiveSessions(sessions) {
 
 	if (sessions.length === 0) {
 		$('.empty-state').show();
-        $('#active-sessions-header').hide();
 		return;
 	}
 
 	$('.empty-state').hide();
-    $('#active-sessions-header').show();
 
 	sessions.forEach(function(session) {
 		var widget = createSessionWidget(session);
@@ -558,7 +556,6 @@ function renderActiveSessions(sessions) {
 function showEmptyState() {
 	$('#active-sessions').empty();
 	$('.empty-state').show();
-    $('#active-sessions-header').hide();
 }
 
 // Update elapsed times every second
