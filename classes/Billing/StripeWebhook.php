@@ -117,6 +117,9 @@ class StripeWebhook
         $user_id = (int)$row['user_id'];
         $plan    = $invoice['subscription_details']['metadata']['plan'] ?? 'developer';
 
+        $stmt = $this->pdo->prepare("UPDATE users SET role = 'paid' WHERE user_id = ?");
+        $stmt->execute([$user_id]);
+
         $this->addCredits($user_id, self::PLAN_CREDITS[$plan] ?? self::PLAN_CREDITS['developer']);
     }
 
