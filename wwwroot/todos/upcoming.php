@@ -33,7 +33,7 @@ $upcoming = $todoHelper->getUpcomingTodos($user_id, $today, $limit, $offset);
 
 // Prepare View
 $page = new \Template($config, $is_logged_in);
-$page->setTemplate("layout/welcome_base.tpl.php");
+$page->setTemplate("layout/base.tpl.php");
 $page->set("page_title", "Upcoming Todos - Meiso Gambare");
 
 $inner_page = new \Template($config, $is_logged_in);
