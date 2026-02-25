@@ -7,6 +7,7 @@
     <title><?= htmlspecialchars($page_title ?? ($is_logged_in->isLoggedIn() ? $is_logged_in->getSiteTitle() : 'Meiso Gambare')) ?></title>
     <link rel="stylesheet" href="/css/styles.css">
     <link rel="stylesheet" href="/css/menu.css">
+    <link rel="stylesheet" href="/css/buttons.css">
     <style>
         .arrow-older {
             background-color: <?= $is_logged_in->getArrowColorOlder() ?>;

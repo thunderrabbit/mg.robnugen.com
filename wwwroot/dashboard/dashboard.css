@@ -182,21 +182,6 @@
 	margin-bottom: 20px;
 }
 
-.btn-primary {
-	background-color: #2196F3;
-	color: white;
-	padding: 12px 30px;
-	text-decoration: none;
-	border-radius: 6px;
-	font-weight: 600;
-	font-size: 16px;
-	display: inline-block;
-	transition: background-color 0.3s ease;
-}
-
-.btn-primary:hover {
-	background-color: #1976D2;
-}
 
 /* Completed Sessions Section */
 .completed-sessions-section {
