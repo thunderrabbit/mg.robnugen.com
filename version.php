@@ -1,4 +1,4 @@
 <?php
 
-const SENTIMENTAL_VERSION = "UI changes to make onboarding nicer";
-const SEMVER = "0.9.3";
+const SENTIMENTAL_VERSION = "UI changes to make adding todos nicer";
+const SEMVER = "0.9.4";
