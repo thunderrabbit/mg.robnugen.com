@@ -74,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     } catch (\PDOException $e) {
         if ($e->getCode() == '23000') { // Duplicate key error
-            echo "<h1>Error</h1><p>User already exists. Try a different username.</p>";
+            echo "<h1>Error</h1><p>An account with that username already exists. Did you mean to <a href=\"/login/\">log in</a>?</p>";
         } else {
             echo "<h1>Error</h1><p>Registration failed. Please try again.</p>";
         }
