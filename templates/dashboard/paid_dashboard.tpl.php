@@ -25,7 +25,7 @@
 		</div>
 	</section>
 
-	<section class="todos-section">
+	<section class="todos-section" style="display:none;">
 		<header class="dashboard-header">
 			<h1>Today's Todos</h1>
             <div class="dashboard-actions">

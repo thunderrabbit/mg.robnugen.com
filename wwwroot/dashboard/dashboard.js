@@ -106,10 +106,11 @@ function renderTodos(todos) {
 	container.empty();
 
 	if (todos.length === 0) {
-		$('.todos-empty-state').show();
+		$('.todos-section').hide();
 		return;
 	}
 
+	$('.todos-section').show();
 	$('.todos-empty-state').hide();
 
 	todos.forEach(function(todo) {
