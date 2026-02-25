@@ -36,12 +36,11 @@
             </fieldset>
 
             <fieldset class="form-section">
-                <div class="checkbox-group">
-                    <!-- Timer is always on by default now (we *always* see a start button (which can be ignored)) -->
-                    <input type="hidden" name="is_timer" id="is_timer" value="1">
-                    <!-- Counter is controlled by JS based on target_count -->
-                    <input type="checkbox" name="is_counter" id="is_counter" value="1" <?= (isset($todo) && $todo['is_counter']) ? 'checked' : '' ?> style="display:none;">
-                </div>
+                <legend>Goal</legend>
+                <!-- Timer is always on by default now (we *always* see a start button (which can be ignored)) -->
+                <input type="hidden" name="is_timer" id="is_timer" value="1">
+                <!-- Counter is controlled by JS based on target_count -->
+                <input type="checkbox" name="is_counter" id="is_counter" value="1" <?= (isset($todo) && $todo['is_counter']) ? 'checked' : '' ?> style="display:none;">
 
                 <div class="form-row">
                     <div class="form-group">
@@ -61,11 +60,8 @@
                 </div>
             </fieldset>
 
-
-
             <fieldset class="form-section">
                 <legend>Recurrence</legend>
-                <p class="section-intro">Select days or dates to make this a recurring habit. Leave blank for a one-time todo.</p>
 
                 <div class="form-group">
                     <label>Days of Week</label>
@@ -85,24 +81,22 @@
                 <div class="form-group">
                     <label for="do_dates">Dates of Month</label>
                     <input type="text" id="do_dates" name="do_dates" class="form-control" placeholder="e.g., 1, 15, 30" value="<?= htmlspecialchars($todo['do_dates'] ?? '') ?>">
-                    <!-- confusing
-                    <small class="help-text">Comma-separated dates (1-31)</small>   -->
+                </div>
+
+                <div class="recurrence-or-divider"><span>or, for a one-time todo</span></div>
+
+                <div class="form-group">
+                    <label for="due_date">Due Date</label>
+                    <input type="date" id="due_date" name="due_date" class="form-control" value="<?= htmlspecialchars($todo['due_date'] ?? '') ?>">
                 </div>
             </fieldset>
 
             <fieldset class="form-section">
-                <legend>Scheduling</legend>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="do_time">Preferred Time</label>
-                        <input type="time" id="do_time" name="do_time" class="form-control" value="<?= htmlspecialchars($todo['do_time'] ?? '') ?>">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="due_date">Due Date</label>
-                        <input type="date" id="due_date" name="due_date" class="form-control" value="<?= htmlspecialchars($todo['due_date'] ?? '') ?>">
-                        <small class="help-text">For one-time todos</small>
-                    </div>
+                <legend>Preferred Time</legend>
+                <div class="form-group">
+                    <label for="do_time">Time of day</label>
+                    <input type="time" id="do_time" name="do_time" class="form-control" value="<?= htmlspecialchars($todo['do_time'] ?? '') ?>">
+                    <small class="help-text">When this todo appears on your daily list</small>
                 </div>
             </fieldset>
 
@@ -167,4 +161,12 @@
     .form-section legend { padding: 0 0.5rem; font-weight: 600; color: var(--text-primary); }
     .required { color: var(--danger); }
     .form-actions { margin-top: 2rem; display: flex; justify-content: flex-end; }
+    .recurrence-or-divider {
+        display: flex; align-items: center; gap: 1rem;
+        margin: 1rem 0; color: var(--text-muted); font-size: 0.875rem;
+    }
+    .recurrence-or-divider::before,
+    .recurrence-or-divider::after {
+        content: ''; flex: 1; height: 1px; background: var(--border-color);
+    }
 </style>
