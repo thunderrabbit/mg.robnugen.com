@@ -1073,11 +1073,11 @@ function renderCompletedSessions(sessions, isLoadMore) {
 	}
 
 	if (sessions.length === 0 && !isLoadMore) {
-		$('.completed-empty-state').show();
-		$('#load-more-sessions').hide();
+		$('.completed-sessions-section').hide();
 		return;
 	}
 
+	$('.completed-sessions-section').show();
 	$('.completed-empty-state').hide();
 
 	sessions.forEach(function(session) {

@@ -50,7 +50,7 @@
 		</div>
 	</section>
 
-	<section class="completed-sessions-section">
+	<section class="completed-sessions-section" style="display:none;">
 		<h2>Completed</h2>
 		<div class="completed-sessions-list" id="completed-sessions">
 			<!-- Populated by JavaScript -->
