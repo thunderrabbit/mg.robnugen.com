@@ -17,7 +17,7 @@ class AdminUserCest
     {
         $I->amOnPage('/');
         $I->see("Today's Todos");
-        $I->see("My Active Sessions");
+        $I->see("My Active Timers");
     }
 
     public function canAccessAdminArea(AcceptanceTester $I)

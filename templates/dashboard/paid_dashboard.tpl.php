@@ -16,7 +16,7 @@
 
 	<section class="active-sessions-section">
 		<header class="dashboard-header" id="active-sessions-header">
-			<h1>My Active Sessions</h1>
+			<h1>My Active Timers</h1>
 			<a href="/mg/" class="btn-new-timer">+ Start New Timer</a>
 		</header>
 

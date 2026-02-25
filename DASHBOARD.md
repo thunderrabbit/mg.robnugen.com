@@ -73,7 +73,7 @@ Each active session widget shows:
 // /templates/dashboard/active_sessions.tpl.php
 <div class="dashboard-container">
   <header>
-    <h1>My Active Sessions</h1>
+    <h1>My Active Timers</h1>
     <a href="/mg/" class="btn-new-timer">+ Start New Timer</a>
   </header>
 
@@ -82,7 +82,7 @@ Each active session widget shows:
   </div>
 
   <div class="empty-state" style="display:none;">
-    <p>No active sessions</p>
+    <p>No active timers</p>
   </div>
 </div>
 ```
@@ -328,7 +328,7 @@ if (session.actual_sec !== null) {
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  My Active Sessions                  [+ Start New Timer]│
+│  My Active Timers                  [+ Start New Timer]│
 ├─────────────────────────────────────────────────────────┤
 │                                                          │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
