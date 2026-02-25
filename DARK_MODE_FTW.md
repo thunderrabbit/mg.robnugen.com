@@ -7,6 +7,11 @@ Every hardcoded color becomes a `var(--token-name)`. Two theme definitions
 `<html>`. Preference is saved in `localStorage` (and optionally the DB for
 cross-device persistence).
 
+> **Commit often!** Each step below is a natural commit point. Don't wait
+> until the end — small commits make it easy to bisect if something looks
+> wrong in the browser, and each step is independently useful even if you
+> stop partway through.
+
 ---
 
 ## Step 1 — Create `wwwroot/css/theme.css`
@@ -69,11 +74,20 @@ layout (`base.tpl.php`, `welcome_base.tpl.php`, `mg_base.tpl.php`).
 }
 ```
 
+Also add `<link rel="stylesheet" href="/css/theme.css">` as the **first**
+stylesheet in `base.tpl.php`, `welcome_base.tpl.php`, and `mg_base.tpl.php`.
+
+> **Commit after Step 1:**
+> ```
+> Add theme.css with CSS custom property tokens for light and dark themes
+> ```
+
 ---
 
 ## Step 2 — Refactor CSS files
 
-Replace every hardcoded color with the matching token.
+Replace every hardcoded color with the matching token. Commit after each
+file so a bad substitution is easy to spot and revert.
 
 ### `wwwroot/css/styles.css`
 | Hardcoded | Replace with |
@@ -89,12 +103,27 @@ Replace every hardcoded color with the matching token.
 | `#cde5f6` (.PagePanel border) | `var(--border-color)` |
 | box-shadow rgba | `var(--shadow-md)` |
 
+> **Commit after styles.css:**
+> ```
+> Refactor styles.css to use CSS custom property tokens
+> ```
+
 ### `wwwroot/css/buttons.css`
 Accent colors (`--info`, `--neutral`, etc.) are already tokenized above —
 just swap the hex values.
 
+> **Commit after buttons.css:**
+> ```
+> Refactor buttons.css to use CSS custom property tokens
+> ```
+
 ### `wwwroot/css/menu.css`
 Audit for any hardcoded colors and replace with nav tokens.
+
+> **Commit after menu.css:**
+> ```
+> Refactor menu.css to use CSS custom property tokens
+> ```
 
 ### `wwwroot/dashboard/dashboard.css`
 Many hardcoded values — key ones:
@@ -105,6 +134,11 @@ Many hardcoded values — key ones:
 | `white` card backgrounds | `var(--bg-card)` |
 | `#f8f9fa` panel backgrounds | `var(--bg-panel)` |
 
+> **Commit after dashboard.css:**
+> ```
+> Refactor dashboard.css to use CSS custom property tokens
+> ```
+
 ### `wwwroot/mg/css/meisogambare.css`
 The timer page was intentionally dark — once the dark theme tokens exist,
 adding `data-theme="dark"` to `<html>` in `mg_base.tpl.php` by default
@@ -112,12 +146,22 @@ will make it dark automatically without any extra CSS.
 The `white` and `#333` hardcoded values in `.completion-summary` should
 be replaced with `var(--bg-card)` and `var(--text-primary)`.
 
+> **Commit after meisogambare.css:**
+> ```
+> Refactor meisogambare.css to use CSS custom property tokens
+> ```
+
 ### Templates with inline `<style>` blocks
 - `templates/todos/create.tpl.php` — already uses `var(--bg-card)`,
   `var(--border-color)`, `var(--text-muted)`, `var(--text-primary)`,
   `var(--danger)` — these will **just work** once `theme.css` is loaded.
 - `templates/layout/welcome_base.tpl.php` — has lots of inline hardcoded
   colors. Either replace them with tokens, or migrate to external CSS.
+
+> **Commit after template inline styles:**
+> ```
+> Replace inline hardcoded colors in templates with CSS custom property tokens
+> ```
 
 ---
 
@@ -132,6 +176,11 @@ In `templates/partials/menu.tpl.php`, add a button after the nav links:
 ```
 
 Style it to look like part of the nav (no border, transparent bg, cursor pointer).
+
+> **Commit after Step 3:**
+> ```
+> Add dark mode toggle button to nav menu
+> ```
 
 ---
 
@@ -170,6 +219,11 @@ Add to `base.tpl.php` (or a new `wwwroot/js/theme.js`):
 The IIFE at the top runs before the DOM renders — this prevents the
 "flash of wrong theme" (FOWT) that happens if you wait for DOMContentLoaded.
 
+> **Commit after Step 4:**
+> ```
+> Add dark mode toggle JS with localStorage persistence (no flash on load)
+> ```
+
 ---
 
 ## Step 5 (Optional) — Persist preference to the database
@@ -181,6 +235,11 @@ On page load in PHP, read the user's saved theme and output:
 <html data-theme="<?= htmlspecialchars($is_logged_in->getTheme()) ?>">
 ```
 This means logged-in users get their theme on first paint even before JS runs.
+
+> **Commit after Step 5:**
+> ```
+> Persist dark mode preference to database for cross-device consistency
+> ```
 
 ---
 
@@ -194,6 +253,11 @@ $default_theme = 'dark'; // timer page prefers dark
 $user_theme = /* read from user prefs or null */;
 $theme = $user_theme ?? $default_theme;
 ```
+
+> **Commit after Step 6:**
+> ```
+> Default timer page to dark theme; respect user preference if set
+> ```
 
 ---
 
@@ -224,3 +288,5 @@ $theme = $user_theme ?? $default_theme;
   loaded — it's already written correctly.
 - The dark color values above are starting points — tweak after seeing them
   in the browser.
+- Commit after each file in Step 2 — it makes it trivial to revert a single
+  bad substitution without losing all the other work.
