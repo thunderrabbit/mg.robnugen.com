@@ -17,7 +17,7 @@ if ($uri === '/' || $uri === '' || $uri === '/index.php') {
     if($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()){
         // Admin users - show admin dashboard
         $page = new \Template(config: $config, is_logged_in: $is_logged_in);
-        $page->setTemplate("layout/welcome_base.tpl.php");
+        $page->setTemplate("layout/base.tpl.php");
         $page->set("page_title", "Dashboard - Meiso Gambare");
 
         // Get the dashboard content
@@ -34,7 +34,7 @@ if ($uri === '/' || $uri === '' || $uri === '/index.php') {
     } else if($is_logged_in->isLoggedIn() && $is_logged_in->isPaid()){
         // Paid users - show user dashboard (no admin link)
         $page = new \Template(config: $config, is_logged_in: $is_logged_in);
-        $page->setTemplate("layout/welcome_base.tpl.php");
+        $page->setTemplate("layout/base.tpl.php");
         $page->set("page_title", "Dashboard - Meiso Gambare");
 
         // Get the dashboard content
