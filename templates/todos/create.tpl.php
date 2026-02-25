@@ -65,7 +65,7 @@
                 <div class="form-group">
                     <label for="do_time">Time of day</label>
                     <input type="time" id="do_time" name="do_time" class="form-control" value="<?= htmlspecialchars($todo['do_time'] ?? '') ?>">
-                    <small class="help-text">When this todo appears on your daily list</small>
+                    <small class="help-text" id="do-time-help">When this todo appears on your daily list</small>
                 </div>
             </fieldset>
 
@@ -136,14 +136,33 @@
         }
     }
 
+    const doTimeHelp = document.getElementById('do-time-help');
+    const doTimeHelpSingle   = 'When this todo appears on your daily list';
+    const doTimeHelpMultiple = 'When the first occurrence appears on your daily list';
+
+    function updateDoTimeHelp() {
+        if (!doTimeHelp) return;
+        const count = parseInt(targetCountInput.value) || 1;
+        const newText = count > 1 ? doTimeHelpMultiple : doTimeHelpSingle;
+        if (doTimeHelp.textContent === newText) return;
+        doTimeHelp.style.transition = 'opacity 0.2s';
+        doTimeHelp.style.opacity = '0';
+        setTimeout(() => {
+            doTimeHelp.textContent = newText;
+            doTimeHelp.style.opacity = '1';
+        }, 200);
+    }
+
     if (targetCountInput) {
-        targetCountInput.addEventListener('input', updateCounterCheckbox);
+        targetCountInput.addEventListener('input', () => { updateCounterCheckbox(); updateDoTimeHelp(); });
         targetCountInput.addEventListener('blur', function() {
             if (!this.value || parseInt(this.value) < 1) this.value = 1;
             updateCounterCheckbox();
+            updateDoTimeHelp();
         });
         // Run once on load to set initial state
         updateCounterCheckbox();
+        updateDoTimeHelp();
     }
 </script>
 
