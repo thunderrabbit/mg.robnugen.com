@@ -349,6 +349,12 @@
 	border-bottom: 2px solid #e0e0e0;
 }
 
+.active-sessions-section .dashboard-header {
+	border-bottom: none;
+	margin-bottom: 20px;
+	padding-bottom: 0;
+}
+
 /* ===== TODOS SECTION ===== */
 
 .todos-section {
