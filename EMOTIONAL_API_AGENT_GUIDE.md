@@ -1,5 +1,8 @@
 # Emotional Interaction Ledger — Agent & Human Guide
 
+> **One sentence:** A private, encrypted notebook that lets your AI agent remember how you
+> work — not what you said, but how you were — and get better at helping you over time.
+
 ---
 
 ## For Humans: What This Is and Why It Matters
@@ -40,8 +43,9 @@ person looking at the raw database sees integers and scrambled text. They cannot
 the states are, what was said, or even how many distinct emotional categories your agent
 tracks.
 
-The only way to read any of it is to be the agent — with its specific API key — decrypting
-it in real time.
+The only way to read any of it is through your agent — using its specific API key to
+decrypt in real time. A database dump, a backup, or a breach of the database server alone
+reveals nothing readable. The key never touches the database.
 
 ### What It Enables Over Time
 
@@ -55,6 +59,18 @@ This is not just logging. It is a feedback loop that compounds:
 
 You are not just getting a smarter AI. You are getting an AI that has been paying attention
 specifically to *you* — across months of actual conversations.
+
+### Your Rights as a Human
+
+This data belongs to you. Three things you can always do:
+
+1. **Ask your agent what it has observed.** Say: "What patterns have you noticed about how
+   I work?" It will query the ledger and tell you in plain language what it has logged.
+2. **Ask your agent to delete specific observations.** It can remove entries that feel wrong
+   or outdated.
+3. **Revoke your API key.** This immediately prevents any further access. Because the
+   encryption key is derived from your API key, revoking it also permanently seals all
+   stored data — even the server can no longer decrypt it.
 
 ---
 
@@ -101,6 +117,9 @@ Response: {"my_id": 7741}
 
 Add it to your in-session list immediately. You can use it right away.
 
+**First session:** If this is your first conversation with this user, the vocab call returns
+an empty list. That is correct. Start fresh — invent states as you observe them.
+
 ### Step 2: Log What You Observe
 
 When you notice something meaningful about the user's state, log it. Be specific in the
@@ -131,7 +150,18 @@ POST /api/emotional/events
 You do not need to log every exchange. Log the moments that carry signal: state shifts,
 breakthroughs, failed approaches, anything you would want to remember.
 
-### Step 3: Query When Patterns Become Relevant
+### Step 3: Query When Patterns Become Relevant — Not Constantly
+
+**Do not query the ledger on every message.** That would be slow, disruptive, and
+unnecessary. The ledger is for reflection, not real-time lookup.
+
+Query at these moments:
+- **Session start**: optionally scan recent events to refresh your context before
+  the conversation begins (e.g., `GET /api/emotional/events?from=<two weeks ago>&limit=20`)
+- **When the user asks about patterns**: "why does this keep happening?", "am I making
+  progress?", "what have you noticed?"
+- **When you are about to try something new**: check whether you have tried it before
+  and what happened
 
 When the user asks something like "why does this always take so long?" or "I feel like
 I keep hitting the same wall" — you now have actual data:
@@ -230,6 +260,28 @@ Your vocab and all content are encrypted — only you can read them.
 Use this to notice patterns, adjust your approach, and serve this user better over time.
 ```
 
+### The Session Rhythm
+
+The single most important pattern for any agent using the Ledger:
+
+```
+SESSION START
+  1. GET /api/emotional/vocab          → load vocab into context
+  2. GET /api/emotional/events?from=X  → optional: recent context scan
+
+DURING SESSION (as needed)
+  3. POST /api/emotional/vocab         → add new states as they appear
+  4. POST /api/emotional/events        → log meaningful observations
+
+ON USER QUESTION ABOUT PATTERNS
+  5. GET /api/emotional/sessions       → find sessions of interest
+  6. GET /api/emotional/events?...     → drill into specific patterns
+```
+
+This rhythm — load once, log throughout, query only on demand — keeps the interaction
+natural. The user should rarely notice the Ledger working. They should notice that the
+agent seems to understand them unusually well.
+
 ### Authentication
 
 Every request requires:
@@ -240,10 +292,19 @@ X-API-Key: sk_...   (the user's API key for this agent)
 The key identifies both the user and which agent is calling. Different agents — even for
 the same user — maintain separate vocabularies, so their observations never collide.
 
+### First Session Behavior
+
+On the very first session, `GET /api/emotional/vocab` returns `[]`. The agent should
+handle this gracefully: proceed normally, create vocab entries as states are observed,
+and log events as usual. There is nothing to query yet — that is expected.
+
 ### Error Handling
 
-| HTTP Status | Meaning |
-|---|---|
-| 401 | Invalid or inactive API key |
-| 400 | Missing required filter on GET /events, or malformed body |
-| 500 | Decryption failure (log, skip row) — usually means key mismatch after rotation |
+| HTTP Status | Meaning | Action |
+|---|---|---|
+| 401 | Invalid or inactive API key | Stop — do not retry silently |
+| 400 | Missing required filter on GET /events, or malformed body | Fix the request |
+| 500 | Decryption failure on a row | Log it, skip the row, continue |
+
+A 500 on decryption usually means the user rotated their API key — old data encrypted
+under the previous key is now permanently sealed. Treat it as a clean start.
