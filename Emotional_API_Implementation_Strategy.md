@@ -32,7 +32,7 @@ classes/Emotional/
     ApiAuth.php        — shared: validate X-API-Key header → key_id + user_id + raw key
 
 db_schemas/11_emotional_api/
-    create_emotional_api.sql   — mifmus, interaction_sessions, interaction_events
+    create_emotional_api.sql   — my_ids_for_my_users_state, interaction_sessions, interaction_events
 ```
 
 Each endpoint file handles routing by HTTP method (`$_SERVER['REQUEST_METHOD']`),
@@ -69,12 +69,13 @@ MySQL:
 
 ## Database Schema
 
-### Table: `mifmus`
+### Table: `my_ids_for_my_users_state`
 
 "My IDs For My User's State" — the agent's private vocabulary mapping.
+Abbreviated **mifmus** in prose and column names (`mifmus_id`).
 
 ```sql
-CREATE TABLE mifmus (
+CREATE TABLE my_ids_for_my_users_state (
     mifmus_id   BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     key_id      BIGINT UNSIGNED NOT NULL,
     my_id       BIGINT UNSIGNED NOT NULL,   -- agent's private numeric handle (random)
@@ -143,7 +144,7 @@ CREATE TABLE interaction_events (
     FOREIGN KEY (session_id) REFERENCES interaction_sessions(session_id) ON DELETE CASCADE,
     FOREIGN KEY (key_id) REFERENCES api_keys(key_id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-    FOREIGN KEY (mifmus_id) REFERENCES mifmus(mifmus_id) ON DELETE SET NULL
+    FOREIGN KEY (mifmus_id) REFERENCES my_ids_for_my_users_state(mifmus_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ```
 
@@ -158,7 +159,7 @@ CREATE TABLE interaction_events (
 Place all three table definitions in dependency order in:
 `db_schemas/11_emotional_api/create_emotional_api.sql`
 
-(mifmus first, then interaction_sessions, then interaction_events — FK order matters)
+(my_ids_for_my_users_state first, then interaction_sessions, then interaction_events — FK order matters)
 
 ---
 
@@ -218,9 +219,9 @@ either data corruption or a key mismatch (e.g. after api_key rotation).
 
 | Column | Encrypted | Notes |
 |---|---|---|
-| `mifmus.state` | Yes | Agent's private emotion label |
+| `my_ids_for_my_users_state.state` | Yes | Agent's private emotion label |
 | `interaction_events.encrypted_content` | Yes | Event narrative / reasons |
-| `mifmus.my_id` | No | Opaque integer — semantically meaningless without state |
+| `my_ids_for_my_users_state.my_id` | No | Opaque integer — semantically meaningless without state |
 | `interaction_sessions.*` | No | Timestamps and FKs only |
 | `interaction_events.event_type` | No | Low-entropy ENUM; acceptable plaintext |
 | `interaction_events.event_timestamp` | No | Required for session and time-of-day analysis |
@@ -313,7 +314,7 @@ Load the agent's full private vocabulary for this session.
 ]
 ```
 
-PHP: `SELECT mifmus_id, my_id, state FROM mifmus WHERE key_id = :key_id`
+PHP: `SELECT mifmus_id, my_id, state FROM my_ids_for_my_users_state WHERE key_id = :key_id`
 then decrypt each `state` value before returning.
 
 **The agent calls this once at session start.** It holds the result in context memory.
@@ -338,7 +339,7 @@ Add a new state label to the agent's vocabulary.
 PHP:
 1. Encrypt the `state` value
 2. Generate a random `my_id`: `random_int(100000, 999999999)`
-3. `INSERT INTO mifmus (key_id, my_id, state) VALUES (...)`
+3. `INSERT INTO my_ids_for_my_users_state (key_id, my_id, state) VALUES (...)`
 4. On `my_id` collision (UNIQUE violation): regenerate and retry (max 5 attempts)
 5. Return `my_id`
 
@@ -369,7 +370,7 @@ Log a single interaction event.
 ```
 
 PHP:
-1. Resolve `my_id` → `mifmus_id`: `SELECT mifmus_id FROM mifmus WHERE key_id=? AND my_id=?`
+1. Resolve `my_id` → `mifmus_id`: `SELECT mifmus_id FROM my_ids_for_my_users_state WHERE key_id=? AND my_id=?`
    (NULL if no `my_id` supplied)
 2. Auto-detect or create session (see Session Auto-Detection)
 3. Assign `sequence_num` atomically within session
@@ -422,8 +423,8 @@ are rejected with 400 to prevent accidentally returning the entire event history
 
 `my_id` is `null` in the response when the event has no emotional state tag.
 
-PHP: LEFT JOIN `mifmus` on `mifmus_id` to resolve back to `my_id` for the response.
-If `my_id` filter param is supplied: INNER JOIN mifmus WHERE `my_id = ?` (excludes
+PHP: LEFT JOIN `my_ids_for_my_users_state` on `mifmus_id` to resolve back to `my_id` for the response.
+If `my_id` filter param is supplied: INNER JOIN `my_ids_for_my_users_state` WHERE `my_id = ?` (excludes
 untagged events). Apply all remaining filters, decrypt `encrypted_content` for each row.
 Skip any row where decryption returns `false` (log via `print_roblog`).
 
@@ -567,7 +568,7 @@ but enables fast indexed queries without any decryption at query time.
 4. **No rate limiting.** A compromised api_key can flood the events table. Add
    per-key rate limiting (e.g. max 1000 events/day) post-MVP.
 
-5. **Vocab loading leaks vocabulary size.** The number of rows in mifmus for a given
+5. **Vocab loading leaks vocabulary size.** The number of rows in `my_ids_for_my_users_state` for a given
    key_id is visible (even though state values are encrypted). Acceptable for MVP.
 
 6. **No session summary field.** The original design included an `encrypted_summary`
