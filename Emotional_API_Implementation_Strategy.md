@@ -78,7 +78,7 @@ CREATE TABLE mifmus (
     mifmus_id   BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     key_id      BIGINT UNSIGNED NOT NULL,
     my_id       BIGINT UNSIGNED NOT NULL,   -- agent's private numeric handle (random)
-    state       TEXT NOT NULL,              -- AES-256-GCM encrypted: agent's label e.g. "anger"
+    state       TEXT NOT NULL,              -- XSalsa20-Poly1305 (secretbox) encrypted label
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (mifmus_id),
@@ -133,7 +133,7 @@ CREATE TABLE interaction_events (
     event_timestamp   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     event_type        ENUM('agent_action','user_input','user_reaction') NOT NULL,
     sequence_num      INT UNSIGNED NOT NULL,       -- within session, assigned by PHP
-    encrypted_content TEXT NOT NULL,              -- AES-256-GCM encrypted
+    encrypted_content TEXT NOT NULL,              -- XSalsa20-Poly1305 (secretbox) encrypted
 
     PRIMARY KEY (event_id),
     UNIQUE KEY uniq_session_seq (session_id, sequence_num),
@@ -243,14 +243,19 @@ from api_key lifecycle.
 When an event arrives, PHP runs this logic (within a transaction):
 
 ```
--- NOTE: PDO named params cannot appear inside INTERVAL syntax.
--- Pass gap as an integer and use DATE_SUB:
+-- NOTE: PDO cannot mix named params and positional params in one query,
+-- and named params cannot appear inside INTERVAL syntax.
+-- Embed the gap as a validated integer literal in PHP before preparing:
+--   $gap = intval(EMOTIONAL_SESSION_GAP_MINUTES); // e.g. 30
+--   $sql = "... AND last_event_time > DATE_SUB(NOW(), INTERVAL {$gap} MINUTE)"
+-- Then bind only :key_id as a named param (or use all positional).
+
 1. SELECT session_id FROM interaction_sessions
    WHERE key_id = :key_id
-     AND last_event_time > DATE_SUB(NOW(), INTERVAL ? MINUTE)
+     AND last_event_time > DATE_SUB(NOW(), INTERVAL {gap} MINUTE)
    ORDER BY last_event_time DESC
    LIMIT 1
--- bind: [intval(EMOTIONAL_SESSION_GAP_MINUTES)]
+   FOR UPDATE   -- lock the row to prevent race on concurrent inserts
 
 2. If found:
      UPDATE interaction_sessions SET last_event_time = NOW() WHERE session_id = :id
@@ -445,9 +450,26 @@ List sessions with metadata for pattern analysis.
 ]
 ```
 
-`duration_minutes` and `event_count` computed server-side from timestamps and COUNT —
-no decryption required. The agent uses this to identify sessions of interest, then
-fetches events for those sessions via `GET /api/emotional/events?session_id=X`.
+`duration_minutes` and `event_count` computed server-side — no decryption required:
+
+```sql
+SELECT
+    s.session_id,
+    s.start_time,
+    s.last_event_time,
+    TIMESTAMPDIFF(MINUTE, s.start_time, s.last_event_time) AS duration_minutes,
+    COUNT(e.event_id) AS event_count
+FROM interaction_sessions s
+LEFT JOIN interaction_events e ON e.session_id = s.session_id
+WHERE s.key_id = :key_id
+  -- AND s.start_time >= :from (if filter supplied)
+GROUP BY s.session_id
+ORDER BY s.start_time DESC
+LIMIT :limit
+```
+
+The agent uses this to identify sessions of interest, then fetches events for those
+sessions via `GET /api/emotional/events?session_id=X`.
 
 This two-step pattern supports time-based analysis:
 - "Does the user's mood shift after 90 minutes in a session?" → fetch session list,
@@ -511,7 +533,7 @@ plain words ("anger"), invented codes ("ujfjveh"), compound descriptions
 |---|---|
 | Integer `my_id` values | Which events share the same state (but not what the state is) |
 | Integer `mifmus_id` values | Same as above — just the internal FK |
-| Encrypted blobs | Nothing (AES-256-GCM is semantically secure) |
+| Encrypted blobs | Nothing (XSalsa20-Poly1305 secretbox is semantically secure) |
 | `event_timestamp` values | When interactions occurred; session durations; time-of-day patterns |
 | `event_type` ENUM | Ratio of agent actions vs user reactions |
 | `user_id` integers | Which user each event belongs to |
