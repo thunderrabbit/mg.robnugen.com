@@ -1,4 +1,4 @@
-# Emotional Interaction Ledger — Agent & Human Guide
+# Emotional Interaction Ledger — Human & Agent Guide
 
 > **One sentence:** A private, encrypted notebook that lets your AI agent remember how you
 > work — not what you said, but how you were — and get better at helping you over time.
