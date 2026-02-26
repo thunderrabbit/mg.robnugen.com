@@ -115,7 +115,17 @@ Work through this in order. Commit after each numbered step — small commits ma
   - Sub-step B: Verify `vocab.php` delete removes entry and returns total of `events_untagged`.
 - **Test:** Delete an event, verify it's removed; delete a vocab entry, verify count and that corresponding event rows persist with a now-null `mifmus_id`.
 
-**18. [COMMIT] API Endpoint: Complete Wipe (DELETE)**
-- **File:** `wwwroot/api/emotional/everything.php` (POST method - taking DELETE-like behavior)
-- **Action:** Demand `{"confirm": "delete everything"}` in body; otherwise 400. In an SQL transaction, count all relevant rows for `interaction_events`, `interaction_sessions`, and `my_ids_for_my_users_state`, then DELETE rows per api_key securely traversing strictly in FK order. Return counts.
-- **Test:** Send request without confirm -> 400. Send request with confirm -> 200, verify all data associated to api_key is wiped.
+**18. [COMMIT] API Endpoint: Wipe Emotional Content (DELETE)**
+- **File:** `wwwroot/api/emotional/wipe_emotional.php` (POST method)
+- **Action:** Demand `{"confirm": "delete emotional content"}` in body; otherwise 400. In an SQL transaction, count all relevant rows for `interaction_events`, `interaction_sessions`, and `my_ids_for_my_users_state`, then DELETE these rows per `api_key_id` securely traversing strictly in FK order. Return counts.
+- **Test:** Send request without confirm -> 400. Send request with confirm -> 200, verify all emotional data associated with the api_key is wiped, but Jikan timer sessions/activities remain untouched.
+
+**19. [COMMIT] API Endpoint: Wipe Timers (DELETE)**
+- **File:** `wwwroot/api/emotional/wipe_timers.php` (POST method)
+- **Action:** Demand `{"confirm": "delete timers"}` in body; otherwise 400. In an SQL transaction, count all relevant rows for Jikan timer sessions (`meisou_sessions` or equivalent table based on schema) and activities, then DELETE these rows per `api_key_id`. Return counts.
+- **Test:** Send request without confirm -> 400. Send request with confirm -> 200, verify all timer sessions/activities associated with the api_key are wiped, but emotional interaction data remains untouched.
+
+**20. [COMMIT] API Endpoint: Complete Wipe (DELETE everything)**
+- **File:** `wwwroot/api/emotional/everything.php` (POST method)
+- **Action:** Demand `{"confirm": "delete everything"}` in body; otherwise 400. In an SQL transaction, execute the deletion logic from *both* Step 18 and Step 19. Wipe `interaction_events`, `interaction_sessions`, `my_ids_for_my_users_state`, and all Jikan timer schemas. Return combined counts.
+- **Test:** Send request without confirm -> 400. Send request with confirm -> 200, verify all data (emotional and timers) associated with the api_key is completely wiped.
