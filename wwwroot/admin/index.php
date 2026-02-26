@@ -6,6 +6,19 @@ preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
 
 if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
+
+    // Handle "dismiss all alerts" POST action
+    if (
+        $_SERVER['REQUEST_METHOD'] === 'POST'
+        && ($_POST['action'] ?? '') === 'dismiss_alerts'
+        && isset($_POST['csrf_token'])
+        && hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])
+    ) {
+        \Admin\OmgAlerts::dismissAll($mla_database);
+        header('Location: /admin/');
+        exit;
+    }
+
     $page = new \Template(config: $config, is_logged_in: $is_logged_in);
     $page->setTemplate("admin/index.tpl.php");
     $page->set(name: "site_version", value: SENTIMENTAL_VERSION);
@@ -13,6 +26,11 @@ if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
 
     $pending = $dbExistaroo->getPendingMigrations();
     $page->set(name: "has_pending_migrations", value: !empty($pending));
+
+    $omg_alerts = \Admin\OmgAlerts::getUnread($mla_database);
+    $page->set(name: "omg_alerts", value: $omg_alerts);
+    $page->set(name: "csrf_token", value: $_SESSION['csrf_token']);
+
     $inner = $page->grabTheGoods();
 
     $layout = new \Template(config: $config, is_logged_in: $is_logged_in);

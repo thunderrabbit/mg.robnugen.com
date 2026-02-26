@@ -1,3 +1,24 @@
+<?php if (!empty($omg_alerts)): ?>
+<div class="OmgAlertBanner">
+    <strong>&#9888; <?= count($omg_alerts) ?> system alert<?= count($omg_alerts) > 1 ? 's' : '' ?> need<?= count($omg_alerts) === 1 ? 's' : '' ?> your attention</strong>
+    <ul>
+        <?php foreach ($omg_alerts as $alert): ?>
+        <li>
+            <span class="OmgAlertContext"><?= htmlspecialchars($alert['context']) ?></span>
+            &mdash;
+            <?= htmlspecialchars($alert['message']) ?>
+            <span class="OmgAlertTime">(<?= htmlspecialchars($alert['created_at']) ?>)</span>
+        </li>
+        <?php endforeach; ?>
+    </ul>
+    <form method="POST" action="/admin/">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
+        <input type="hidden" name="action" value="dismiss_alerts">
+        <button type="submit" class="OmgDismissButton">Dismiss all</button>
+    </form>
+</div>
+<?php endif; ?>
+
 <div class="PagePanel">
     What's up <?= htmlspecialchars($username) ?>? <br />
 </div>
