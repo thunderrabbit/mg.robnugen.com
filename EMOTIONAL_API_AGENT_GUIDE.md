@@ -72,12 +72,16 @@ This data belongs to you. Three things you can always do:
 
 1. **Ask your agent what it has observed.** Say: "What patterns have you noticed about how
    I work?" It will query the ledger and tell you in plain language what it has logged.
-2. **Revoke your API key.** This immediately prevents any further access. Because the
+2. **Delete specific observations.** Three levels of deletion are available:
+   - Single event: `DELETE /api/emotional/events` `{"event_id": 1042}`
+   - Single vocab entry: `DELETE /api/emotional/vocab` `{"my_id": 2341}`
+     (associated events are preserved but lose their state tag)
+   - Wipe everything: `DELETE /api/emotional/everything` `{"confirm": "delete everything"}`
+     returns counts of what was removed
+3. **Revoke your API key.** This immediately prevents any further access. Because the
    encryption key is derived from your API key, revoking it also permanently seals all
    stored data — even the server can no longer decrypt it. Generate a new key to start
    fresh.
-3. **Full deletion** (future feature): a dedicated endpoint to delete specific events or
-   the entire history for a key will be added post-MVP.
 
 ---
 

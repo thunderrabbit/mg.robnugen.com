@@ -87,7 +87,19 @@ easy to roll back a broken step without losing everything else.
    — list sessions with duration_minutes and event_count
    — test: GET, verify session from step 7 appears
 
-10. [COMMIT] Error path: omg_rob_this_happened on my_id collision exhaustion
+10. [COMMIT] DELETE /api/emotional/events and DELETE /api/emotional/vocab
+    — add DELETE method handling to events.php and vocab.php
+    — events: DELETE WHERE event_id=? AND api_key_id=? (ownership check)
+    — vocab: DELETE entry, return events_untagged count
+    — test: delete an event, verify gone; delete a vocab entry, verify events still exist
+      with mifmus_id=NULL
+
+11. [COMMIT] DELETE /api/emotional/everything  (wwwroot/api/emotional/everything.php)
+    — require {"confirm": "delete everything"} in body, return 400 otherwise
+    — delete in FK order within a transaction, return counts
+    — test: POST without confirm → 400; POST with confirm → all rows gone
+
+12. [COMMIT] Error path: omg_rob_this_happened on my_id collision exhaustion
     — add retry loop to vocab POST, escalate to omg table after 5 failures
     — test: verify admin dashboard banner appears for a manually-inserted alert
 ```
@@ -585,6 +597,107 @@ This two-step pattern supports time-based analysis:
 - "Does the user's mood shift after 90 minutes in a session?" → fetch session list,
   find long sessions, then fetch their events ordered by sequence_num
 - "Does state X appear only after 10pm?" → filter events by `from`/`to` time ranges
+
+---
+
+### DELETE /api/emotional/events
+
+Delete a single event by `event_id`.
+
+**Request body:**
+```json
+{"event_id": 1042}
+```
+
+**Response:**
+```json
+{"deleted": 1}
+```
+
+PHP:
+1. `DELETE FROM interaction_events WHERE event_id = ? AND api_key_id = ?`
+   The `api_key_id` constraint ensures an agent cannot delete another user's events.
+2. Return `{"deleted": 0}` (not 404) if the event doesn't exist or belongs to
+   a different key — avoids leaking whether an ID exists.
+
+No extra confirmation required. Ownership proof (valid api_key + matching api_key_id)
+is sufficient for single-row deletion.
+
+---
+
+### DELETE /api/emotional/vocab
+
+Delete a vocab entry by `my_id`. Associated events are **not** deleted — their
+`mifmus_id` is set to NULL via the `ON DELETE SET NULL` FK constraint, preserving
+the event timeline while detaching the state label.
+
+**Request body:**
+```json
+{"my_id": 2341}
+```
+
+**Response:**
+```json
+{"deleted": 1, "events_untagged": 14}
+```
+
+PHP:
+1. `SELECT mifmus_id FROM my_ids_for_my_users_state WHERE my_id=? AND api_key_id=?`
+2. `SELECT COUNT(*) FROM interaction_events WHERE mifmus_id=?` (for the response count)
+3. `DELETE FROM my_ids_for_my_users_state WHERE mifmus_id=?`
+   (CASCADE handles the FK; events get mifmus_id = NULL automatically)
+
+`events_untagged` tells the agent how many historical events lost their state label —
+useful for it to decide whether to re-tag them before deleting.
+
+---
+
+### DELETE /api/emotional/everything
+
+Wipe all data for this api_key: all events, sessions, and vocab entries.
+
+**"Are you sure" mechanism:** confirmation string in request body. The caller must
+explicitly construct the confirmation payload — it cannot happen by accident or
+misrouted request. No extra DB state or token table required.
+
+**Request body:**
+```json
+{"confirm": "delete everything"}
+```
+
+**Response:**
+```json
+{
+  "deleted": {
+    "events": 847,
+    "sessions": 23,
+    "vocab_entries": 12
+  }
+}
+```
+
+Returns 400 if `confirm` field is missing or does not exactly equal `"delete everything"`.
+
+PHP (in a transaction):
+```php
+// Count first (for the response)
+$event_count   = SELECT COUNT(*) FROM interaction_events WHERE api_key_id = ?
+$session_count = SELECT COUNT(*) FROM interaction_sessions WHERE api_key_id = ?
+$vocab_count   = SELECT COUNT(*) FROM my_ids_for_my_users_state WHERE api_key_id = ?
+
+// Delete in FK-safe order
+DELETE FROM interaction_events   WHERE api_key_id = ?
+DELETE FROM interaction_sessions WHERE api_key_id = ?
+DELETE FROM my_ids_for_my_users_state WHERE api_key_id = ?
+
+// Return counts
+```
+
+`interaction_events` must be deleted before `interaction_sessions` (FK constraint).
+`my_ids_for_my_users_state` can be deleted in any order relative to sessions since
+events are already gone.
+
+Lives in: `wwwroot/api/emotional/everything.php`
 
 ---
 
