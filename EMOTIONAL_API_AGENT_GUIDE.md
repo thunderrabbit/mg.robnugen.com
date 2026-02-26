@@ -40,8 +40,8 @@ Your agent invents its own private vocabulary for your states. It might call one
 "resistance_plus_fatigue" or "morning_fog" or just a nonsense code it made up — "ujfjveh".
 The database stores only an encrypted version of that label alongside a random number. A
 person looking at the raw database sees integers and scrambled text. They cannot tell what
-the states are, what was said, or even how many distinct emotional categories your agent
-tracks.
+the states are or what was said. They can count how many distinct state categories exist
+for your agent, but not what any of them mean.
 
 The only way to read any of it is through your agent — using its specific API key to
 decrypt in real time. A database dump, a backup, or a breach of the database server alone
@@ -66,11 +66,12 @@ This data belongs to you. Three things you can always do:
 
 1. **Ask your agent what it has observed.** Say: "What patterns have you noticed about how
    I work?" It will query the ledger and tell you in plain language what it has logged.
-2. **Ask your agent to delete specific observations.** It can remove entries that feel wrong
-   or outdated.
-3. **Revoke your API key.** This immediately prevents any further access. Because the
+2. **Revoke your API key.** This immediately prevents any further access. Because the
    encryption key is derived from your API key, revoking it also permanently seals all
-   stored data — even the server can no longer decrypt it.
+   stored data — even the server can no longer decrypt it. Generate a new key to start
+   fresh.
+3. **Full deletion** (future feature): a dedicated endpoint to delete specific events or
+   the entire history for a key will be added post-MVP.
 
 ---
 
@@ -193,6 +194,9 @@ it always after a long stretch without a break? Always after a certain kind of t
 ### What to Log — A Practical Guide
 
 **Log these:**
+- When the user explicitly names their state: "I'm exhausted", "this is frustrating",
+  "I love this" — direct self-report is the highest-quality signal you will ever get.
+  Log it verbatim in `content`.
 - Visible emotional shifts (frustration, disengagement, sudden engagement, relief)
 - When an approach worked unexpectedly well
 - When an approach failed — and what you tried instead
