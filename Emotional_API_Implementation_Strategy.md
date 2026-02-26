@@ -17,6 +17,31 @@ query user emotional states over time, integrated into `mg.robnugen.com` infrast
 
 ---
 
+## File Structure
+
+New files to create (all must include `prepend.php` using the standard pattern from CLAUDE.md):
+
+```
+wwwroot/api/emotional/
+    vocab.php          — GET (load vocab) + POST (add state)
+    events.php         — GET (query) + POST (log)
+    sessions.php       — GET (list sessions)
+
+classes/Emotional/
+    Ledger.php         — core logic: encrypt/decrypt, session detection, mifmus lookup
+    ApiAuth.php        — shared: validate X-API-Key header → key_id + user_id + raw key
+
+db_schemas/11_emotional_api/
+    create_emotional_api.sql   — mifmus, interaction_sessions, interaction_events
+```
+
+Each endpoint file handles routing by HTTP method (`$_SERVER['REQUEST_METHOD']`),
+calls into `Emotional\Ledger`, and returns JSON with `Content-Type: application/json`.
+`Emotional\ApiAuth` is called at the top of every endpoint — it validates the key,
+returns `[key_id, user_id, rawKey]`, and exits 401 on failure.
+
+---
+
 ## Architecture Summary
 
 ```
@@ -157,27 +182,37 @@ would invalidate all stored encrypted data (intentional rotation mechanism post-
 
 ```php
 function emotional_encrypt(string $plaintext, string $encKey): string {
-    $nonce = random_bytes(SODIUM_CRYPTO_AEAD_AES256GCM_NPUBBYTES); // 12 bytes
-    $cipher = sodium_crypto_aead_aes256gcm_encrypt($plaintext, '', $nonce, $encKey);
-    return base64_encode($nonce . $cipher); // nonce + ciphertext + GCM auth tag
+    // Use secretbox (XSalsa20-Poly1305): no hardware AES requirement, works on DreamHost
+    $nonce  = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES); // 24 bytes
+    $cipher = sodium_crypto_secretbox($plaintext, $nonce, $encKey);
+    return base64_encode($nonce . $cipher); // nonce + ciphertext + Poly1305 auth tag
 }
 ```
 
+`sodium_crypto_aead_aes256gcm` requires hardware AES-NI support which is not guaranteed
+on shared hosting. `sodium_crypto_secretbox` (XSalsa20-Poly1305) is software-only,
+equally secure, and available on all platforms with libsodium.
+
 Each call generates a fresh random nonce. Identical plaintext produces different
-ciphertext on every encryption. The GCM auth tag detects any tampering with stored data.
+ciphertext on every encryption. The Poly1305 tag detects tampering.
 
 ### Decrypt
 
 ```php
 function emotional_decrypt(string $stored, string $encKey): string|false {
     $decoded = base64_decode($stored);
-    $nonce   = substr($decoded, 0, SODIUM_CRYPTO_AEAD_AES256GCM_NPUBBYTES);
-    $cipher  = substr($decoded, SODIUM_CRYPTO_AEAD_AES256GCM_NPUBBYTES);
-    return sodium_crypto_aead_aes256gcm_decrypt($cipher, '', $nonce, $encKey);
+    $nonce   = substr($decoded, 0, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
+    $cipher  = substr($decoded, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
+    return sodium_crypto_secretbox_open($cipher, $nonce, $encKey);
 }
 ```
 
 Returns `false` on authentication failure (tampered data or wrong key).
+
+**Decrypt failure handling:** if `emotional_decrypt` returns `false` for any row,
+the endpoint must return a 500 with a log entry (via `print_roblog`) and skip
+the row in results. It must NOT silently return empty string or crash. This indicates
+either data corruption or a key mismatch (e.g. after api_key rotation).
 
 ### What Is Encrypted
 
@@ -208,11 +243,14 @@ from api_key lifecycle.
 When an event arrives, PHP runs this logic (within a transaction):
 
 ```
+-- NOTE: PDO named params cannot appear inside INTERVAL syntax.
+-- Pass gap as an integer and use DATE_SUB:
 1. SELECT session_id FROM interaction_sessions
-   WHERE key_id = :key_id AND user_id = :user_id
-     AND last_event_time > NOW() - INTERVAL :gap MINUTE
+   WHERE key_id = :key_id
+     AND last_event_time > DATE_SUB(NOW(), INTERVAL ? MINUTE)
    ORDER BY last_event_time DESC
    LIMIT 1
+-- bind: [intval(EMOTIONAL_SESSION_GAP_MINUTES)]
 
 2. If found:
      UPDATE interaction_sessions SET last_event_time = NOW() WHERE session_id = :id
@@ -248,8 +286,10 @@ All endpoints live under `/api/emotional/`. Authentication via header on every r
 X-API-Key: sk_...
 ```
 
-PHP validation: compute `hash('sha256', $submittedKey)`, compare to `api_key_hash` in
-`api_keys` WHERE `is_active = 1`. Reject with 401 if not found or inactive.
+PHP validation: compute `hash('sha256', $submittedKey)`, compare to `api_key_hash`
+(column name after migration 10: `alter_api_keys_hash.sql`) in `api_keys`
+WHERE `is_active = 1`. Reject with 401 if not found or inactive.
+Also update `api_keys.last_used = NOW()` on each successful auth.
 
 ---
 
@@ -337,6 +377,9 @@ PHP:
 
 Query events, optionally filtered by state or time range.
 
+At least one of `my_id`, `session_id`, or `from` is required. Requests with no filters
+are rejected with 400 to prevent accidentally returning the entire event history.
+
 **Query parameters:**
 
 | Param | Type | Description |
@@ -344,7 +387,7 @@ Query events, optionally filtered by state or time range.
 | `my_id` | integer | Filter by this state (agent's private ID) |
 | `session_id` | integer | Filter to a specific session |
 | `from` | ISO datetime | Start of time range |
-| `to` | ISO datetime | End of time range |
+| `to` | ISO datetime | End of time range (defaults to NOW() if `from` is set) |
 | `event_type` | string | `agent_action` \| `user_input` \| `user_reaction` |
 | `limit` | integer | Default 50, max 200 |
 
@@ -359,15 +402,27 @@ Query events, optionally filtered by state or time range.
     "event_type": "user_reaction",
     "my_id": 2341,
     "content": "User said 'I don't get it' — tone frustrated, repeated question"
+  },
+  {
+    "event_id": 1043,
+    "session_id": 7,
+    "sequence_num": 4,
+    "event_timestamp": "2026-02-27T14:25:00",
+    "event_type": "agent_action",
+    "my_id": null,
+    "content": "Agent switched to a coding metaphor"
   }
 ]
 ```
 
-PHP: join `mifmus` to resolve `my_id` filter → `mifmus_id`, apply all filters,
-decrypt `encrypted_content`, map `mifmus_id` back to `my_id` in response.
+`my_id` is `null` in the response when the event has no emotional state tag.
 
-The agent never sees `mifmus_id`. The `my_id` in the response matches what the agent
-submitted and what it has in its loaded vocab.
+PHP: LEFT JOIN `mifmus` on `mifmus_id` to resolve back to `my_id` for the response.
+If `my_id` filter param is supplied: INNER JOIN mifmus WHERE `my_id = ?` (excludes
+untagged events). Apply all remaining filters, decrypt `encrypted_content` for each row.
+Skip any row where decryption returns `false` (log via `print_roblog`).
+
+The agent never sees `mifmus_id`. The `my_id` in the response matches the agent's vocab.
 
 ---
 
