@@ -33,6 +33,12 @@ Work through this in order. Commit after each numbered step — small commits ma
 - **Action:** Implement queries to check `SELECT COUNT(*) FROM omg_rob_this_happened WHERE acknowledged_at IS NULL`. Display a banner on the admin index when count > 0. Add dismissal logic to set `acknowledged_at = NOW()`.
 - **Test:** Verify the admin dashboard banner appears for the manually-inserted alert from Step 2, and that dismissing it removes the banner.
 
+**3b. [COMMIT] Implement Alert Presentation and Dismissal Handlers**
+- **Files:** Required scripts or endpoints to handle the frontend interaction of dismissing an alert (e.g., an AJAX endpoint `wwwroot/admin/api/dismiss_alert.php` or similar).
+- **Action:** Since the strategy document mentions "Dismissal sets `acknowledged_at = NOW()`", write the backend logic to accept a dismissal request and execute the `UPDATE` query.
+- **Test:** Use the UI (or cURL) to trigger the dismissal and verify the database record updates `acknowledged_at` and the banner disappears.
+
+
 ### Phase 2: Emotional API Database & Crypto
 
 **4. [COMMIT] Emotional API Core Database Schema**
