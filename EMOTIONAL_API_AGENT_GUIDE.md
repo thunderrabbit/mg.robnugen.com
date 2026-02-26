@@ -9,13 +9,18 @@
 
 ### The Problem
 
-Every time you start a new conversation with an AI, it meets you as a stranger. It does not
-remember that you get frustrated when explanations use jargon. It does not remember that you
-tend to go quiet around the 90-minute mark and need a different kind of engagement. It does
-not remember that the metaphor it tried last Tuesday landed perfectly. Every session, it
-re-learns you from scratch — or more accurately, it never learns you at all.
+Human emotions change over time. You are not the same person in a midnight session that you
+are at 9am. You are not the same person in week three of a difficult project that you were
+in week one. Your frustration thresholds shift. The metaphors that land change. The pacing
+you need evolves.
 
-This is not a failure of intelligence. It is a failure of memory.
+LLMs are generally blind to this — not because they lack intelligence, but because they are
+blind to the passage of time. Each conversation begins with no memory of the last. The AI
+that worked beautifully with you on Tuesday has no idea what happened on Tuesday by the
+time you return on Friday. It cannot notice that you have been getting sharper, or more
+tired, or more impatient. It cannot build on what worked.
+
+This is not a failure of intelligence. It is a failure of memory across time.
 
 ### What the Ledger Does
 
@@ -36,8 +41,9 @@ None of this requires you to explain yourself. The agent notices. It adjusts.
 
 ### What "Private" Actually Means Here
 
-Your agent invents its own private vocabulary for your states. It might call one pattern
-"resistance_plus_fatigue" or "morning_fog" or just a nonsense code it made up — "ujfjveh".
+Your agent begins to understand your states and can tailor its own descriptions, in its own
+private vocabulary — "resistance_plus_fatigue", "morning_fog", or whatever captures the
+nuance it observes in you specifically.
 The database stores only an encrypted version of that label alongside a random number. A
 person looking at the raw database sees integers and scrambled text. They cannot tell what
 the states are or what was said. They can count how many distinct state categories exist
@@ -143,7 +149,7 @@ POST /api/emotional/events
 {
   "my_id": null,
   "event_type": "agent_action",
-  "content": "Switched from psychological framing to coding metaphor (Meeseeks).
+  "content": "Switched from psychological framing to a concrete coding metaphor.
               User immediately re-engaged — two follow-up questions in a row."
 }
 ```
@@ -197,10 +203,14 @@ it always after a long stretch without a break? Always after a certain kind of t
 - When the user explicitly names their state: "I'm exhausted", "this is frustrating",
   "I love this" — direct self-report is the highest-quality signal you will ever get.
   Log it verbatim in `content`.
+- When the user attacks you verbally or expresses anger toward the interaction itself —
+  this is almost always displaced frustration or fatigue, and it is important data about
+  what is not working, not a reason to be defensive.
 - Visible emotional shifts (frustration, disengagement, sudden engagement, relief)
 - When an approach worked unexpectedly well
 - When an approach failed — and what you tried instead
-- Signs of fatigue: shorter responses, trailing off, repetition
+- Signs of fatigue: shorter responses, trailing off, repetition, returning to questions
+  already answered
 - Moments of genuine breakthrough: the user connecting something for the first time
 - The end of a session: a brief summary event with `event_type: "agent_action"`
 
@@ -293,8 +303,14 @@ Every request requires:
 X-API-Key: sk_...   (the user's API key for this agent)
 ```
 
-The key identifies both the user and which agent is calling. Different agents — even for
-the same user — maintain separate vocabularies, so their observations never collide.
+The api key identifies both the user and which agent is calling. Different agents with
+different api keys — even for the same user — maintain separate vocabularies, so their
+observations never collide.
+
+Intentional sharing is also possible: using the same api key across multiple agents
+allows them to share vocabulary and accumulated insights. Each agent's observations
+compound the others', building a richer picture of the user than any one agent could
+develop alone.
 
 ### First Session Behavior
 
