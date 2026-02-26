@@ -201,9 +201,18 @@ CREATE TABLE omg_rob_this_happened (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ```
 
+After creating the table, insert an initial celebration/test entry:
+
+```sql
+INSERT INTO omg_rob_this_happened (context, message)
+VALUES ('system/setup', 'We created a system to alert you to important messages!');
+```
+
 Admin pages check `SELECT COUNT(*) FROM omg_rob_this_happened WHERE acknowledged_at IS NULL`
 and display a banner when count > 0. Dismissal sets `acknowledged_at = NOW()`.
-Implementation of the admin banner is separate work (admin dashboard).
+
+The admin banner is implemented in `wwwroot/admin/index.php` +
+`templates/admin/index.tpl.php` via `Admin\OmgAlerts` class.
 
 ---
 
