@@ -29,16 +29,68 @@ wwwroot/api/emotional/
 
 classes/Emotional/
     Ledger.php         — core logic: encrypt/decrypt, session detection, mifmus lookup
-    ApiAuth.php        — shared: validate X-API-Key header → key_id + user_id + raw key
+    ApiAuth.php        — shared: validate X-API-Key header → api_key_id + user_id + rawKey
 
 db_schemas/11_emotional_api/
-    create_emotional_api.sql   — my_ids_for_my_users_state, interaction_sessions, interaction_events
+    create_emotional_api.sql   — my_ids_for_my_users_state, interaction_sessions, interaction_events, omg_rob_this_happened
 ```
 
 Each endpoint file handles routing by HTTP method (`$_SERVER['REQUEST_METHOD']`),
 calls into `Emotional\Ledger`, and returns JSON with `Content-Type: application/json`.
 `Emotional\ApiAuth` is called at the top of every endpoint — it validates the key,
-returns `[key_id, user_id, rawKey]`, and exits 401 on failure.
+returns `[api_key_id, user_id, rawKey]`, and exits 401 on failure.
+
+---
+
+## Suggested Coding Order and Commit Points
+
+Work through this in order. Commit after each numbered step — small commits make it
+easy to roll back a broken step without losing everything else.
+
+```
+1. [COMMIT] db_schemas/11_emotional_api/create_emotional_api.sql
+   — write the SQL file, run migration via /admin/migrate_tables.php,
+     verify all four tables created and initial INSERT row visible
+
+2. [COMMIT] classes/Emotional/ApiAuth.php
+   — validate X-API-Key header, return api_key_id + user_id + rawKey
+   — test: hit /api/emotional/vocab with a valid key, expect 401 without key
+
+3. [COMMIT] classes/Emotional/Ledger.php  (encrypt/decrypt only)
+   — emotional_encrypt() and emotional_decrypt() using sodium_crypto_secretbox
+   — no DB code yet; just the two functions and key derivation
+   — test: encrypt a string, decrypt it, assert equal
+
+4. [COMMIT] wwwroot/api/emotional/vocab.php  (GET only)
+   — load and return decrypted vocab for the authenticated key
+   — test: GET with valid key, expect [] on fresh install
+
+5. [COMMIT] wwwroot/api/emotional/vocab.php  (POST added)
+   — add new state, generate random my_id, encrypt state, INSERT
+   — test: POST {"state":"test_anger"}, expect {"my_id": <int>}
+   — test: GET again, expect the new entry decrypted
+
+6. [COMMIT] Session auto-detection logic in Ledger.php
+   — getOrCreateSession(api_key_id, user_id): returns session_id
+   — test: call twice within gap, same session_id returned
+   — test: call with timestamp > gap, new session_id returned
+
+7. [COMMIT] wwwroot/api/emotional/events.php  (POST only)
+   — log an event: resolve my_id → mifmus_id, auto-session, encrypt content
+   — test: POST event, verify row in DB (content is unreadable blob)
+
+8. [COMMIT] wwwroot/api/emotional/events.php  (GET added)
+   — query events with filters, decrypt content, map mifmus_id → my_id
+   — test: GET with my_id filter, verify decrypted content matches
+
+9. [COMMIT] wwwroot/api/emotional/sessions.php
+   — list sessions with duration_minutes and event_count
+   — test: GET, verify session from step 7 appears
+
+10. [COMMIT] Error path: omg_rob_this_happened on my_id collision exhaustion
+    — add retry loop to vocab POST, escalate to omg table after 5 failures
+    — test: verify admin dashboard banner appears for a manually-inserted alert
+```
 
 ---
 
