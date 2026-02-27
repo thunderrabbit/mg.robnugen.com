@@ -6,19 +6,19 @@ It resolves temporal dependencies (e.g. `omg_rob_this_happened` must exist befor
 
 ---
 
-## Already Done
+## PHP Code Already Written
 
-These steps are complete — code exists in the repo. No action needed beyond verifying they work once the DB migrations they depend on are applied.
+The PHP/CSS code for these features is already in the repo — no new code required. But each one depends on a DB migration that has not been written or applied yet. They silently do nothing until their tables exist. Verification steps appear in the numbered list below at the appropriate points.
 
 **Admin Dashboard UI for Alerts**
 - **Files:** `classes/Admin/OmgAlerts.php`, `wwwroot/admin/index.php`, `templates/admin/index.tpl.php`, `wwwroot/css/styles.css`
-- `OmgAlerts::getUnread()` queries for unread alerts (fails safely if table is missing). `OmgAlerts::dismissAll()` sets `acknowledged_at = NOW()`. Admin index POSTs to `/admin/` with CSRF token to dismiss. Banner rendered in template when `!empty($omg_alerts)`.
-- **Verify after Step 2:** Admin dashboard banner appears for the inserted alert, dismissing it clears the banner.
+- `OmgAlerts::getUnread()` queries `omg_rob_this_happened` and catches the PDOException if the table is missing (returns `[]` silently). `OmgAlerts::dismissAll()` is a no-op until the table exists. Admin index handles form POST to `/admin/` with CSRF token. Banner only renders when `!empty($omg_alerts)` — currently always empty.
+- **Depends on:** Step 2 (creates `omg_rob_this_happened` table). Verified in Step 3.
 
 **DELETE /api/emotional/everything**
 - **File:** `wwwroot/api/emotional/everything.php` (DELETE method)
 - Accepts `{"confirm": "delete everything"}` in body (returns 400 if missing or wrong). In a transaction: counts then deletes `interaction_events`, `interaction_sessions`, and `my_ids_for_my_users_state` in FK-safe order for the authenticated `api_key_id`. Returns `{"deleted": {"events": N, "sessions": M, "vocab_entries": K}}`.
-- **Verify after Step 4:** Send DELETE without confirm → 400. Send DELETE with `{"confirm": "delete everything"}` → 200 with counts, all rows gone.
+- **Depends on:** Step 4 (creates the three emotional tables). Verified in Step 18.
 
 ---
 
@@ -45,6 +45,12 @@ Work through this in order. Commit after each numbered step — small commits ma
   VALUES ('system/setup', 'We created a system to alert you to important messages!');
   ```
 - **Test:** Run the migration via `/admin/migrate_tables.php` and verify the table exists and the row is present.
+
+**3. [VERIFY] Admin Dashboard Alerts End-to-End**
+- **No code to write.** PHP code already exists (see "PHP Code Already Written" above).
+- **Action:** After Step 2 migration is applied, visit `/admin/` and confirm:
+  - The amber alert banner appears with the "system/setup" row from Step 2's INSERT
+  - Clicking "Dismiss all" posts to `/admin/`, clears the banner, and sets `acknowledged_at` in the DB
 
 
 ### Phase 2: Emotional API Database & Crypto
