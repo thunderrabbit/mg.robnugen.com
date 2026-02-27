@@ -41,7 +41,7 @@ The emotional endpoints live at `/api/v1/emotions/` — the same base URL as the
 
 ### Phase 1: Foundations & Admin Scaffolding
 
-**1. [COMMIT] Defensive SQL fix in Database Class**
+**1. ~~[COMMIT] Defensive SQL fix in Database Class~~ DONE**
 - **File:** `classes/Database/Base.php` (method `executeMultipleSQL`)
 - **Action:** Update `Database\Base::executeMultipleSQL` to strip single-line SQL comments before splitting on semicolons.
   ```php
@@ -50,7 +50,7 @@ The emotional endpoints live at `/api/v1/emotions/` — the same base URL as the
   ```
 - **Why:** Protects against schema parsing errors caused by inline `--` comments in future migrations.
 
-**2. [COMMIT] Create Admin Alerts Database Table**
+**2. ~~[COMMIT] Create Admin Alerts Database Table~~ DONE**
 - **File:** `db_schemas/11_admin_alerts/create_admin_alerts.sql`
 - **Action:** Create the `omg_rob_this_happened` table to track critical human-attention failures. Include an initial test insert:
   ```sql
@@ -59,25 +59,23 @@ The emotional endpoints live at `/api/v1/emotions/` — the same base URL as the
   ```
 - **Test:** Run the migration via `/admin/migrate_tables.php` and verify the table exists and the row is present.
 
-**2b. [COMMIT] Write Admin Alerts PHP Layer** *(already done in this repo)*
+**2b. ~~[COMMIT] Write Admin Alerts PHP Layer~~ DONE** *(was already in repo; per-item dismiss added)*
 - **Files:** `classes/Admin/OmgAlerts.php`, `wwwroot/admin/index.php`, `templates/admin/index.tpl.php`, `wwwroot/css/styles.css`
 - All four files already exist (see "PHP Code Already Written" above), so no action required. This step is here to document what they do and why they appear between Step 2 and Step 3:
 
-  **`classes/Admin/OmgAlerts.php`** — two static methods, both wrapped in `try/catch (\PDOException $e)`. The catch blocks are intentional: the code is written before the migration is applied, so the table may not exist yet. Catching the exception lets the admin dashboard load silently with no banner rather than crashing.
+  **`classes/Admin/OmgAlerts.php`** — three static methods, all wrapped in `try/catch (\PDOException $e)`. The catch blocks are intentional: the code is written before the migration is applied, so the table may not exist yet. Catching the exception lets the admin dashboard load silently with no banner rather than crashing.
   - `getUnread(\PDO $pdo): array` — `SELECT omg_id, context, message, created_at FROM omg_rob_this_happened WHERE acknowledged_at IS NULL ORDER BY created_at DESC`. Returns `[]` on exception.
+  - `dismissOne(\PDO $pdo, int $omg_id): void` — `UPDATE ... SET acknowledged_at = NOW() WHERE omg_id = ? AND acknowledged_at IS NULL`. No-op on exception.
   - `dismissAll(\PDO $pdo): void` — `UPDATE omg_rob_this_happened SET acknowledged_at = NOW() WHERE acknowledged_at IS NULL`. No-op on exception.
 
-  **`wwwroot/admin/index.php`** — add two things: (1) a POST handler at the top for `action=dismiss_alerts` that calls `OmgAlerts::dismissAll()` then redirects (include CSRF check); (2) call `OmgAlerts::getUnread()` and pass the result plus `$_SESSION['csrf_token']` to the template.
+  **`wwwroot/admin/index.php`** — POST handler at the top handles both `action=dismiss_alerts` (bulk) and `action=dismiss_alert` with `omg_id` (single). Both call the appropriate `OmgAlerts` method then redirect. CSRF check on all POSTs. Also calls `OmgAlerts::getUnread()` and passes the result plus `$_SESSION['csrf_token']` to the template.
 
-  **`templates/admin/index.tpl.php`** — render an amber banner `<div class="OmgAlertBanner">` only when `!empty($omg_alerts)`. List each alert's `context`, `message`, and `created_at`. Include a form POSTing to `/admin/` with `action=dismiss_alerts` and the CSRF token.
+  **`templates/admin/index.tpl.php`** — renders an amber banner `<div class="OmgAlertBanner">` only when `!empty($omg_alerts)`. Each alert has an inline `×` dismiss button (`OmgDismissOne`). "Dismiss all" button (`OmgDismissButton`) at the bottom.
 
-  **`wwwroot/css/styles.css`** — add styles for `.OmgAlertBanner` (amber background, border), `.OmgAlertContext` (bold monospace), `.OmgAlertTime` (small, muted), and `.OmgDismissButton`.
+  **`wwwroot/css/styles.css`** — styles for `.OmgAlertBanner`, `.OmgAlertContext`, `.OmgAlertTime`, `.OmgDismissButton`, `.OmgDismissInline`, `.OmgDismissOne`.
 
-**3. [VERIFY] Admin Dashboard Alerts End-to-End**
-- **No new code to write** — but `OmgAlerts.php` has two `catch (\PDOException $e)` blocks that deliberately swallow "table not found" errors and return empty results. These are not bugs; they were written knowing the table didn't exist yet. Applying Step 2's migration activates the feature without touching any PHP.
-- **Action:** After Step 2 migration is applied, visit `/admin/` and confirm:
-  - The amber alert banner appears with the "system/setup" row from Step 2's INSERT
-  - Clicking "Dismiss all" posts to `/admin/`, clears the banner, and sets `acknowledged_at` in the DB
+**3. ~~[VERIFY] Admin Dashboard Alerts End-to-End~~ DONE**
+- Verified: amber banner appears, "Dismiss all" works, per-item `×` dismiss works. Tested with multiple manually inserted rows.
 
 
 ### Phase 2: Emotional API Database & Crypto
