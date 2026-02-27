@@ -80,12 +80,12 @@ The emotional endpoints live at `/api/v1/emotions/` — the same base URL as the
 
 ### Phase 2: Emotional API Database & Crypto
 
-**4. [COMMIT] Emotional API Core Database Schema**
+**4. ~~[COMMIT] Emotional API Core Database Schema~~ CODE WRITTEN — needs deploy + migration**
 - **File:** `db_schemas/12_emotional_api/create_emotional_api.sql`
 - **Action:** Create the 3 core tables in dependency order: `my_ids_for_my_users_state`, then `interaction_sessions`, then `interaction_events`. Full schema in the strategy doc. Use MySQL `COMMENT 'text'` syntax for column annotations — do **not** use `--` inline comments (risk of false semicolon splits in the importer). All three tables FK-reference `api_keys(key_id)`.
 - **Test:** Run the migration via `/admin/migrate_tables.php` and verify all three tables are created.
 
-**5. [COMMIT] Route `/emotions/*` Through the Front Controller**
+**5. ~~[COMMIT] Route `/emotions/*` Through the Front Controller~~ CODE WRITTEN — needs deploy**
 - **Files:** `wwwroot/api/v1/index.php` and `wwwroot/api/v1/_emotions.php`
 - **Action:** In `index.php`, add an `elseif` branch before the final `else { 404 }`:
   ```php
@@ -134,7 +134,7 @@ The emotional endpoints live at `/api/v1/emotions/` — the same base URL as the
   ```
 - **Test:** With a valid key: `curl -H "X-API-Key: sk_..." https://mg.robnugen.com/api/v1/emotions/vocab` → HTTP 404 "not yet implemented". Without a key: → HTTP 401 (rejected by `index.php` before reaching `_emotions.php`).
 
-**6. [COMMIT] Ledger Encryption Foundation: Key Derivation**
+**6. ~~[COMMIT] Ledger Encryption Foundation: Key Derivation~~ CODE WRITTEN**
 - **File:** `classes/Emotional/Ledger.php`
 - **Action:** Create the class. Implement derivation of a 32-byte encryption key using:
   ```php
@@ -143,7 +143,7 @@ The emotional endpoints live at `/api/v1/emotions/` — the same base URL as the
   Use `sodium_crypto_secretbox` (XSalsa20-Poly1305) — software-only, no hardware AES-NI required, available on DreamHost shared hosting.
 - **Test:** Write a temporary simple script to output a derived key from a known input and verify it produces exactly 32 bytes.
 
-**7. [COMMIT] Ledger Encryption Foundation: Encrypt/Decrypt Functions**
+**7. ~~[COMMIT] Ledger Encryption Foundation: Encrypt/Decrypt Functions~~ CODE WRITTEN**
 - **File:** `classes/Emotional/Ledger.php`
 - **Action:** Implement `emotional_encrypt()` and `emotional_decrypt()`:
   ```php
@@ -163,7 +163,7 @@ The emotional endpoints live at `/api/v1/emotions/` — the same base URL as the
   Each call generates a fresh random nonce — identical plaintext produces different ciphertext every time.
 - **Test:** Encrypt a string, decrypt it, assert equal. Verify that encrypting the same string twice produces different base64 blobs.
 
-**8. [COMMIT] API Endpoint: POST Vocab Routing & Auth**
+**8. ~~[COMMIT] API Endpoint: POST Vocab Routing & Auth~~ CODE WRITTEN — needs deploy + migration first**
 - **File:** `wwwroot/api/v1/_emotions.php` (in the `/vocab` branch)
 - **Action:** Replace the `/vocab` stub with a real handler. Route by `$method` (already set by `index.php`). Parse incoming JSON body for `state`. Return 405 for unsupported methods. Auth context (`$raw_key`, `$auth_key_id`, `$auth_user_id`) is already in scope — no `ApiAuth` call needed.
 - **Test:** With a valid key: expect HTTP 200 `{"status": "auth ok"}` (placeholder until Step 9 adds real insertion). With no key: expect HTTP 401.
@@ -185,18 +185,18 @@ The emotional endpoints live at `/api/v1/emotions/` — the same base URL as the
 - **[Restart]** Exit and reopen Claude Code to reload Jikan with the new tool. ⚠️ This ends your current session.
 - **[Jikan verify]** In the new session, ask Claude to call `emotional_post_vocab` with a test state. At this stage it returns `{"status": "auth ok"}` — real `my_id` response comes after Step 9.
 
-**9. [COMMIT] API Endpoint: POST Vocab DB Insertion & Encryption**
+**9. ~~[COMMIT] API Endpoint: POST Vocab DB Insertion & Encryption~~ CODE WRITTEN**
 - **File:** `wwwroot/api/v1/_emotions.php` (in the `/vocab` branch, POST method)
 - **Action:** Derive encryption key from `raw_key`. Encrypt the `state` string. Generate a random `my_id`: `random_int(100000, 999999999)`. Execute `INSERT INTO my_ids_for_my_users_state (api_key_id, my_id, state) VALUES (?, ?, ?)`. Return `{"my_id": <int>}`.
 - **Test:** POST a new state. Check the database directly to ensure the row is inserted with the correct `api_key_id`, generated `my_id`, and an encrypted blob in `state`.
 - **[Jikan verify — no restart needed]** The `emotional_post_vocab` tool added in Step 8 now returns `{"my_id": N}`. Ask Claude to call it with a test state and confirm the response contains a valid integer `my_id`.
 
-**10. [COMMIT] API Endpoint: POST Vocab Collision Retry Loop**
+**10. ~~[COMMIT] API Endpoint: POST Vocab Collision Retry Loop~~ CODE WRITTEN**
 - **File:** `wwwroot/api/v1/_emotions.php` (in the `/vocab` branch, POST method)
 - **Action:** Wrap the `my_id` generation and `INSERT` in a loop (max 5 attempts) to handle potential `UNIQUE` constraint violations on `(api_key_id, my_id)`.
 - **Test:** Temporarily force a collision in the code to ensure the loop successfully retries and eventually inserts.
 
-**11. [COMMIT] API Endpoint: POST Vocab Alert Escalation**
+**11. ~~[COMMIT] API Endpoint: POST Vocab Alert Escalation~~ CODE WRITTEN**
 - **File:** `wwwroot/api/v1/_emotions.php` (in the `/vocab` branch, POST method)
 - **Action:** If all 5 collision attempts fail, call `print_roblog` with context (api_key_id, attempted my_ids), then execute:
   ```sql
@@ -211,7 +211,7 @@ The emotional endpoints live at `/api/v1/emotions/` — the same base URL as the
 
 - **Test:** Temporarily force the loop to fail all 5 times. Verify HTTP 500 response and check the Admin Dashboard banner for the new alert.
 
-**12. [COMMIT] API Endpoint: GET Vocab**
+**12. ~~[COMMIT] API Endpoint: GET Vocab~~ CODE WRITTEN**
 - **File:** `wwwroot/api/v1/_emotions.php` (in the `/vocab` branch, GET method)
 - **Action:** Add GET handler to the `/vocab` branch. Query `my_ids_for_my_users_state WHERE api_key_id = ?` (using `$auth_key_id` from `index.php`), decrypt each `state` value using `emotional_decrypt()` (already in `Ledger.php` from Step 7), return array of `[{my_id, state}]`. If decryption returns `false` for any row: call `print_roblog`, return 500.
 - **Test:** `curl -H "X-API-Key: sk_..." https://mg.robnugen.com/api/v1/emotions/vocab` — expect the decrypted label POSTed in Step 9. This tests the full cryptographic round-trip end to end.
@@ -233,7 +233,7 @@ The emotional endpoints live at `/api/v1/emotions/` — the same base URL as the
 
 ### Phase 3: Core Endpoints
 
-**13. [COMMIT] Session Auto-Detection Logic**
+**13. ~~[COMMIT] Session Auto-Detection Logic~~ CODE WRITTEN**
 - **File:** `classes/Emotional/Ledger.php`
 - **Action:** Implement `getOrCreateSession($api_key_id, $user_id)`. Within a transaction:
   1. Query `interaction_sessions` for the most recent session within `EMOTIONAL_SESSION_GAP_MINUTES`:
@@ -255,7 +255,7 @@ The emotional endpoints live at `/api/v1/emotions/` — the same base URL as the
   ```
 - **Test:** Call twice within the gap — same `session_id` returned. Force timestamp to exceed gap, then verify a new `session_id` is generated.
 
-**14. [COMMIT] API Endpoint: POST Events**
+**14. ~~[COMMIT] API Endpoint: POST Events~~ CODE WRITTEN**
 - **File:** `wwwroot/api/v1/_emotions.php` (in the `/events` branch, POST method)
 - **Action:** Replace the `/events` stub with a real handler. Accept event payload (`my_id` optional, `event_type`, `content`). Within a transaction:
   1. Resolve `my_id` → `mifmus_id`: `SELECT mifmus_id FROM my_ids_for_my_users_state WHERE api_key_id=? AND my_id=?` (NULL if no `my_id` supplied)
@@ -290,7 +290,7 @@ The emotional endpoints live at `/api/v1/emotions/` — the same base URL as the
 - **[Restart]** Exit and reopen Claude Code. ⚠️ This ends your current session.
 - **[Jikan verify]** Ask Claude to call `emotional_log_event` with a test observation. Expect `event_id`, `session_id`, and `sequence_num` in the response.
 
-**15. [COMMIT] API Endpoint: GET Events**
+**15. ~~[COMMIT] API Endpoint: GET Events~~ CODE WRITTEN**
 - **File:** `wwwroot/api/v1/_emotions.php` (in the `/events` branch, GET method)
 - **Action:** Add GET handler to the `/events` branch. Require at least one of `my_id`, `session_id`, or `from` — return 400 if none supplied. Apply filters to query `interaction_events`. If `my_id` filter supplied: INNER JOIN `my_ids_for_my_users_state` WHERE `m.my_id = ?`. Otherwise: LEFT JOIN to map `mifmus_id` → `my_id` in response. Decrypt `encrypted_content` for each row. If decryption returns `false`: call `print_roblog`, skip the row. Return event array with `my_id` (null if untagged).
 - **Test:** `curl -H "X-API-Key: sk_..." "https://mg.robnugen.com/api/v1/emotions/events?my_id=N"` — expect a list with the event from Step 14, content decrypted and matching the original.
@@ -336,7 +336,7 @@ The emotional endpoints live at `/api/v1/emotions/` — the same base URL as the
 
 ### Phase 4: Sessions & Deletion Logic
 
-**16. [COMMIT] API Endpoint: GET Sessions**
+**16. ~~[COMMIT] API Endpoint: GET Sessions~~ CODE WRITTEN**
 - **File:** `wwwroot/api/v1/_emotions.php` (in the `/sessions` branch, GET method)
 - **Action:** Replace the `/sessions` stub with a GET handler. List sessions with purely computed fields — no decryption required:
   ```sql
@@ -380,7 +380,7 @@ The emotional endpoints live at `/api/v1/emotions/` — the same base URL as the
 - **[Restart]** Exit and reopen Claude Code. ⚠️ This ends your current session.
 - **[Jikan verify]** Ask Claude to call `emotional_get_sessions`. Expect the session from Step 14 with correct metadata.
 
-**17. [COMMIT] API Endpoints: DELETE Handlers**
+**17. ~~[COMMIT] API Endpoints: DELETE Handlers~~ CODE WRITTEN**
 - **File:** `wwwroot/api/v1/_emotions.php` (in the `/events` and `/vocab` branches, DELETE method)
 - **Action:**
   - `/events` branch DELETE: Accept `{"event_id": N}` in body. Execute `DELETE FROM interaction_events WHERE event_id = ? AND api_key_id = ?` (ownership check). Return `{"deleted": 1}` or `{"deleted": 0}` — never 404 (avoids leaking whether an ID exists).
@@ -409,7 +409,7 @@ The emotional endpoints live at `/api/v1/emotions/` — the same base URL as the
 - **[Restart]** Exit and reopen Claude Code. ⚠️ This ends your current session.
 - **[Jikan verify]** Ask Claude to delete a test event and a test vocab entry. Confirm expected responses and DB state.
 
-**18. [COMMIT + VERIFY] HTTP `DELETE` endpoint: `/api/v1/emotions/everything`**
+**18. ~~[COMMIT + VERIFY] HTTP `DELETE` endpoint: `/api/v1/emotions/everything`~~ CODE WRITTEN**
 - **File:** `wwwroot/api/v1/_emotions.php` (in the `/everything` branch, DELETE method); also delete `wwwroot/api/v1/emotions/everything.php`
 - **Action:** Migrate the logic from `everything.php` (see "PHP Code Already Written" above) into the `/everything` branch of `_emotions.php`. Remove the `prepend.php` include and `\Emotional\ApiAuth::authenticate()` call — those are replaced by the variables already in scope from `index.php` (`$auth_key_id`, `$pdo`). Then delete the standalone `wwwroot/api/v1/emotions/everything.php`. The business logic (confirm check, transaction, FK-safe deletion, response shape) is identical.
 - **Test:** `curl -X DELETE -H "X-API-Key: sk_..." -d '{}' .../everything` → 400. `curl -X DELETE ... -d '{"confirm":"delete everything"}' .../everything` → 200 with correct counts, all rows gone.
