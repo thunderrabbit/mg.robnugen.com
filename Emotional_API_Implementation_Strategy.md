@@ -22,7 +22,7 @@ query user emotional states over time, integrated into `mg.robnugen.com` infrast
 New files to create (all must include `prepend.php` using the standard pattern from CLAUDE.md):
 
 ```
-wwwroot/api/emotional/
+wwwroot/api/v1/emotions/
     vocab.php          — GET (load vocab) + POST (add state)
     events.php         — GET (query) + POST (log)
     sessions.php       — GET (list sessions)
@@ -54,18 +54,18 @@ easy to roll back a broken step without losing everything else.
 
 2. [COMMIT] classes/Emotional/ApiAuth.php
    — validate X-API-Key header, return api_key_id + user_id + rawKey
-   — test: hit /api/emotional/vocab with a valid key, expect 401 without key
+   — test: hit /api/v1/emotions/vocab with a valid key, expect 401 without key
 
 3. [COMMIT] classes/Emotional/Ledger.php  (encrypt/decrypt only)
    — emotional_encrypt() and emotional_decrypt() using sodium_crypto_secretbox
    — no DB code yet; just the two functions and key derivation
    — test: encrypt a string, decrypt it, assert equal
 
-4. [COMMIT] wwwroot/api/emotional/vocab.php  (GET only)
+4. [COMMIT] wwwroot/api/v1/emotions/vocab.php  (GET only)
    — load and return decrypted vocab for the authenticated key
    — test: GET with valid key, expect [] on fresh install
 
-5. [COMMIT] wwwroot/api/emotional/vocab.php  (POST added)
+5. [COMMIT] wwwroot/api/v1/emotions/vocab.php  (POST added)
    — add new state, generate random my_id, encrypt state, INSERT
    — test: POST {"state":"test_anger"}, expect {"my_id": <int>}
    — test: GET again, expect the new entry decrypted
@@ -75,26 +75,26 @@ easy to roll back a broken step without losing everything else.
    — test: call twice within gap, same session_id returned
    — test: call with timestamp > gap, new session_id returned
 
-7. [COMMIT] wwwroot/api/emotional/events.php  (POST only)
+7. [COMMIT] wwwroot/api/v1/emotions/events.php  (POST only)
    — log an event: resolve my_id → mifmus_id, auto-session, encrypt content
    — test: POST event, verify row in DB (content is unreadable blob)
 
-8. [COMMIT] wwwroot/api/emotional/events.php  (GET added)
+8. [COMMIT] wwwroot/api/v1/emotions/events.php  (GET added)
    — query events with filters, decrypt content, map mifmus_id → my_id
    — test: GET with my_id filter, verify decrypted content matches
 
-9. [COMMIT] wwwroot/api/emotional/sessions.php
+9. [COMMIT] wwwroot/api/v1/emotions/sessions.php
    — list sessions with duration_minutes and event_count
    — test: GET, verify session from step 7 appears
 
-10. [COMMIT] DELETE /api/emotional/events and DELETE /api/emotional/vocab
+10. [COMMIT] DELETE /api/v1/emotions/events and DELETE /api/v1/emotions/vocab
     — add DELETE method handling to events.php and vocab.php
     — events: DELETE WHERE event_id=? AND api_key_id=? (ownership check)
     — vocab: DELETE entry, return events_untagged count
     — test: delete an event, verify gone; delete a vocab entry, verify events still exist
       with mifmus_id=NULL
 
-11. [COMMIT] DELETE /api/emotional/everything  (wwwroot/api/emotional/everything.php)
+11. [COMMIT] DELETE /api/v1/emotions/everything  (wwwroot/api/v1/emotions/everything.php)
     — require {"confirm": "delete everything"} in body, return 400 otherwise
     — delete in FK order within a transaction, return counts
     — test: POST without confirm → 400; POST with confirm → all rows gone
@@ -404,7 +404,7 @@ etc.) without requiring the agent to track or manage session IDs.
 
 ## API Endpoints
 
-All endpoints live under `/api/emotional/`. Authentication via header on every request:
+All endpoints live under `/api/v1/emotions/`. Authentication via header on every request:
 ```
 X-API-Key: sk_...
 ```
@@ -416,7 +416,7 @@ Also update `api_keys.last_used = NOW()` on each successful auth.
 
 ---
 
-### GET /api/emotional/vocab
+### GET /api/v1/emotions/vocab
 
 Load the agent's full private vocabulary for this session.
 
@@ -439,7 +439,7 @@ All subsequent log and query calls use `my_id` values from this loaded vocab.
 
 ---
 
-### POST /api/emotional/vocab
+### POST /api/v1/emotions/vocab
 
 Add a new state label to the agent's vocabulary.
 
@@ -470,7 +470,7 @@ in the same session without reloading.
 
 ---
 
-### POST /api/emotional/events
+### POST /api/v1/emotions/events
 
 Log a single interaction event.
 
@@ -500,7 +500,7 @@ PHP:
 
 ---
 
-### GET /api/emotional/events
+### GET /api/v1/emotions/events
 
 Query events, optionally filtered by state or time range.
 
@@ -553,7 +553,7 @@ The agent never sees `mifmus_id`. The `my_id` in the response matches the agent'
 
 ---
 
-### GET /api/emotional/sessions
+### GET /api/v1/emotions/sessions
 
 List sessions with metadata for pattern analysis.
 
@@ -591,7 +591,7 @@ LIMIT :limit
 ```
 
 The agent uses this to identify sessions of interest, then fetches events for those
-sessions via `GET /api/emotional/events?session_id=X`.
+sessions via `GET /api/v1/emotions/events?session_id=X`.
 
 This two-step pattern supports time-based analysis:
 - "Does the user's mood shift after 90 minutes in a session?" → fetch session list,
@@ -600,7 +600,7 @@ This two-step pattern supports time-based analysis:
 
 ---
 
-### DELETE /api/emotional/events
+### DELETE /api/v1/emotions/events
 
 Delete a single event by `event_id`.
 
@@ -625,7 +625,7 @@ is sufficient for single-row deletion.
 
 ---
 
-### DELETE /api/emotional/vocab
+### DELETE /api/v1/emotions/vocab
 
 Delete a vocab entry by `my_id`. Associated events are **not** deleted — their
 `mifmus_id` is set to NULL via the `ON DELETE SET NULL` FK constraint, preserving
@@ -652,7 +652,7 @@ useful for it to decide whether to re-tag them before deleting.
 
 ---
 
-### DELETE /api/emotional/everything
+### DELETE /api/v1/emotions/everything
 
 Wipe all data for this api_key: all events, sessions, and vocab entries.
 
@@ -697,7 +697,7 @@ DELETE FROM my_ids_for_my_users_state WHERE api_key_id = ?
 `my_ids_for_my_users_state` can be deleted in any order relative to sessions since
 events are already gone.
 
-Lives in: `wwwroot/api/emotional/everything.php`
+Lives in: `wwwroot/api/v1/emotions/everything.php`
 
 ---
 
@@ -706,12 +706,12 @@ Lives in: `wwwroot/api/emotional/everything.php`
 ### Session Start
 
 ```
-1. GET /api/emotional/vocab
+1. GET /api/v1/emotions/vocab
    Response: [{my_id: 2341, state: "anger"}, {my_id: 8847, state: "ujfjveh"}, ...]
    Agent: load into context memory as private vocab
 
 2. For any new state encountered during the session not yet in vocab:
-   POST /api/emotional/vocab  {"state": "new_label"}
+   POST /api/v1/emotions/vocab  {"state": "new_label"}
    Response: {"my_id": 9923}
    Agent: append {my_id: 9923, state: "new_label"} to in-memory vocab
 ```
@@ -725,8 +725,8 @@ plain words ("anger"), invented codes ("ujfjveh"), compound descriptions
 ```
 1. Agent identifies: "user just expressed frustration at jargon"
 2. Agent looks up "frustration" in in-memory vocab → my_id = 2341
-   (If not found: POST /api/emotional/vocab first)
-3. POST /api/emotional/events
+   (If not found: POST /api/v1/emotions/vocab first)
+3. POST /api/v1/emotions/events
    {"my_id": 2341, "event_type": "user_reaction",
     "content": "User said 'that makes no sense' after explanation of shadow work"}
 4. Response confirms event_id, session_id, sequence_num (agent may discard or log)
@@ -737,12 +737,12 @@ plain words ("anger"), invented codes ("ujfjveh"), compound descriptions
 ```
 1. Agent wants to know: "when does this user show state ujfjveh?"
 2. Agent has my_id = 8847 for "ujfjveh" from loaded vocab
-3. GET /api/emotional/events?my_id=8847&from=2026-01-01
+3. GET /api/v1/emotions/events?my_id=8847&from=2026-01-01
 4. Agent receives decrypted event list, reasons over content and timestamps
 5. For session-depth analysis:
-   GET /api/emotional/sessions
+   GET /api/v1/emotions/sessions
    → find session_id=7 (duration 132 min)
-   GET /api/emotional/events?session_id=7&my_id=8847
+   GET /api/v1/emotions/events?session_id=7&my_id=8847
    → agent identifies at which sequence_num (session minute ~90) the state appeared
 ```
 

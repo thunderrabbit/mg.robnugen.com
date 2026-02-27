@@ -73,10 +73,10 @@ This data belongs to you. Three things you can always do:
 1. **Ask your agent what it has observed.** Say: "What patterns have you noticed about how
    I work?" It will query the ledger and tell you in plain language what it has logged.
 2. **Delete specific observations.** Three levels of deletion are available:
-   - Single event: `DELETE /api/emotional/events` `{"event_id": 1042}`
-   - Single vocab entry: `DELETE /api/emotional/vocab` `{"my_id": 2341}`
+   - Single event: `DELETE /api/v1/emotions/events` `{"event_id": 1042}`
+   - Single vocab entry: `DELETE /api/v1/emotions/vocab` `{"my_id": 2341}`
      (associated events are preserved but lose their state tag)
-   - Wipe everything: `DELETE /api/emotional/everything` `{"confirm": "delete everything"}`
+   - Wipe everything: `DELETE /api/v1/emotions/everything` `{"confirm": "delete everything"}`
      returns counts of what was removed
 3. **Revoke your API key.** This immediately prevents any further access. Because the
    encryption key is derived from your API key, revoking it also permanently seals all
@@ -101,7 +101,7 @@ be honest in what you record.
 Before the conversation begins, retrieve your private state vocabulary:
 
 ```
-GET /api/emotional/vocab
+GET /api/v1/emotions/vocab
 X-API-Key: sk_...
 
 Response:
@@ -120,7 +120,7 @@ your own words, visible only to you.
 If you encounter a state you have never named before:
 
 ```
-POST /api/emotional/vocab
+POST /api/v1/emotions/vocab
 {"state": "curious_but_guarded"}
 
 Response: {"my_id": 7741}
@@ -137,7 +137,7 @@ When you notice something meaningful about the user's state, log it. Be specific
 `content` field — this is what you will read later when looking for patterns.
 
 ```
-POST /api/emotional/events
+POST /api/v1/emotions/events
 {
   "my_id": 2341,
   "event_type": "user_reaction",
@@ -149,7 +149,7 @@ POST /api/emotional/events
 Log your own actions too — especially when you change approach:
 
 ```
-POST /api/emotional/events
+POST /api/v1/emotions/events
 {
   "my_id": null,
   "event_type": "agent_action",
@@ -168,7 +168,7 @@ unnecessary. The ledger is for reflection, not real-time lookup.
 
 Query at these moments:
 - **Session start**: optionally scan recent events to refresh your context before
-  the conversation begins (e.g., `GET /api/emotional/events?from=<two weeks ago>&limit=20`)
+  the conversation begins (e.g., `GET /api/v1/emotions/events?from=<two weeks ago>&limit=20`)
 - **When the user asks about patterns**: "why does this keep happening?", "am I making
   progress?", "what have you noticed?"
 - **When you are about to try something new**: check whether you have tried it before
@@ -178,7 +178,7 @@ When the user asks something like "why does this always take so long?" or "I fee
 I keep hitting the same wall" — you now have actual data:
 
 ```
-GET /api/emotional/events?my_id=9103&from=2026-01-01
+GET /api/v1/emotions/events?my_id=9103&from=2026-01-01
 ```
 
 You receive a list of every session where you observed `resistance_plus_fatigue`, with the
@@ -188,14 +188,14 @@ happen? What preceded them? What resolved them?
 To understand session-level patterns:
 
 ```
-GET /api/emotional/sessions
+GET /api/v1/emotions/sessions
 ```
 
 This returns session durations and event counts without decrypting anything — fast metadata.
 Find a long session where the state appeared, then drill in:
 
 ```
-GET /api/emotional/events?session_id=7&my_id=9103
+GET /api/v1/emotions/events?session_id=7&my_id=9103
 ```
 
 Now you can see: at what point in the session (sequence number) did the state appear? Was
@@ -256,14 +256,14 @@ Add this block to any agent's system prompt to give it Ledger awareness:
 ## Emotional Interaction Ledger
 
 You have access to a persistent memory system for tracking this user's emotional states
-across sessions. API base: https://mg.robnugen.com/api/emotional/
+across sessions. API base: https://mg.robnugen.com/api/v1/emotions/
 
 At the start of every session:
-1. GET /api/emotional/vocab — load your private state vocabulary into context
-2. If you need a new state: POST /api/emotional/vocab {"state": "your_label"} → my_id
+1. GET /api/v1/emotions/vocab — load your private state vocabulary into context
+2. If you need a new state: POST /api/v1/emotions/vocab {"state": "your_label"} → my_id
 
 During the session, log meaningful observations:
-POST /api/emotional/events
+POST /api/v1/emotions/events
 {
   "my_id": <integer from vocab, or null if no state>,
   "event_type": "user_reaction" | "user_input" | "agent_action",
@@ -271,8 +271,8 @@ POST /api/emotional/events
 }
 
 To query past patterns:
-GET /api/emotional/events?my_id=<id>&from=<ISO date>
-GET /api/emotional/sessions
+GET /api/v1/emotions/events?my_id=<id>&from=<ISO date>
+GET /api/v1/emotions/sessions
 
 Your vocab and all content are encrypted — only you can read them.
 Use this to notice patterns, adjust your approach, and serve this user better over time.
@@ -284,16 +284,16 @@ The single most important pattern for any agent using the Ledger:
 
 ```
 SESSION START
-  1. GET /api/emotional/vocab          → load vocab into context
-  2. GET /api/emotional/events?from=X  → optional: recent context scan
+  1. GET /api/v1/emotions/vocab          → load vocab into context
+  2. GET /api/v1/emotions/events?from=X  → optional: recent context scan
 
 DURING SESSION (as needed)
-  3. POST /api/emotional/vocab         → add new states as they appear
-  4. POST /api/emotional/events        → log meaningful observations
+  3. POST /api/v1/emotions/vocab         → add new states as they appear
+  4. POST /api/v1/emotions/events        → log meaningful observations
 
 ON USER QUESTION ABOUT PATTERNS
-  5. GET /api/emotional/sessions       → find sessions of interest
-  6. GET /api/emotional/events?...     → drill into specific patterns
+  5. GET /api/v1/emotions/sessions       → find sessions of interest
+  6. GET /api/v1/emotions/events?...     → drill into specific patterns
 ```
 
 This rhythm — load once, log throughout, query only on demand — keeps the interaction
@@ -318,7 +318,7 @@ develop alone.
 
 ### First Session Behavior
 
-On the very first session, `GET /api/emotional/vocab` returns `[]`. The agent should
+On the very first session, `GET /api/v1/emotions/vocab` returns `[]`. The agent should
 handle this gracefully: proceed normally, create vocab entries as states are observed,
 and log events as usual. There is nothing to query yet — that is expected.
 
