@@ -23,14 +23,42 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
 
         $ledger = new \Emotional\Ledger($pdo, $raw_key, $auth_key_id, $auth_user_id);
         $encrypted_state = $ledger->encrypt($body['state']);
-        $my_id = random_int(100000, 999999999);
 
         $stmt = $pdo->prepare(
             'INSERT INTO my_ids_for_my_users_state (api_key_id, my_id, state) VALUES (?, ?, ?)'
         );
-        $stmt->execute([$auth_key_id, $my_id, $encrypted_state]);
 
-        echo json_encode(['my_id' => $my_id]);
+        $max_attempts = 5;
+        for ($attempt = 1; $attempt <= $max_attempts; $attempt++) {
+            $my_id = random_int(100000, 999999999);
+            try {
+                $stmt->execute([$auth_key_id, $my_id, $encrypted_state]);
+                echo json_encode(['my_id' => $my_id]);
+                return;
+            } catch (\PDOException $e) {
+                if ($e->getCode() == '23000' && $attempt < $max_attempts) {
+                    continue; // UNIQUE violation — retry with new my_id
+                }
+                if ($attempt >= $max_attempts) {
+                    // Step 11: escalate after all attempts exhausted
+                    print_roblog("my_id collision exhausted for api_key_id=$auth_key_id after $max_attempts attempts", 'emotional/vocab');
+                    try {
+                        $pdo->prepare(
+                            "INSERT INTO omg_rob_this_happened (context, message) VALUES (?, ?)"
+                        )->execute([
+                            'emotional/vocab',
+                            "$max_attempts my_id collisions exhausted for api_key_id $auth_key_id"
+                        ]);
+                    } catch (\PDOException $omg) {
+                        // Table may not exist yet
+                    }
+                    http_response_code(500);
+                    echo json_encode(['error' => 'Failed to generate unique ID']);
+                    return;
+                }
+                throw $e; // Non-collision PDOException — rethrow
+            }
+        }
 
     } elseif ($method === 'GET') {
         // Step 12: return decrypted vocab
