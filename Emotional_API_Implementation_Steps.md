@@ -6,6 +6,22 @@ It resolves temporal dependencies (e.g. `omg_rob_this_happened` must exist befor
 
 ---
 
+## Already Done
+
+These steps are complete — code exists in the repo. No action needed beyond verifying they work once the DB migrations they depend on are applied.
+
+**Admin Dashboard UI for Alerts**
+- **Files:** `classes/Admin/OmgAlerts.php`, `wwwroot/admin/index.php`, `templates/admin/index.tpl.php`, `wwwroot/css/styles.css`
+- `OmgAlerts::getUnread()` queries for unread alerts (fails safely if table is missing). `OmgAlerts::dismissAll()` sets `acknowledged_at = NOW()`. Admin index POSTs to `/admin/` with CSRF token to dismiss. Banner rendered in template when `!empty($omg_alerts)`.
+- **Verify after Step 2:** Admin dashboard banner appears for the inserted alert, dismissing it clears the banner.
+
+**DELETE /api/emotional/everything**
+- **File:** `wwwroot/api/emotional/everything.php` (DELETE method)
+- Accepts `{"confirm": "delete everything"}` in body (returns 400 if missing or wrong). In a transaction: counts then deletes `interaction_events`, `interaction_sessions`, and `my_ids_for_my_users_state` in FK-safe order for the authenticated `api_key_id`. Returns `{"deleted": {"events": N, "sessions": M, "vocab_entries": K}}`.
+- **Verify after Step 4:** Send DELETE without confirm → 400. Send DELETE with `{"confirm": "delete everything"}` → 200 with counts, all rows gone.
+
+---
+
 ## Suggested Coding Order and Commit Points
 
 Work through this in order. Commit after each numbered step — small commits make it easy to roll back a broken step without losing everything else.
@@ -29,11 +45,6 @@ Work through this in order. Commit after each numbered step — small commits ma
   VALUES ('system/setup', 'We created a system to alert you to important messages!');
   ```
 - **Test:** Run the migration via `/admin/migrate_tables.php` and verify the table exists and the row is present.
-
-**3. [COMMIT] Admin Dashboard UI for Alerts** *(already implemented)*
-- **Files:** `classes/Admin/OmgAlerts.php`, `wwwroot/admin/index.php`, `templates/admin/index.tpl.php`, `wwwroot/css/styles.css`
-- **What was done:** `OmgAlerts::getUnread()` queries for unread alerts (fails safely if table is missing). `OmgAlerts::dismissAll()` sets `acknowledged_at = NOW()`. Admin index POSTs to `/admin/` with CSRF token to dismiss. Banner rendered in template when `!empty($omg_alerts)`.
-- **Test:** Verify the admin dashboard banner appears for the manually-inserted alert from Step 2, and that dismissing it clears the banner.
 
 
 ### Phase 2: Emotional API Database & Crypto
@@ -176,7 +187,7 @@ Work through this in order. Commit after each numbered step — small commits ma
   - `vocab.php DELETE`: Accept `{"my_id": N}` in body. First `SELECT mifmus_id` and `COUNT(*)` of associated events. Then `DELETE FROM my_ids_for_my_users_state WHERE mifmus_id = ?` (FK cascade sets events' `mifmus_id` to NULL via `ON DELETE SET NULL`). Return `{"deleted": 1, "events_untagged": N}`.
 - **Test:** Delete an event — verify it's removed. Delete a vocab entry — verify count returned and that corresponding event rows still exist with `mifmus_id = NULL`.
 
-**18. [COMMIT] API Endpoint: DELETE everything** *(file already created)*
-- **File:** `wwwroot/api/emotional/everything.php` (DELETE method)
-- **What exists:** File is implemented. Accepts `{"confirm": "delete everything"}` in body (returns 400 if missing or wrong). In a transaction: counts then deletes `interaction_events`, `interaction_sessions`, and `my_ids_for_my_users_state` in FK-safe order for the authenticated `api_key_id`. Returns `{"deleted": {"events": N, "sessions": M, "vocab_entries": K}}`.
-- **Test:** Send DELETE without confirm → 400. Send DELETE with `{"confirm": "delete everything"}` → 200 with counts, all rows gone.
+**18. [VERIFY] DELETE /api/emotional/everything**
+- **File:** `wwwroot/api/emotional/everything.php` — already exists (see "Already Done" section above)
+- **Action:** No code to write. After applying Step 4 migration and running through Steps 14–17 to create some test data, verify the endpoint end-to-end.
+- **Test:** Send DELETE without confirm → 400. Send DELETE with `{"confirm": "delete everything"}` → 200 with correct counts, all rows gone.
