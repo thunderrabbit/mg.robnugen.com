@@ -85,6 +85,30 @@ class StripeWebhook
 
         // Add credits
         $this->addCredits($user_id, self::PLAN_CREDITS[$plan] ?? self::PLAN_CREDITS['developer']);
+
+        // Milestone alert for paying clients
+        // try/catch because omg_rob_this_happened may not exist yet if the
+        // migration (Step 2) hasn't been applied. We must not let a missing
+        // table throw an exception here — a 500 from this webhook causes
+        // Stripe to retry the event, which would double-credit the user.
+        try {
+            $stmt = $this->pdo->prepare(
+                "SELECT COUNT(*) FROM users WHERE stripe_customer_id IS NOT NULL"
+            );
+            $stmt->execute();
+            $count = (int) $stmt->fetchColumn();
+
+            if ($this->isPayingClientMilestone($count)) {
+                $this->pdo->prepare(
+                    "INSERT INTO omg_rob_this_happened (context, message) VALUES (?, ?)"
+                )->execute([
+                    'billing/milestone',
+                    "Paying client milestone: $count total paying clients!"
+                ]);
+            }
+        } catch (\PDOException $e) {
+            // Table not yet created — milestone silently skipped.
+        }
     }
 
     // ── invoice.payment_succeeded ─────────────────────────────────────────────
@@ -121,6 +145,22 @@ class StripeWebhook
         $stmt->execute([$user_id]);
 
         $this->addCredits($user_id, self::PLAN_CREDITS[$plan] ?? self::PLAN_CREDITS['developer']);
+    }
+
+    // ── Credit top-up ─────────────────────────────────────────────────────────
+    // INSERT ... ON DUPLICATE KEY ensures we never lose credits already in balance.
+
+    // Milestone schedule:
+    //   1–10:        every new client  (the exciting early ones)
+    //   11–100:      every tenth       (20, 30, … 100)
+    //   101–1,000:   every hundredth   (200, 300, … 1,000)
+    //   1,001+:      every thousandth  (2,000, 3,000, …)
+    private function isPayingClientMilestone(int $n): bool
+    {
+        if ($n <= 10)   return true;
+        if ($n <= 100)  return $n % 10  === 0;
+        if ($n <= 1000) return $n % 100 === 0;
+        return                 $n % 1000 === 0;
     }
 
     // ── Credit top-up ─────────────────────────────────────────────────────────
