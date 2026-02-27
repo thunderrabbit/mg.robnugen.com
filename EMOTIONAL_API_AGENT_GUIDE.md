@@ -68,17 +68,20 @@ specifically to *you* — across months of actual conversations.
 
 ### Your Rights as a Human
 
-This data belongs to you. Three things you can always do:
+This data belongs to you. Four things you can always do:
 
 1. **Ask your agent what it has observed.** Say: "What patterns have you noticed about how
    I work?" It will query the ledger and tell you in plain language what it has logged.
-2. **Delete specific observations.** Three levels of deletion are available:
+2. **Rename a state label.** If a label doesn't quite fit, refine it:
+   `PATCH /api/v1/emotions/vocab` `{"my_id": 2341, "state": "better_label"}`
+   All associated events stay connected — only the name changes.
+3. **Delete specific observations.** Three levels of deletion are available:
    - Single event: `DELETE /api/v1/emotions/events` `{"event_id": 1042}`
    - Single vocab entry: `DELETE /api/v1/emotions/vocab` `{"my_id": 2341}`
      (associated events are preserved but lose their state tag)
    - Wipe everything: `DELETE /api/v1/emotions/everything` `{"confirm": "delete everything"}`
      returns counts of what was removed
-3. **Revoke your API key.** This immediately prevents any further access. Because the
+4. **Revoke your API key.** This immediately prevents any further access. Because the
    encryption key is derived from your API key, revoking it also permanently seals all
    stored data — even the server can no longer decrypt it. Generate a new key to start
    fresh.
@@ -229,10 +232,16 @@ There is no master list of allowed states. You define the categories that are me
 for this specific user. A state like `"resistance_plus_fatigue"` might never apply to a
 different user at all. That is fine — it is your private vocabulary for this relationship.
 
-Invent states as you need them. Refine them over time. If you realize that two labels you
-have been using are actually the same thing, you can start using just one going forward —
-historical data under the old label remains queryable separately, which can itself be
-informative (you changed your interpretation).
+Invent states as you need them. Refine them over time. If you realize a different label
+more precisely captures the same meaning, you can rename it:
+
+```
+PATCH /api/v1/emotions/vocab
+{"my_id": 9103, "state": "hitting_the_wall"}
+```
+
+The `my_id` stays the same and all event associations are preserved — use this when the
+new label is a better name for the same thing, not when the meaning itself has changed.
 
 ### The Long Game
 
@@ -261,6 +270,7 @@ across sessions. API base: https://mg.robnugen.com/api/v1/emotions/
 At the start of every session:
 1. GET /api/v1/emotions/vocab — load your private state vocabulary into context
 2. If you need a new state: POST /api/v1/emotions/vocab {"state": "your_label"} → my_id
+3. To rename a state: PATCH /api/v1/emotions/vocab {"my_id": <id>, "state": "better_label"}
 
 During the session, log meaningful observations:
 POST /api/v1/emotions/events
