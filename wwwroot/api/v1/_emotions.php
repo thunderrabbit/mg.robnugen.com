@@ -82,9 +82,37 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         echo json_encode($vocab);
 
     } elseif ($method === 'DELETE') {
-        // Step 17: delete vocab entry
-        http_response_code(404);
-        echo json_encode(['error' => 'DELETE vocab not yet implemented']);
+        $body = json_decode(file_get_contents('php://input'), true);
+        $my_id = $body['my_id'] ?? null;
+        if ($my_id === null) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Missing "my_id" field']);
+            return;
+        }
+
+        // Resolve my_id → mifmus_id
+        $stmt = $pdo->prepare(
+            'SELECT mifmus_id FROM my_ids_for_my_users_state WHERE api_key_id = ? AND my_id = ?'
+        );
+        $stmt->execute([$auth_key_id, (int) $my_id]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$row) {
+            echo json_encode(['deleted' => 0, 'events_untagged' => 0]);
+            return;
+        }
+        $mifmus_id = (int) $row['mifmus_id'];
+
+        // Count events that will be untagged
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM interaction_events WHERE mifmus_id = ?');
+        $stmt->execute([$mifmus_id]);
+        $events_untagged = (int) $stmt->fetchColumn();
+
+        // Delete vocab entry — FK ON DELETE SET NULL untags events
+        $stmt = $pdo->prepare('DELETE FROM my_ids_for_my_users_state WHERE mifmus_id = ?');
+        $stmt->execute([$mifmus_id]);
+
+        echo json_encode(['deleted' => 1, 'events_untagged' => $events_untagged]);
 
     } else {
         http_response_code(405);
@@ -239,9 +267,19 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         echo json_encode($events);
 
     } elseif ($method === 'DELETE') {
-        // Step 17: delete event
-        http_response_code(404);
-        echo json_encode(['error' => 'DELETE events not yet implemented']);
+        $body = json_decode(file_get_contents('php://input'), true);
+        $event_id = $body['event_id'] ?? null;
+        if ($event_id === null) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Missing "event_id" field']);
+            return;
+        }
+
+        $stmt = $pdo->prepare(
+            'DELETE FROM interaction_events WHERE event_id = ? AND api_key_id = ?'
+        );
+        $stmt->execute([(int) $event_id, $auth_key_id]);
+        echo json_encode(['deleted' => $stmt->rowCount()]);
 
     } else {
         http_response_code(405);
