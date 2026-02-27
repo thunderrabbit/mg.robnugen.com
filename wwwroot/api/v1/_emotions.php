@@ -30,7 +30,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
 
         $max_attempts = 5;
         for ($attempt = 1; $attempt <= $max_attempts; $attempt++) {
-            $my_id = random_int(100000, 999999999);
+            $my_id = 999999999; // TEMPORARY: force collision — revert after testing
             try {
                 $stmt->execute([$auth_key_id, $my_id, $encrypted_state]);
                 echo json_encode(['my_id' => $my_id]);
