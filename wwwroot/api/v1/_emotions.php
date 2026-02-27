@@ -20,8 +20,17 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
             echo json_encode(['error' => 'Missing or invalid "state" field']);
             return;
         }
-        // Placeholder — real insertion in Step 9
-        echo json_encode(['status' => 'auth ok']);
+
+        $ledger = new \Emotional\Ledger($pdo, $raw_key, $auth_key_id, $auth_user_id);
+        $encrypted_state = $ledger->encrypt($body['state']);
+        $my_id = random_int(100000, 999999999);
+
+        $stmt = $pdo->prepare(
+            'INSERT INTO my_ids_for_my_users_state (api_key_id, my_id, state) VALUES (?, ?, ?)'
+        );
+        $stmt->execute([$auth_key_id, $my_id, $encrypted_state]);
+
+        echo json_encode(['my_id' => $my_id]);
 
     } elseif ($method === 'GET') {
         // Step 12: return decrypted vocab
