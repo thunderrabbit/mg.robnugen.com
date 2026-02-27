@@ -339,9 +339,55 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
     }
     echo json_encode($sessions);
 } elseif ($emotions_path === '/everything') {
-    // Step 18: everything DELETE (migrated from everything.php)
-    http_response_code(404);
-    echo json_encode(['error' => 'everything endpoint not yet implemented']);
+
+    if ($method !== 'DELETE') {
+        http_response_code(405);
+        echo json_encode(['error' => 'Method not allowed']);
+        return;
+    }
+
+    $body = json_decode(file_get_contents('php://input'), true);
+    if (($body['confirm'] ?? '') !== 'delete everything') {
+        http_response_code(400);
+        echo json_encode(['error' => 'Missing or incorrect confirm field. Send {"confirm": "delete everything"}']);
+        return;
+    }
+
+    try {
+        $pdo->beginTransaction();
+
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM interaction_events WHERE api_key_id = ?');
+        $stmt->execute([$auth_key_id]);
+        $event_count = (int) $stmt->fetchColumn();
+
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM interaction_sessions WHERE api_key_id = ?');
+        $stmt->execute([$auth_key_id]);
+        $session_count = (int) $stmt->fetchColumn();
+
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM my_ids_for_my_users_state WHERE api_key_id = ?');
+        $stmt->execute([$auth_key_id]);
+        $vocab_count = (int) $stmt->fetchColumn();
+
+        // Delete in FK-safe order
+        $pdo->prepare('DELETE FROM interaction_events WHERE api_key_id = ?')->execute([$auth_key_id]);
+        $pdo->prepare('DELETE FROM interaction_sessions WHERE api_key_id = ?')->execute([$auth_key_id]);
+        $pdo->prepare('DELETE FROM my_ids_for_my_users_state WHERE api_key_id = ?')->execute([$auth_key_id]);
+
+        $pdo->commit();
+
+        echo json_encode([
+            'deleted' => [
+                'events'       => $event_count,
+                'sessions'     => $session_count,
+                'vocab_entries' => $vocab_count,
+            ],
+        ]);
+    } catch (\PDOException $e) {
+        $pdo->rollBack();
+        print_roblog('DELETE /emotions/everything failed: ' . $e->getMessage(), 'emotional/everything');
+        http_response_code(500);
+        echo json_encode(['error' => 'Deletion failed']);
+    }
 } else {
     http_response_code(404);
     echo json_encode(['error' => 'Not found']);
