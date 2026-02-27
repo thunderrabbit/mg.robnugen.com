@@ -47,7 +47,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
                             "INSERT INTO omg_rob_this_happened (context, message) VALUES (?, ?)"
                         )->execute([
                             'emotional/vocab',
-                            "$max_attempts my_id collisions exhausted for api_key_id $auth_key_id — if < 10k vocab entries, likely a bug in the retry loop; if millions of entries, expand random_int range in _emotions.php POST vocab"
+                            "$max_attempts my_id collisions exhausted for api_key_id $auth_key_id — if < 10k vocab entries in TABLE my_ids_for_my_users_state, likely a bug in the retry loop; if millions of entries, expand random_int range in _emotions.php POST vocab"
                         ]);
                     } catch (\PDOException $omg) {
                         // Table may not exist yet
