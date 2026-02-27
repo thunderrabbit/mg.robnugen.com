@@ -26,6 +26,25 @@ The PHP/CSS code for these features is already in the repo — no new code requi
 
 Work through this in order. Commit after each numbered step — small commits make it easy to roll back a broken step without losing everything else.
 
+### Jikan Integration Pattern
+
+After each endpoint step that has an HTTP test, three sub-steps follow:
+
+1. **[Jikan] Add tool** — add a `@mcp.tool()` function to `~/jikan/server.py`
+2. **[Restart]** Exit and reopen Claude Code. MCP servers load at startup — new tools only appear after restart. ⚠️ **This ends your current conversation session.**
+3. **[Jikan verify]** — In the new session, ask Claude to call the new tool and confirm the expected response.
+
+The emotional endpoints live at `/api/emotional/` — a different base than the existing sessions tools (`/api/v1`). Add this helper to `server.py` **once** at Step 8 (the first emotional endpoint) and reuse it throughout:
+
+```python
+MG_EMOTIONAL_URL = os.environ.get("MG_EMOTIONAL_URL", "https://mg.robnugen.com/api/emotional")
+
+def _emotional_client() -> httpx.Client:
+    return httpx.Client(base_url=MG_EMOTIONAL_URL, headers=HEADERS, timeout=30)
+```
+
+`JIKAN_API_KEY` (already in `HEADERS`) works for both the existing sessions API and the emotional API — no new configuration needed.
+
 ### Phase 1: Foundations & Admin Scaffolding
 
 **1. [COMMIT] Defensive SQL fix in Database Class**
@@ -46,6 +65,10 @@ Work through this in order. Commit after each numbered step — small commits ma
   ```
 - **Test:** Run the migration via `/admin/migrate_tables.php` and verify the table exists and the row is present.
 
+**2b. [COMMIT] Write Admin Alerts PHP Layer** *(already done in this repo)*
+- **Files:** `classes/Admin/OmgAlerts.php`, `wwwroot/admin/index.php`, `templates/admin/index.tpl.php`, `wwwroot/css/styles.css`
+- In a fresh project, write these here — after the table exists (Step 2) and before verifying (Step 3). All four files already exist in this repo (see "PHP Code Already Written" above), so no action required.
+
 **3. [VERIFY] Admin Dashboard Alerts End-to-End**
 - **No new code to write** — but `OmgAlerts.php` has two `catch (\PDOException $e)` blocks that deliberately swallow "table not found" errors and return empty results. These are not bugs; they were written knowing the table didn't exist yet. Applying Step 2's migration activates the feature without touching any PHP.
 - **Action:** After Step 2 migration is applied, visit `/admin/` and confirm:
@@ -63,7 +86,7 @@ Work through this in order. Commit after each numbered step — small commits ma
 **5. [COMMIT] API Authentication Foundation**
 - **File:** `classes/Emotional/ApiAuth.php`
 - **Action:** Validate `X-API-Key` header against `api_keys` table. Compute `hash('sha256', $submittedKey)` and compare to `api_key_hash` column (added in migration `10_hash_api_keys`) WHERE `is_active = 1`. Return `['api_key_id' => ..., 'user_id' => ..., 'raw_key' => ...]`. Update `api_keys.last_used = NOW()` on success. Return `false` on failure (caller exits 401).
-- **Test:** Hit `/api/emotional/vocab` with a valid key and ensure no 401; verify a request without a key returns HTTP 401.
+- **Test:** `ApiAuth` is a class, not a standalone endpoint — its integration test happens at Step 8 once `vocab.php` exists. For now, confirm no syntax errors: `php -l classes/Emotional/ApiAuth.php`.
 
 **6. [COMMIT] Ledger Encryption Foundation: Key Derivation**
 - **File:** `classes/Emotional/Ledger.php`
@@ -97,12 +120,35 @@ Work through this in order. Commit after each numbered step — small commits ma
 **8. [COMMIT] API Endpoint: POST Vocab Routing & Auth**
 - **File:** `wwwroot/api/emotional/vocab.php` (POST method)
 - **Action:** Set up the file with standard `prepend.php` include pattern. Route by `$_SERVER['REQUEST_METHOD']`. Parse incoming JSON body for `state`. Call `ApiAuth::authenticate()` to validate the key and get `[api_key_id, user_id, raw_key]`. Return 405 for unsupported methods.
-- **Test:** Hit the endpoint with `X-API-Key` and `{"state": "test"}` and verify it does not return 401.
+- **Test:** With a valid key: expect HTTP 200 `{"status": "auth ok"}` (placeholder until Step 9 adds real insertion). With no key: expect HTTP 401.
+- **[Jikan]** Add `_emotional_client()` helper and the first emotional tool to `~/jikan/server.py`:
+  ```python
+  MG_EMOTIONAL_URL = os.environ.get("MG_EMOTIONAL_URL", "https://mg.robnugen.com/api/emotional")
+
+  def _emotional_client() -> httpx.Client:
+      return httpx.Client(base_url=MG_EMOTIONAL_URL, headers=HEADERS, timeout=30)
+
+  @mcp.tool()
+  def emotional_post_vocab(state: str) -> dict:
+      """Add a new state label to the agent's private vocabulary.
+      Returns my_id: the agent's private numeric handle for this state.
+      Call when the state is not yet in the loaded vocab.
+
+      Args:
+          state: Label for this emotional state (any string, e.g. 'frustration_at_jargon')
+      """
+      with _emotional_client() as client:
+          response = client.post("/vocab", json={"state": state})
+      return response.json()
+  ```
+- **[Restart]** Exit and reopen Claude Code to reload Jikan with the new tool. ⚠️ This ends your current session.
+- **[Jikan verify]** In the new session, ask Claude to call `emotional_post_vocab` with a test state. At this stage it returns `{"status": "auth ok"}` — real `my_id` response comes after Step 9.
 
 **9. [COMMIT] API Endpoint: POST Vocab DB Insertion & Encryption**
 - **File:** `wwwroot/api/emotional/vocab.php` (POST method)
 - **Action:** Derive encryption key from `raw_key`. Encrypt the `state` string. Generate a random `my_id`: `random_int(100000, 999999999)`. Execute `INSERT INTO my_ids_for_my_users_state (api_key_id, my_id, state) VALUES (?, ?, ?)`. Return `{"my_id": <int>}`.
 - **Test:** POST a new state. Check the database directly to ensure the row is inserted with the correct `api_key_id`, generated `my_id`, and an encrypted blob in `state`.
+- **[Jikan verify — no restart needed]** The `emotional_post_vocab` tool added in Step 8 now returns `{"my_id": N}`. Ask Claude to call it with a test state and confirm the response contains a valid integer `my_id`.
 
 **10. [COMMIT] API Endpoint: POST Vocab Collision Retry Loop**
 - **File:** `wwwroot/api/emotional/vocab.php` (POST method)
@@ -114,15 +160,34 @@ Work through this in order. Commit after each numbered step — small commits ma
 - **Action:** If all 5 collision attempts fail, call `print_roblog` with context (api_key_id, attempted my_ids), then execute:
   ```sql
   INSERT INTO omg_rob_this_happened (context, message)
-  VALUES ('emotional/vocab', '5 my_id collisions exhausted for api_key_id X')
+  VALUES ('emotional/vocab', '5 my_id collisions exhausted for api_key_id X — see rob.log for details')
   ```
   Return HTTP 500.
+
+  When this alert fires, the response depends on when it happens:
+  - **Early (first few years, < ~10,000 vocab entries per key):** likely a data anomaly or bug in the retry loop — investigate before changing anything.
+  - **At scale (millions of entries per key):** expand the range in the `random_int()` call. `random_int(100000, 9999999999)` (10 nines, ~10 billion unique IDs) is safe — PHP's `PHP_INT_MAX` on 64-bit is ~9.2 quintillion and MySQL's `BIGINT UNSIGNED` holds ~18.4 quintillion, so there is no overflow risk.
+
 - **Test:** Temporarily force the loop to fail all 5 times. Verify HTTP 500 response and check the Admin Dashboard banner for the new alert.
 
 **12. [COMMIT] API Endpoint: GET Vocab**
 - **File:** `wwwroot/api/emotional/vocab.php` (GET method)
 - **Action:** Add GET handler to `vocab.php`. Call `ApiAuth`, query `my_ids_for_my_users_state WHERE api_key_id = ?`, decrypt each `state` value using `emotional_decrypt()` (already in `Ledger.php` from Step 7), return array of `[{my_id, state}]`. If decryption returns `false` for any row: call `print_roblog`, return 500.
-- **Test:** GET the vocab endpoint. Response should return the decrypted label POSTed in Step 9 — this tests the full cryptographic round-trip end to end.
+- **Test:** `curl -H "X-API-Key: sk_..." https://mg.robnugen.com/api/emotional/vocab` — expect the decrypted label POSTed in Step 9. This tests the full cryptographic round-trip end to end.
+- **[Jikan]** Add `emotional_get_vocab` to `~/jikan/server.py`:
+  ```python
+  @mcp.tool()
+  def emotional_get_vocab() -> list:
+      """Load the agent's full private vocabulary. Call once at session start.
+      Returns a list of {my_id, state} pairs. Hold in context for the session.
+      Returns [] on a fresh install.
+      """
+      with _emotional_client() as client:
+          response = client.get("/vocab")
+      return response.json()
+  ```
+- **[Restart]** Exit and reopen Claude Code. ⚠️ This ends your current session.
+- **[Jikan verify]** Ask Claude to call `emotional_get_vocab`. Expect the state label from Step 9 to appear decrypted.
 
 
 ### Phase 3: Core Endpoints
@@ -158,12 +223,74 @@ Work through this in order. Commit after each numbered step — small commits ma
   4. Encrypt `content` via `emotional_encrypt()`
   5. `INSERT INTO interaction_events`
   6. Return `{"event_id": ..., "session_id": ..., "sequence_num": ...}`
-- **Test:** POST an event. Verify the row exists in the DB and that `encrypted_content` is an unreadable blob.
+- **Test:** `curl -X POST -H "X-API-Key: sk_..." -d '{"my_id":N,"event_type":"user_reaction","content":"test"}' https://mg.robnugen.com/api/emotional/events` — expect `{"event_id":...,"session_id":...,"sequence_num":1}`. Verify the row in DB has an unreadable blob in `encrypted_content`.
+- **[Jikan]** Add `emotional_log_event` to `~/jikan/server.py`:
+  ```python
+  @mcp.tool()
+  def emotional_log_event(
+      event_type: str,
+      content: str,
+      my_id: int | None = None,
+  ) -> dict:
+      """Log an interaction event to the emotional ledger.
+
+      Args:
+          event_type: 'user_reaction', 'user_input', or 'agent_action'
+          content: Specific honest observation about what happened
+          my_id: Vocab my_id for this state (omit if event has no state tag)
+      """
+      payload: dict = {"event_type": event_type, "content": content}
+      if my_id is not None:
+          payload["my_id"] = my_id
+      with _emotional_client() as client:
+          response = client.post("/events", json=payload)
+      return response.json()
+  ```
+- **[Restart]** Exit and reopen Claude Code. ⚠️ This ends your current session.
+- **[Jikan verify]** Ask Claude to call `emotional_log_event` with a test observation. Expect `event_id`, `session_id`, and `sequence_num` in the response.
 
 **15. [COMMIT] API Endpoint: GET Events**
 - **File:** `wwwroot/api/emotional/events.php` (GET method)
 - **Action:** Require at least one of `my_id`, `session_id`, or `from` — return 400 if none supplied. Apply filters to query `interaction_events`. If `my_id` filter supplied: INNER JOIN `my_ids_for_my_users_state` WHERE `m.my_id = ?`. Otherwise: LEFT JOIN to map `mifmus_id` → `my_id` in response. Decrypt `encrypted_content` for each row. If decryption returns `false`: call `print_roblog`, skip the row. Return event array with `my_id` (null if untagged).
-- **Test:** GET with `my_id` filter and assert decrypted content matches original input.
+- **Test:** `curl -H "X-API-Key: sk_..." "https://mg.robnugen.com/api/emotional/events?my_id=N"` — expect a list with the event from Step 14, content decrypted and matching the original.
+- **[Jikan]** Add `emotional_get_events` to `~/jikan/server.py`:
+  ```python
+  @mcp.tool()
+  def emotional_get_events(
+      my_id: int | None = None,
+      session_id: int | None = None,
+      from_date: str = "",
+      to_date: str = "",
+      event_type: str = "",
+      limit: int = 50,
+  ) -> list:
+      """Query past interaction events. At least one of my_id, session_id, or from_date required.
+
+      Args:
+          my_id: Filter by emotional state (agent's private vocab ID)
+          session_id: Filter to a specific session
+          from_date: ISO datetime start of range
+          to_date: ISO datetime end of range
+          event_type: 'agent_action', 'user_input', or 'user_reaction'
+          limit: Max results (default 50, max 200)
+      """
+      params: dict = {"limit": limit}
+      if my_id is not None:
+          params["my_id"] = my_id
+      if session_id is not None:
+          params["session_id"] = session_id
+      if from_date:
+          params["from"] = from_date
+      if to_date:
+          params["to"] = to_date
+      if event_type:
+          params["event_type"] = event_type
+      with _emotional_client() as client:
+          response = client.get("/events", params=params)
+      return response.json()
+  ```
+- **[Restart]** Exit and reopen Claude Code. ⚠️ This ends your current session.
+- **[Jikan verify]** Ask Claude to call `emotional_get_events` with the `my_id` from Step 9. Expect decrypted content matching the event logged in Step 14.
 
 
 ### Phase 4: Sessions & Deletion Logic
@@ -184,19 +311,81 @@ Work through this in order. Commit after each numbered step — small commits ma
   LIMIT ?
   ```
   Support optional `from`, `to`, `limit` (default 20, max 100) query params.
-- **Test:** Call the endpoint and assert that a session created in Step 14 appears with correct duration and event count.
+- **Test:** `curl -H "X-API-Key: sk_..." https://mg.robnugen.com/api/emotional/sessions` — expect the session from Step 14 with correct `duration_minutes` and `event_count`.
+- **[Jikan]** Add `emotional_get_sessions` to `~/jikan/server.py`:
+  ```python
+  @mcp.tool()
+  def emotional_get_sessions(
+      from_date: str = "",
+      to_date: str = "",
+      limit: int = 20,
+  ) -> list:
+      """List past interaction sessions with duration and event count. No decryption required.
+
+      Args:
+          from_date: ISO datetime start of range
+          to_date: ISO datetime end of range
+          limit: Max results (default 20, max 100)
+      """
+      params: dict = {"limit": limit}
+      if from_date:
+          params["from"] = from_date
+      if to_date:
+          params["to"] = to_date
+      with _emotional_client() as client:
+          response = client.get("/sessions", params=params)
+      return response.json()
+  ```
+- **[Restart]** Exit and reopen Claude Code. ⚠️ This ends your current session.
+- **[Jikan verify]** Ask Claude to call `emotional_get_sessions`. Expect the session from Step 14 with correct metadata.
 
 **17. [COMMIT] API Endpoints: DELETE Handlers**
 - **Files:** `wwwroot/api/emotional/events.php` and `wwwroot/api/emotional/vocab.php` (DELETE methods)
 - **Action:**
   - `events.php DELETE`: Accept `{"event_id": N}` in body. Execute `DELETE FROM interaction_events WHERE event_id = ? AND api_key_id = ?` (ownership check). Return `{"deleted": 1}` or `{"deleted": 0}` — never 404 (avoids leaking whether an ID exists).
   - `vocab.php DELETE`: Accept `{"my_id": N}` in body. First `SELECT mifmus_id` and `COUNT(*)` of associated events. Then `DELETE FROM my_ids_for_my_users_state WHERE mifmus_id = ?` (FK cascade sets events' `mifmus_id` to NULL via `ON DELETE SET NULL`). Return `{"deleted": 1, "events_untagged": N}`.
-- **Test:** Delete an event — verify it's removed. Delete a vocab entry — verify count returned and that corresponding event rows still exist with `mifmus_id = NULL`.
+- **Test:** `curl -X DELETE -H "X-API-Key: sk_..." -d '{"event_id":N}' https://mg.robnugen.com/api/emotional/events` — expect `{"deleted":1}`. Then `curl -X DELETE ... -d '{"my_id":N}' .../vocab` — expect `{"deleted":1,"events_untagged":M}`. Verify event rows still exist with `mifmus_id = NULL`.
+- **[Jikan]** Add `emotional_delete_event` and `emotional_delete_vocab` to `~/jikan/server.py`:
+  ```python
+  @mcp.tool()
+  def emotional_delete_event(event_id: int) -> dict:
+      """Delete a single event by event_id. Returns {"deleted": 1} or {"deleted": 0}.
+      Never returns 404 — avoids leaking whether an ID exists.
+      """
+      with _emotional_client() as client:
+          response = client.delete("/events", json={"event_id": event_id})
+      return response.json()
+
+  @mcp.tool()
+  def emotional_delete_vocab(my_id: int) -> dict:
+      """Delete a vocab entry by my_id. Associated events are preserved but lose
+      their state tag (mifmus_id set to NULL). Returns {"deleted": 1, "events_untagged": N}.
+      """
+      with _emotional_client() as client:
+          response = client.delete("/vocab", json={"my_id": my_id})
+      return response.json()
+  ```
+- **[Restart]** Exit and reopen Claude Code. ⚠️ This ends your current session.
+- **[Jikan verify]** Ask Claude to delete a test event and a test vocab entry. Confirm expected responses and DB state.
 
 **18. [VERIFY] HTTP `DELETE` endpoint: `/api/emotional/everything`**
 - **File:** `wwwroot/api/emotional/everything.php` — already exists (see "Already Done" section above)
-- **Action:** No code to write. After applying Step 4 migration and running through Steps 14–17 to create some test data, verify the endpoint end-to-end.
-- **Test:** Send DELETE without confirm → 400. Send DELETE with `{"confirm": "delete everything"}` → 200 with correct counts, all rows gone.
+- **Action:** No PHP to write. After applying Step 4 migration and running through Steps 14–17 to create test data, verify end-to-end.
+- **Test:** `curl -X DELETE -H "X-API-Key: sk_..." -d '{}' .../everything` → 400. `curl -X DELETE ... -d '{"confirm":"delete everything"}' .../everything` → 200 with correct counts, all rows gone.
+- **[Jikan]** Add `emotional_delete_everything` to `~/jikan/server.py`:
+  ```python
+  @mcp.tool()
+  def emotional_delete_everything() -> dict:
+      """Wipe ALL emotional data for this API key: all events, sessions, and vocab.
+      This is irreversible. The confirmation string is handled automatically.
+      Returns counts of deleted rows.
+      """
+      with _emotional_client() as client:
+          response = client.delete("/everything", json={"confirm": "delete everything"})
+      return response.json()
+  ```
+- **[Restart]** Exit and reopen Claude Code. ⚠️ This ends your current session.
+- **[Jikan verify]** Ask Claude to call `emotional_delete_everything`. Expect `{"deleted": {"events": N, "sessions": M, "vocab_entries": K}}` with the test data counts from Steps 14–17.
 
 **19. [COMMIT] Paying Client Milestone Alerts**
 - **File:** `classes/Billing/StripeWebhook.php`
