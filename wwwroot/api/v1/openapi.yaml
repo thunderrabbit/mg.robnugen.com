@@ -329,6 +329,58 @@ paths:
         "409":
           description: Activity name already exists
 
+  # ── Emotional Interaction Ledger ────────────────────────────
+  # TODO: document GET/POST/DELETE for vocab, events, sessions, everything
+
+  /emotions/events:
+    patch:
+      summary: Update an event's tag
+      description: |
+        Re-tag or untag an existing interaction event without changing its
+        session, sequence number, or content. Preserves the event's place
+        in its original session timeline.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - event_id
+              properties:
+                event_id:
+                  type: integer
+                  description: The event to update
+                my_id:
+                  type: integer
+                  nullable: true
+                  description: "Vocab my_id to tag with. Omit or null to untag."
+      responses:
+        "200":
+          description: Event updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  event_id:
+                    type: integer
+                  my_id:
+                    type: integer
+                    nullable: true
+        "400":
+          description: Missing event_id or unknown my_id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Event not found or does not belong to this API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /stats:
     get:
       summary: Get pre-computed aggregates (costs 1 credit)
