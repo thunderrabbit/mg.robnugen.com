@@ -8,6 +8,12 @@
             &mdash;
             <?= htmlspecialchars($alert['message']) ?>
             <span class="OmgAlertTime">(<?= htmlspecialchars($alert['created_at']) ?>)</span>
+            <form method="POST" action="/admin/" class="OmgDismissInline">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
+                <input type="hidden" name="action" value="dismiss_alert">
+                <input type="hidden" name="omg_id" value="<?= (int) $alert['omg_id'] ?>">
+                <button type="submit" class="OmgDismissOne">&times;</button>
+            </form>
         </li>
         <?php endforeach; ?>
     </ul>

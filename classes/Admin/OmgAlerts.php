@@ -25,6 +25,18 @@ class OmgAlerts {
     }
 
     /**
+     * Marks a single alert as acknowledged.
+     * No-op if the table does not exist yet.
+     */
+    public static function dismissOne(\PDO $pdo, int $omg_id): void {
+        try {
+            $stmt = $pdo->prepare("UPDATE omg_rob_this_happened SET acknowledged_at = NOW() WHERE omg_id = ? AND acknowledged_at IS NULL");
+            $stmt->execute([$omg_id]);
+        } catch (\PDOException $e) {
+        }
+    }
+
+    /**
      * Marks all unread alerts as acknowledged.
      * No-op if the table does not exist yet.
      */

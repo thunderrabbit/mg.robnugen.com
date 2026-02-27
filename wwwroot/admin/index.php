@@ -7,16 +7,22 @@ include_once $matches[1] . '/prepend.php';
 
 if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
 
-    // Handle "dismiss all alerts" POST action
+    // Handle alert dismiss POST actions
     if (
         $_SERVER['REQUEST_METHOD'] === 'POST'
-        && ($_POST['action'] ?? '') === 'dismiss_alerts'
         && isset($_POST['csrf_token'])
         && hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])
     ) {
-        \Admin\OmgAlerts::dismissAll($mla_database);
-        header('Location: /admin/');
-        exit;
+        $action = $_POST['action'] ?? '';
+        if ($action === 'dismiss_alerts') {
+            \Admin\OmgAlerts::dismissAll($mla_database);
+            header('Location: /admin/');
+            exit;
+        } elseif ($action === 'dismiss_alert' && !empty($_POST['omg_id'])) {
+            \Admin\OmgAlerts::dismissOne($mla_database, (int) $_POST['omg_id']);
+            header('Location: /admin/');
+            exit;
+        }
     }
 
     $page = new \Template(config: $config, is_logged_in: $is_logged_in);

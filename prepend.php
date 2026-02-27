@@ -19,6 +19,15 @@ spl_autoload_register(array($autoloader, 'load'));
 
 $mla_request = new \Mlaphp\Request();
 
+function print_roblog($message, string $label = ''): void
+{
+    $prefix = $label ? "[$label] " : '';
+    $line = date('Y-m-d H:i:s') . " {$prefix}" . (is_string($message) ? $message : print_r($message, true)) . "\n";
+    preg_match('#^(/home/[^/]+)#', __DIR__, $m);
+    $logfile = !empty($m[1]) ? $m[1] . '/rob.log' : sys_get_temp_dir() . '/rob.log';
+    @file_put_contents($logfile, $line, FILE_APPEND);
+}
+
 function print_rob($object, $exit = true)
 {
     echo "<pre>";
