@@ -91,9 +91,90 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         echo json_encode(['error' => 'Method not allowed']);
     }
 } elseif ($emotions_path === '/events') {
-    // Steps 14–15, 17: events GET/POST/DELETE
-    http_response_code(404);
-    echo json_encode(['error' => 'events endpoint not yet implemented']);
+
+    if ($method === 'POST') {
+        $body = json_decode(file_get_contents('php://input'), true);
+        $event_type = $body['event_type'] ?? '';
+        $content = $body['content'] ?? '';
+        $my_id = $body['my_id'] ?? null;
+
+        $valid_types = ['agent_action', 'user_input', 'user_reaction'];
+        if (!in_array($event_type, $valid_types, true) || !is_string($content) || $content === '') {
+            http_response_code(400);
+            echo json_encode(['error' => 'Required: event_type (agent_action|user_input|user_reaction) and content (string)']);
+            return;
+        }
+
+        $ledger = new \Emotional\Ledger($pdo, $raw_key, $auth_key_id, $auth_user_id);
+
+        $pdo->beginTransaction();
+        try {
+            // Resolve my_id → mifmus_id (NULL if no my_id supplied)
+            $mifmus_id = null;
+            if ($my_id !== null) {
+                $stmt = $pdo->prepare(
+                    'SELECT mifmus_id FROM my_ids_for_my_users_state WHERE api_key_id = ? AND my_id = ?'
+                );
+                $stmt->execute([$auth_key_id, (int) $my_id]);
+                $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+                if (!$row) {
+                    $pdo->rollBack();
+                    http_response_code(400);
+                    echo json_encode(['error' => 'Unknown my_id']);
+                    return;
+                }
+                $mifmus_id = (int) $row['mifmus_id'];
+            }
+
+            $session_id = $ledger->getOrCreateSession();
+
+            // Assign sequence_num atomically
+            $stmt = $pdo->prepare(
+                'SELECT COALESCE(MAX(sequence_num), 0) + 1 FROM interaction_events WHERE session_id = ? FOR UPDATE'
+            );
+            $stmt->execute([$session_id]);
+            $sequence_num = (int) $stmt->fetchColumn();
+
+            $encrypted_content = $ledger->encrypt($content);
+
+            $stmt = $pdo->prepare(
+                'INSERT INTO interaction_events
+                 (session_id, api_key_id, user_id, mifmus_id, event_type, sequence_num, encrypted_content)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)'
+            );
+            $stmt->execute([
+                $session_id, $auth_key_id, $auth_user_id,
+                $mifmus_id, $event_type, $sequence_num, $encrypted_content
+            ]);
+            $event_id = (int) $pdo->lastInsertId();
+
+            $pdo->commit();
+            echo json_encode([
+                'event_id' => $event_id,
+                'session_id' => $session_id,
+                'sequence_num' => $sequence_num,
+            ]);
+        } catch (\PDOException $e) {
+            $pdo->rollBack();
+            print_roblog('POST /emotions/events failed: ' . $e->getMessage(), 'emotional/events');
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to log event']);
+        }
+
+    } elseif ($method === 'GET') {
+        // Step 15: query events
+        http_response_code(404);
+        echo json_encode(['error' => 'GET events not yet implemented']);
+
+    } elseif ($method === 'DELETE') {
+        // Step 17: delete event
+        http_response_code(404);
+        echo json_encode(['error' => 'DELETE events not yet implemented']);
+
+    } else {
+        http_response_code(405);
+        echo json_encode(['error' => 'Method not allowed']);
+    }
 } elseif ($emotions_path === '/sessions') {
     // Step 16: sessions GET
     http_response_code(404);
