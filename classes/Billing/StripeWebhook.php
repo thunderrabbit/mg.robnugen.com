@@ -87,10 +87,9 @@ class StripeWebhook
         $this->addCredits($user_id, self::PLAN_CREDITS[$plan] ?? self::PLAN_CREDITS['developer']);
 
         // Milestone alert for paying clients
-        // try/catch because omg_rob_this_happened may not exist yet if the
-        // migration (Step 2) hasn't been applied. We must not let a missing
-        // table throw an exception here — a 500 from this webhook causes
-        // Stripe to retry the event, which would double-credit the user.
+        // Using try/catch in case the table goes missing or wasn't created
+        // on a fresh deploy. A 500 from this webhook causes Stripe to retry
+        // the event, which would double-credit the user.
         try {
             $stmt = $this->pdo->prepare(
                 "SELECT COUNT(*) FROM users WHERE stripe_customer_id IS NOT NULL"
