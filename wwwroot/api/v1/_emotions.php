@@ -37,6 +37,20 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
                 return;
             } catch (\PDOException $e) {
                 if ($e->getCode() == '23000' && $attempt < $max_attempts) {
+                    if ($attempt === 2) {
+                        // 2 consecutive collisions in ~10 billion ID space is statistically remarkable.
+                        // Warn now while 3 attempts remain — don't wait for crisis.
+                        try {
+                            $pdo->prepare(
+                                "INSERT INTO omg_rob_this_happened (context, message) VALUES (?, ?)"
+                            )->execute([
+                                'emotional/vocab',
+                                "2 consecutive my_id collisions for api_key_id $auth_key_id — ID space may be getting crowded. Check SELECT COUNT(*) FROM my_ids_for_my_users_state WHERE api_key_id = $auth_key_id"
+                            ]);
+                        } catch (\PDOException $omg) {
+                            // Table may not exist yet
+                        }
+                    }
                     continue; // UNIQUE violation — retry with new my_id
                 }
                 if ($attempt >= $max_attempts) {
