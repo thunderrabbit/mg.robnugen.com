@@ -11,7 +11,7 @@ Work through this in order. Commit after each numbered step — small commits ma
 ### Phase 1: Foundations & Admin Scaffolding
 
 **1. [COMMIT] Defensive SQL fix in Database Class**
-- **File:** `classes/Database/Base.php` (or wherever `executeMultipleSQL` is defined)
+- **File:** `classes/Database/Base.php` (method `executeMultipleSQL`)
 - **Action:** Update `Database\Base::executeMultipleSQL` to strip single-line SQL comments before splitting on semicolons.
   ```php
   // Strip single-line SQL comments before splitting on semicolons
@@ -20,7 +20,7 @@ Work through this in order. Commit after each numbered step — small commits ma
 - **Why:** Protects against schema parsing errors caused by inline `--` comments in future migrations.
 
 **2. [COMMIT] Create Admin Alerts Database Table**
-- **File:** `db_schemas/12_admin_alerts/create_admin_alerts.sql` (or similar sequential naming)
+- **File:** `db_schemas/11_admin_alerts/create_admin_alerts.sql`
 - **Action:** Create the `omg_rob_this_happened` table to track critical human-attention failures. Include an initial test insert:
   ```sql
   INSERT INTO omg_rob_this_happened (context, message)
@@ -28,104 +28,153 @@ Work through this in order. Commit after each numbered step — small commits ma
   ```
 - **Test:** Run the migration via `/admin/migrate_tables.php` and verify the table exists and the row is present.
 
-**3. [COMMIT] Admin Dashboard UI for Alerts**
-- **Files:** `classes/Admin/OmgAlerts.php`, `wwwroot/admin/index.php`, `templates/admin/index.tpl.php`
-- **Action:** Implement queries to check `SELECT COUNT(*) FROM omg_rob_this_happened WHERE acknowledged_at IS NULL`. Display a banner on the admin index when count > 0. Add dismissal logic to set `acknowledged_at = NOW()`.
-- **Test:** Verify the admin dashboard banner appears for the manually-inserted alert from Step 2, and that dismissing it removes the banner.
-
-**3b. [COMMIT] Implement Alert Presentation and Dismissal Handlers**
-- **Files:** Required scripts or endpoints to handle the frontend interaction of dismissing an alert (e.g., an AJAX endpoint `wwwroot/admin/api/dismiss_alert.php` or similar).
-- **Action:** Since the strategy document mentions "Dismissal sets `acknowledged_at = NOW()`", write the backend logic to accept a dismissal request and execute the `UPDATE` query.
-- **Test:** Use the UI (or cURL) to trigger the dismissal and verify the database record updates `acknowledged_at` and the banner disappears.
+**3. [COMMIT] Admin Dashboard UI for Alerts** *(already implemented)*
+- **Files:** `classes/Admin/OmgAlerts.php`, `wwwroot/admin/index.php`, `templates/admin/index.tpl.php`, `wwwroot/css/styles.css`
+- **What was done:** `OmgAlerts::getUnread()` queries for unread alerts (fails safely if table is missing). `OmgAlerts::dismissAll()` sets `acknowledged_at = NOW()`. Admin index POSTs to `/admin/` with CSRF token to dismiss. Banner rendered in template when `!empty($omg_alerts)`.
+- **Test:** Verify the admin dashboard banner appears for the manually-inserted alert from Step 2, and that dismissing it clears the banner.
 
 
 ### Phase 2: Emotional API Database & Crypto
 
 **4. [COMMIT] Emotional API Core Database Schema**
-- **File:** `db_schemas/13_emotional_api/create_emotional_api.sql`
-- **Action:** Create the 3 core tables in dependency order: `my_ids_for_my_users_state`, then `interaction_sessions`, then `interaction_events`.
+- **File:** `db_schemas/12_emotional_api/create_emotional_api.sql`
+- **Action:** Create the 3 core tables in dependency order: `my_ids_for_my_users_state`, then `interaction_sessions`, then `interaction_events`. Use MySQL `COMMENT 'text'` syntax for column annotations — do **not** use `--` inline comments (risk of false semicolon splits in the importer).
 - **Test:** Run the migration via `/admin/migrate_tables.php` and verify all three tables are created.
 
 **5. [COMMIT] API Authentication Foundation**
 - **File:** `classes/Emotional/ApiAuth.php`
-- **Action:** Validate `X-API-Key` header against `api_keys` table. Return `[api_key_id, user_id, rawKey]`. Compute `hash('sha256', $submittedKey)` for lookups and set `api_keys.last_used = NOW()`.
-- **Test:** Make a test request with a valid key and ensure success; verify a request without a key returns HTTP 401. This test needs to happen through the MCP at `~/jikan/` so we need to update the `wwwroot/api/v1/openapi.yaml` and potentially the code in `~/jikan/` to support the new Emotional API endpoints.
+- **Action:** Validate `X-API-Key` header against `api_keys` table. Compute `hash('sha256', $submittedKey)` and compare to `api_key_hash` column (added in migration `10_hash_api_keys`) WHERE `is_active = 1`. Return `['api_key_id' => ..., 'user_id' => ..., 'raw_key' => ...]`. Update `api_keys.last_used = NOW()` on success. Return `false` on failure (caller exits 401).
+- **Test:** Hit `/api/emotional/vocab` with a valid key and ensure no 401; verify a request without a key returns HTTP 401.
 
 **6. [COMMIT] Ledger Encryption Foundation: Key Derivation**
 - **File:** `classes/Emotional/Ledger.php`
-- **Action:** Create the class. Implement derivation of a 32-byte AES key using `hash_hmac('sha256', 'emotional_v1', $rawApiKey, true)`.
-- **Test:** Write a temporary simple script to output a derived key from a known input and ensure it produces 32 bytes.
+- **Action:** Create the class. Implement derivation of a 32-byte encryption key using:
+  ```php
+  $encKey = hash_hmac('sha256', 'emotional_v1', $rawApiKey, true); // 32 bytes, binary
+  ```
+  Use `sodium_crypto_secretbox` (XSalsa20-Poly1305) — software-only, no hardware AES-NI required, available on DreamHost shared hosting.
+- **Test:** Write a temporary simple script to output a derived key from a known input and verify it produces exactly 32 bytes.
 
-**7. [COMMIT] Ledger Encryption Foundation: Encrypt Function**
+**7. [COMMIT] Ledger Encryption Foundation: Encrypt/Decrypt Functions**
 - **File:** `classes/Emotional/Ledger.php`
-- **Action:** Implement `emotional_encrypt()` using `sodium_crypto_secretbox` and the derived key.
-- **Test:** Write a temporary script to encrypt a known string with a known key and successfully output the base64 blob.
+- **Action:** Implement `emotional_encrypt()` and `emotional_decrypt()`:
+  ```php
+  function emotional_encrypt(string $plaintext, string $encKey): string {
+      $nonce  = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES); // 24 bytes
+      $cipher = sodium_crypto_secretbox($plaintext, $nonce, $encKey);
+      return base64_encode($nonce . $cipher);
+  }
+
+  function emotional_decrypt(string $stored, string $encKey): string|false {
+      $decoded = base64_decode($stored);
+      $nonce   = substr($decoded, 0, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
+      $cipher  = substr($decoded, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
+      return sodium_crypto_secretbox_open($cipher, $nonce, $encKey);
+  }
+  ```
+  Each call generates a fresh random nonce — identical plaintext produces different ciphertext every time.
+- **Test:** Encrypt a string, decrypt it, assert equal. Verify that encrypting the same string twice produces different base64 blobs.
 
 **8. [COMMIT] API Endpoint: POST Vocab Routing & Auth**
 - **File:** `wwwroot/api/emotional/vocab.php` (POST method)
-- **Action:** Setup the file and routing for the POST method. Parse incoming JSON body for `state`. Call `ApiAuth` to validate the key and get `api_key_id`. Ensure it correctly extracts the `state` payload.
-- **Test:** Hit the endpoint with `X-API-Key` and `{ "state": "test" }` and verify it does not return a 401.
+- **Action:** Set up the file with standard `prepend.php` include pattern. Route by `$_SERVER['REQUEST_METHOD']`. Parse incoming JSON body for `state`. Call `ApiAuth::authenticate()` to validate the key and get `[api_key_id, user_id, raw_key]`. Return 405 for unsupported methods.
+- **Test:** Hit the endpoint with `X-API-Key` and `{"state": "test"}` and verify it does not return 401.
 
 **9. [COMMIT] API Endpoint: POST Vocab DB Insertion & Encryption**
 - **File:** `wwwroot/api/emotional/vocab.php` (POST method)
-- **Action:** Generate a random `my_id` (100000 to 999999999). Use the Ledger class to derive the encryption key and encrypt the `state` string. Execute the `INSERT INTO my_ids_for_my_users_state` query. Return `{ "my_id": <int> }`.
-- **Test:** POST a new state. Check the database directly to ensure the row is inserted with the correct `api_key_id`, generated `my_id`, and encrypted blob.
+- **Action:** Derive encryption key from `raw_key`. Encrypt the `state` string. Generate a random `my_id`: `random_int(100000, 999999999)`. Execute `INSERT INTO my_ids_for_my_users_state (api_key_id, my_id, state) VALUES (?, ?, ?)`. Return `{"my_id": <int>}`.
+- **Test:** POST a new state. Check the database directly to ensure the row is inserted with the correct `api_key_id`, generated `my_id`, and an encrypted blob in `state`.
 
 **10. [COMMIT] API Endpoint: POST Vocab Collision Retry Loop**
 - **File:** `wwwroot/api/emotional/vocab.php` (POST method)
-- **Action:** Wrap the `my_id` generation and `INSERT` statement in a loop (max 5 attempts) to handle potential `UNIQUE` constraint violations on `my_id`.
+- **Action:** Wrap the `my_id` generation and `INSERT` in a loop (max 5 attempts) to handle potential `UNIQUE` constraint violations on `(api_key_id, my_id)`.
 - **Test:** Temporarily force a collision in the code to ensure the loop successfully retries and eventually inserts.
 
 **11. [COMMIT] API Endpoint: POST Vocab Alert Escalation**
 - **File:** `wwwroot/api/emotional/vocab.php` (POST method)
-- **Action:** If all 5 collision attempts fail, trigger a `print_roblog` entry, execute `INSERT INTO omg_rob_this_happened`, and return HTTP 500.
-- **Test:** Temporarily force the loop to fail all 5 times. Verify the HTTP 500 response and check the Admin Dashboard banner for the new alert.
+- **Action:** If all 5 collision attempts fail, call `print_roblog` with context (api_key_id, attempted my_ids), then execute:
+  ```sql
+  INSERT INTO omg_rob_this_happened (context, message)
+  VALUES ('emotional/vocab', '5 my_id collisions exhausted for api_key_id X')
+  ```
+  Return HTTP 500.
+- **Test:** Temporarily force the loop to fail all 5 times. Verify HTTP 500 response and check the Admin Dashboard banner for the new alert.
 
-**12. [COMMIT] API Endpoint: GET Vocab & Ledger Decryption Foundations**
+**12. [COMMIT] API Endpoint: GET Vocab & Ledger Decryption**
 - **Files:** `wwwroot/api/emotional/vocab.php` (GET method), `classes/Emotional/Ledger.php`
-- **Action:** Implement `emotional_decrypt()` in `Ledger.php`. In `vocab.php`, call `ApiAuth`, query `my_ids_for_my_users_state`, and use the decrypt function to return the plaintext vocabulary for the authenticated key.
-- **Test:** Update `openapi.yaml` and add POST/GET vocab tools to the `jikan` MCP server. Make a GET request via the MCP server. The response should successfully return the decrypted label we POSTed earlier. This inherently tests the full cryptographic round-trip.
+- **Action:** Implement `emotional_decrypt()` (already done in Step 7 if combined, otherwise add here). In `vocab.php` GET handler: call `ApiAuth`, query `my_ids_for_my_users_state WHERE api_key_id = ?`, decrypt each `state` value, return array of `[{my_id, state}]`. If decryption returns `false` for a row, call `print_roblog` and return 500.
+- **Test:** GET the vocab endpoint. Response should return the decrypted label POSTed in Step 9. Tests the full cryptographic round-trip.
+
+
+### Phase 3: Core Endpoints
 
 **13. [COMMIT] Session Auto-Detection Logic**
 - **File:** `classes/Emotional/Ledger.php`
-- **Action:** Implement `getOrCreateSession($api_key_id, $user_id)`. Query `interaction_sessions` for the most recent session within `EMOTIONAL_SESSION_GAP_MINUTES` using `FOR UPDATE` lock. Update `last_event_time` if found, or insert a new row if not.
-- **Test:** Call twice within the gap to verify the identical `session_id` is updated. Trick the timestamp so it exceeds the gap, then verify a new `session_id` is generated.
+- **Action:** Implement `getOrCreateSession($api_key_id, $user_id)`. Within a transaction:
+  1. Query `interaction_sessions` for the most recent session within `EMOTIONAL_SESSION_GAP_MINUTES`:
+     ```php
+     // PDO cannot use named params inside INTERVAL — embed as validated integer literal:
+     $gap = intval(EMOTIONAL_SESSION_GAP_MINUTES); // e.g. 30
+     $sql = "SELECT session_id FROM interaction_sessions
+             WHERE api_key_id = ?
+               AND last_event_time > DATE_SUB(NOW(), INTERVAL {$gap} MINUTE)
+             ORDER BY last_event_time DESC LIMIT 1 FOR UPDATE";
+     ```
+  2. If found: `UPDATE interaction_sessions SET last_event_time = NOW() WHERE session_id = ?`
+  3. If not found: `INSERT INTO interaction_sessions (api_key_id, user_id) VALUES (?, ?)`
+  4. Return `session_id`
+
+  Add to `classes/Config.php`:
+  ```php
+  define('EMOTIONAL_SESSION_GAP_MINUTES', 30);
+  ```
+- **Test:** Call twice within the gap — same `session_id` returned. Force timestamp to exceed gap, then verify a new `session_id` is generated.
 
 **14. [COMMIT] API Endpoint: POST Events**
 - **File:** `wwwroot/api/emotional/events.php` (POST method)
-- **Action:** Accept an event payload, optionally resolve `my_id` to its `mifmus_id`, call the auto-session, obtain a `sequence_num` atomically (using `SELECT MAX+1 ... FOR UPDATE`), encrypt content via `emotional_encrypt()`, and insert into `interaction_events`.
-- **Test:** POST an event. Verify the row exists in the DB and that the content field is an unreadable blob.
+- **Action:** Accept event payload (`my_id` optional, `event_type`, `content`). Within a transaction:
+  1. Resolve `my_id` → `mifmus_id`: `SELECT mifmus_id FROM my_ids_for_my_users_state WHERE api_key_id=? AND my_id=?` (NULL if no `my_id` supplied)
+  2. Call `getOrCreateSession()` to get `session_id`
+  3. Assign `sequence_num` atomically: `SELECT COALESCE(MAX(sequence_num), 0) + 1 FROM interaction_events WHERE session_id = ? FOR UPDATE`
+  4. Encrypt `content` via `emotional_encrypt()`
+  5. `INSERT INTO interaction_events`
+  6. Return `{"event_id": ..., "session_id": ..., "sequence_num": ...}`
+- **Test:** POST an event. Verify the row exists in the DB and that `encrypted_content` is an unreadable blob.
 
 **15. [COMMIT] API Endpoint: GET Events**
 - **File:** `wwwroot/api/emotional/events.php` (GET method)
-- **Action:** Apply filters (`my_id`, `session_id`, `from`, etc) to query `interaction_events`. Require at least one filter. Join with `my_ids_for_my_users_state` to map back to `my_id`. Decrypt `encrypted_content` via `emotional_decrypt()`. Catch decryption failures: omit row, log using `print_roblog`, return 500 on total failure.
-- **Test:** GET with the `my_id` filter and assert decrypted content matches the original input.
+- **Action:** Require at least one of `my_id`, `session_id`, or `from` — return 400 if none supplied. Apply filters to query `interaction_events`. If `my_id` filter supplied: INNER JOIN `my_ids_for_my_users_state` WHERE `m.my_id = ?`. Otherwise: LEFT JOIN to map `mifmus_id` → `my_id` in response. Decrypt `encrypted_content` for each row. If decryption returns `false`: call `print_roblog`, skip the row. Return event array with `my_id` (null if untagged).
+- **Test:** GET with `my_id` filter and assert decrypted content matches original input.
+
 
 ### Phase 4: Sessions & Deletion Logic
 
 **16. [COMMIT] API Endpoint: GET Sessions**
 - **File:** `wwwroot/api/emotional/sessions.php` (GET method)
-- **Action:** List sessions returning purely calculated fields: `duration_minutes` and `event_count`. Handled entirely server-side (no decryption overhead needed).
-- **Test:** Call the endpoint and assert that a session created in Step 14 appears correctly.
+- **Action:** List sessions with purely computed fields — no decryption required:
+  ```sql
+  SELECT
+      s.session_id, s.start_time, s.last_event_time,
+      TIMESTAMPDIFF(MINUTE, s.start_time, s.last_event_time) AS duration_minutes,
+      COUNT(e.event_id) AS event_count
+  FROM interaction_sessions s
+  LEFT JOIN interaction_events e ON e.session_id = s.session_id
+  WHERE s.api_key_id = ?
+  GROUP BY s.session_id
+  ORDER BY s.start_time DESC
+  LIMIT ?
+  ```
+  Support optional `from`, `to`, `limit` (default 20, max 100) query params.
+- **Test:** Call the endpoint and assert that a session created in Step 14 appears with correct duration and event count.
 
 **17. [COMMIT] API Endpoints: DELETE Handlers**
-- **Files:** `events.php` and `vocab.php` (DELETE methods)
-- **Action:** Add single-item deletion validation.
-  - Sub-step A: Verify `events.php` delete executes `WHERE event_id=? AND api_key_id=?` ownership check.
-  - Sub-step B: Verify `vocab.php` delete removes entry and returns total of `events_untagged`.
-- **Test:** Delete an event, verify it's removed; delete a vocab entry, verify count and that corresponding event rows persist with a now-null `mifmus_id`.
+- **Files:** `wwwroot/api/emotional/events.php` and `wwwroot/api/emotional/vocab.php` (DELETE methods)
+- **Action:**
+  - `events.php DELETE`: Accept `{"event_id": N}` in body. Execute `DELETE FROM interaction_events WHERE event_id = ? AND api_key_id = ?` (ownership check). Return `{"deleted": 1}` or `{"deleted": 0}` — never 404 (avoids leaking whether an ID exists).
+  - `vocab.php DELETE`: Accept `{"my_id": N}` in body. First `SELECT mifmus_id` and `COUNT(*)` of associated events. Then `DELETE FROM my_ids_for_my_users_state WHERE mifmus_id = ?` (FK cascade sets events' `mifmus_id` to NULL via `ON DELETE SET NULL`). Return `{"deleted": 1, "events_untagged": N}`.
+- **Test:** Delete an event — verify it's removed. Delete a vocab entry — verify count returned and that corresponding event rows still exist with `mifmus_id = NULL`.
 
-**18. [COMMIT] API Endpoint: Wipe Emotional Content (DELETE)**
-- **File:** `wwwroot/api/emotional/wipe_emotional.php` (POST method)
-- **Action:** Demand `{"confirm": "delete emotional content"}` in body; otherwise 400. In an SQL transaction, count all relevant rows for `interaction_events`, `interaction_sessions`, and `my_ids_for_my_users_state`, then DELETE these rows per `api_key_id` securely traversing strictly in FK order. Return counts.
-- **Test:** Send request without confirm -> 400. Send request with confirm -> 200, verify all emotional data associated with the api_key is wiped, but Jikan timer sessions/activities remain untouched.
-
-**19. [COMMIT] API Endpoint: Wipe Timers (DELETE)**
-- **File:** `wwwroot/api/emotional/wipe_timers.php` (POST method)
-- **Action:** Demand `{"confirm": "delete timers"}` in body; otherwise 400. In an SQL transaction, count all relevant rows for Jikan timer sessions (`meisou_sessions` or equivalent table based on schema) and activities, then DELETE these rows per `api_key_id`. Return counts.
-- **Test:** Send request without confirm -> 400. Send request with confirm -> 200, verify all timer sessions/activities associated with the api_key are wiped, but emotional interaction data remains untouched.
-
-**20. [COMMIT] API Endpoint: Complete Wipe (DELETE everything)**
-- **File:** `wwwroot/api/emotional/everything.php` (POST method)
-- **Action:** Demand `{"confirm": "delete everything"}` in body; otherwise 400. In an SQL transaction, execute the deletion logic from *both* Step 18 and Step 19. Wipe `interaction_events`, `interaction_sessions`, `my_ids_for_my_users_state`, and all Jikan timer schemas. Return combined counts.
-- **Test:** Send request without confirm -> 400. Send request with confirm -> 200, verify all data (emotional and timers) associated with the api_key is completely wiped.
+**18. [COMMIT] API Endpoint: DELETE everything** *(file already created)*
+- **File:** `wwwroot/api/emotional/everything.php` (DELETE method)
+- **What exists:** File is implemented. Accepts `{"confirm": "delete everything"}` in body (returns 400 if missing or wrong). In a transaction: counts then deletes `interaction_events`, `interaction_sessions`, and `my_ids_for_my_users_state` in FK-safe order for the authenticated `api_key_id`. Returns `{"deleted": {"events": N, "sessions": M, "vocab_entries": K}}`.
+- **Test:** Send DELETE without confirm → 400. Send DELETE with `{"confirm": "delete everything"}` → 200 with counts, all rows gone.
