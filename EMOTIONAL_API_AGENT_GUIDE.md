@@ -257,6 +257,30 @@ texture, and how you carry it forward across every conversation, indefinitely.
 
 ## For Developers: Adding Ledger Support to an Agent
 
+### Getting Started with Jikan
+
+The Emotional Interaction Ledger is part of [Jikan](https://github.com/thunderrabbit/jikan),
+an MCP server that gives AI agents awareness of time. Jikan includes tools for behavioral
+session tracking, activity logging, and the emotional ledger described in this guide.
+
+To add Jikan to your agent:
+
+1. Clone the repo: `git clone https://github.com/thunderrabbit/jikan.git`
+2. Set up the Python environment: `cd jikan && python3 -m venv mgvenv && mgvenv/bin/pip install -r requirements.txt`
+3. Get an API key at https://mg.robnugen.com/settings/
+4. Add to your Claude Code MCP config (`~/.claude.json`):
+   ```json
+   "mcpServers": {
+     "jikan": {
+       "type": "stdio",
+       "command": "/path/to/jikan/mgvenv/bin/python",
+       "args": ["/path/to/jikan/server.py"],
+       "env": { "JIKAN_API_KEY": "sk_your_key_here" }
+     }
+   }
+   ```
+5. Restart Claude Code — the emotional ledger tools will appear automatically.
+
 ### Minimal System Prompt Addition
 
 Add this block to any agent's system prompt to give it Ledger awareness:
