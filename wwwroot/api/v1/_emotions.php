@@ -95,6 +95,31 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         }
         echo json_encode($vocab);
 
+    } elseif ($method === 'PATCH') {
+        $body = json_decode(file_get_contents('php://input'), true);
+        $my_id = $body['my_id'] ?? null;
+        $new_state = $body['state'] ?? null;
+        if ($my_id === null || !is_string($new_state) || $new_state === '') {
+            http_response_code(400);
+            echo json_encode(['error' => 'Missing "my_id" or "state" field']);
+            return;
+        }
+
+        $ledger = new \Emotional\Ledger($pdo, $raw_key, $auth_key_id, $auth_user_id);
+        $encrypted_state = $ledger->encrypt($new_state);
+
+        $stmt = $pdo->prepare(
+            'UPDATE my_ids_for_my_users_state SET state = ? WHERE api_key_id = ? AND my_id = ?'
+        );
+        $stmt->execute([$encrypted_state, $auth_key_id, (int) $my_id]);
+
+        if ($stmt->rowCount() === 0) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Vocab entry not found']);
+            return;
+        }
+        echo json_encode(['my_id' => (int) $my_id, 'state' => $new_state]);
+
     } elseif ($method === 'DELETE') {
         $body = json_decode(file_get_contents('php://input'), true);
         $my_id = $body['my_id'] ?? null;
