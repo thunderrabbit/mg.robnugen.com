@@ -64,8 +64,19 @@ Work through this in order. Commit after each numbered step.
 **2. [COMMIT] Add "Days Between" branch to `getTodaysTodos()` query**
 
 - **File:** `classes/ActivityTracking/Todo.php` (method `getTodaysTodos`)
-- **Action:** Add a new OR branch to the WHERE clause (after the
-  "Unscheduled / Anytime" branch). This is the core logic:
+- **Action:** Two changes to the WHERE clause:
+
+  **(a)** Update the existing "Unscheduled / Anytime" branch to exclude
+  "days between" todos (otherwise they'd appear every day):
+  ```sql
+  -- Before:
+  (t.do_days IS NULL AND t.do_dates IS NULL AND t.due_date IS NULL)
+  -- After:
+  (t.do_days IS NULL AND t.do_dates IS NULL AND t.due_date IS NULL AND t.do_every_n_days IS NULL)
+  ```
+
+  **(b)** Add a new OR branch after the updated "Anytime" branch.
+  This is the core logic:
 
   ```sql
   OR
@@ -89,6 +100,12 @@ Work through this in order. Commit after each numbered step.
   ```
 
   The `?` parameter is `$todayDate` (already passed to the method).
+  An additional `$todayDate` parameter will be needed in the execute
+  array — update the parameter binding accordingly.
+
+  **(c)** Add `t.do_every_n_days` to the SELECT list (currently lines
+  30-41 enumerate columns explicitly). Without this, steps 3, 10, and
+  11 cannot read the value from query results.
 
 - **Why `NOT EXISTS` for never-completed:** A newly created "every 10
   days" todo should appear immediately — the user just created it, they
@@ -147,6 +164,7 @@ Work through this in order. Commit after each numbered step.
   section or integrate "days between" todos by querying `todo_logs` for
   the last completion and computing the next due date:
   ```php
+  $n = (int) $todo['do_every_n_days'];
   $next_due = date('Y-m-d', strtotime($last_completed . " + {$n} days"));
   ```
   If never completed, show as "Due: today" or "Due: anytime."
@@ -198,9 +216,9 @@ Work through this in order. Commit after each numbered step.
   if ($field === 'do_every_n_days') {
       if ($value !== null && $value !== '') {
           $value = (int) $value;
-          if ($value < 1) {
+          if ($value < 1 || $value > 365) {
               http_response_code(400);
-              echo json_encode(['error' => 'do_every_n_days must be >= 1']);
+              echo json_encode(['error' => 'do_every_n_days must be 1-365']);
               exit;
           }
       } else {
@@ -422,9 +440,9 @@ Work through this in order. Commit after each numbered step.
 
 - **File:** `wwwroot/todos/archive.php`
 - **Action:** Verify that archiving a "days between" todo works
-  correctly. The archive endpoint sets `archived_at` — this should
+  correctly. The archive endpoint sets `is_active = 0` — this should
   prevent it from appearing in `getTodaysTodos()` (verify the query
-  filters on `archived_at IS NULL` or equivalent).
+  filters on `t.is_active = 1`).
 
 - **Test:** Archive a "days between" todo. Verify it no longer appears
   on the dashboard. Unarchive it. Verify it reappears when due.
