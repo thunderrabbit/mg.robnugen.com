@@ -47,7 +47,7 @@ Work through this in order. Commit after each numbered step — small commits ma
 - **Test:** Run the migration via `/admin/migrate_tables.php` and verify the table exists and the row is present.
 
 **3. [VERIFY] Admin Dashboard Alerts End-to-End**
-- **No code to write.** PHP code already exists (see "PHP Code Already Written" above).
+- **No new code to write** — but `OmgAlerts.php` has two `catch (\PDOException $e)` blocks that deliberately swallow "table not found" errors and return empty results. These are not bugs; they were written knowing the table didn't exist yet. Applying Step 2's migration activates the feature without touching any PHP.
 - **Action:** After Step 2 migration is applied, visit `/admin/` and confirm:
   - The amber alert banner appears with the "system/setup" row from Step 2's INSERT
   - Clicking "Dismiss all" posts to `/admin/`, clears the banner, and sets `acknowledged_at` in the DB
