@@ -3,7 +3,7 @@ CREATE TABLE omg_rob_this_happened (
     context         VARCHAR(255) NOT NULL  COMMENT 'e.g. emotional/vocab, billing/webhook',
     message         TEXT NOT NULL          COMMENT 'plain language description of the failure',
     created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    acknowledged_at DATETIME NULL          COMMENT 'NULL = unread; set when admin dismisses',
+    acknowledged_at DATETIME NULL          COMMENT 'NULL means unread, set when admin dismisses',
 
     PRIMARY KEY (omg_id),
     KEY idx_unread (acknowledged_at)
