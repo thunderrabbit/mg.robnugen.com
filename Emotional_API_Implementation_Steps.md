@@ -18,6 +18,7 @@ The PHP/CSS code for these features is already in the repo — no new code requi
 **HTTP `DELETE` endpoint: `/api/v1/emotions/everything`**
 - **File:** `wwwroot/api/v1/emotions/everything.php` (handles the HTTP DELETE method)
 - Accepts `{"confirm": "delete everything"}` in body (returns 400 if missing or wrong). In a transaction: counts then deletes `interaction_events`, `interaction_sessions`, and `my_ids_for_my_users_state` in FK-safe order for the authenticated `api_key_id`. Returns `{"deleted": {"events": N, "sessions": M, "vocab_entries": K}}`.
+- **Note:** Written in standalone pattern (includes `prepend.php`, calls `\Emotional\ApiAuth::authenticate()`). Under Option A (front controller), this logic will be folded into `_emotions.php`'s `/everything` branch in Step 18. The standalone file will be deleted once migrated.
 - **Depends on:** Step 4 (creates the three emotional tables). Verified in Step 18.
 
 ---
@@ -86,10 +87,54 @@ The emotional endpoints live at `/api/v1/emotions/` — the same base URL as the
 - **Action:** Create the 3 core tables in dependency order: `my_ids_for_my_users_state`, then `interaction_sessions`, then `interaction_events`. Full schema in the strategy doc. Use MySQL `COMMENT 'text'` syntax for column annotations — do **not** use `--` inline comments (risk of false semicolon splits in the importer). All three tables FK-reference `api_keys(key_id)`.
 - **Test:** Run the migration via `/admin/migrate_tables.php` and verify all three tables are created.
 
-**5. [COMMIT] API Authentication Foundation**
-- **File:** `classes/Emotional/ApiAuth.php`
-- **Action:** Validate `X-API-Key` header against `api_keys` table. Compute `hash('sha256', $submittedKey)` and compare to `api_key_hash` column (added in migration `10_hash_api_keys`) WHERE `is_active = 1`. Return `['api_key_id' => ..., 'user_id' => ..., 'raw_key' => ...]`. Update `api_keys.last_used = NOW()` on success. Return `false` on failure (caller exits 401).
-- **Test:** `ApiAuth` is a class, not a standalone endpoint — its integration test happens at Step 8 once `vocab.php` exists. For now, confirm no syntax errors: `php -l classes/Emotional/ApiAuth.php`.
+**5. [COMMIT] Route `/emotions/*` Through the Front Controller**
+- **Files:** `wwwroot/api/v1/index.php` and `wwwroot/api/v1/_emotions.php`
+- **Action:** In `index.php`, add an `elseif` branch before the final `else { 404 }`:
+  ```php
+  } elseif ($path === '/emotions' || preg_match('#^/emotions(/|$)#', $path)) {
+      include __DIR__ . '/_emotions.php';
+  }
+  ```
+  Create `wwwroot/api/v1/_emotions.php` as a stub sub-dispatcher. The following variables are already in scope from `index.php` — **no auth code needed here**:
+  - `$raw_key` — raw API key string (needed by `Ledger.php` for encryption key derivation)
+  - `$auth_user_id` — authenticated user ID
+  - `$auth_key_id` — key ID (FK to `api_keys.key_id`)
+  - `$pdo` — PDO connection (`\Database\Base::getPDO()`)
+  - `$method` — HTTP method (`$_SERVER['REQUEST_METHOD']`)
+  - `$path` — URL path relative to `/api/v1` (e.g. `/emotions/vocab`)
+
+  `Emotional\ApiAuth` class is **not needed** — `index.php` already performs full authentication via `Auth\ApiKey`.
+
+  Stub structure for `_emotions.php`:
+  ```php
+  <?php
+  // $raw_key, $auth_user_id, $auth_key_id, $pdo, $method, $path
+  // — all in scope from index.php
+
+  $emotions_path = rtrim(preg_replace('#^/emotions#', '', $path), '/') ?: '/';
+
+  if ($emotions_path === '/vocab' || $emotions_path === '/') {
+      // Steps 8–12: vocab GET/POST/DELETE
+      http_response_code(404);
+      echo json_encode(['error' => 'vocab endpoint not yet implemented']);
+  } elseif ($emotions_path === '/events') {
+      // Steps 14–15, 17: events GET/POST/DELETE
+      http_response_code(404);
+      echo json_encode(['error' => 'events endpoint not yet implemented']);
+  } elseif ($emotions_path === '/sessions') {
+      // Step 16: sessions GET
+      http_response_code(404);
+      echo json_encode(['error' => 'sessions endpoint not yet implemented']);
+  } elseif ($emotions_path === '/everything') {
+      // Step 18: everything DELETE (migrated from everything.php)
+      http_response_code(404);
+      echo json_encode(['error' => 'everything endpoint not yet implemented']);
+  } else {
+      http_response_code(404);
+      echo json_encode(['error' => 'Not found']);
+  }
+  ```
+- **Test:** With a valid key: `curl -H "X-API-Key: sk_..." https://mg.robnugen.com/api/v1/emotions/vocab` → HTTP 404 "not yet implemented". Without a key: → HTTP 401 (rejected by `index.php` before reaching `_emotions.php`).
 
 **6. [COMMIT] Ledger Encryption Foundation: Key Derivation**
 - **File:** `classes/Emotional/Ledger.php`
@@ -121,8 +166,8 @@ The emotional endpoints live at `/api/v1/emotions/` — the same base URL as the
 - **Test:** Encrypt a string, decrypt it, assert equal. Verify that encrypting the same string twice produces different base64 blobs.
 
 **8. [COMMIT] API Endpoint: POST Vocab Routing & Auth**
-- **File:** `wwwroot/api/v1/emotions/vocab.php` (POST method)
-- **Action:** Set up the file with standard `prepend.php` include pattern. Route by `$_SERVER['REQUEST_METHOD']`. Parse incoming JSON body for `state`. Call `ApiAuth::authenticate()` to validate the key and get `[api_key_id, user_id, raw_key]`. Return 405 for unsupported methods.
+- **File:** `wwwroot/api/v1/_emotions.php` (in the `/vocab` branch)
+- **Action:** Replace the `/vocab` stub with a real handler. Route by `$method` (already set by `index.php`). Parse incoming JSON body for `state`. Return 405 for unsupported methods. Auth context (`$raw_key`, `$auth_key_id`, `$auth_user_id`) is already in scope — no `ApiAuth` call needed.
 - **Test:** With a valid key: expect HTTP 200 `{"status": "auth ok"}` (placeholder until Step 9 adds real insertion). With no key: expect HTTP 401.
 - **[Jikan]** Add the first emotional tool to `~/jikan/server.py` (uses the existing `_client()` — no new helper needed):
   ```python
@@ -143,18 +188,18 @@ The emotional endpoints live at `/api/v1/emotions/` — the same base URL as the
 - **[Jikan verify]** In the new session, ask Claude to call `emotional_post_vocab` with a test state. At this stage it returns `{"status": "auth ok"}` — real `my_id` response comes after Step 9.
 
 **9. [COMMIT] API Endpoint: POST Vocab DB Insertion & Encryption**
-- **File:** `wwwroot/api/v1/emotions/vocab.php` (POST method)
+- **File:** `wwwroot/api/v1/_emotions.php` (in the `/vocab` branch, POST method)
 - **Action:** Derive encryption key from `raw_key`. Encrypt the `state` string. Generate a random `my_id`: `random_int(100000, 999999999)`. Execute `INSERT INTO my_ids_for_my_users_state (api_key_id, my_id, state) VALUES (?, ?, ?)`. Return `{"my_id": <int>}`.
 - **Test:** POST a new state. Check the database directly to ensure the row is inserted with the correct `api_key_id`, generated `my_id`, and an encrypted blob in `state`.
 - **[Jikan verify — no restart needed]** The `emotional_post_vocab` tool added in Step 8 now returns `{"my_id": N}`. Ask Claude to call it with a test state and confirm the response contains a valid integer `my_id`.
 
 **10. [COMMIT] API Endpoint: POST Vocab Collision Retry Loop**
-- **File:** `wwwroot/api/v1/emotions/vocab.php` (POST method)
+- **File:** `wwwroot/api/v1/_emotions.php` (in the `/vocab` branch, POST method)
 - **Action:** Wrap the `my_id` generation and `INSERT` in a loop (max 5 attempts) to handle potential `UNIQUE` constraint violations on `(api_key_id, my_id)`.
 - **Test:** Temporarily force a collision in the code to ensure the loop successfully retries and eventually inserts.
 
 **11. [COMMIT] API Endpoint: POST Vocab Alert Escalation**
-- **File:** `wwwroot/api/v1/emotions/vocab.php` (POST method)
+- **File:** `wwwroot/api/v1/_emotions.php` (in the `/vocab` branch, POST method)
 - **Action:** If all 5 collision attempts fail, call `print_roblog` with context (api_key_id, attempted my_ids), then execute:
   ```sql
   INSERT INTO omg_rob_this_happened (context, message)
@@ -169,8 +214,8 @@ The emotional endpoints live at `/api/v1/emotions/` — the same base URL as the
 - **Test:** Temporarily force the loop to fail all 5 times. Verify HTTP 500 response and check the Admin Dashboard banner for the new alert.
 
 **12. [COMMIT] API Endpoint: GET Vocab**
-- **File:** `wwwroot/api/v1/emotions/vocab.php` (GET method)
-- **Action:** Add GET handler to `vocab.php`. Call `ApiAuth`, query `my_ids_for_my_users_state WHERE api_key_id = ?`, decrypt each `state` value using `emotional_decrypt()` (already in `Ledger.php` from Step 7), return array of `[{my_id, state}]`. If decryption returns `false` for any row: call `print_roblog`, return 500.
+- **File:** `wwwroot/api/v1/_emotions.php` (in the `/vocab` branch, GET method)
+- **Action:** Add GET handler to the `/vocab` branch. Query `my_ids_for_my_users_state WHERE api_key_id = ?` (using `$auth_key_id` from `index.php`), decrypt each `state` value using `emotional_decrypt()` (already in `Ledger.php` from Step 7), return array of `[{my_id, state}]`. If decryption returns `false` for any row: call `print_roblog`, return 500.
 - **Test:** `curl -H "X-API-Key: sk_..." https://mg.robnugen.com/api/v1/emotions/vocab` — expect the decrypted label POSTed in Step 9. This tests the full cryptographic round-trip end to end.
 - **[Jikan]** Add `emotional_get_vocab` to `~/jikan/server.py`:
   ```python
@@ -213,8 +258,8 @@ The emotional endpoints live at `/api/v1/emotions/` — the same base URL as the
 - **Test:** Call twice within the gap — same `session_id` returned. Force timestamp to exceed gap, then verify a new `session_id` is generated.
 
 **14. [COMMIT] API Endpoint: POST Events**
-- **File:** `wwwroot/api/v1/emotions/events.php` (POST method)
-- **Action:** Accept event payload (`my_id` optional, `event_type`, `content`). Within a transaction:
+- **File:** `wwwroot/api/v1/_emotions.php` (in the `/events` branch, POST method)
+- **Action:** Replace the `/events` stub with a real handler. Accept event payload (`my_id` optional, `event_type`, `content`). Within a transaction:
   1. Resolve `my_id` → `mifmus_id`: `SELECT mifmus_id FROM my_ids_for_my_users_state WHERE api_key_id=? AND my_id=?` (NULL if no `my_id` supplied)
   2. Call `getOrCreateSession()` to get `session_id`
   3. Assign `sequence_num` atomically: `SELECT COALESCE(MAX(sequence_num), 0) + 1 FROM interaction_events WHERE session_id = ? FOR UPDATE`
@@ -248,8 +293,8 @@ The emotional endpoints live at `/api/v1/emotions/` — the same base URL as the
 - **[Jikan verify]** Ask Claude to call `emotional_log_event` with a test observation. Expect `event_id`, `session_id`, and `sequence_num` in the response.
 
 **15. [COMMIT] API Endpoint: GET Events**
-- **File:** `wwwroot/api/v1/emotions/events.php` (GET method)
-- **Action:** Require at least one of `my_id`, `session_id`, or `from` — return 400 if none supplied. Apply filters to query `interaction_events`. If `my_id` filter supplied: INNER JOIN `my_ids_for_my_users_state` WHERE `m.my_id = ?`. Otherwise: LEFT JOIN to map `mifmus_id` → `my_id` in response. Decrypt `encrypted_content` for each row. If decryption returns `false`: call `print_roblog`, skip the row. Return event array with `my_id` (null if untagged).
+- **File:** `wwwroot/api/v1/_emotions.php` (in the `/events` branch, GET method)
+- **Action:** Add GET handler to the `/events` branch. Require at least one of `my_id`, `session_id`, or `from` — return 400 if none supplied. Apply filters to query `interaction_events`. If `my_id` filter supplied: INNER JOIN `my_ids_for_my_users_state` WHERE `m.my_id = ?`. Otherwise: LEFT JOIN to map `mifmus_id` → `my_id` in response. Decrypt `encrypted_content` for each row. If decryption returns `false`: call `print_roblog`, skip the row. Return event array with `my_id` (null if untagged).
 - **Test:** `curl -H "X-API-Key: sk_..." "https://mg.robnugen.com/api/v1/emotions/events?my_id=N"` — expect a list with the event from Step 14, content decrypted and matching the original.
 - **[Jikan]** Add `emotional_get_events` to `~/jikan/server.py`:
   ```python
@@ -294,8 +339,8 @@ The emotional endpoints live at `/api/v1/emotions/` — the same base URL as the
 ### Phase 4: Sessions & Deletion Logic
 
 **16. [COMMIT] API Endpoint: GET Sessions**
-- **File:** `wwwroot/api/v1/emotions/sessions.php` (GET method)
-- **Action:** List sessions with purely computed fields — no decryption required:
+- **File:** `wwwroot/api/v1/_emotions.php` (in the `/sessions` branch, GET method)
+- **Action:** Replace the `/sessions` stub with a GET handler. List sessions with purely computed fields — no decryption required:
   ```sql
   SELECT
       s.session_id, s.start_time, s.last_event_time,
@@ -338,10 +383,10 @@ The emotional endpoints live at `/api/v1/emotions/` — the same base URL as the
 - **[Jikan verify]** Ask Claude to call `emotional_get_sessions`. Expect the session from Step 14 with correct metadata.
 
 **17. [COMMIT] API Endpoints: DELETE Handlers**
-- **Files:** `wwwroot/api/v1/emotions/events.php` and `wwwroot/api/v1/emotions/vocab.php` (DELETE methods)
+- **File:** `wwwroot/api/v1/_emotions.php` (in the `/events` and `/vocab` branches, DELETE method)
 - **Action:**
-  - `events.php DELETE`: Accept `{"event_id": N}` in body. Execute `DELETE FROM interaction_events WHERE event_id = ? AND api_key_id = ?` (ownership check). Return `{"deleted": 1}` or `{"deleted": 0}` — never 404 (avoids leaking whether an ID exists).
-  - `vocab.php DELETE`: Accept `{"my_id": N}` in body. First `SELECT mifmus_id` and `COUNT(*)` of associated events. Then `DELETE FROM my_ids_for_my_users_state WHERE mifmus_id = ?` (FK cascade sets events' `mifmus_id` to NULL via `ON DELETE SET NULL`). Return `{"deleted": 1, "events_untagged": N}`.
+  - `/events` branch DELETE: Accept `{"event_id": N}` in body. Execute `DELETE FROM interaction_events WHERE event_id = ? AND api_key_id = ?` (ownership check). Return `{"deleted": 1}` or `{"deleted": 0}` — never 404 (avoids leaking whether an ID exists).
+  - `/vocab` branch DELETE: Accept `{"my_id": N}` in body. First `SELECT mifmus_id` and `COUNT(*)` of associated events. Then `DELETE FROM my_ids_for_my_users_state WHERE mifmus_id = ?` (FK cascade sets events' `mifmus_id` to NULL via `ON DELETE SET NULL`). Return `{"deleted": 1, "events_untagged": N}`.
 - **Test:** `curl -X DELETE -H "X-API-Key: sk_..." -d '{"event_id":N}' https://mg.robnugen.com/api/v1/emotions/events` — expect `{"deleted":1}`. Then `curl -X DELETE ... -d '{"my_id":N}' .../vocab` — expect `{"deleted":1,"events_untagged":M}`. Verify event rows still exist with `mifmus_id = NULL`.
 - **[Jikan]** Add `emotional_delete_event` and `emotional_delete_vocab` to `~/jikan/server.py`:
   ```python
@@ -366,9 +411,9 @@ The emotional endpoints live at `/api/v1/emotions/` — the same base URL as the
 - **[Restart]** Exit and reopen Claude Code. ⚠️ This ends your current session.
 - **[Jikan verify]** Ask Claude to delete a test event and a test vocab entry. Confirm expected responses and DB state.
 
-**18. [VERIFY] HTTP `DELETE` endpoint: `/api/v1/emotions/everything`**
-- **File:** `wwwroot/api/v1/emotions/everything.php` — already exists (see "Already Done" section above)
-- **Action:** No PHP to write. After applying Step 4 migration and running through Steps 14–17 to create test data, verify end-to-end.
+**18. [COMMIT + VERIFY] HTTP `DELETE` endpoint: `/api/v1/emotions/everything`**
+- **File:** `wwwroot/api/v1/_emotions.php` (in the `/everything` branch, DELETE method); also delete `wwwroot/api/v1/emotions/everything.php`
+- **Action:** Migrate the logic from `everything.php` (see "PHP Code Already Written" above) into the `/everything` branch of `_emotions.php`. Remove the `prepend.php` include and `\Emotional\ApiAuth::authenticate()` call — those are replaced by the variables already in scope from `index.php` (`$auth_key_id`, `$pdo`). Then delete the standalone `wwwroot/api/v1/emotions/everything.php`. The business logic (confirm check, transaction, FK-safe deletion, response shape) is identical.
 - **Test:** `curl -X DELETE -H "X-API-Key: sk_..." -d '{}' .../everything` → 400. `curl -X DELETE ... -d '{"confirm":"delete everything"}' .../everything` → 200 with correct counts, all rows gone.
 - **[Jikan]** Add `emotional_delete_everything` to `~/jikan/server.py`:
   ```python

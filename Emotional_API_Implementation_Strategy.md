@@ -19,26 +19,43 @@ query user emotional states over time, integrated into `mg.robnugen.com` infrast
 
 ## File Structure
 
-New files to create (all must include `prepend.php` using the standard pattern from CLAUDE.md):
+New files to create:
 
 ```
-wwwroot/api/v1/emotions/
-    vocab.php          — GET (load vocab) + POST (add state)
-    events.php         — GET (query) + POST (log)
-    sessions.php       — GET (list sessions)
+wwwroot/api/v1/
+    _emotions.php      — sub-dispatcher: routes /emotions/* by path + HTTP method
+                         (included by index.php; underscore prefix = blocked from direct access)
 
 classes/Emotional/
     Ledger.php         — core logic: encrypt/decrypt, session detection, mifmus lookup
-    ApiAuth.php        — shared: validate X-API-Key header → api_key_id + user_id + rawKey
 
-db_schemas/11_emotional_api/
-    create_emotional_api.sql   — my_ids_for_my_users_state, interaction_sessions, interaction_events, omg_rob_this_happened
+db_schemas/11_admin_alerts/
+    create_admin_alerts.sql    — omg_rob_this_happened table
+
+db_schemas/12_emotional_api/
+    create_emotional_api.sql   — my_ids_for_my_users_state, interaction_sessions, interaction_events
 ```
 
-Each endpoint file handles routing by HTTP method (`$_SERVER['REQUEST_METHOD']`),
-calls into `Emotional\Ledger`, and returns JSON with `Content-Type: application/json`.
-`Emotional\ApiAuth` is called at the top of every endpoint — it validates the key,
-returns `[api_key_id, user_id, rawKey]`, and exits 401 on failure.
+Modified files:
+
+```
+wwwroot/api/v1/index.php   — add elseif branch to route /emotions/* → _emotions.php
+```
+
+**Architecture (Option A — front controller):** All `/api/v1/emotions/*` requests are routed
+through the existing `wwwroot/api/v1/index.php` front controller, which already handles
+authentication via `Auth\ApiKey`. The following variables are in scope when `_emotions.php`
+is included — no separate auth class is needed:
+- `$raw_key` — raw API key string (for encryption key derivation in `Ledger.php`)
+- `$auth_user_id` — authenticated user ID
+- `$auth_key_id` — key ID (FK to `api_keys.key_id`)
+- `$pdo` — PDO connection
+- `$method` — HTTP method
+- `$path` — URL path relative to `/api/v1` (e.g. `/emotions/vocab`)
+
+`_emotions.php` parses the sub-path (`/vocab`, `/events`, `/sessions`, `/everything`)
+and dispatches by HTTP method, calling into `Emotional\Ledger` for encryption/decryption
+and session detection. All responses are JSON (`Content-Type: application/json` set by `index.php`).
 
 ---
 
@@ -47,61 +64,24 @@ returns `[api_key_id, user_id, rawKey]`, and exits 401 on failure.
 Work through this in order. Commit after each numbered step — small commits make it
 easy to roll back a broken step without losing everything else.
 
+See `Emotional_API_Implementation_Steps.md` for the full step-by-step guide with
+Jikan integration sub-steps, commit points, and test instructions. Summary:
+
 ```
-1. [COMMIT] db_schemas/11_emotional_api/create_emotional_api.sql
-   — write the SQL file, run migration via /admin/migrate_tables.php,
-     verify all four tables created and initial INSERT row visible
-
-2. [COMMIT] classes/Emotional/ApiAuth.php
-   — validate X-API-Key header, return api_key_id + user_id + rawKey
-   — test: hit /api/v1/emotions/vocab with a valid key, expect 401 without key
-
-3. [COMMIT] classes/Emotional/Ledger.php  (encrypt/decrypt only)
-   — emotional_encrypt() and emotional_decrypt() using sodium_crypto_secretbox
-   — no DB code yet; just the two functions and key derivation
-   — test: encrypt a string, decrypt it, assert equal
-
-4. [COMMIT] wwwroot/api/v1/emotions/vocab.php  (GET only)
-   — load and return decrypted vocab for the authenticated key
-   — test: GET with valid key, expect [] on fresh install
-
-5. [COMMIT] wwwroot/api/v1/emotions/vocab.php  (POST added)
-   — add new state, generate random my_id, encrypt state, INSERT
-   — test: POST {"state":"test_anger"}, expect {"my_id": <int>}
-   — test: GET again, expect the new entry decrypted
-
-6. [COMMIT] Session auto-detection logic in Ledger.php
-   — getOrCreateSession(api_key_id, user_id): returns session_id
-   — test: call twice within gap, same session_id returned
-   — test: call with timestamp > gap, new session_id returned
-
-7. [COMMIT] wwwroot/api/v1/emotions/events.php  (POST only)
-   — log an event: resolve my_id → mifmus_id, auto-session, encrypt content
-   — test: POST event, verify row in DB (content is unreadable blob)
-
-8. [COMMIT] wwwroot/api/v1/emotions/events.php  (GET added)
-   — query events with filters, decrypt content, map mifmus_id → my_id
-   — test: GET with my_id filter, verify decrypted content matches
-
-9. [COMMIT] wwwroot/api/v1/emotions/sessions.php
-   — list sessions with duration_minutes and event_count
-   — test: GET, verify session from step 7 appears
-
-10. [COMMIT] DELETE /api/v1/emotions/events and DELETE /api/v1/emotions/vocab
-    — add DELETE method handling to events.php and vocab.php
-    — events: DELETE WHERE event_id=? AND api_key_id=? (ownership check)
-    — vocab: DELETE entry, return events_untagged count
-    — test: delete an event, verify gone; delete a vocab entry, verify events still exist
-      with mifmus_id=NULL
-
-11. [COMMIT] DELETE /api/v1/emotions/everything  (wwwroot/api/v1/emotions/everything.php)
-    — require {"confirm": "delete everything"} in body, return 400 otherwise
-    — delete in FK order within a transaction, return counts
-    — test: POST without confirm → 400; POST with confirm → all rows gone
-
-12. [COMMIT] Error path: omg_rob_this_happened on my_id collision exhaustion
-    — add retry loop to vocab POST, escalate to omg table after 5 failures
-    — test: verify admin dashboard banner appears for a manually-inserted alert
+ 1. Defensive SQL fix in Database\Base
+ 2. DB migration: omg_rob_this_happened (11_admin_alerts)
+ 2b. Admin Alerts PHP layer (already written — verify after Step 2)
+ 3. [VERIFY] Admin Dashboard Alerts end-to-end
+ 4. DB migration: emotional API tables (12_emotional_api)
+ 5. Route /emotions/* through index.php front controller → _emotions.php
+ 6–7. Ledger.php: key derivation + encrypt/decrypt
+ 8–12. _emotions.php /vocab branch: POST (auth, insert, collision, escalation) + GET
+ 13. Ledger.php: session auto-detection
+ 14–15. _emotions.php /events branch: POST + GET
+ 16. _emotions.php /sessions branch: GET
+ 17. _emotions.php /vocab + /events branches: DELETE handlers
+ 18. _emotions.php /everything branch: migrate from standalone everything.php
+ 19. Paying client milestone alerts in StripeWebhook.php
 ```
 
 ---
@@ -409,10 +389,11 @@ All endpoints live under `/api/v1/emotions/`. Authentication via header on every
 X-API-Key: sk_...
 ```
 
-PHP validation: compute `hash('sha256', $submittedKey)`, compare to `api_key_hash`
-(column name after migration 10: `alter_api_keys_hash.sql`) in `api_keys`
-WHERE `is_active = 1`. Reject with 401 if not found or inactive.
-Also update `api_keys.last_used = NOW()` on each successful auth.
+Authentication is handled centrally by `wwwroot/api/v1/index.php` (the front controller)
+using `Auth\ApiKey::validateKey()`. It computes `hash('sha256', $submittedKey)`, compares
+to `api_key_hash` in `api_keys` WHERE `is_active = 1`, rejects with 401 if not found or
+inactive, and updates `api_keys.last_used = NOW()` on success. By the time `_emotions.php`
+runs, `$raw_key`, `$auth_user_id`, and `$auth_key_id` are already validated and in scope.
 
 ---
 
@@ -697,7 +678,7 @@ DELETE FROM my_ids_for_my_users_state WHERE api_key_id = ?
 `my_ids_for_my_users_state` can be deleted in any order relative to sessions since
 events are already gone.
 
-Lives in: `wwwroot/api/v1/emotions/everything.php`
+Handled in: `wwwroot/api/v1/_emotions.php` (in the `/everything` branch)
 
 ---
 
