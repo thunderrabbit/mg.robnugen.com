@@ -1,6 +1,8 @@
 # Emotional API v3: Step-by-Step Implementation Guide
 
-This guide augments the original `Emotional_API_Implementation_Strategy.md`, laying out every task across all components in a strictly logical progression. It resolves temporal paradoxes in the original sequence (such as relying on the `omg_rob_this_happened` table before it was created) and includes defensive fixes and admin UI scaffolding so they are properly committed when needed.
+This guide augments `Emotional_API_Implementation_Strategy.md`, laying out every task in a strictly logical progression. The strategy doc is the authoritative reference for full schema definitions, encryption spec, API request/response shapes, and security properties. This doc answers: *in what order do I write the code?*
+
+It resolves temporal dependencies (e.g. `omg_rob_this_happened` must exist before vocab POST can escalate to it) and notes which steps are already implemented.
 
 ---
 
@@ -38,7 +40,7 @@ Work through this in order. Commit after each numbered step — small commits ma
 
 **4. [COMMIT] Emotional API Core Database Schema**
 - **File:** `db_schemas/12_emotional_api/create_emotional_api.sql`
-- **Action:** Create the 3 core tables in dependency order: `my_ids_for_my_users_state`, then `interaction_sessions`, then `interaction_events`. Use MySQL `COMMENT 'text'` syntax for column annotations — do **not** use `--` inline comments (risk of false semicolon splits in the importer).
+- **Action:** Create the 3 core tables in dependency order: `my_ids_for_my_users_state`, then `interaction_sessions`, then `interaction_events`. Full schema in the strategy doc. Use MySQL `COMMENT 'text'` syntax for column annotations — do **not** use `--` inline comments (risk of false semicolon splits in the importer). All three tables FK-reference `api_keys(key_id)`.
 - **Test:** Run the migration via `/admin/migrate_tables.php` and verify all three tables are created.
 
 **5. [COMMIT] API Authentication Foundation**
@@ -100,10 +102,10 @@ Work through this in order. Commit after each numbered step — small commits ma
   Return HTTP 500.
 - **Test:** Temporarily force the loop to fail all 5 times. Verify HTTP 500 response and check the Admin Dashboard banner for the new alert.
 
-**12. [COMMIT] API Endpoint: GET Vocab & Ledger Decryption**
-- **Files:** `wwwroot/api/emotional/vocab.php` (GET method), `classes/Emotional/Ledger.php`
-- **Action:** Implement `emotional_decrypt()` (already done in Step 7 if combined, otherwise add here). In `vocab.php` GET handler: call `ApiAuth`, query `my_ids_for_my_users_state WHERE api_key_id = ?`, decrypt each `state` value, return array of `[{my_id, state}]`. If decryption returns `false` for a row, call `print_roblog` and return 500.
-- **Test:** GET the vocab endpoint. Response should return the decrypted label POSTed in Step 9. Tests the full cryptographic round-trip.
+**12. [COMMIT] API Endpoint: GET Vocab**
+- **File:** `wwwroot/api/emotional/vocab.php` (GET method)
+- **Action:** Add GET handler to `vocab.php`. Call `ApiAuth`, query `my_ids_for_my_users_state WHERE api_key_id = ?`, decrypt each `state` value using `emotional_decrypt()` (already in `Ledger.php` from Step 7), return array of `[{my_id, state}]`. If decryption returns `false` for any row: call `print_roblog`, return 500.
+- **Test:** GET the vocab endpoint. Response should return the decrypted label POSTed in Step 9 — this tests the full cryptographic round-trip end to end.
 
 
 ### Phase 3: Core Endpoints
