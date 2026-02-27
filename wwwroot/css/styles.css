@@ -82,4 +82,23 @@ body {
     color: #212529;
 }
 
+.OmgDismissInline {
+    display: inline;
+    margin-left: 0.4em;
+}
+
+.OmgDismissOne {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1em;
+    color: #a07800;
+    padding: 0 0.3em;
+    line-height: 1;
+}
+
+.OmgDismissOne:hover {
+    color: #856404;
+}
+
 
