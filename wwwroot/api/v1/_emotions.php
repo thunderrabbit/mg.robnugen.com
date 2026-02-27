@@ -320,6 +320,44 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         $stmt->execute([(int) $event_id, $auth_key_id]);
         echo json_encode(['deleted' => $stmt->rowCount()]);
 
+    } elseif ($method === 'PATCH') {
+        $body = json_decode(file_get_contents('php://input'), true);
+        $event_id = $body['event_id'] ?? null;
+        if ($event_id === null) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Missing "event_id" field']);
+            return;
+        }
+
+        // Resolve my_id → mifmus_id (NULL to untag)
+        $mifmus_id = null;
+        $my_id = $body['my_id'] ?? null;
+        if ($my_id !== null) {
+            $stmt = $pdo->prepare(
+                'SELECT mifmus_id FROM my_ids_for_my_users_state WHERE api_key_id = ? AND my_id = ?'
+            );
+            $stmt->execute([$auth_key_id, (int) $my_id]);
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+            if (!$row) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Unknown my_id']);
+                return;
+            }
+            $mifmus_id = (int) $row['mifmus_id'];
+        }
+
+        $stmt = $pdo->prepare(
+            'UPDATE interaction_events SET mifmus_id = ? WHERE event_id = ? AND api_key_id = ?'
+        );
+        $stmt->execute([$mifmus_id, (int) $event_id, $auth_key_id]);
+
+        if ($stmt->rowCount() === 0) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Event not found']);
+            return;
+        }
+        echo json_encode(['event_id' => (int) $event_id, 'my_id' => $my_id !== null ? (int) $my_id : null]);
+
     } else {
         http_response_code(405);
         echo json_encode(['error' => 'Method not allowed']);
