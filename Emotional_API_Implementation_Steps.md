@@ -15,8 +15,8 @@ The PHP/CSS code for these features is already in the repo — no new code requi
 - `OmgAlerts::getUnread()` queries `omg_rob_this_happened` and catches the PDOException if the table is missing (returns `[]` silently). `OmgAlerts::dismissAll()` is a no-op until the table exists. Admin index handles form POST to `/admin/` with CSRF token. Banner only renders when `!empty($omg_alerts)` — currently always empty.
 - **Depends on:** Step 2 (creates `omg_rob_this_happened` table). Verified in Step 3.
 
-**DELETE /api/emotional/everything**
-- **File:** `wwwroot/api/emotional/everything.php` (DELETE method)
+**HTTP `DELETE` endpoint: `/api/emotional/everything`**
+- **File:** `wwwroot/api/emotional/everything.php` (handles the HTTP DELETE method)
 - Accepts `{"confirm": "delete everything"}` in body (returns 400 if missing or wrong). In a transaction: counts then deletes `interaction_events`, `interaction_sessions`, and `my_ids_for_my_users_state` in FK-safe order for the authenticated `api_key_id`. Returns `{"deleted": {"events": N, "sessions": M, "vocab_entries": K}}`.
 - **Depends on:** Step 4 (creates the three emotional tables). Verified in Step 18.
 
@@ -193,7 +193,7 @@ Work through this in order. Commit after each numbered step — small commits ma
   - `vocab.php DELETE`: Accept `{"my_id": N}` in body. First `SELECT mifmus_id` and `COUNT(*)` of associated events. Then `DELETE FROM my_ids_for_my_users_state WHERE mifmus_id = ?` (FK cascade sets events' `mifmus_id` to NULL via `ON DELETE SET NULL`). Return `{"deleted": 1, "events_untagged": N}`.
 - **Test:** Delete an event — verify it's removed. Delete a vocab entry — verify count returned and that corresponding event rows still exist with `mifmus_id = NULL`.
 
-**18. [VERIFY] DELETE /api/emotional/everything**
+**18. [VERIFY] HTTP `DELETE` endpoint: `/api/emotional/everything`**
 - **File:** `wwwroot/api/emotional/everything.php` — already exists (see "Already Done" section above)
 - **Action:** No code to write. After applying Step 4 migration and running through Steps 14–17 to create some test data, verify the endpoint end-to-end.
 - **Test:** Send DELETE without confirm → 400. Send DELETE with `{"confirm": "delete everything"}` → 200 with correct counts, all rows gone.
