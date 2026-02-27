@@ -248,9 +248,58 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         echo json_encode(['error' => 'Method not allowed']);
     }
 } elseif ($emotions_path === '/sessions') {
-    // Step 16: sessions GET
-    http_response_code(404);
-    echo json_encode(['error' => 'sessions endpoint not yet implemented']);
+
+    if ($method !== 'GET') {
+        http_response_code(405);
+        echo json_encode(['error' => 'Method not allowed']);
+        return;
+    }
+
+    $q_from  = $_GET['from'] ?? null;
+    $q_to    = $_GET['to'] ?? null;
+    $q_limit = min((int) ($_GET['limit'] ?? 20), 100);
+    if ($q_limit < 1) $q_limit = 20;
+
+    $where = ['s.api_key_id = ?'];
+    $params = [$auth_key_id];
+
+    if ($q_from !== null) {
+        $where[] = 's.start_time >= ?';
+        $params[] = $q_from;
+    }
+    if ($q_to !== null) {
+        $where[] = 's.start_time <= ?';
+        $params[] = $q_to;
+    }
+    $params[] = $q_limit;
+
+    $where_sql = implode(' AND ', $where);
+    $sql = "SELECT
+                s.session_id, s.start_time, s.last_event_time,
+                TIMESTAMPDIFF(MINUTE, s.start_time, s.last_event_time) AS duration_minutes,
+                COUNT(e.event_id) AS event_count
+            FROM interaction_sessions s
+            LEFT JOIN interaction_events e ON e.session_id = s.session_id
+            WHERE $where_sql
+            GROUP BY s.session_id
+            ORDER BY s.start_time DESC
+            LIMIT ?";
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+    $sessions = [];
+    foreach ($rows as $row) {
+        $sessions[] = [
+            'session_id'      => (int) $row['session_id'],
+            'start_time'      => $row['start_time'],
+            'last_event_time' => $row['last_event_time'],
+            'duration_minutes' => (int) $row['duration_minutes'],
+            'event_count'     => (int) $row['event_count'],
+        ];
+    }
+    echo json_encode($sessions);
 } elseif ($emotions_path === '/everything') {
     // Step 18: everything DELETE (migrated from everything.php)
     http_response_code(404);
