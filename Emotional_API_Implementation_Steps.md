@@ -197,3 +197,42 @@ Work through this in order. Commit after each numbered step — small commits ma
 - **File:** `wwwroot/api/emotional/everything.php` — already exists (see "Already Done" section above)
 - **Action:** No code to write. After applying Step 4 migration and running through Steps 14–17 to create some test data, verify the endpoint end-to-end.
 - **Test:** Send DELETE without confirm → 400. Send DELETE with `{"confirm": "delete everything"}` → 200 with correct counts, all rows gone.
+
+**19. [COMMIT] Paying Client Milestone Alerts**
+- **File:** `classes/Billing/StripeWebhook.php`
+- **Depends on:** Step 2 (`omg_rob_this_happened` table must exist before this is meaningful, though the code is safe before that — see try/catch note below).
+- **Action:** At the end of `handleCheckoutComplete()`, after `addCredits()`:
+  1. Count total paying clients: `SELECT COUNT(*) FROM users WHERE stripe_customer_id IS NOT NULL`
+     This is the right measure — `stripe_customer_id` is set exactly once on first payment and never removed. Using `role = 'paid'` would miss admins who paid (their role is preserved as `'admin'`).
+  2. Call a private `isPayingClientMilestone(int $n): bool` method.
+  3. If it returns true, insert into `omg_rob_this_happened`.
+
+  Add the milestone helper method with a comment explaining the schedule:
+  ```php
+  // Milestone schedule:
+  //   1–10:        every new client  (the exciting early ones)
+  //   11–100:      every tenth       (20, 30, … 100)
+  //   101–1,000:   every hundredth   (200, 300, … 1,000)
+  //   1,001+:      every thousandth  (2,000, 3,000, …)
+  private function isPayingClientMilestone(int $n): bool {
+      if ($n <= 10)   return true;
+      if ($n <= 100)  return $n % 10  === 0;
+      if ($n <= 1000) return $n % 100 === 0;
+      return                 $n % 1000 === 0;
+  }
+  ```
+
+  Wrap the count query and insert in a try/catch with a comment explaining why:
+  ```php
+  // try/catch because omg_rob_this_happened may not exist yet if the
+  // migration (Step 2) hasn't been applied. We must not let a missing
+  // table throw an exception here — a 500 from this webhook causes
+  // Stripe to retry the event, which would double-credit the user.
+  try {
+      ...
+  } catch (\PDOException $e) {
+      // Table not yet created — milestone silently skipped.
+  }
+  ```
+
+- **Test:** Temporarily hard-code the count query to return 1, 10, 11, 20, 100, 101, 200, 1000, 1001, 2000 and assert `isPayingClientMilestone()` returns the right value for each. Verify the insert fires for milestone counts and is skipped for non-milestones (e.g. 11, 21, 101).
