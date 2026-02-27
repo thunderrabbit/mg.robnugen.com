@@ -61,7 +61,7 @@ The emotional endpoints live at `/api/v1/emotions/` — the same base URL as the
 
 **2b. [COMMIT] Write Admin Alerts PHP Layer** *(already done in this repo)*
 - **Files:** `classes/Admin/OmgAlerts.php`, `wwwroot/admin/index.php`, `templates/admin/index.tpl.php`, `wwwroot/css/styles.css`
-- In a fresh project, write these here — after the table exists (Step 2) and before verifying (Step 3). All four files already exist in this repo (see "PHP Code Already Written" above), so no action required. Implementation detail for reference:
+- All four files already exist (see "PHP Code Already Written" above), so no action required. This step is here to document what they do and why they appear between Step 2 and Step 3:
 
   **`classes/Admin/OmgAlerts.php`** — two static methods, both wrapped in `try/catch (\PDOException $e)`. The catch blocks are intentional: the code is written before the migration is applied, so the table may not exist yet. Catching the exception lets the admin dashboard load silently with no banner rather than crashing.
   - `getUnread(\PDO $pdo): array` — `SELECT omg_id, context, message, created_at FROM omg_rob_this_happened WHERE acknowledged_at IS NULL ORDER BY created_at DESC`. Returns `[]` on exception.
