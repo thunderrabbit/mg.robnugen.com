@@ -12,9 +12,31 @@
 $emotions_path = rtrim(preg_replace('#^/emotions#', '', $path), '/') ?: '/';
 
 if ($emotions_path === '/vocab' || $emotions_path === '/') {
-    // Steps 8–12: vocab GET/POST/DELETE
-    http_response_code(404);
-    echo json_encode(['error' => 'vocab endpoint not yet implemented']);
+
+    if ($method === 'POST') {
+        $body = json_decode(file_get_contents('php://input'), true);
+        if (empty($body['state']) || !is_string($body['state'])) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Missing or invalid "state" field']);
+            return;
+        }
+        // Placeholder — real insertion in Step 9
+        echo json_encode(['status' => 'auth ok']);
+
+    } elseif ($method === 'GET') {
+        // Step 12: return decrypted vocab
+        http_response_code(404);
+        echo json_encode(['error' => 'GET vocab not yet implemented']);
+
+    } elseif ($method === 'DELETE') {
+        // Step 17: delete vocab entry
+        http_response_code(404);
+        echo json_encode(['error' => 'DELETE vocab not yet implemented']);
+
+    } else {
+        http_response_code(405);
+        echo json_encode(['error' => 'Method not allowed']);
+    }
 } elseif ($emotions_path === '/events') {
     // Steps 14–15, 17: events GET/POST/DELETE
     http_response_code(404);
