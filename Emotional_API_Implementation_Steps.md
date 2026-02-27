@@ -428,7 +428,7 @@ The emotional endpoints live at `/api/v1/emotions/` — the same base URL as the
 - **[Restart]** Exit and reopen Claude Code. ⚠️ This ends your current session.
 - **[Jikan verify]** Ask Claude to call `delete_emotion_everything`. Expect `{"deleted": {"events": N, "sessions": M, "vocab_entries": K}}` with the test data counts from Steps 14–17.
 
-**19. [COMMIT] Paying Client Milestone Alerts**
+**19. ~~[COMMIT] Paying Client Milestone Alerts~~ DONE**
 - **File:** `classes/Billing/StripeWebhook.php`
 - **Depends on:** Step 2 (`omg_rob_this_happened` table must exist before this is meaningful, though the code is safe before that — see try/catch note below).
 - **Action:** At the end of `handleCheckoutComplete()`, after `addCredits()`:
