@@ -61,9 +61,25 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         }
 
     } elseif ($method === 'GET') {
-        // Step 12: return decrypted vocab
-        http_response_code(404);
-        echo json_encode(['error' => 'GET vocab not yet implemented']);
+        $ledger = new \Emotional\Ledger($pdo, $raw_key, $auth_key_id, $auth_user_id);
+        $stmt = $pdo->prepare(
+            'SELECT my_id, state FROM my_ids_for_my_users_state WHERE api_key_id = ?'
+        );
+        $stmt->execute([$auth_key_id]);
+        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        $vocab = [];
+        foreach ($rows as $row) {
+            $decrypted = $ledger->decrypt($row['state']);
+            if ($decrypted === false) {
+                print_roblog("Decrypt failed for my_id={$row['my_id']} api_key_id=$auth_key_id", 'emotional/vocab');
+                http_response_code(500);
+                echo json_encode(['error' => 'Decryption failure']);
+                return;
+            }
+            $vocab[] = ['my_id' => (int) $row['my_id'], 'state' => $decrypted];
+        }
+        echo json_encode($vocab);
 
     } elseif ($method === 'DELETE') {
         // Step 17: delete vocab entry
