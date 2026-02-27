@@ -47,4 +47,58 @@ body {
     color: #555;
 }
 
+.OmgAlertBanner {
+    background-color: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 6px;
+    padding: 1em 1.2em;
+    margin-bottom: 1.5em;
+    color: #856404;
+}
+
+.OmgAlertBanner ul {
+    margin: 0.5em 0 0.8em 0;
+    padding-left: 1.4em;
+}
+
+.OmgAlertContext {
+    font-weight: bold;
+    font-size: 0.9em;
+    font-family: monospace;
+}
+
+.OmgAlertTime {
+    font-size: 0.85em;
+    color: #a07800;
+}
+
+.OmgDismissButton {
+    background-color: #ffc107;
+    border: 1px solid #e0a800;
+    border-radius: 4px;
+    padding: 0.3em 0.9em;
+    cursor: pointer;
+    font-size: 0.9em;
+    color: #212529;
+}
+
+.OmgDismissInline {
+    display: inline;
+    margin-left: 0.4em;
+}
+
+.OmgDismissOne {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1em;
+    color: #a07800;
+    padding: 0 0.3em;
+    line-height: 1;
+}
+
+.OmgDismissOne:hover {
+    color: #856404;
+}
+
 

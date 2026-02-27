@@ -101,6 +101,10 @@ class Base{
      * Splits on semicolons and executes each statement separately
      */
     public static function executeMultipleSQL(\PDO $pdo, string $sql): void {
+        // Strip single-line SQL comments before splitting on semicolons.
+        // A '--' comment containing a ';' would cause a false split.
+        $sql = preg_replace('/--[^\n]*\n/', "\n", $sql);
+
         // Split SQL into individual statements
         $statements = array_filter(
             array_map('trim', explode(';', $sql)),

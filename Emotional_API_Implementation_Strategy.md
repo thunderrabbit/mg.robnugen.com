@@ -1,80 +1,779 @@
-# Emotional API v3: Implementation Strategy
+# Emotional API v3: Implementation Spec (MVP)
 
-This document outlines the final strategy for implementing the **Emotional API v3 (Interaction Ledger)** into your existing `mg.robnugen.com` infrastructure. This version focuses on capturing the nuanced dance between agent actions and user reactions while maintaining absolute privacy through agent-side encryption.
+## Overview
 
-## 1. Database Migration Strategy
+This spec describes the **Emotional Interaction Ledger** — a system for an AI agent to log and
+query user emotional states over time, integrated into `mg.robnugen.com` infrastructure.
 
-Since you are using a custom PHP framework on DreamHost, I recommend adding a new migration file (e.g., `11_emotional_interaction_ledger.sql`) to your `db_schemas` directory.
+**Goals:**
+- Agent logs `(state, content)` pairs during conversations using a private numeric ID
+- Agent queries "all events where user was in state X" without exposing a plaintext label
+- DB is semantically blind: no plaintext emotion labels or event content ever stored
+- Sessions auto-detected by PHP from timestamp gaps (no agent session management needed)
+- PHP-side encryption: content encrypted before DB storage, decrypted on retrieval
+- No master emotion vocabulary required — agent invents its own labels
 
-### SQL Schema (MySQL/InnoDB)
+**Out of scope for MVP:** key rotation migration, cross-agent analysis, bulk analytics
+
+---
+
+## File Structure
+
+New files to create:
+
+```
+wwwroot/api/v1/
+    _emotions.php      — sub-dispatcher: routes /emotions/* by path + HTTP method
+                         (included by index.php; underscore prefix = blocked from direct access)
+
+classes/Emotional/
+    Ledger.php         — core logic: encrypt/decrypt, session detection, mifmus lookup
+
+db_schemas/11_admin_alerts/
+    create_admin_alerts.sql    — omg_rob_this_happened table
+
+db_schemas/12_emotional_api/
+    create_emotional_api.sql   — my_ids_for_my_users_state, interaction_sessions, interaction_events
+```
+
+Modified files:
+
+```
+wwwroot/api/v1/index.php   — add elseif branch to route /emotions/* → _emotions.php
+```
+
+**Architecture (Option A — front controller):** All `/api/v1/emotions/*` requests are routed
+through the existing `wwwroot/api/v1/index.php` front controller, which already handles
+authentication via `Auth\ApiKey`. The following variables are in scope when `_emotions.php`
+is included — no separate auth class is needed:
+- `$raw_key` — raw API key string (for encryption key derivation in `Ledger.php`)
+- `$auth_user_id` — authenticated user ID
+- `$auth_key_id` — key ID (FK to `api_keys.key_id`)
+- `$pdo` — PDO connection
+- `$method` — HTTP method
+- `$path` — URL path relative to `/api/v1` (e.g. `/emotions/vocab`)
+
+`_emotions.php` parses the sub-path (`/vocab`, `/events`, `/sessions`, `/everything`)
+and dispatches by HTTP method, calling into `Emotional\Ledger` for encryption/decryption
+and session detection. All responses are JSON (`Content-Type: application/json` set by `index.php`).
+
+---
+
+## Suggested Coding Order and Commit Points
+
+Work through this in order. Commit after each numbered step — small commits make it
+easy to roll back a broken step without losing everything else.
+
+See `Emotional_API_Implementation_Steps.md` for the full step-by-step guide with
+Jikan integration sub-steps, commit points, and test instructions. Summary:
+
+```
+ 1. Defensive SQL fix in Database\Base
+ 2. DB migration: omg_rob_this_happened (11_admin_alerts)
+ 2b. Admin Alerts PHP layer (already written — verify after Step 2)
+ 3. [VERIFY] Admin Dashboard Alerts end-to-end
+ 4. DB migration: emotional API tables (12_emotional_api)
+ 5. Route /emotions/* through index.php front controller → _emotions.php
+ 6–7. Ledger.php: key derivation + encrypt/decrypt
+ 8–12. _emotions.php /vocab branch: POST (auth, insert, collision, escalation) + GET
+ 13. Ledger.php: session auto-detection
+ 14–15. _emotions.php /events branch: POST + GET
+ 16. _emotions.php /sessions branch: GET
+ 17. _emotions.php /vocab + /events branches: DELETE handlers
+ 18. _emotions.php /everything branch: migrate from standalone everything.php
+ 19. Paying client milestone alerts in StripeWebhook.php
+```
+
+---
+
+## Architecture Summary
+
+```
+Agent (LLM) <-> mg.robnugen.com PHP endpoints <-> MySQL DB
+```
+
+The agent:
+- Authenticates with a raw api_key (`sk_...`) in every request header
+- Loads its private vocabulary (mifmus table) once at session start
+- Logs and queries events using `my_id` (an opaque integer — its private handle per state)
+
+The PHP sidecar (endpoints on mg.robnugen.com):
+- Derives an encryption key from the submitted raw api_key
+- Translates between `my_id` and `mifmus_id` (internal FK) on every request
+- Encrypts content before storing, decrypts before returning
+- Auto-detects session boundaries from timestamp gaps
+- Never stores emotion labels or event content in plaintext
+
+MySQL:
+- Sees only: integers, encrypted blobs, timestamps
+- Can answer: "how many events with mifmus_id=X in the last 7 days?" (fast indexed query)
+- Cannot answer: "which events involve anger?"
+
+---
+
+## Database Schema
+
+### Table: `my_ids_for_my_users_state`
+
+"My IDs For My User's State" — the agent's private vocabulary mapping.
+Abbreviated **mifmus** in prose and column names (`mifmus_id`).
+
 ```sql
--- Interaction Sessions: Context for a single conversation
+CREATE TABLE my_ids_for_my_users_state (
+    mifmus_id   BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    api_key_id  BIGINT UNSIGNED NOT NULL,
+    my_id       BIGINT UNSIGNED NOT NULL   COMMENT 'agent private numeric handle (random)',
+    state       TEXT NOT NULL              COMMENT 'XSalsa20-Poly1305 secretbox encrypted label',
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (mifmus_id),
+    UNIQUE KEY uniq_key_myid (api_key_id, my_id),
+    KEY idx_api_key_id (api_key_id),
+    FOREIGN KEY (api_key_id) REFERENCES api_keys(key_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+Note: `api_key_id` here references `api_keys.key_id` — the column names differ because
+`api_keys` was created before this naming convention. A future migration can rename
+`api_keys.key_id` → `api_keys.api_key_id` for consistency.
+
+- `my_id`: random integer generated by PHP at insert time. This is the agent's external
+  handle — the only ID it ever uses in API calls. The agent never sees `mifmus_id`.
+- `mifmus_id`: internal auto-increment PK used only in DB JOINs. Keeps the events table FK
+  compact and never exposed externally.
+- `state`: encrypted. Different api_keys produce different `my_id` values for identical
+  emotion concepts — no cross-agent correlation is possible even with DB access.
+
+### Table: `interaction_sessions`
+
+Auto-detected conversation boundaries.
+
+```sql
 CREATE TABLE interaction_sessions (
-    session_id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-    user_id INT UNSIGNED NOT NULL,
-    key_id BIGINT UNSIGNED NOT NULL,
-    start_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    end_time DATETIME NULL,
-    session_type VARCHAR(50) DEFAULT 'chat',
-    encrypted_summary TEXT,
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-    FOREIGN KEY (key_id) REFERENCES api_keys(key_id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    session_id      BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    api_key_id      BIGINT UNSIGNED NOT NULL,
+    user_id         INT UNSIGNED NOT NULL,
+    start_time      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_event_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
--- Interaction Events: The "Ledger" of actions and reactions
-CREATE TABLE interaction_events (
-    event_id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-    session_id BIGINT UNSIGNED NOT NULL,
-    event_timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    event_type ENUM('agent_action', 'user_input', 'user_reaction') NOT NULL,
-    sequence_num INT NOT NULL,
-    encrypted_content TEXT NOT NULL,
-    encrypted_metadata TEXT,
-    FOREIGN KEY (session_id) REFERENCES interaction_sessions(session_id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- Emotional Logs: Specific emotional snapshots tied to events
-CREATE TABLE emotional_logs (
-    log_id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-    event_id BIGINT UNSIGNED NOT NULL,
-    user_id INT UNSIGNED NOT NULL,
-    detected_emotion VARCHAR(50),
-    intensity TINYINT NULL,
-    encrypted_analysis TEXT,
-    FOREIGN KEY (event_id) REFERENCES interaction_events(event_id) ON DELETE CASCADE,
+    PRIMARY KEY (session_id),
+    KEY idx_key_recent (api_key_id, last_event_time),
+    FOREIGN KEY (api_key_id) REFERENCES api_keys(key_id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ```
 
-## 2. The "Agent-Only" Encryption Workflow
+Sessions are created automatically when the gap since the last event exceeds
+`EMOTIONAL_SESSION_GAP_MINUTES` (default: 30, set in `classes/Config.php`).
+`last_event_time` is updated with each incoming event so the gap is measured from the
+most recent activity, not the session start.
 
-To ensure the "Inner Gold" remains private, the PHP backend acts as a "blind vault."
+### Table: `interaction_events`
 
-### The Encryption Cycle (Agent Side)
-1.  **Capture**: The agent records: *"I explained shadow work (Action). User said 'I don't get it' (Input). User's tone was frustrated (Reaction)."*
-2.  **Encrypt**: The agent uses its local secret key (e.g., stored in an environment variable `EMOTIONAL_SECRET`) to encrypt the JSON payload.
-3.  **Post**: The agent sends the encrypted blob to your PHP API.
-4.  **Store**: PHP saves the string directly to the `encrypted_content` column.
+The core ledger.
 
-### The Insight Cycle (Agent Side)
-1.  **Fetch**: The agent requests the last 5 sessions for the user.
-2.  **Decrypt**: The agent decrypts the blobs locally.
-3.  **Reason**: The agent identifies a pattern: *"User gets frustrated when I use psychological jargon."*
-4.  **Act**: The agent adjusts its behavior: *"I will use more coding metaphors (like Meeseeks) next time."*
+```sql
+CREATE TABLE interaction_events (
+    event_id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    session_id        BIGINT UNSIGNED NOT NULL,
+    api_key_id        BIGINT UNSIGNED NOT NULL,
+    user_id           INT UNSIGNED NOT NULL,
+    mifmus_id         BIGINT UNSIGNED NULL          COMMENT 'NULL if event has no state tag',
+    event_timestamp   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    event_type        ENUM('agent_action','user_input','user_reaction') NOT NULL,
+    sequence_num      INT UNSIGNED NOT NULL         COMMENT 'within session, assigned by PHP',
+    encrypted_content TEXT NOT NULL                COMMENT 'XSalsa20-Poly1305 secretbox encrypted',
 
-## 3. Integration with Jikan (MCP)
+    PRIMARY KEY (event_id),
+    UNIQUE KEY uniq_session_seq (session_id, sequence_num),
+    KEY idx_mifmus (mifmus_id),
+    KEY idx_user_time (user_id, event_timestamp),
+    KEY idx_session_events (session_id, sequence_num),
+    FOREIGN KEY (session_id) REFERENCES interaction_sessions(session_id) ON DELETE CASCADE,
+    FOREIGN KEY (api_key_id) REFERENCES api_keys(key_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (mifmus_id) REFERENCES my_ids_for_my_users_state(mifmus_id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
 
-Your existing MCP server (**Jikan**) can be extended to support these new endpoints.
+- `mifmus_id` nullable: not every event carries an emotional state tag
+- `sequence_num` assigned by PHP within a transaction (SELECT MAX+1 per session)
+- `UNIQUE(session_id, sequence_num)` prevents ordering corruption
+- `user_id` stored directly (denormalized from api_keys) to allow cross-key queries
+  for the same user and avoid a JOIN on the hot read path
 
--   `POST /v1/sessions`: Starts an `interaction_session`.
--   `POST /v1/events`: Logs an action/reaction pair.
--   `GET /v1/insights`: Returns the agent's previous high-level conclusions.
+### Migration File
 
-## 4. Why This Matters for "The Barefoot Dev"
+Place all three table definitions in dependency order in:
+`db_schemas/11_emotional_api/create_emotional_api.sql`
 
-This isn't just a database; it's a **behavioral feedback loop**. By tracking its own actions versus the user's reactions, your AI becomes a "Connection Coach" that learns from its own mistakes—just as you describe in your journey from "victim" to "agent" in *I'm Fine*.
+(my_ids_for_my_users_state first, then interaction_sessions, then interaction_events — FK order matters)
 
--   **Time-of-Day Analysis**: Do users feel more "Emotional Meeseeks" in the morning or evening?
--   **Duration Tracking**: Does a 30-minute deep dive lead to better "Inner Gold" discovery than a 5-minute check-in?
+### SQL Comment Syntax in Schema Files
 
-This data allows the agent to provide the "Space Holding" you talk about in your workshops, but at a digital scale.
+**Do not use `-- inline comments` within column definitions in `.sql` schema files.**
+`Database\Base::executeMultipleSQL` splits on `;` before passing each statement to
+`PDO::exec()`. A `--` comment containing a `;` would cause a false split and corrupt
+the statement. Use MySQL's native `COMMENT 'text'` syntax instead (as shown above) —
+it is stored in `information_schema` and survives round-trips through any MySQL tooling.
+
+As a defensive measure, also update `Database\Base::executeMultipleSQL` to strip
+`-- ...` lines before splitting:
+
+```php
+// Strip single-line SQL comments before splitting on semicolons
+$sql = preg_replace('/--[^\n]*\n/', "\n", $sql);
+```
+
+This protects against `--` comments in any schema file, not just the new ones.
+
+### `omg_rob_this_happened` — Admin Alert Table
+
+A general-purpose table for critical failures that need human attention. Add to this
+migration (or a standalone `12_admin_alerts` migration):
+
+```sql
+CREATE TABLE omg_rob_this_happened (
+    omg_id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    context         VARCHAR(255) NOT NULL  COMMENT 'e.g. emotional/vocab, billing/webhook',
+    message         TEXT NOT NULL          COMMENT 'plain language description of the failure',
+    created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    acknowledged_at DATETIME NULL          COMMENT 'NULL = unread; set when admin dismisses',
+
+    PRIMARY KEY (omg_id),
+    KEY idx_unread (acknowledged_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+After creating the table, insert an initial celebration/test entry:
+
+```sql
+INSERT INTO omg_rob_this_happened (context, message)
+VALUES ('system/setup', 'We created a system to alert you to important messages!');
+```
+
+Admin pages check `SELECT COUNT(*) FROM omg_rob_this_happened WHERE acknowledged_at IS NULL`
+and display a banner when count > 0. Dismissal sets `acknowledged_at = NOW()`.
+
+The admin banner is implemented in `wwwroot/admin/index.php` +
+`templates/admin/index.tpl.php` via `Admin\OmgAlerts` class.
+
+---
+
+## Encryption Scheme
+
+### Key Derivation
+
+PHP derives a 32-byte AES key from the raw api_key submitted in the request header.
+The raw key is available during the request even though only its SHA-256 hash is stored
+in the `api_keys` table.
+
+```php
+// $rawApiKey: the "sk_..." string from the X-API-Key request header
+$encKey = hash_hmac('sha256', 'emotional_v1', $rawApiKey, true); // 32 bytes, binary
+```
+
+The context string `'emotional_v1'` binds derived keys to this system. Changing it
+would invalidate all stored encrypted data (intentional rotation mechanism post-MVP).
+
+### Encrypt
+
+```php
+function emotional_encrypt(string $plaintext, string $encKey): string {
+    // Use secretbox (XSalsa20-Poly1305): no hardware AES requirement, works on DreamHost
+    $nonce  = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES); // 24 bytes
+    $cipher = sodium_crypto_secretbox($plaintext, $nonce, $encKey);
+    return base64_encode($nonce . $cipher); // nonce + ciphertext + Poly1305 auth tag
+}
+```
+
+`sodium_crypto_aead_aes256gcm` requires hardware AES-NI support which is not guaranteed
+on shared hosting. `sodium_crypto_secretbox` (XSalsa20-Poly1305) is software-only,
+equally secure, and available on all platforms with libsodium.
+
+Each call generates a fresh random nonce. Identical plaintext produces different
+ciphertext on every encryption. The Poly1305 tag detects tampering.
+
+### Decrypt
+
+```php
+function emotional_decrypt(string $stored, string $encKey): string|false {
+    $decoded = base64_decode($stored);
+    $nonce   = substr($decoded, 0, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
+    $cipher  = substr($decoded, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
+    return sodium_crypto_secretbox_open($cipher, $nonce, $encKey);
+}
+```
+
+Returns `false` on authentication failure (tampered data or wrong key).
+
+**Decrypt failure handling:** if `emotional_decrypt` returns `false` for any row,
+the endpoint must return a 500 with a log entry (via `print_roblog`) and skip
+the row in results. It must NOT silently return empty string or crash. This indicates
+either data corruption or a key mismatch (e.g. after api_key rotation).
+
+### What Is Encrypted
+
+| Column | Encrypted | Notes |
+|---|---|---|
+| `my_ids_for_my_users_state.state` | Yes | Agent's private emotion label |
+| `interaction_events.encrypted_content` | Yes | Event narrative / reasons |
+| `my_ids_for_my_users_state.my_id` | No | Opaque integer — semantically meaningless without state |
+| `interaction_sessions.*` | No | Timestamps and FKs only |
+| `interaction_events.event_type` | No | Low-entropy ENUM; acceptable plaintext |
+| `interaction_events.event_timestamp` | No | Required for session and time-of-day analysis |
+
+### Key Rotation Tradeoff (MVP Limitation)
+
+Deriving the encryption key from the api_key means: if an api_key is revoked and a new
+one generated, all data encrypted under the old key becomes permanently unreadable.
+
+**For MVP this is acceptable** — old data is inaccessible after key rotation, which can
+be treated as a feature (clean slate on rotation).
+
+Post-MVP fix: store an explicit per-user encryption key in `user_settings`, decoupled
+from api_key lifecycle.
+
+---
+
+## Session Auto-Detection
+
+When an event arrives, PHP runs this logic (within a transaction):
+
+```
+-- NOTE: PDO cannot mix named params and positional params in one query,
+-- and named params cannot appear inside INTERVAL syntax.
+-- Embed the gap as a validated integer literal in PHP before preparing:
+--   $gap = intval(EMOTIONAL_SESSION_GAP_MINUTES); // e.g. 30
+--   $sql = "... AND last_event_time > DATE_SUB(NOW(), INTERVAL {$gap} MINUTE)"
+-- Then bind only :key_id as a named param (or use all positional).
+
+1. SELECT session_id FROM interaction_sessions
+   WHERE api_key_id = :api_key_id
+     AND last_event_time > DATE_SUB(NOW(), INTERVAL {gap} MINUTE)
+   ORDER BY last_event_time DESC
+   LIMIT 1
+   FOR UPDATE   -- lock the row to prevent race on concurrent inserts
+
+2. If found:
+     UPDATE interaction_sessions SET last_event_time = NOW() WHERE session_id = :id
+     Use this session_id
+
+3. If not found:
+     INSERT INTO interaction_sessions (api_key_id, user_id) VALUES (:api_key_id, :user_id)
+     Use new session_id
+```
+
+`sequence_num` is assigned in the same transaction:
+```sql
+SELECT COALESCE(MAX(sequence_num), 0) + 1
+FROM interaction_events
+WHERE session_id = :session_id
+FOR UPDATE
+```
+
+Config constant in `classes/Config.php`:
+```php
+define('EMOTIONAL_SESSION_GAP_MINUTES', 30);
+```
+
+This enables time-based analysis (mood shift at session hour 2, mood patterns after 10pm,
+etc.) without requiring the agent to track or manage session IDs.
+
+---
+
+## API Endpoints
+
+All endpoints live under `/api/v1/emotions/`. Authentication via header on every request:
+```
+X-API-Key: sk_...
+```
+
+Authentication is handled centrally by `wwwroot/api/v1/index.php` (the front controller)
+using `Auth\ApiKey::validateKey()`. It computes `hash('sha256', $submittedKey)`, compares
+to `api_key_hash` in `api_keys` WHERE `is_active = 1`, rejects with 401 if not found or
+inactive, and updates `api_keys.last_used = NOW()` on success. By the time `_emotions.php`
+runs, `$raw_key`, `$auth_user_id`, and `$auth_key_id` are already validated and in scope.
+
+---
+
+### GET /api/v1/emotions/vocab
+
+Load the agent's full private vocabulary for this session.
+
+**Request:** no body
+
+**Response:**
+```json
+[
+  {"my_id": 2341, "state": "anger"},
+  {"my_id": 8847, "state": "ujfjveh"},
+  {"my_id": 5512, "state": "morning_fog"}
+]
+```
+
+PHP: `SELECT mifmus_id, my_id, state FROM my_ids_for_my_users_state WHERE api_key_id = :api_key_id`
+then decrypt each `state` value before returning.
+
+**The agent calls this once at session start.** It holds the result in context memory.
+All subsequent log and query calls use `my_id` values from this loaded vocab.
+
+---
+
+### POST /api/v1/emotions/vocab
+
+Add a new state label to the agent's vocabulary.
+
+**Request body:**
+```json
+{"state": "new_label_or_made_up_word"}
+```
+
+**Response:**
+```json
+{"my_id": 2341}
+```
+
+PHP:
+1. Encrypt the `state` value
+2. Generate a random `my_id`: `random_int(100000, 999999999)`
+3. `INSERT INTO my_ids_for_my_users_state (api_key_id, my_id, state) VALUES (...)`
+4. On `my_id` collision (UNIQUE violation): regenerate and retry (max 5 attempts)
+   If all 5 attempts fail:
+   - `print_roblog` the failure with context (api_key_id, attempted my_ids)
+   - `INSERT INTO omg_rob_this_happened (context, message) VALUES ('emotional/vocab', '5 my_id collisions exhausted for api_key_id X')`
+   - Return HTTP 500
+5. Return `my_id`
+
+**The agent calls this when it encounters a state not yet in its loaded vocab.**
+It appends `{my_id, state}` to its in-memory vocab immediately and uses `my_id`
+in the same session without reloading.
+
+---
+
+### POST /api/v1/emotions/events
+
+Log a single interaction event.
+
+**Request body:**
+```json
+{
+  "my_id": 2341,
+  "event_type": "user_reaction",
+  "content": "User said 'I don't get it' — tone frustrated, repeated question"
+}
+```
+
+`my_id` is optional. Omit for events with no emotional state (e.g. pure agent actions).
+
+**Response:**
+```json
+{"event_id": 1042, "session_id": 7, "sequence_num": 3}
+```
+
+PHP:
+1. Resolve `my_id` → `mifmus_id`: `SELECT mifmus_id FROM my_ids_for_my_users_state WHERE api_key_id=? AND my_id=?`
+   (NULL if no `my_id` supplied)
+2. Auto-detect or create session (see Session Auto-Detection)
+3. Assign `sequence_num` atomically within session
+4. Encrypt `content`
+5. `INSERT INTO interaction_events`
+
+---
+
+### GET /api/v1/emotions/events
+
+Query events, optionally filtered by state or time range.
+
+At least one of `my_id`, `session_id`, or `from` is required. Requests with no filters
+are rejected with 400 to prevent accidentally returning the entire event history.
+
+**Query parameters:**
+
+| Param | Type | Description |
+|---|---|---|
+| `my_id` | integer | Filter by this state (agent's private ID) |
+| `session_id` | integer | Filter to a specific session |
+| `from` | ISO datetime | Start of time range |
+| `to` | ISO datetime | End of time range (defaults to NOW() if `from` is set) |
+| `event_type` | string | `agent_action` \| `user_input` \| `user_reaction` |
+| `limit` | integer | Default 50, max 200 |
+
+**Response:**
+```json
+[
+  {
+    "event_id": 1042,
+    "session_id": 7,
+    "sequence_num": 3,
+    "event_timestamp": "2026-02-27T14:23:00",
+    "event_type": "user_reaction",
+    "my_id": 2341,
+    "content": "User said 'I don't get it' — tone frustrated, repeated question"
+  },
+  {
+    "event_id": 1043,
+    "session_id": 7,
+    "sequence_num": 4,
+    "event_timestamp": "2026-02-27T14:25:00",
+    "event_type": "agent_action",
+    "my_id": null,
+    "content": "Agent switched to a coding metaphor"
+  }
+]
+```
+
+`my_id` is `null` in the response when the event has no emotional state tag.
+
+PHP: LEFT JOIN `my_ids_for_my_users_state` on `mifmus_id` to resolve back to `my_id` for the response.
+If `my_id` filter param is supplied: INNER JOIN `my_ids_for_my_users_state` WHERE `my_id = ?` (excludes
+untagged events). Apply all remaining filters, decrypt `encrypted_content` for each row.
+Skip any row where decryption returns `false` (log via `print_roblog`).
+
+The agent never sees `mifmus_id`. The `my_id` in the response matches the agent's vocab.
+
+---
+
+### GET /api/v1/emotions/sessions
+
+List sessions with metadata for pattern analysis.
+
+**Query parameters:** `from`, `to`, `limit` (default 20, max 100)
+
+**Response:**
+```json
+[
+  {
+    "session_id": 7,
+    "start_time": "2026-02-27T13:00:00",
+    "last_event_time": "2026-02-27T15:12:00",
+    "duration_minutes": 132,
+    "event_count": 24
+  }
+]
+```
+
+`duration_minutes` and `event_count` computed server-side — no decryption required:
+
+```sql
+SELECT
+    s.session_id,
+    s.start_time,
+    s.last_event_time,
+    TIMESTAMPDIFF(MINUTE, s.start_time, s.last_event_time) AS duration_minutes,
+    COUNT(e.event_id) AS event_count
+FROM interaction_sessions s
+LEFT JOIN interaction_events e ON e.session_id = s.session_id
+WHERE s.api_key_id = :api_key_id
+  /* AND s.start_time >= :from  (add if filter supplied) */
+GROUP BY s.session_id
+ORDER BY s.start_time DESC
+LIMIT :limit
+```
+
+The agent uses this to identify sessions of interest, then fetches events for those
+sessions via `GET /api/v1/emotions/events?session_id=X`.
+
+This two-step pattern supports time-based analysis:
+- "Does the user's mood shift after 90 minutes in a session?" → fetch session list,
+  find long sessions, then fetch their events ordered by sequence_num
+- "Does state X appear only after 10pm?" → filter events by `from`/`to` time ranges
+
+---
+
+### DELETE /api/v1/emotions/events
+
+Delete a single event by `event_id`.
+
+**Request body:**
+```json
+{"event_id": 1042}
+```
+
+**Response:**
+```json
+{"deleted": 1}
+```
+
+PHP:
+1. `DELETE FROM interaction_events WHERE event_id = ? AND api_key_id = ?`
+   The `api_key_id` constraint ensures an agent cannot delete another user's events.
+2. Return `{"deleted": 0}` (not 404) if the event doesn't exist or belongs to
+   a different key — avoids leaking whether an ID exists.
+
+No extra confirmation required. Ownership proof (valid api_key + matching api_key_id)
+is sufficient for single-row deletion.
+
+---
+
+### DELETE /api/v1/emotions/vocab
+
+Delete a vocab entry by `my_id`. Associated events are **not** deleted — their
+`mifmus_id` is set to NULL via the `ON DELETE SET NULL` FK constraint, preserving
+the event timeline while detaching the state label.
+
+**Request body:**
+```json
+{"my_id": 2341}
+```
+
+**Response:**
+```json
+{"deleted": 1, "events_untagged": 14}
+```
+
+PHP:
+1. `SELECT mifmus_id FROM my_ids_for_my_users_state WHERE my_id=? AND api_key_id=?`
+2. `SELECT COUNT(*) FROM interaction_events WHERE mifmus_id=?` (for the response count)
+3. `DELETE FROM my_ids_for_my_users_state WHERE mifmus_id=?`
+   (CASCADE handles the FK; events get mifmus_id = NULL automatically)
+
+`events_untagged` tells the agent how many historical events lost their state label —
+useful for it to decide whether to re-tag them before deleting.
+
+---
+
+### DELETE /api/v1/emotions/everything
+
+Wipe all data for this api_key: all events, sessions, and vocab entries.
+
+**"Are you sure" mechanism:** confirmation string in request body. The caller must
+explicitly construct the confirmation payload — it cannot happen by accident or
+misrouted request. No extra DB state or token table required.
+
+**Request body:**
+```json
+{"confirm": "delete everything"}
+```
+
+**Response:**
+```json
+{
+  "deleted": {
+    "events": 847,
+    "sessions": 23,
+    "vocab_entries": 12
+  }
+}
+```
+
+Returns 400 if `confirm` field is missing or does not exactly equal `"delete everything"`.
+
+PHP (in a transaction):
+```php
+// Count first (for the response)
+$event_count   = SELECT COUNT(*) FROM interaction_events WHERE api_key_id = ?
+$session_count = SELECT COUNT(*) FROM interaction_sessions WHERE api_key_id = ?
+$vocab_count   = SELECT COUNT(*) FROM my_ids_for_my_users_state WHERE api_key_id = ?
+
+// Delete in FK-safe order
+DELETE FROM interaction_events   WHERE api_key_id = ?
+DELETE FROM interaction_sessions WHERE api_key_id = ?
+DELETE FROM my_ids_for_my_users_state WHERE api_key_id = ?
+
+// Return counts
+```
+
+`interaction_events` must be deleted before `interaction_sessions` (FK constraint).
+`my_ids_for_my_users_state` can be deleted in any order relative to sessions since
+events are already gone.
+
+Handled in: `wwwroot/api/v1/_emotions.php` (in the `/everything` branch)
+
+---
+
+## Agent Workflow
+
+### Session Start
+
+```
+1. GET /api/v1/emotions/vocab
+   Response: [{my_id: 2341, state: "anger"}, {my_id: 8847, state: "ujfjveh"}, ...]
+   Agent: load into context memory as private vocab
+
+2. For any new state encountered during the session not yet in vocab:
+   POST /api/v1/emotions/vocab  {"state": "new_label"}
+   Response: {"my_id": 9923}
+   Agent: append {my_id: 9923, state: "new_label"} to in-memory vocab
+```
+
+The agent's vocab is its private semantic layer. It may use any labels it finds useful:
+plain words ("anger"), invented codes ("ujfjveh"), compound descriptions
+("resistance_plus_fatigue"), or hashed strings. No master list or schema change required.
+
+### Logging an Event
+
+```
+1. Agent identifies: "user just expressed frustration at jargon"
+2. Agent looks up "frustration" in in-memory vocab → my_id = 2341
+   (If not found: POST /api/v1/emotions/vocab first)
+3. POST /api/v1/emotions/events
+   {"my_id": 2341, "event_type": "user_reaction",
+    "content": "User said 'that makes no sense' after explanation of shadow work"}
+4. Response confirms event_id, session_id, sequence_num (agent may discard or log)
+```
+
+### Querying for Patterns
+
+```
+1. Agent wants to know: "when does this user show state ujfjveh?"
+2. Agent has my_id = 8847 for "ujfjveh" from loaded vocab
+3. GET /api/v1/emotions/events?my_id=8847&from=2026-01-01
+4. Agent receives decrypted event list, reasons over content and timestamps
+5. For session-depth analysis:
+   GET /api/v1/emotions/sessions
+   → find session_id=7 (duration 132 min)
+   GET /api/v1/emotions/events?session_id=7&my_id=8847
+   → agent identifies at which sequence_num (session minute ~90) the state appeared
+```
+
+---
+
+## Security Properties
+
+### What a DB-Only Attacker Sees
+
+| Visible | Can Infer |
+|---|---|
+| Integer `my_id` values | Which events share the same state (but not what the state is) |
+| Integer `mifmus_id` values | Same as above — just the internal FK |
+| Encrypted blobs | Nothing (XSalsa20-Poly1305 secretbox is semantically secure) |
+| `event_timestamp` values | When interactions occurred; session durations; time-of-day patterns |
+| `event_type` ENUM | Ratio of agent actions vs user reactions |
+| `user_id` integers | Which user each event belongs to |
+
+**Protected:** all emotion labels, all event content, the agent's private vocabulary text
+**Not protected:** timing metadata, interaction frequency, session count and duration
+
+### Frequency Analysis Note
+
+An attacker with DB access can count occurrences of each `my_id`. The most frequent
+IDs likely correspond to common emotional states. The label is hidden but the
+rank-ordering of states may be inferable from frequency alone. This is an accepted
+tradeoff for MVP — it is a weaker property than full encryption of the tag column,
+but enables fast indexed queries without any decryption at query time.
+
+---
+
+## Known Limitations (Post-MVP Backlog)
+
+1. **Key rotation loses data.** New api_key → new derived encryption key → old data
+   unreadable. Fix: store a per-user encryption key in `user_settings`, decoupled from
+   api_key lifecycle.
+
+2. **sequence_num under concurrency.** SELECT MAX+1 in a transaction is safe for
+   single-agent MVP usage. High-concurrency fix: use a stored procedure or a separate
+   sequence counter table.
+
+3. **`event_type` in plaintext.** The ratio of agent_action vs user_reaction is visible
+   to a DB observer. Low risk; acceptable for MVP.
+
+4. **No rate limiting.** A compromised api_key can flood the events table. Add
+   per-key rate limiting (e.g. max 1000 events/day) post-MVP.
+
+5. **Vocab loading leaks vocabulary size.** The number of rows in `my_ids_for_my_users_state` for a given
+   key_id is visible (even though state values are encrypted). Acceptable for MVP.
+
+6. **No session summary field.** The original design included an `encrypted_summary`
+   on sessions. Omitted from MVP — the agent can synthesize summaries itself from
+   the event list and store them as tagged events if desired.
