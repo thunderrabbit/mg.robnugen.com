@@ -162,9 +162,81 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         }
 
     } elseif ($method === 'GET') {
-        // Step 15: query events
-        http_response_code(404);
-        echo json_encode(['error' => 'GET events not yet implemented']);
+        $q_my_id      = $_GET['my_id'] ?? null;
+        $q_session_id = $_GET['session_id'] ?? null;
+        $q_from       = $_GET['from'] ?? null;
+        $q_to         = $_GET['to'] ?? null;
+        $q_event_type = $_GET['event_type'] ?? null;
+        $q_limit      = min((int) ($_GET['limit'] ?? 50), 200);
+        if ($q_limit < 1) $q_limit = 50;
+
+        if ($q_my_id === null && $q_session_id === null && $q_from === null) {
+            http_response_code(400);
+            echo json_encode(['error' => 'At least one of my_id, session_id, or from is required']);
+            return;
+        }
+
+        $ledger = new \Emotional\Ledger($pdo, $raw_key, $auth_key_id, $auth_user_id);
+
+        $where = ['e.api_key_id = ?'];
+        $params = [$auth_key_id];
+        $join = 'LEFT JOIN my_ids_for_my_users_state m ON m.mifmus_id = e.mifmus_id';
+
+        if ($q_my_id !== null) {
+            $join = 'INNER JOIN my_ids_for_my_users_state m ON m.mifmus_id = e.mifmus_id AND m.my_id = ?';
+            array_unshift($params, (int) $q_my_id); // my_id param goes before api_key_id
+            // Rebuild params: my_id for JOIN, then api_key_id for WHERE
+            $params = [(int) $q_my_id, $auth_key_id];
+        }
+        if ($q_session_id !== null) {
+            $where[] = 'e.session_id = ?';
+            $params[] = (int) $q_session_id;
+        }
+        if ($q_from !== null) {
+            $where[] = 'e.event_timestamp >= ?';
+            $params[] = $q_from;
+        }
+        if ($q_to !== null) {
+            $where[] = 'e.event_timestamp <= ?';
+            $params[] = $q_to;
+        }
+        if ($q_event_type !== null) {
+            $where[] = 'e.event_type = ?';
+            $params[] = $q_event_type;
+        }
+        $params[] = $q_limit;
+
+        $where_sql = implode(' AND ', $where);
+        $sql = "SELECT e.event_id, e.session_id, e.sequence_num, e.event_timestamp,
+                       e.event_type, m.my_id, e.encrypted_content
+                FROM interaction_events e
+                $join
+                WHERE $where_sql
+                ORDER BY e.event_timestamp ASC, e.sequence_num ASC
+                LIMIT ?";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        $events = [];
+        foreach ($rows as $row) {
+            $decrypted = $ledger->decrypt($row['encrypted_content']);
+            if ($decrypted === false) {
+                print_roblog("Decrypt failed for event_id={$row['event_id']} api_key_id=$auth_key_id", 'emotional/events');
+                continue; // skip corrupted row
+            }
+            $events[] = [
+                'event_id'        => (int) $row['event_id'],
+                'session_id'      => (int) $row['session_id'],
+                'sequence_num'    => (int) $row['sequence_num'],
+                'event_timestamp' => $row['event_timestamp'],
+                'event_type'      => $row['event_type'],
+                'my_id'           => $row['my_id'] !== null ? (int) $row['my_id'] : null,
+                'content'         => $decrypted,
+            ];
+        }
+        echo json_encode($events);
 
     } elseif ($method === 'DELETE') {
         // Step 17: delete event
