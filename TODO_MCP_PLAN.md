@@ -192,12 +192,28 @@ data. Options:
    Check uniqueness against the hash. This preserves the duplicate check
    without exposing plaintext.
 2. Remove the duplicate check entirely (allow duplicate names).
+3. **Create an Activity Vocabulary** — same pattern as the emotional
+   ledger's `my_ids_for_my_users_state` table. Each activity gets a
+   random numeric `my_id` as its agent-facing handle. The encrypted
+   `activity_name` is stored alongside it. Duplicate checking works by
+   loading the full vocab (decrypting all names) and comparing
+   client-side before creating — exactly how emotion vocab works.
+   This also gives activities the same per-API-key encryption as
+   emotions, keeping the architecture consistent.
 
-Recommendation: Option 1 (hash-based uniqueness).
+Recommendation: Option 3 (activity vocabulary). It reuses a proven
+pattern, keeps per-key encryption consistent across the system, and
+avoids introducing a new app-secret encryption model.
 
-- **`activities` table:** Add column `name_hash CHAR(64) NULL`
-- **`Activity.php`:** Change duplicate check to `WHERE user_id = ? AND name_hash = ?`
-- **`Activity.php`:** On create, compute and store the hash
+- **New table:** `activity_vocab` (or extend `my_ids_for_my_users_state`
+  with a `vocab_type` column)
+- **Columns:** `vocab_id`, `api_key_id`, `my_id` (random), encrypted
+  `activity_name`, encrypted `description`
+- **Duplicate check:** Agent loads vocab via GET, checks locally, then
+  POSTs only if not already present
+- **Mapping:** `my_id` maps to `activity_id` in the existing
+  `activities` table (or the vocab replaces the activities table for
+  API-key users)
 
 > ```
 > Add hash-based activity duplicate check for encryption compatibility
