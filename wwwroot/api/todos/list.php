@@ -38,7 +38,7 @@ try {
 
     foreach ($todos as &$todo) {
         // Check if this is a recurring todo (has days or dates set)
-        $isRecurring = !empty($todo['do_days']) || !empty($todo['do_dates']);
+        $isRecurring = !empty($todo['do_days']) || !empty($todo['do_dates']) || !empty($todo['do_every_n_days']);
 
         // For recurring items, we only care about completion TODAY
         // For one-time items, we care if it's completed AT ALL
