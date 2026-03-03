@@ -5,7 +5,7 @@
 
 /* minutes input label */
 label {
-	color:rgb(100,100,100);
+	color: var(--text-faint);
 	font-size: xx-large;
 }
 
@@ -31,34 +31,34 @@ input {
 	max-width: 500px;
 	margin: 50px auto;
 	padding: 30px;
-	background: white;
-	border: 2px solid #e0e0e0;
+	background: var(--bg-card);
+	border: 2px solid var(--border-light);
 	border-radius: 10px;
-	box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+	box-shadow: var(--shadow-widget);
 	text-align: left;
 }
 
 .completion-summary h3 {
 	font-size: 28px;
 	margin-bottom: 20px;
-	color: #333;
+	color: var(--text-secondary);
 	text-align: center;
 }
 
 .completion-summary p {
 	font-size: 18px;
 	margin: 12px 0;
-	color: #555;
+	color: var(--text-muted);
 }
 
 .completion-summary strong {
-	color: #333;
+	color: var(--text-secondary);
 	margin-right: 8px;
 }
 
 .completion-summary .readonly-note {
 	text-align: center;
-	border-top: 1px solid #e0e0e0;
+	border-top: 1px solid var(--border-light);
 	padding-top: 15px;
 }
 
@@ -81,25 +81,25 @@ input {
 }
 
 #save_new_activity {
-	background-color: #4CAF50;
-	color: white;
+	background-color: var(--success);
+	color: var(--text-on-accent);
 	border: none;
 	border-radius: 4px;
 }
 
 #save_new_activity:hover {
-	background-color: #45a049;
+	background-color: var(--success-hover);
 }
 
 #cancel_new_activity {
-	background-color: #888;
-	color: white;
+	background-color: var(--neutral);
+	color: var(--text-on-accent);
 	border: none;
 	border-radius: 4px;
 }
 
 #cancel_new_activity:hover {
-	background-color: #666;
+	background-color: var(--neutral-hover);
 }
 
 /* Post-timer navigation links */
@@ -114,16 +114,16 @@ input {
 	margin: 8px;
 	font-size: large;
 	text-decoration: none;
-	color: white;
-	background-color: #2196F3;
+	color: var(--text-on-accent);
+	background-color: var(--info);
 	border-radius: 6px;
 	transition: background-color 0.2s;
 }
 
 .post-timer-link:hover {
-	background-color: #1976D2;
+	background-color: var(--info-hover);
 }
 
 .post-timer-link:visited {
-	color: white;
+	color: var(--text-on-accent);
 }

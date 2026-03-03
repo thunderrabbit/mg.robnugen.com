@@ -23,7 +23,7 @@
         });
     </script>
 
-    <p style="margin-top: 20px; color: #7f8c8d;">
-        Already have an account? <a href="/login/" style="color: #3498db;">Log in</a>
+    <p style="margin-top: 20px; color: var(--neutral);">
+        Already have an account? <a href="/login/" style="color: var(--info);">Log in</a>
     </p>
 </div>

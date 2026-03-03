@@ -9,9 +9,9 @@
 }
 
 .alert-success {
-    background-color: #d1e7dd;
-    color: #0f5132;
-    border: 1px solid #badbcc;
+    background-color: var(--alert-success-bg);
+    color: var(--alert-success-text);
+    border: 1px solid var(--alert-success-border);
     padding: 15px;
     border-radius: 6px;
     margin-bottom: 20px;
@@ -25,18 +25,18 @@
 	align-items: center;
 	margin-bottom: 30px;
 	padding-bottom: 15px;
-	border-bottom: 2px solid #e0e0e0;
+	border-bottom: 2px solid var(--border-light);
 }
 
 .dashboard-header h1 {
 	margin: 0;
 	font-size: 28px;
-	color: #333;
+	color: var(--text-secondary);
 }
 
 .btn-new-timer {
-	background-color: #4CAF50;
-	color: white;
+	background-color: var(--success);
+	color: var(--text-on-accent);
 	padding: 12px 24px;
 	text-decoration: none;
 	border-radius: 6px;
@@ -46,7 +46,7 @@
 }
 
 .btn-new-timer:hover {
-	background-color: #45a049;
+	background-color: var(--success-hover);
 }
 
 /* Session Grid */
@@ -60,7 +60,7 @@
 .loading {
 	text-align: center;
 	padding: 40px;
-	color: #666;
+	color: var(--text-faint);
 	font-size: 16px;
 }
 
@@ -72,8 +72,8 @@
 /* Session Widget */
 .session-widget {
 	display: block;
-	background: white;
-	border: 2px solid #e0e0e0;
+	background: var(--bg-card);
+	border: 2px solid var(--border-light);
 	border-radius: 10px;
 	padding: 20px;
 	text-decoration: none;
@@ -89,8 +89,8 @@
 	right: 8px;
 	width: 28px;
 	height: 28px;
-	background-color: rgba(244, 67, 54, 0.1);
-	color: #F44336;
+	background-color: var(--danger-subtle-bg);
+	color: var(--danger);
 	border: none;
 	border-radius: 50%;
 	font-size: 16px;
@@ -106,46 +106,46 @@
 }
 
 .delete-session-btn:hover {
-	background-color: #F44336;
-	color: white;
+	background-color: var(--danger);
+	color: var(--text-on-accent);
 }
 
 .session-widget:hover {
 	transform: translateY(-4px);
-	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+	box-shadow: var(--shadow-lg);
 }
 
 .session-widget.countdown {
-	border-left: 6px solid #FFC107; /* Yellow for countdown */
+	border-left: 6px solid var(--alert-warn-border); /* Yellow for countdown */
 }
 
 .session-widget.bonus {
-	border-left: 6px solid #4CAF50; /* Green for bonus */
+	border-left: 6px solid var(--success); /* Green for bonus */
 }
 
 .session-widget .activity-name {
 	font-size: 20px;
 	font-weight: 700;
 	margin-bottom: 12px;
-	color: #333;
+	color: var(--text-secondary);
 }
 
 .session-widget .intended-time {
 	font-size: 14px;
-	color: #666;
+	color: var(--text-faint);
 	margin-bottom: 8px;
 }
 
 .session-widget .elapsed-time {
 	font-size: 16px;
 	font-weight: 600;
-	color: #333;
+	color: var(--text-secondary);
 	margin-bottom: 12px;
 }
 
 .session-widget .elapsed-value {
 	font-family: 'Courier New', monospace;
-	color: #2196F3;
+	color: var(--info);
 }
 
 .session-widget .status-indicator {
@@ -154,31 +154,31 @@
 	padding: 6px 12px;
 	border-radius: 20px;
 	display: inline-block;
-	background-color: #f5f5f5;
+	background-color: var(--bg-panel);
 }
 
 .session-widget.countdown .status-indicator {
-	background-color: #FFF9C4;
-	color: #F57F17;
+	background-color: var(--alert-warn-bg);
+	color: var(--alert-warn-text);
 }
 
 .session-widget.bonus .status-indicator {
-	background-color: #C8E6C9;
-	color: #2E7D32;
+	background-color: var(--alert-success-bg);
+	color: var(--alert-success-text);
 }
 
 /* Empty State */
 .empty-state {
 	text-align: center;
 	padding: 60px 20px;
-	background: #f9f9f9;
+	background: var(--bg-panel);
 	border-radius: 10px;
-	border: 2px dashed #ccc;
+	border: 2px dashed var(--border-light);
 }
 
 .empty-state p {
 	font-size: 18px;
-	color: #666;
+	color: var(--text-faint);
 	margin-bottom: 20px;
 }
 
@@ -191,7 +191,7 @@
 
 .completed-sessions-section h2 {
 	font-size: 24px;
-	color: #333;
+	color: var(--text-secondary);
 	margin-bottom: 20px;
 }
 
@@ -205,21 +205,21 @@
 .completed-empty-state {
 	text-align: center;
 	padding: 40px 20px;
-	background: #f9f9f9;
+	background: var(--bg-panel);
 	border-radius: 10px;
-	color: #666;
+	color: var(--text-faint);
 }
 
 /* Completed Session Widget */
 .session-widget.completed {
 	display: flex;
 	flex-direction: column;
-	border-left: 6px solid #9E9E9E; /* Gray for completed */
-	background: #fafafa;
+	border-left: 6px solid var(--neutral); /* Gray for completed */
+	background: var(--bg-panel);
 }
 
 .session-widget.completed:hover {
-	background: #f5f5f5;
+	background: var(--bg-muted);
 }
 
 .session-widget.completed.no-link {
@@ -233,27 +233,27 @@
 
 .session-widget.completed .completion-date {
 	font-size: 13px;
-	color: #999;
+	color: var(--text-faint);
 	margin-bottom: 8px;
 }
 
 .session-widget.completed .duration {
 	font-size: 15px;
-	color: #555;
+	color: var(--text-muted);
 }
 
 .session-widget.completed .bonus-positive {
-	color: #4CAF50;
+	color: var(--success);
 	font-weight: 600;
 }
 
 .session-widget.completed .bonus-negative {
-	color: #F44336;
+	color: var(--danger);
 	font-weight: 600;
 }
 
 .session-widget.completed .bonus-none {
-	color: #2196F3;
+	color: var(--info);
 	font-weight: 600;
 }
 
@@ -266,7 +266,7 @@
 }
 
 .completed-check {
-    color: #4CAF50;
+    color: var(--success);
     font-size: 18px;
     line-height: 1;
 }
@@ -274,10 +274,9 @@
 .completed-title {
     font-size: 16px;
     font-weight: 600;
-    color: #333;
     text-decoration: line-through;
-    text-decoration-color: #a5d6a7;
-    color: #558b55;
+    text-decoration-color: var(--success);
+    color: var(--success);
 }
 
 .completed-activity-name {
@@ -287,7 +286,7 @@
 }
 
 .completed-activity-name small {
-    color: #888;
+    color: var(--text-faint);
     font-size: 12px;
     font-weight: 500;
 }
@@ -307,8 +306,8 @@
 	max-width: 400px;
 	margin: 20px auto;
 	padding: 12px 24px;
-	background-color: #2196F3;
-	color: white;
+	background-color: var(--info);
+	color: var(--text-on-accent);
 	border: none;
 	border-radius: 6px;
 	font-size: 16px;
@@ -318,11 +317,11 @@
 }
 
 .load-more:hover {
-	background-color: #1976D2;
+	background-color: var(--info-hover);
 }
 
 .load-more:active {
-	background-color: #1565C0;
+	background-color: var(--info-deep);
 }
 
 /* ===== ACTIVE SESSIONS SECTION ===== */
@@ -330,7 +329,7 @@
 .active-sessions-section {
 	margin-bottom: 50px;
 	padding-bottom: 30px;
-	border-bottom: 2px solid #e0e0e0;
+	border-bottom: 2px solid var(--border-light);
 }
 
 .active-sessions-section .dashboard-header {
@@ -344,7 +343,7 @@
 .todos-section {
 	margin-bottom: 50px;
 	padding-bottom: 30px;
-	border-bottom: 2px solid #e0e0e0;
+	border-bottom: 2px solid var(--border-light);
 }
 
 .todos-section .dashboard-header {
@@ -362,10 +361,10 @@
 .todos-empty-state {
 	text-align: center;
 	padding: 50px 20px;
-	background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+	background: var(--bg-panel);
 	border-radius: 12px;
-	color: #666;
-	border: 2px dashed #ccc;
+	color: var(--text-faint);
+	border: 2px dashed var(--border-light);
 }
 
 .todos-empty-state p {
@@ -375,7 +374,7 @@
 
 /* Edit Icon */
 .todo-edit-icon {
-	color: #bdbdbd;
+	color: var(--neutral);
 	text-decoration: none;
 	font-size: 16px;
 	margin-left: 8px;
@@ -384,7 +383,7 @@
 }
 
 .todo-edit-icon:hover {
-	color: #2196F3;
+	color: var(--info);
 	opacity: 1;
 }
 
@@ -393,42 +392,42 @@
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	background: white;
-	border: 1px solid #e0e0e0;
-	border-left: 4px solid #9e9e9e;
+	background: var(--bg-card);
+	border: 1px solid var(--border-light);
+	border-left: 4px solid var(--neutral);
 	border-radius: 8px;
 	padding: 14px 18px;
 	transition: all 0.2s ease;
-	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+	box-shadow: var(--shadow-sm);
 }
 
 .todo-widget:hover {
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+	box-shadow: var(--shadow-card-hover);
 	transform: translateY(-1px);
 }
 
 .todo-widget.complete {
-	background: linear-gradient(135deg, #f0fdf0 0%, #e8f5e9 100%);
-	border-color: #a5d6a7;
-	border-left-color: #4CAF50;
+	background: linear-gradient(135deg, var(--alert-success-bg) 0%, var(--alert-success-bg) 100%);
+	border-color: var(--success);
+	border-left-color: var(--success);
 }
 
 .todo-widget.complete:hover {
-	box-shadow: 0 4px 12px rgba(76, 175, 80, 0.15);
+	box-shadow: var(--shadow-success-subtle);
 }
 
 .todo-widget.incomplete {
-	background: white;
-	border-left-color: #ff9800;
+	background: var(--bg-card);
+	border-left-color: var(--warning);
 }
 
 /* Todo with timer indicator */
 .todo-widget.has-timer {
-	border-left-color: #2196F3;
+	border-left-color: var(--info);
 }
 
 .todo-widget.has-timer.complete {
-	border-left-color: #4CAF50;
+	border-left-color: var(--success);
 }
 
 .todo-header {
@@ -442,21 +441,21 @@
 .todo-title {
 	font-size: 15px;
 	font-weight: 600;
-	color: #333;
+	color: var(--text-secondary);
 	flex-shrink: 1;
 	min-width: 0;
 }
 
 .todo-widget.complete .todo-title {
-	color: #558b55;
+	color: var(--success);
 	text-decoration: line-through;
-	text-decoration-color: #a5d6a7;
+	text-decoration-color: var(--success);
 }
 
 .todo-time {
 	font-size: 12px;
-	color: #555;
-	background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+	color: var(--text-muted);
+	background: linear-gradient(135deg, var(--bg-panel) 0%, var(--bg-panel) 100%);
 	padding: 3px 10px;
 	border-radius: 12px;
 	font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
@@ -467,8 +466,8 @@
 
 .todo-date {
 	font-size: 11px;
-	color: #1565C0;
-	background: linear-gradient(135deg, #bbdefb 0%, #90caf9 100%);
+	color: var(--text-primary);
+	background: var(--info-subtle-bg);
 	padding: 3px 10px;
 	border-radius: 12px;
 	font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
@@ -490,7 +489,7 @@
 /* Sort icon handle for todos without time or date */
 .todo-sort-handle {
 	font-size: 1.2rem;
-	color: #9e9e9e;
+	color: var(--neutral);
 	margin-right: 4px;
 	opacity: 0.6;
 	flex-shrink: 0;
@@ -498,14 +497,14 @@
 
 .todo-sort-handle:hover {
 	opacity: 1;
-	color: #757575;
+	color: var(--neutral-hover);
 }
 
 .todo-duration {
 	font-size: 12px;
-	color: #1976D2;
+	color: var(--info-hover);
 	font-weight: 600;
-	background: rgba(33, 150, 243, 0.1);
+	background: var(--info-subtle-bg);
 	padding: 3px 10px;
 	border-radius: 12px;
 	white-space: nowrap;
@@ -522,9 +521,9 @@
 
 .todo-progress {
 	font-size: 13px;
-	color: #666;
+	color: var(--text-faint);
 	font-weight: 700;
-	background: #f0f0f0;
+	background: var(--bg-muted);
 	padding: 4px 10px;
 	border-radius: 12px;
 	white-space: nowrap;
@@ -534,8 +533,8 @@
 }
 
 .todo-widget.complete .todo-progress {
-	background: linear-gradient(135deg, #c8e6c9 0%, #a5d6a7 100%);
-	color: #2e7d32;
+	background: linear-gradient(135deg, var(--alert-success-bg) 0%, var(--alert-success-border) 100%);
+	color: var(--alert-success-text);
 }
 
 /* Todo Actions */
@@ -575,14 +574,14 @@
 .todo-checkbox .checkbox-mark {
 	width: 28px;
 	height: 28px;
-	border: 2px solid #bdbdbd;
+	border: 2px solid var(--neutral);
 	border-radius: 6px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-	background: white;
-	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+	background: var(--bg-card);
+	box-shadow: var(--shadow-sm);
 }
 
 .todo-checkbox .checkbox-mark::after {
@@ -597,9 +596,9 @@
 }
 
 .todo-checkbox.checked .checkbox-mark {
-	background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
-	border-color: #43a047;
-	box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4);
+	background: linear-gradient(135deg, var(--success) 0%, var(--success-hover) 100%);
+	border-color: var(--success-hover);
+	box-shadow: var(--shadow-success-glow);
 }
 
 .todo-checkbox.checked .checkbox-mark::after {
@@ -607,24 +606,24 @@
 }
 
 .todo-checkbox:hover .checkbox-mark {
-	border-color: #4CAF50;
-	box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
+	border-color: var(--success);
+	box-shadow: var(--shadow-success-hover);
 }
 
 .todo-checkbox .nth-label {
 	font-size: 10px;
-	color: #999;
+	color: var(--text-faint);
 	font-weight: 600;
 }
 
 .todo-checkbox.checked .nth-label {
-	color: #4CAF50;
+	color: var(--success);
 }
 
 /* Start Timer Button */
 .btn-start-timer {
-	background: linear-gradient(135deg, #42a5f5 0%, #1e88e5 100%);
-	color: white;
+	background: linear-gradient(135deg, var(--info) 0%, var(--info-hover) 100%);
+	color: var(--text-on-accent);
 	padding: 10px 20px;
 	text-decoration: none;
 	border-radius: 6px;
@@ -633,7 +632,7 @@
 	text-transform: uppercase;
 	letter-spacing: 0.5px;
 	transition: all 0.2s ease;
-	box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+	box-shadow: var(--shadow-info-glow);
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
@@ -645,14 +644,14 @@
 }
 
 .btn-start-timer:hover {
-	background: linear-gradient(135deg, #1e88e5 0%, #1565c0 100%);
-	box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+	background: linear-gradient(135deg, var(--info-hover) 0%, var(--info-deep) 100%);
+	box-shadow: var(--shadow-info-hover);
 	transform: translateY(-1px);
 }
 
 .btn-start-timer:active {
 	transform: translateY(0);
-	box-shadow: 0 2px 4px rgba(33, 150, 243, 0.3);
+	box-shadow: var(--shadow-info-active);
 }
 
 /* Completion animation */
@@ -715,7 +714,7 @@
 		width: 100%;
 		justify-content: space-between;
 		padding-top: 10px;
-		border-top: 1px solid #eee;
+		border-top: 1px solid var(--border-light);
 	}
 
 	.todo-checkboxes {

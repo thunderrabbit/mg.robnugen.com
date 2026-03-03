@@ -12,24 +12,24 @@
     position: absolute;
     top: 100%;
     left: 0;
-    background: #ffffff;
-    border: 1px solid #cde5f6;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
     padding: 0.5em 0;
     white-space: nowrap;
     z-index: 100;
     border-radius: 6px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-md);
 }
 
 .NavBar .dropdown-menu a {
     display: block;
     padding: 0.25em 1em;
     text-decoration: none;
-    color: #0366a8;
+    color: var(--text-nav-link);
 }
 
 .NavBar .dropdown-menu a:hover {
-    background: #f3faff;
+    background: var(--bg-panel);
     text-decoration: underline;
 }
 
@@ -45,7 +45,7 @@ body.distraction-free .NavBar {
 .nav-arrow {
     display: inline-block;
     padding: 10px 20px;
-    color: white;
+    color: var(--text-on-accent);
     text-decoration: none;
     border-radius: 5px;
     font-weight: bold;

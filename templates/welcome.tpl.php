@@ -9,7 +9,7 @@
         <li>📊 Track your meditation history over time (coming soon)</li>
     </ul>
     <?php if (isset($is_logged_in) && $is_logged_in && !$is_admin): ?>
-    <div style="margin-top: 20px; padding: 15px; background-color: #f0f8ff; border-left: 4px solid #4CAF50;">
+    <div style="margin-top: 20px; padding: 15px; background-color: var(--bg-panel); border-left: 4px solid var(--success);">
         <p><strong>🌟 Upgrade to Pro for More Activities!</strong></p>
         <p>Track more than just meditation:</p>
         <ul>

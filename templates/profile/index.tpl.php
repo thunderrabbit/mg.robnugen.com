@@ -2,13 +2,13 @@
     <div class="head"><h5 class="iUser">Change Password</h5></div>
 
     <?php if (!empty($success_message)): ?>
-        <div class="success-message" style="color: green; padding: 10px; margin: 10px 0; border: 1px solid green; background-color: #e8f5e8;">
+        <div class="success-message" style="color: var(--alert-success-text); padding: 10px; margin: 10px 0; border: 1px solid var(--alert-success-border); background-color: var(--alert-success-bg);">
             <?= htmlspecialchars($success_message) ?>
         </div>
     <?php endif; ?>
 
     <?php if (!empty($error_message)): ?>
-        <div class="error-message" style="color: red; padding: 10px; margin: 10px 0; border: 1px solid red; background-color: #ffe8e8;">
+        <div class="error-message" style="color: var(--alert-error-text); padding: 10px; margin: 10px 0; border: 1px solid var(--alert-error-border); background-color: var(--alert-error-bg);">
             <?= $error_message ?>
         </div>
     <?php endif; ?>

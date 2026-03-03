@@ -8,7 +8,7 @@
     <?php if (empty($log_lines)): ?>
         <p><em>No log entries found.</em></p>
     <?php else: ?>
-        <div style="font-family: monospace; font-size: 12px; background: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto;">
+        <div style="font-family: monospace; font-size: 12px; background: var(--bg-muted); padding: 15px; border-radius: 4px; overflow-x: auto;">
             <?php foreach ($log_lines as $line): ?>
                 <div style="padding: 2px 0; white-space: pre;"><?= htmlspecialchars($line) ?></div>
             <?php endforeach; ?>

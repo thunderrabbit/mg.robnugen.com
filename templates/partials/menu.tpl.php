@@ -49,4 +49,9 @@ if (isset($is_logged_in) && is_object($is_logged_in) && method_exists($is_logged
         <?php endif; ?>
 
     <?php endif; ?>
+
+    <button id="theme-toggle" title="Toggle dark mode" aria-label="Toggle dark mode"
+        style="background: none; border: none; cursor: pointer; font-size: 1.2em; padding: 4px 8px; vertical-align: middle;">
+        🌙
+    </button>
 </div>
