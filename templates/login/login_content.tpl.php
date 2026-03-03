@@ -1,7 +1,7 @@
 <div class="form-container">
     <h2 style="margin-top: 0;">Log In</h2>
     <?php if (isset($show_success_message) && $show_success_message): ?>
-        <div style="background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 12px; border-radius: 4px; margin-bottom: 20px;">
+        <div style="background-color: var(--alert-success-bg); border: 1px solid var(--alert-success-border); color: var(--alert-success-text); padding: 12px; border-radius: 4px; margin-bottom: 20px;">
             ✓ Account created successfully! Please log in with your new credentials.
         </div>
     <?php endif; ?>
@@ -38,7 +38,7 @@
         </div>
     </form>
 
-    <p style="margin-top: 20px; color: #7f8c8d;">
-        Don't have an account? <a href="/login/register.php" style="color: #3498db;">Create one</a>
+    <p style="margin-top: 20px; color: var(--neutral);">
+        Don't have an account? <a href="/login/register.php" style="color: var(--info);">Create one</a>
     </p>
 </div>
