@@ -65,10 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Site Settings Logic
     if (isset($_POST['update_settings_action'])) {
         $site_title = trim($_POST['site_title'] ?? '');
-        $site_title = trim($_POST['site_title'] ?? '');
         $site_subtitle = trim($_POST['site_subtitle'] ?? '');
-        $arrow_color_older = trim($_POST['arrow_color_older'] ?? '');
-        $arrow_color_newer = trim($_POST['arrow_color_newer'] ?? '');
         $user_id = $is_logged_in->loggedInID();
 
         // Check if settings exist for user
@@ -77,11 +74,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $exists = $stmt->fetch();
 
         if ($exists) {
-            $stmt = $mla_database->prepare("UPDATE user_settings SET site_title = ?, site_subtitle = ?, arrow_color_older = ?, arrow_color_newer = ? WHERE user_id = ?");
-            $stmt->execute([$site_title, $site_subtitle, $arrow_color_older, $arrow_color_newer, $user_id]);
+            $stmt = $mla_database->prepare("UPDATE user_settings SET site_title = ?, site_subtitle = ? WHERE user_id = ?");
+            $stmt->execute([$site_title, $site_subtitle, $user_id]);
         } else {
-            $stmt = $mla_database->prepare("INSERT INTO user_settings (user_id, site_title, site_subtitle, arrow_color_older, arrow_color_newer) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([$user_id, $site_title, $site_subtitle, $arrow_color_older, $arrow_color_newer]);
+            $stmt = $mla_database->prepare("INSERT INTO user_settings (user_id, site_title, site_subtitle) VALUES (?, ?, ?)");
+            $stmt->execute([$user_id, $site_title, $site_subtitle]);
         }
         $success_message = "Site settings updated successfully.";
     }
@@ -100,8 +97,6 @@ $page->setTemplate("profile/index.tpl.php");
 $page->set("username", $is_logged_in->getLoggedInUsername());
 $page->set("site_title", $is_logged_in->getSiteTitle());
 $page->set("site_subtitle", $is_logged_in->getSiteSubtitle());
-$page->set("arrow_color_older", $is_logged_in->getArrowColorOlder());
-$page->set("arrow_color_newer", $is_logged_in->getArrowColorNewer());
 $page->set("error_message", $error_message);
 $page->set("success_message", $success_message);
 
