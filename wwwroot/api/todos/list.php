@@ -85,6 +85,25 @@ try {
             }
         }
 
+        // --- Days-Between: compute next_due_date ---
+        if (!empty($todo['do_every_n_days'])) {
+            $logStmt = $pdo->prepare(
+                'SELECT MAX(DATE(date_logged)) FROM todo_logs WHERE todo_id = ?'
+            );
+            $logStmt->execute([$todo['todo_id']]);
+            $lastDone = $logStmt->fetchColumn();
+
+            if ($lastDone) {
+                $next = new \DateTime($lastDone, $tz);
+                $next->modify('+' . (int) $todo['do_every_n_days'] . ' days');
+                $todo['next_due_date'] = $next->format('Y-m-d');
+                $todo['days_until_due'] = (int) $now->diff($next)->format('%r%a');
+            } else {
+                $todo['next_due_date'] = $today;
+                $todo['days_until_due'] = 0;
+            }
+        }
+
         // --- Existing "Hide if completed > 1 min ago" Logic (Applies to both types) ---
         // This handles removing items from the list after they are "done" for the day.
 
