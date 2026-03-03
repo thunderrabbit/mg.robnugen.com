@@ -34,6 +34,7 @@
     --warning:          #ff9800;
     --neutral:          #95a5a6;
     --neutral-hover:    #7f8c8d;
+    --accent-teal:      #55aa99;
 
     /* alerts & feedback */
     --alert-warn-bg:    #fff3cd;
@@ -87,6 +88,7 @@
     --warning:          #ff9800;
     --neutral:          #6b7280;
     --neutral-hover:    #4b5563;
+    --accent-teal:      #66bbaa;
 
     --alert-warn-bg:    #3d3520;
     --alert-warn-border:#6b5a1e;
