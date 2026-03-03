@@ -464,6 +464,45 @@ class Todo {
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
     /**
+     * Get days-between todos with their computed next-due dates
+     *
+     * @param int $user_id
+     * @param string $todayDate Y-m-d
+     * @return array Todos with next_due_date computed from last completion
+     */
+    public function getDaysBetweenTodos(int $user_id, string $todayDate): array {
+        $stmt = $this->pdo->prepare("
+            SELECT
+                t.*,
+                a.activity_name,
+                (
+                    SELECT MAX(DATE(tl.date_logged))
+                    FROM todo_logs tl
+                    WHERE tl.todo_id = t.todo_id
+                ) AS last_completed_date
+            FROM todos t
+            LEFT JOIN activities a ON t.activity_id = a.activity_id
+            WHERE t.user_id = ?
+            AND t.is_active = 1
+            AND t.do_every_n_days IS NOT NULL
+        ");
+
+        $stmt->execute([$user_id]);
+        $todos = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        foreach ($todos as &$todo) {
+            $n = (int) $todo['do_every_n_days'];
+            if ($todo['last_completed_date']) {
+                $todo['next_due_date'] = date('Y-m-d', strtotime($todo['last_completed_date'] . " + {$n} days"));
+            } else {
+                $todo['next_due_date'] = $todayDate;
+            }
+        }
+
+        return $todos;
+    }
+
+    /**
      * Get fully completed todo history (where nth >= target_count)
      *
      * @param int $user_id
