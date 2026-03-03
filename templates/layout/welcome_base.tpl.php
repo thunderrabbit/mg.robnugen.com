@@ -36,13 +36,15 @@
             margin: 50px auto;
             padding: 20px;
             line-height: 1.6;
+            background-color: var(--bg-page);
+            color: var(--text-primary);
         }
         h1 {
             color: var(--text-secondary);
             margin-bottom: 10px;
         }
         .subtitle {
-            color: var(--neutral);
+            color: var(--text-muted);
             margin-top: 0;
             font-size: 1.1em;
         }
@@ -152,9 +154,9 @@
     <?= $page_content ?>
 
     <?php if (!$is_logged_in->isLoggedIn()): ?>
-        <p style="color: var(--neutral); font-size: 0.9em; margin-top: 40px;">Free to get started • No email or credit card required</p>
+        <p style="color: var(--text-muted); font-size: 0.9em; margin-top: 40px;">Free to get started • No email or credit card required</p>
     <?php elseif (!$is_logged_in->isPaid() && !$is_logged_in->isAdmin()): ?>
-        <p style="color: var(--neutral); font-size: 0.9em; margin-top: 40px;">Upgrade for multiple timers, recurring todos, and more!</p>
+        <p style="color: var(--text-muted); font-size: 0.9em; margin-top: 40px;">Upgrade for multiple timers, recurring todos, and more!</p>
     <?php endif; ?>
 </body>
 </html>
