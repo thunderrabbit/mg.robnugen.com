@@ -75,8 +75,6 @@ class IsLoggedIn
 
     private string $siteTitle = '';
     private string $siteSubtitle = '';
-    private string $arrowColorOlder = '#4CAF50'; // Default: Green
-    private string $arrowColorNewer = '#2196F3'; // Default: Blue
 
     private function setUsernameOfLoggedInID(int $user_id): void
     {
@@ -87,7 +85,7 @@ class IsLoggedIn
 
         // Fetch username and settings
         $sql = "
-            SELECT u.username, s.site_title, s.site_subtitle, s.arrow_color_older, s.arrow_color_newer
+            SELECT u.username, s.site_title, s.site_subtitle
             FROM users u
             LEFT JOIN user_settings s ON u.user_id = s.user_id
             WHERE u.user_id = ?
@@ -101,12 +99,6 @@ class IsLoggedIn
             $this->loggedInUsername = $result[0]['username'] ?? 'ummmmmm wtf';
             $this->siteTitle = $result[0]['site_title'] ?? '';
             $this->siteSubtitle = $result[0]['site_subtitle'] ?? '';
-            if (!empty($result[0]['arrow_color_older'])) {
-                $this->arrowColorOlder = $result[0]['arrow_color_older'];
-            }
-            if (!empty($result[0]['arrow_color_newer'])) {
-                $this->arrowColorNewer = $result[0]['arrow_color_newer'];
-            }
         }
     }
 
@@ -127,16 +119,6 @@ class IsLoggedIn
         // For the default, we return the text without version, let template handle version if needed?
         // Proposal said: "Your simple meditation timer"
         return !empty($this->siteSubtitle) ? $this->siteSubtitle : 'Your simple meditation timer';
-    }
-
-    public function getArrowColorOlder(): string
-    {
-        return $this->arrowColorOlder;
-    }
-
-    public function getArrowColorNewer(): string
-    {
-        return $this->arrowColorNewer;
     }
 
     public function getUserRole(): string
