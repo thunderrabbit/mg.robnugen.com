@@ -15,16 +15,16 @@
             line-height: 1.6;
         }
         h1 {
-            color: #2c3e50;
+            color: var(--text-secondary);
             margin-bottom: 10px;
         }
         .subtitle {
-            color: #7f8c8d;
+            color: var(--neutral);
             margin-top: 0;
             font-size: 1.1em;
         }
         .description {
-            background: #f8f9fa;
+            background: var(--bg-panel);
             padding: 20px;
             border-radius: 8px;
             margin: 30px 0;
@@ -48,22 +48,22 @@
             transition: all 0.2s;
         }
         .btn-primary {
-            background: #3498db;
+            background: var(--info);
             color: white;
         }
         .btn-primary:hover {
-            background: #2980b9;
+            background: var(--info-hover);
         }
         .btn-secondary {
-            background: #95a5a6;
+            background: var(--neutral);
             color: white;
         }
         .btn-secondary:hover {
-            background: #7f8c8d;
+            background: var(--neutral-hover);
         }
         /* Form styles */
         .form-container {
-            background: #f8f9fa;
+            background: var(--bg-panel);
             padding: 30px;
             border-radius: 8px;
             margin: 30px 0;
@@ -74,14 +74,14 @@
         .form-row label {
             display: block;
             margin-bottom: 5px;
-            color: #2c3e50;
+            color: var(--text-secondary);
             font-weight: 500;
         }
         .form-row input[type="text"],
         .form-row input[type="password"] {
             width: 100%;
             padding: 10px;
-            border: 1px solid #ddd;
+            border: 1px solid var(--border-input);
             border-radius: 4px;
             font-size: 1em;
             box-sizing: border-box;
@@ -89,10 +89,10 @@
         .form-row input[type="text"]:focus,
         .form-row input[type="password"]:focus {
             outline: none;
-            border-color: #3498db;
+            border-color: var(--input-border-focus);
         }
         .form-row input[type="submit"] {
-            background: #3498db;
+            background: var(--info);
             color: white;
             border: none;
             padding: 12px 24px;
@@ -102,10 +102,10 @@
             transition: all 0.2s;
         }
         .form-row input[type="submit"]:hover {
-            background: #2980b9;
+            background: var(--info-hover);
         }
         .form-row input[type="submit"]:hover {
-            background: #2980b9;
+            background: var(--info-hover);
         }
 
     </style>
@@ -129,9 +129,9 @@
     <?= $page_content ?>
 
     <?php if (!$is_logged_in->isLoggedIn()): ?>
-        <p style="color: #7f8c8d; font-size: 0.9em; margin-top: 40px;">Free to get started • No email or credit card required</p>
+        <p style="color: var(--neutral); font-size: 0.9em; margin-top: 40px;">Free to get started • No email or credit card required</p>
     <?php elseif (!$is_logged_in->isPaid() && !$is_logged_in->isAdmin()): ?>
-        <p style="color: #7f8c8d; font-size: 0.9em; margin-top: 40px;">Upgrade for multiple timers, recurring todos, and more!</p>
+        <p style="color: var(--neutral); font-size: 0.9em; margin-top: 40px;">Upgrade for multiple timers, recurring todos, and more!</p>
     <?php endif; ?>
 </body>
 </html>
