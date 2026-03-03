@@ -9,7 +9,7 @@
     cursor: pointer;
     transition: background-color 0.3s ease;
 }
-.btn-primary { background-color: #2196F3; color: white; }
-.btn-primary:hover { background-color: #1976D2; }
-.btn-secondary { background-color: #95a5a6; color: white; }
-.btn-secondary:hover { background-color: #7f8c8d; }
+.btn-primary { background-color: var(--info); color: white; }
+.btn-primary:hover { background-color: var(--info-hover); }
+.btn-secondary { background-color: var(--neutral); color: white; }
+.btn-secondary:hover { background-color: var(--neutral-hover); }
