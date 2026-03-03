@@ -34,7 +34,7 @@ input {
 	background: var(--bg-card);
 	border: 2px solid var(--border-light);
 	border-radius: 10px;
-	box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+	box-shadow: var(--shadow-widget);
 	text-align: left;
 }
 
@@ -82,7 +82,7 @@ input {
 
 #save_new_activity {
 	background-color: var(--success);
-	color: white;
+	color: var(--text-on-accent);
 	border: none;
 	border-radius: 4px;
 }
@@ -93,7 +93,7 @@ input {
 
 #cancel_new_activity {
 	background-color: var(--neutral);
-	color: white;
+	color: var(--text-on-accent);
 	border: none;
 	border-radius: 4px;
 }
@@ -114,7 +114,7 @@ input {
 	margin: 8px;
 	font-size: large;
 	text-decoration: none;
-	color: white;
+	color: var(--text-on-accent);
 	background-color: var(--info);
 	border-radius: 6px;
 	transition: background-color 0.2s;
@@ -125,5 +125,5 @@ input {
 }
 
 .post-timer-link:visited {
-	color: white;
+	color: var(--text-on-accent);
 }
