@@ -466,8 +466,8 @@
 
 .todo-date {
 	font-size: 11px;
-	color: var(--info-deep);
-	background: linear-gradient(135deg, var(--bg-panel) 0%, var(--info) 100%);
+	color: var(--info);
+	background: var(--info-subtle-bg);
 	padding: 3px 10px;
 	border-radius: 12px;
 	font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
