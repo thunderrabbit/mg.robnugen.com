@@ -54,6 +54,7 @@
                                     echo '<span class="text-success">Done (' . date('Y-m-d', strtotime($todo['completed_at'])) . ')</span>';
                                 } else {
                                     $schedule = [];
+                                    if (!empty($todo['do_every_n_days'])) $schedule[] = 'Every ' . (int) $todo['do_every_n_days'] . ' days';
                                     if ($todo['do_days']) $schedule[] = $todo['do_days'];
                                     if ($todo['do_dates']) $schedule[] = 'Dates: ' . $todo['do_dates'];
                                     if ($todo['do_time']) $schedule[] = 'At: ' . date('g:ia', strtotime($todo['do_time']));
