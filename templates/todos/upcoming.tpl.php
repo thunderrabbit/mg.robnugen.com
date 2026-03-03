@@ -24,7 +24,9 @@
                         <tr>
                             <td>
                                 <?php
-                                    if ($todo['due_date']) {
+                                    if (!empty($todo['next_due_date'])) {
+                                        echo 'Next: ' . date('M j, Y', strtotime($todo['next_due_date']));
+                                    } elseif ($todo['due_date']) {
                                         echo 'Due: ' . date('M j, Y', strtotime($todo['due_date']));
                                     } elseif ($todo['do_dates']) {
                                         echo 'Planned: ' . $todo['do_dates'];
@@ -39,6 +41,7 @@
                             <td>
                                 <?php
                                 $schedule = [];
+                                if (!empty($todo['do_every_n_days'])) $schedule[] = 'Every ' . (int) $todo['do_every_n_days'] . ' days';
                                 if ($todo['do_days']) $schedule[] = $todo['do_days'];
                                 if ($todo['do_time']) $schedule[] = date('g:ia', strtotime($todo['do_time']));
                                 echo implode(', ', $schedule);
