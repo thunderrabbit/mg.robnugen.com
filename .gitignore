@@ -17,3 +17,4 @@ Tests/_envs/
 Tests/Support/_generated/*
 !Tests/Support/_generated/.gitkeep
 vendor/
+.claude/
