@@ -45,7 +45,7 @@ body.distraction-free .NavBar {
 .nav-arrow {
     display: inline-block;
     padding: 10px 20px;
-    color: white;
+    color: var(--text-on-accent);
     text-decoration: none;
     border-radius: 5px;
     font-weight: bold;
