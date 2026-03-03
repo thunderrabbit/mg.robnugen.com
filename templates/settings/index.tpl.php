@@ -6,19 +6,19 @@
     </p>
 
     <?php if (!empty($success_message)): ?>
-        <div class="success-message" style="color: green; padding: 10px; margin: 10px 0; border: 1px solid green; background-color: #e8f5e8;">
+        <div class="success-message" style="color: var(--alert-success-text); padding: 10px; margin: 10px 0; border: 1px solid var(--alert-success-border); background-color: var(--alert-success-bg);">
             <?= htmlspecialchars($success_message) ?>
         </div>
     <?php endif; ?>
 
     <?php if (!empty($error_message)): ?>
-        <div class="error-message" style="color: red; padding: 10px; margin: 10px 0; border: 1px solid red; background-color: #ffe8e8;">
+        <div class="error-message" style="color: var(--alert-error-text); padding: 10px; margin: 10px 0; border: 1px solid var(--alert-error-border); background-color: var(--alert-error-bg);">
             <?= $error_message ?>
         </div>
     <?php endif; ?>
 
     <?php if (!empty($new_api_key)): ?>
-        <div class="success-message" style="color: green; padding: 10px; margin: 10px 0; border: 1px solid green; background-color: #e8f5e8;">
+        <div class="success-message" style="color: var(--alert-success-text); padding: 10px; margin: 10px 0; border: 1px solid var(--alert-success-border); background-color: var(--alert-success-bg);">
             <strong>Your new API key (copy it now — not shown again):</strong><br>
             <code style="font-size: 1em; word-break: break-all;"><?= htmlspecialchars($new_api_key) ?></code>
             <button onclick="navigator.clipboard.writeText('<?= htmlspecialchars($new_api_key, ENT_QUOTES) ?>'); this.textContent='Copied!';" style="margin-left: 10px;">Copy</button>
@@ -48,10 +48,10 @@
         <table style="width: 100%; border-collapse: collapse;">
             <thead>
                 <tr>
-                    <th style="text-align: left; padding: 6px; border-bottom: 1px solid #ccc;">Label</th>
-                    <th style="text-align: left; padding: 6px; border-bottom: 1px solid #ccc;">Created</th>
-                    <th style="text-align: left; padding: 6px; border-bottom: 1px solid #ccc;">Last used</th>
-                    <th style="padding: 6px; border-bottom: 1px solid #ccc;"></th>
+                    <th style="text-align: left; padding: 6px; border-bottom: 1px solid var(--border-light);">Label</th>
+                    <th style="text-align: left; padding: 6px; border-bottom: 1px solid var(--border-light);">Created</th>
+                    <th style="text-align: left; padding: 6px; border-bottom: 1px solid var(--border-light);">Last used</th>
+                    <th style="padding: 6px; border-bottom: 1px solid var(--border-light);"></th>
                 </tr>
             </thead>
             <tbody>
@@ -65,7 +65,7 @@
                             <input type="hidden" name="api_key_action" value="revoke">
                             <input type="hidden" name="key_id" value="<?= (int)$key['key_id'] ?>">
                             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
-                            <input type="submit" value="Revoke" class="greyishBtn" style="background:#c00; color:#fff;">
+                            <input type="submit" value="Revoke" class="greyishBtn" style="background: var(--danger); color: white;">
                         </form>
                     </td>
                 </tr>
@@ -73,10 +73,10 @@
             </tbody>
         </table>
     <?php else: ?>
-        <p style="color: #666;">No active API keys. Generate one above.</p>
+        <p style="color: var(--text-faint);">No active API keys. Generate one above.</p>
     <?php endif; ?>
 
-    <p style="margin-top: 20px; font-size: 0.9em; color: #888;">
+    <p style="margin-top: 20px; font-size: 0.9em; color: var(--text-faint);">
         API documentation: <a href="/api/v1/openapi.yaml">openapi.yaml</a>
     </p>
 </div>
