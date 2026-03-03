@@ -43,7 +43,7 @@
             <form action="/billing/checkout.php" method="POST">
                 <input type="hidden" name="plan" value="growth">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
-                <input type="submit" value="Subscribe — Growth" class="greyishBtn submitForm" style="width: 100%; background: var(--accent-teal); color: white;">
+                <input type="submit" value="Subscribe — Growth" class="greyishBtn submitForm" style="width: 100%; background: var(--accent-teal); color: var(--text-on-accent);">
             </form>
         </div>
 
