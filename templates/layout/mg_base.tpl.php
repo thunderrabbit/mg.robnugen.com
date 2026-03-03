@@ -35,8 +35,9 @@
 </head>
 <body class="body">
     <?php include __DIR__ . '/../partials/menu.tpl.php'; ?>
-
-    <?= $page_content ?>
+    <div class="PageWrapper">
+        <?= $page_content ?>
+    </div>
 
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flipclock@0.7.8/compiled/flipclock.min.js"></script>
