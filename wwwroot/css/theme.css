@@ -20,9 +20,15 @@
     --text-faint:       #666666;
     --text-nav-link:    #0366a8;
 
+    /* text on colored backgrounds */
+    --text-on-accent:   #ffffff;
+
     /* shadows */
     --shadow-sm:        0 1px 3px rgba(0,0,0,0.08);
     --shadow-md:        0 2px 6px rgba(0,0,0,0.10);
+    --shadow-lg:        0 6px 20px rgba(0,0,0,0.15);
+    --shadow-card-hover:0 4px 12px rgba(0,0,0,0.08);
+    --shadow-widget:    0 4px 10px rgba(0,0,0,0.1);
 
     /* accent colors */
     --danger:           #dc3545;
@@ -46,6 +52,18 @@
     --alert-error-bg:   #ffe8e8;
     --alert-error-border: red;
     --alert-error-text: red;
+
+    /* translucent accent backgrounds */
+    --danger-subtle-bg: rgba(244,67,54,0.1);
+    --info-subtle-bg:   rgba(33,150,243,0.1);
+
+    /* colored glows (box-shadow values) */
+    --shadow-success-subtle: 0 4px 12px rgba(76,175,80,0.15);
+    --shadow-success-glow:   0 2px 8px rgba(76,175,80,0.4);
+    --shadow-success-hover:  0 2px 8px rgba(76,175,80,0.2);
+    --shadow-info-glow:      0 2px 8px rgba(33,150,243,0.3);
+    --shadow-info-hover:     0 4px 12px rgba(33,150,243,0.4);
+    --shadow-info-active:    0 2px 4px rgba(33,150,243,0.3);
 
     /* forms */
     --input-bg:         #ffffff;
@@ -75,9 +93,13 @@
     --text-muted:       #aaaaaa;
     --text-faint:       #888888;
     --text-nav-link:    #7eb8e8;
+    --text-on-accent:   #ffffff;
 
     --shadow-sm:        0 1px 3px rgba(0,0,0,0.4);
     --shadow-md:        0 2px 6px rgba(0,0,0,0.5);
+    --shadow-lg:        0 6px 20px rgba(0,0,0,0.4);
+    --shadow-card-hover:0 4px 12px rgba(0,0,0,0.3);
+    --shadow-widget:    0 4px 10px rgba(0,0,0,0.3);
 
     --danger:           #f87171;
     --success:          #4CAF50;
@@ -99,6 +121,16 @@
     --alert-error-bg:   #2e1a1a;
     --alert-error-border: #5a2e2e;
     --alert-error-text: #f87171;
+
+    --danger-subtle-bg: rgba(248,113,113,0.15);
+    --info-subtle-bg:   rgba(33,150,243,0.15);
+
+    --shadow-success-subtle: 0 4px 12px rgba(76,175,80,0.25);
+    --shadow-success-glow:   0 2px 8px rgba(76,175,80,0.5);
+    --shadow-success-hover:  0 2px 8px rgba(76,175,80,0.3);
+    --shadow-info-glow:      0 2px 8px rgba(33,150,243,0.4);
+    --shadow-info-hover:     0 4px 12px rgba(33,150,243,0.5);
+    --shadow-info-active:    0 2px 4px rgba(33,150,243,0.4);
 
     --input-bg:         #2a2a2a;
     --input-border-focus: #7eb8e8;
