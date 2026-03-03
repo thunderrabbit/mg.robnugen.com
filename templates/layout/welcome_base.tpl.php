@@ -49,14 +49,14 @@
         }
         .btn-primary {
             background: var(--info);
-            color: white;
+            color: var(--text-on-accent);
         }
         .btn-primary:hover {
             background: var(--info-hover);
         }
         .btn-secondary {
             background: var(--neutral);
-            color: white;
+            color: var(--text-on-accent);
         }
         .btn-secondary:hover {
             background: var(--neutral-hover);
@@ -93,7 +93,7 @@
         }
         .form-row input[type="submit"] {
             background: var(--info);
-            color: white;
+            color: var(--text-on-accent);
             border: none;
             padding: 12px 24px;
             border-radius: 6px;
