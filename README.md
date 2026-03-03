@@ -29,7 +29,7 @@ This project is built on a minimalist custom PHP framework tailored for DreamHos
 
 ### 📂 Structure
 
-- `classes/`: Core logic (User, Todo, Timer, Database).
+- `classes/`: Core logic (Auth, ActivityTracking, Todo, Database, Billing, Emotional).
 - `wwwroot/`: Public-facing files (API endpoints, controllers).
 - `templates/`: View layer using a lightweight custom template engine.
 - `css/`: Soft blue aesthetic with clean panels.
