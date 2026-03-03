@@ -36,7 +36,7 @@
 
 .btn-new-timer {
 	background-color: var(--success);
-	color: white;
+	color: var(--text-on-accent);
 	padding: 12px 24px;
 	text-decoration: none;
 	border-radius: 6px;
@@ -89,7 +89,7 @@
 	right: 8px;
 	width: 28px;
 	height: 28px;
-	background-color: rgba(244, 67, 54, 0.1);
+	background-color: var(--danger-subtle-bg);
 	color: var(--danger);
 	border: none;
 	border-radius: 50%;
@@ -107,12 +107,12 @@
 
 .delete-session-btn:hover {
 	background-color: var(--danger);
-	color: white;
+	color: var(--text-on-accent);
 }
 
 .session-widget:hover {
 	transform: translateY(-4px);
-	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+	box-shadow: var(--shadow-lg);
 }
 
 .session-widget.countdown {
@@ -307,7 +307,7 @@
 	margin: 20px auto;
 	padding: 12px 24px;
 	background-color: var(--info);
-	color: white;
+	color: var(--text-on-accent);
 	border: none;
 	border-radius: 6px;
 	font-size: 16px;
@@ -402,7 +402,7 @@
 }
 
 .todo-widget:hover {
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+	box-shadow: var(--shadow-card-hover);
 	transform: translateY(-1px);
 }
 
@@ -413,11 +413,11 @@
 }
 
 .todo-widget.complete:hover {
-	box-shadow: 0 4px 12px rgba(76, 175, 80, 0.15);
+	box-shadow: var(--shadow-success-subtle);
 }
 
 .todo-widget.incomplete {
-	background: white;
+	background: var(--bg-card);
 	border-left-color: var(--warning);
 }
 
@@ -504,7 +504,7 @@
 	font-size: 12px;
 	color: var(--info-hover);
 	font-weight: 600;
-	background: rgba(33, 150, 243, 0.1);
+	background: var(--info-subtle-bg);
 	padding: 3px 10px;
 	border-radius: 12px;
 	white-space: nowrap;
@@ -598,7 +598,7 @@
 .todo-checkbox.checked .checkbox-mark {
 	background: linear-gradient(135deg, var(--success) 0%, var(--success-hover) 100%);
 	border-color: var(--success-hover);
-	box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4);
+	box-shadow: var(--shadow-success-glow);
 }
 
 .todo-checkbox.checked .checkbox-mark::after {
@@ -607,7 +607,7 @@
 
 .todo-checkbox:hover .checkbox-mark {
 	border-color: var(--success);
-	box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
+	box-shadow: var(--shadow-success-hover);
 }
 
 .todo-checkbox .nth-label {
@@ -623,7 +623,7 @@
 /* Start Timer Button */
 .btn-start-timer {
 	background: linear-gradient(135deg, var(--info) 0%, var(--info-hover) 100%);
-	color: white;
+	color: var(--text-on-accent);
 	padding: 10px 20px;
 	text-decoration: none;
 	border-radius: 6px;
@@ -632,7 +632,7 @@
 	text-transform: uppercase;
 	letter-spacing: 0.5px;
 	transition: all 0.2s ease;
-	box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+	box-shadow: var(--shadow-info-glow);
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
@@ -645,13 +645,13 @@
 
 .btn-start-timer:hover {
 	background: linear-gradient(135deg, var(--info-hover) 0%, var(--info-deep) 100%);
-	box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+	box-shadow: var(--shadow-info-hover);
 	transform: translateY(-1px);
 }
 
 .btn-start-timer:active {
 	transform: translateY(0);
-	box-shadow: 0 2px 4px rgba(33, 150, 243, 0.3);
+	box-shadow: var(--shadow-info-active);
 }
 
 /* Completion animation */
