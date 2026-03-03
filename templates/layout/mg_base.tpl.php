@@ -28,6 +28,7 @@
     })();
     </script>
     <link rel="stylesheet" href="/css/theme.css">
+    <link rel="stylesheet" href="/css/styles.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flipclock@0.7.8/compiled/flipclock.min.css">
     <link rel="stylesheet" href="/mg/css/meisogambare.css">
     <link rel="stylesheet" href="/css/menu.css">

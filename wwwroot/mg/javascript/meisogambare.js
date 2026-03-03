@@ -614,7 +614,6 @@ $(document).ready(function() {
 	});
 
 	// get the number of minutes from local storage
-	changePageColor(meisoPrefs.getCountingColor());
 	$('#countdown_minutes').val(meisoPrefs.getMeditationTime());
 	clock.setTime(meisoPrefs.getMeditationTime() * 60);
 
