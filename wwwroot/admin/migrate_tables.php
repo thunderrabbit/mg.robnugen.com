@@ -14,8 +14,8 @@ if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
     $inner = $page->grabTheGoods();
 
     $layout = new \Template(config: $config, is_logged_in: $is_logged_in);
-    $layout->setTemplate("layout/admin_base.tpl.php");
-    $layout->set("page_title", "Migrations");
+    $layout->setTemplate("layout/base.tpl.php");
+    $layout->set("page_title", "Admin Migrations");
     $layout->set("page_content", $inner);
     $layout->echoToScreen();
     exit;
