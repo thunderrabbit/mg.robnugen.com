@@ -31,6 +31,22 @@ $offset = ($page_num - 1) * $limit;
 $today = date('Y-m-d');
 $upcoming = $todoHelper->getUpcomingTodos($user_id, $today, $limit, $offset);
 
+// Merge in days-between todos with future next-due dates (first page only)
+if ($page_num === 1) {
+    $daysBetween = $todoHelper->getDaysBetweenTodos($user_id, $today);
+    foreach ($daysBetween as $todo) {
+        if ($todo['next_due_date'] > $today) {
+            $upcoming[] = $todo;
+        }
+    }
+    // Sort merged list by next_due_date / due_date
+    usort($upcoming, function ($a, $b) {
+        $dateA = $a['next_due_date'] ?? $a['due_date'] ?? $a['do_dates'] ?? '';
+        $dateB = $b['next_due_date'] ?? $b['due_date'] ?? $b['do_dates'] ?? '';
+        return strcmp($dateA, $dateB);
+    });
+}
+
 // Prepare View
 $page = new \Template($config, $is_logged_in);
 $page->setTemplate("layout/base.tpl.php");

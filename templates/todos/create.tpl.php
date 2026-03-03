@@ -92,6 +92,12 @@
                     <input type="text" id="do_dates" name="do_dates" class="form-control" placeholder="e.g., 1, 15, 30" value="<?= htmlspecialchars($todo['do_dates'] ?? '') ?>">
                 </div>
 
+                <div class="form-group">
+                    <label for="do_every_n_days">Days Between</label>
+                    <input type="number" id="do_every_n_days" name="do_every_n_days" min="1" placeholder="e.g., 10" class="form-control" value="<?= htmlspecialchars($todo['do_every_n_days'] ?? '') ?>">
+                    <small class="help-text">Repeats this many days after each completion</small>
+                </div>
+
                 <div class="recurrence-or-divider"><span>or, for a one-time todo</span></div>
 
                 <div class="form-group">

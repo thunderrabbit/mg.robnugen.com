@@ -38,7 +38,7 @@ try {
 
     foreach ($todos as &$todo) {
         // Check if this is a recurring todo (has days or dates set)
-        $isRecurring = !empty($todo['do_days']) || !empty($todo['do_dates']);
+        $isRecurring = !empty($todo['do_days']) || !empty($todo['do_dates']) || !empty($todo['do_every_n_days']);
 
         // For recurring items, we only care about completion TODAY
         // For one-time items, we care if it's completed AT ALL
@@ -82,6 +82,25 @@ try {
                      continue;
                  }
                  // If incomplete overall, keep it (it's overdue).
+            }
+        }
+
+        // --- Days-Between: compute next_due_date ---
+        if (!empty($todo['do_every_n_days'])) {
+            $logStmt = $pdo->prepare(
+                'SELECT MAX(DATE(date_logged)) FROM todo_logs WHERE todo_id = ?'
+            );
+            $logStmt->execute([$todo['todo_id']]);
+            $lastDone = $logStmt->fetchColumn();
+
+            if ($lastDone) {
+                $next = new \DateTime($lastDone, $tz);
+                $next->modify('+' . (int) $todo['do_every_n_days'] . ' days');
+                $todo['next_due_date'] = $next->format('Y-m-d');
+                $todo['days_until_due'] = (int) $now->diff($next)->format('%r%a');
+            } else {
+                $todo['next_due_date'] = $today;
+                $todo['days_until_due'] = 0;
             }
         }
 

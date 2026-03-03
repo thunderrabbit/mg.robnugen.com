@@ -38,6 +38,7 @@ class Todo {
                 t.target_duration_seconds,
                 t.do_time,
                 t.due_date,
+                t.do_every_n_days,
                 a.activity_name
             FROM todos t
             LEFT JOIN activities a ON t.activity_id = a.activity_id
@@ -53,12 +54,28 @@ class Todo {
                 -- specific date is before today but not 2 weeks old
                 (t.due_date IS NOT NULL AND DATE(t.due_date) < ? AND DATE(t.due_date) > DATE_SUB(?, INTERVAL 2 YEAR))
                 OR
-                (t.do_days IS NULL AND t.do_dates IS NULL AND t.due_date IS NULL) -- Unscheduled / Anytime
+                (t.do_days IS NULL AND t.do_dates IS NULL AND t.due_date IS NULL AND t.do_every_n_days IS NULL) -- Unscheduled / Anytime
+                OR
+                (
+                    t.do_every_n_days IS NOT NULL
+                    AND (
+                        NOT EXISTS (
+                            SELECT 1 FROM todo_logs tl
+                            WHERE tl.todo_id = t.todo_id
+                        )
+                        OR
+                        (
+                            SELECT DATEDIFF(?, DATE(MAX(tl.date_logged)))
+                            FROM todo_logs tl
+                            WHERE tl.todo_id = t.todo_id
+                        ) >= t.do_every_n_days
+                    )
+                )
             )
             ORDER BY t.do_time ASC, t.title ASC
         ");
 
-        $stmt->execute([$user_id, $dayOfWeek, $dayOfMonth, $todayDate, $todayDate, $todayDate]);
+        $stmt->execute([$user_id, $dayOfWeek, $dayOfMonth, $todayDate, $todayDate, $todayDate, $todayDate]);
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
@@ -281,6 +298,7 @@ class Todo {
             'target_duration_seconds',
             'do_days',
             'do_dates',
+            'do_every_n_days',
             'do_time',
             'due_date',
             'activity_id',
@@ -337,6 +355,7 @@ class Todo {
             'target_duration_seconds',
             'do_days',
             'do_dates',
+            'do_every_n_days',
             'do_time',
             'due_date',
             'activity_id',
@@ -446,6 +465,45 @@ class Todo {
         $stmt->execute([$user_id, $todayDate, $todayDate, $limit, $offset]);
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
+    /**
+     * Get days-between todos with their computed next-due dates
+     *
+     * @param int $user_id
+     * @param string $todayDate Y-m-d
+     * @return array Todos with next_due_date computed from last completion
+     */
+    public function getDaysBetweenTodos(int $user_id, string $todayDate): array {
+        $stmt = $this->pdo->prepare("
+            SELECT
+                t.*,
+                a.activity_name,
+                (
+                    SELECT MAX(DATE(tl.date_logged))
+                    FROM todo_logs tl
+                    WHERE tl.todo_id = t.todo_id
+                ) AS last_completed_date
+            FROM todos t
+            LEFT JOIN activities a ON t.activity_id = a.activity_id
+            WHERE t.user_id = ?
+            AND t.is_active = 1
+            AND t.do_every_n_days IS NOT NULL
+        ");
+
+        $stmt->execute([$user_id]);
+        $todos = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        foreach ($todos as &$todo) {
+            $n = (int) $todo['do_every_n_days'];
+            if ($todo['last_completed_date']) {
+                $todo['next_due_date'] = date('Y-m-d', strtotime($todo['last_completed_date'] . " + {$n} days"));
+            } else {
+                $todo['next_due_date'] = $todayDate;
+            }
+        }
+
+        return $todos;
+    }
+
     /**
      * Get fully completed todo history (where nth >= target_count)
      *

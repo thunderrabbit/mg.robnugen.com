@@ -105,6 +105,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $data['do_dates'] = null;
         }
 
+        // Handle Days Between (Interval Recurrence)
+        if (!empty($_POST['do_every_n_days'])) {
+            $n = (int) $_POST['do_every_n_days'];
+            if ($n >= 1) {
+                $data['do_every_n_days'] = $n;
+            }
+        } else {
+            $data['do_every_n_days'] = null;
+        }
+
         // Validation Logic
         if (!empty($data['activity_id']) && empty($data['target_duration_seconds']) && empty($data['is_counter'])) {
             if (empty($data['target_duration_seconds'])) {
