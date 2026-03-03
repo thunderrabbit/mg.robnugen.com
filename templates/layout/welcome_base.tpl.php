@@ -28,6 +28,7 @@
     })();
     </script>
     <link rel="stylesheet" href="/css/theme.css">
+    <link rel="stylesheet" href="/css/styles.css">
     <link rel="stylesheet" href="/css/buttons.css">
     <style>
         body {
@@ -36,8 +37,6 @@
             margin: 50px auto;
             padding: 20px;
             line-height: 1.6;
-            background-color: var(--bg-page);
-            color: var(--text-primary);
         }
         h1 {
             color: var(--text-secondary);
