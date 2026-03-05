@@ -61,7 +61,26 @@ Verify that `templates/login/index.tpl.php` and
 > standalone full-HTML pages (`<!DOCTYPE>`, own `<head>`) with no NavBar,
 > no theme toggle, no `theme.css`. Deleted.
 
-### Step 3 — Move content out of the layout
+### Step 3 — Rob verifies Steps 1 and 2
+
+Before proceeding with the riskier layout changes, confirm:
+
+**Step 1 check (welcome.css created):**
+- [ ] `welcome.css` exists at `wwwroot/css/welcome.css` and looks complete
+- [ ] It is NOT yet linked from any page — this is expected. It will be
+      linked when pages switch to `base.tpl.php` in Step 5. Until then,
+      the welcome/login/register pages still use `welcome_base.tpl.php`
+      with its inline `<style>` block, so nothing should look different yet.
+
+**Step 2 check (standalone templates deleted):**
+- [ ] Visit `/login/` — still works (uses `login_content.tpl.php` via layout)
+- [ ] Visit `/login/register.php` — still works (uses `register_content.tpl.php` via layout)
+- [ ] No broken links or missing pages
+
+If both checks pass, Steps 4-7 can proceed (these require human review
+after each deployment since they change visible page layout).
+
+### Step 4 — Move content out of the layout
 
 Move these from `welcome_base.tpl.php` into `welcome.tpl.php`:
 
@@ -81,7 +100,7 @@ And the footer text:
 The login/register content templates don't need the h1/subtitle, so this
 content should only be in `welcome.tpl.php`, not in the layout.
 
-### Step 4 — Switch pages to base.tpl.php
+### Step 5 — Switch pages to base.tpl.php
 
 Update these files to use `base.tpl.php` instead of `welcome_base.tpl.php`:
 - `wwwroot/index.php` (welcome page)
@@ -103,11 +122,11 @@ to `base.tpl.php` that gets echoed inside `<head>`. Then pages can inject
 their own CSS links. This is also how `mg_base.tpl.php` could eventually
 merge into `base.tpl.php` (injecting FlipClock CSS/JS).
 
-### Step 5 — Delete welcome_base.tpl.php
+### Step 6 — Delete welcome_base.tpl.php
 
 Once all three pages use `base.tpl.php`, delete `welcome_base.tpl.php`.
 
-### Step 6 (optional, future) — Merge mg_base.tpl.php into base.tpl.php
+### Step 7 (optional, future) — Merge mg_base.tpl.php into base.tpl.php
 
 If we add a `$page_head` / `$page_scripts` mechanism to `base.tpl.php`,
 then `mg_base.tpl.php` could also be eliminated. The timer page would inject
@@ -131,6 +150,7 @@ layout template.
 
 1. "Create welcome.css from welcome_base inline styles"
 2. "Delete unused standalone login/register templates"
-3. "Move h1, subtitle, footer from welcome_base layout into welcome.tpl.php"
-4. "Switch welcome/login/register pages to base.tpl.php"
-5. "Delete welcome_base.tpl.php"
+3. Rob verifies Steps 1 and 2
+4. "Move h1, subtitle, footer from welcome_base layout into welcome.tpl.php"
+5. "Switch welcome/login/register pages to base.tpl.php"
+6. "Delete welcome_base.tpl.php"
