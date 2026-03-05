@@ -47,7 +47,7 @@ But first, deduplicate:
 > The `h1` color rule was scoped to `.welcome-page h1` to avoid affecting
 > other layouts.
 
-### Step 2 — Delete standalone login templates (if unused)
+### Step 2 — Delete standalone login templates (if unused) ✅ DONE AUTONOMOUSLY
 
 Verify that `templates/login/index.tpl.php` and
 `templates/login/register.tpl.php` are not referenced anywhere, then delete.
@@ -56,6 +56,10 @@ Verify that `templates/login/index.tpl.php` and
 > these are orphaned full-HTML templates that duplicate functionality already
 > handled by `login_content.tpl.php` / `register_content.tpl.php` via the
 > layout system. Deleting dead code early reduces confusion.
+>
+> Verified: `grep -rn` found zero references to these files. Both were
+> standalone full-HTML pages (`<!DOCTYPE>`, own `<head>`) with no NavBar,
+> no theme toggle, no `theme.css`. Deleted.
 
 ### Step 3 — Move content out of the layout
 
