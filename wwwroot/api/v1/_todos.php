@@ -250,8 +250,48 @@ if ($todos_path === '/list') {
         return;
     }
 
-    http_response_code(404);
-    echo json_encode(['error' => 'Not yet implemented']);
+    $body = json_decode(file_get_contents('php://input'), true);
+    $title = trim($body['title'] ?? '');
+
+    if ($title === '') {
+        http_response_code(400);
+        echo json_encode(['error' => 'Required: title (non-empty string)']);
+        return;
+    }
+
+    $allowed = [
+        'description', 'is_timer', 'is_counter', 'target_count',
+        'target_duration_seconds', 'do_days', 'do_dates',
+        'do_every_n_days', 'do_time', 'due_date', 'activity_id'
+    ];
+
+    $data = ['user_id' => $auth_user_id, 'title' => $title];
+    foreach ($allowed as $field) {
+        if (array_key_exists($field, $body)) {
+            $data[$field] = $body[$field];
+        }
+    }
+
+    // Validate do_every_n_days range
+    if (isset($data['do_every_n_days'])) {
+        $n = (int) $data['do_every_n_days'];
+        if ($n < 1 || $n > 365) {
+            http_response_code(400);
+            echo json_encode(['error' => 'do_every_n_days must be 1-365']);
+            return;
+        }
+        $data['do_every_n_days'] = $n;
+    }
+
+    $todo_id = $todoHelper->createTodo($data);
+
+    if ($todo_id) {
+        $todo = $todoHelper->getTodo($todo_id);
+        echo json_encode(['success' => true, 'todo' => $todo]);
+    } else {
+        http_response_code(500);
+        echo json_encode(['error' => 'Failed to create todo']);
+    }
 
 } elseif ($todos_path === '/update') {
 
