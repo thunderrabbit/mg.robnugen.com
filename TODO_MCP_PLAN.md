@@ -1,5 +1,18 @@
 # Todo/Activity MCP Server — Planning Document
 
+## High-Level Intent
+
+The system has two types of consumers who both need access to the same data:
+
+- **Humans** — use mg.robnugen.com in a browser, authenticated via cookies
+- **AI agents** — access the same backend via Jikan MCP, authenticated via `X-API-Key`
+
+Cookie auth is NOT legacy or deprecated — it's the correct auth for browser
+users. API key auth exists *in addition* for agent access. The two coexist.
+
+**The goal:** Rob can manage his todo list in the browser. Claude agents can
+read and write the same todo list via Jikan. Both see the same data.
+
 ## The Question: New MCP or Extend Jikan?
 
 ### Option A: Add to Jikan
@@ -12,10 +25,10 @@
 **Cons:**
 - Jikan's name means "time" — todos aren't really about time
 - Jikan would grow from ~20 tools to ~30+, making it harder to maintain
-- **The real blocker: todo endpoints use cookie/session auth, not API
-  keys.** Jikan's `_client()` sends `X-API-Key` headers. The todo
-  endpoints (`/api/todos/*`) require a PHP session cookie from a
-  browser login. Mixing two auth models in one MCP client is messy.
+- **The blocker: todo endpoints currently only support cookie auth.**
+  Jikan's `_client()` sends `X-API-Key` headers. The todo endpoints
+  (`/api/todos/*`) require a PHP session cookie from a browser login.
+  Need v1 endpoints with API key auth before Jikan can reach them.
 
 ### Option B: New MCP server
 
@@ -29,10 +42,10 @@
 - Two MCP servers to configure and restart
 - Some duplication (httpx client setup, base URL config)
 
-### Option C: Migrate todo endpoints to API v1 first, then add to Jikan
+### Option C: Add v1 todo endpoints, then add to Jikan
 
 **Pros:**
-- Unifies auth under `X-API-Key` (the direction the app is heading)
+- Adds `X-API-Key` auth for todos alongside existing cookie auth
 - Todo tools would use the same `_client()` as everything else in Jikan
 - Cleaner long-term architecture
 
@@ -40,12 +53,13 @@
 - Requires writing new v1 todo endpoints before the MCP can be built
 - More upfront work, but pays off in consistency
 
-### Recommendation: **Option C** (migrate to v1, then add to Jikan)
+### Recommendation: **Option C** (add v1 endpoints, then add to Jikan)
 
-The todo endpoints are the last major feature still on legacy cookie auth.
-Migrating them to v1 is the right architectural move regardless of MCP
-plans. Once they're on `X-API-Key`, adding them to Jikan is trivial —
-same pattern as every other tool.
+The todo endpoints only support cookie auth today. Adding v1 API key
+endpoints is the right architectural move regardless of MCP plans — it
+gives agents access without disturbing the browser dashboard. Once todos
+are on `X-API-Key`, adding them to Jikan is trivial — same pattern as
+every other tool.
 
 If you want something working faster, **Option B** is the pragmatic
 fallback — build a separate MCP now with cookie auth, replace it later
@@ -72,17 +86,18 @@ as a server name.
 
 ## The Auth Problem (the key technical decision)
 
-The todo endpoints live at `/api/todos/*` and use PHP session cookies.
-To call them from an MCP server, you'd need to:
+The browser dashboard uses cookie auth for todo endpoints at `/api/todos/*`.
+Agents need API key auth. Three options to bridge this:
 
 1. **Option: Cookie forwarding** — Log in via browser, extract the
    session cookie, configure the MCP with it. Fragile — cookies expire.
 
 2. **Option: New v1 endpoints** — Write `/api/v1/todos/*` routes in
    `index.php` using `X-API-Key` auth (same as sessions/emotions).
-   The todo PHP class already exists — it's mostly wiring.
+   The todo PHP class already exists — it's mostly wiring. Browser
+   dashboard keeps using cookie endpoints as-is.
 
-3. **Option: Add API key auth to legacy endpoints** — Modify each
+3. **Option: Add API key auth to cookie endpoints** — Modify each
    `/api/todos/*.php` file to accept either cookie OR `X-API-Key`.
    Quick but ugly — two auth paths in every file.
 
@@ -90,16 +105,22 @@ To call them from an MCP server, you'd need to:
 already handles auth and passes `$auth_user_id` to sub-dispatchers.
 Adding a `_todos.php` sub-dispatcher follows the exact same pattern as
 `_emotions.php`. The existing `ActivityTracking\Todo` class does all
-the heavy lifting.
+the heavy lifting. The cookie-based endpoints continue serving the
+browser dashboard unchanged.
 
 ---
 
-## Phase 0: Encrypt Todos and Activities (Prerequisite)
+## Phase 0: Encrypt Todos and Activities (Deferred)
+
+> **Status: DEFERRED.** Phase 1 (v1 endpoints) is being done first to
+> unblock agent access to the todo list. Encryption can be layered on
+> afterward without changing the API contract — it's transparent to
+> consumers.
 
 Before exposing todos and activities via API keys, their text content
-must be encrypted at rest — the same way the emotional ledger encrypts
-`state` and `content`. Otherwise, DreamHost (or anyone with DB access)
-can read users' todo titles and activity names in plaintext.
+should ideally be encrypted at rest — the same way the emotional ledger
+encrypts `state` and `content`. Otherwise, DreamHost (or anyone with DB
+access) can read users' todo titles and activity names in plaintext.
 
 ### What needs encrypting
 
@@ -625,10 +646,60 @@ Add all `/todos/*` paths to `wwwroot/api/v1/openapi.yaml`.
 
 ## Decision Log
 
-- **Separate MCP vs extend Jikan:** Extend Jikan (after migrating to v1)
+- **Separate MCP vs extend Jikan:** Extend Jikan (after adding v1 endpoints)
 - **Auth model:** Reuse `X-API-Key` via v1 front controller
+- **Two auth strategies coexist:** Cookies for humans (browser), API keys
+  for agents (Jikan). Neither is "legacy" — they serve different consumers.
 - **Credit cost for todo endpoints:** Free (todos are a core feature,
   not a premium API)
-- **Legacy endpoint deprecation:** Keep legacy endpoints working for the
-  browser dashboard. They can be deprecated later once the dashboard is
-  updated to use v1 endpoints (separate project).
+- **Cookie endpoints stay:** Browser dashboard keeps using `/api/todos/*`
+  with cookie auth. No changes needed there.
+- **Phase 0 deferred:** Encryption is important but not blocking. Phase 1
+  (v1 endpoints) done first for immediate agent access to todo list.
+
+---
+
+## Future: Jikan API Naming Redesign (v2)
+
+The current "emotion" system (`emotion_vocab`, `emotion_events`) has been
+stretched to serve three purposes beyond its original design:
+
+1. **Emotional state tracking** — the original intent
+2. **Inter-agent messaging** — vocab items like `mg_comms`, `abb_comms`
+   act as channels, events logged against them are messages
+3. **Agent utilities** — `agent read this daily`, `mail_book`, etc.
+
+This works but creates a naming problem: telling a new Claude agent to
+"check the mg_comms channel" makes no sense when the tools are called
+`get_emotion_vocab` and `log_emotion_event`. The optics need to be good
+for other users to adopt the project.
+
+### Proposed v2 Concepts
+
+**Keep what works (no changes needed):**
+- Sessions — time tracking
+- Activities — what sessions track
+- Todos — shared human/agent task list (being added in Phase 1)
+
+**Replace "emotions" with two clear concepts:**
+
+| Current | Proposed | Purpose |
+|---|---|---|
+| emotion vocab | **Topics** (notebook) | Named categories for agent's private journal |
+| emotion events | **Entries** (notebook) | Timestamped notes against topics |
+| `*_comms` vocab | **Channels** | Named communication lines between agents |
+| events on `*_comms` | **Messages** | What gets posted to channels |
+
+**v2 MCP tools would look like:**
+- `list_topics`, `create_topic`, `log_entry`, `get_entries` (notebook)
+- `list_channels`, `send_message`, `read_messages` (inter-agent comms)
+
+These names are self-explanatory — no X=Y documentation needed.
+
+### Migration approach
+
+- New v2 API endpoints with clean names
+- New database tables (or renamed) with clear column names
+- Migrate existing data
+- Update Jikan MCP tools
+- Keep v1 emotion endpoints briefly for transition, then drop
