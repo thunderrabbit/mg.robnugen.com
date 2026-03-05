@@ -1,0 +1,91 @@
+/* Welcome / login / register page styles
+   Extracted from welcome_base.tpl.php inline <style> block.
+   Button styles (.btn-primary, .btn-secondary) live in buttons.css.
+   Body styles (font, background, color) live in styles.css. */
+
+.welcome-page {
+    max-width: 800px;
+    margin: 50px auto;
+    padding: 20px;
+    line-height: 1.6;
+}
+
+.welcome-page h1 {
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    color: var(--text-muted);
+    margin-top: 0;
+    font-size: 1.1em;
+}
+
+.description {
+    background: var(--bg-panel);
+    padding: 20px;
+    border-radius: 8px;
+    margin: 30px 0;
+}
+
+.features {
+    margin: 20px 0;
+}
+
+.features li {
+    margin: 10px 0;
+}
+
+.cta {
+    margin: 30px 0;
+}
+
+/* Form styles (login / register) */
+.form-container {
+    background: var(--bg-panel);
+    padding: 30px;
+    border-radius: 8px;
+    margin: 30px 0;
+}
+
+.form-row {
+    margin-bottom: 20px;
+}
+
+.form-row label {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.form-row input[type="text"],
+.form-row input[type="password"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border-input);
+    border-radius: 4px;
+    font-size: 1em;
+    box-sizing: border-box;
+}
+
+.form-row input[type="text"]:focus,
+.form-row input[type="password"]:focus {
+    outline: none;
+    border-color: var(--input-border-focus);
+}
+
+.form-row input[type="submit"] {
+    background: var(--info);
+    color: var(--text-on-accent);
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.form-row input[type="submit"]:hover {
+    background: var(--info-hover);
+}

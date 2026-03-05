@@ -4,8 +4,12 @@ var MeisoPreferences = function() {
 	var meditationTime = 5;
 	var revealDuration = 2000;
 	var hideDuration = 2000;
-	var successBGColor = "#0B6138";
-	var countingColor = "#232323";
+	var cssVar = function(name, fallback) {
+		var val = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+		return val || fallback;
+	};
+	var successBGColor = cssVar('--timer-bg-success', '#0B6138');
+	var countingColor = cssVar('--timer-bg-counting', '#232323');
 
 	function saveThatInThis(variable, value) {
 		localStorage[variable] = JSON.stringify(value);
