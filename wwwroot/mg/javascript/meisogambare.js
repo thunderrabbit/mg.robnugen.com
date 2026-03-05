@@ -395,9 +395,9 @@ var loadAndResumeSession = function(sessionKey) {
 				// Hide activity selector for public view
 				$('#activity_text_wrapper').hide();
 
-				var liveMessage = '<div class="live-session-notice" style="margin-top: 20px; padding: 15px; background: rgba(255, 255, 255, 0.1); border-radius: 8px;">' +
+				var liveMessage = '<div class="live-session-notice" style="margin-top: 20px; padding: 15px; background: var(--bg-muted); border-radius: 8px;">' +
 					'<h3>🔴 LIVE - Someone is doing ' + session.activity_name + '</h3>' +
-					'<p style="color: #999; font-style: italic;">This is a live session (read-only)</p>' +
+					'<p style="color: var(--text-faint); font-style: italic;">This is a live session (read-only)</p>' +
 					'</div>';
 				$('.message').html(liveMessage);
 			}
@@ -441,14 +441,14 @@ var loadAndResumeSession = function(sessionKey) {
 				'<p><strong>Actual:</strong> ' + Math.floor(session.actual_sec / 60) + ' minutes</p>';
 
 			if (session.bonus_sec > 0) {
-				completedMessage += '<p><strong>Bonus:</strong> <span style="color: #4CAF50;">+' + bonusMinutes + ' minutes</span></p>';
+				completedMessage += '<p><strong>Bonus:</strong> <span style="color: var(--success);">+' + bonusMinutes + ' minutes</span></p>';
 			} else if (session.bonus_sec < 0) {
-				completedMessage += '<p><strong>Status:</strong> <span style="color: #F44336;">Stopped early</span></p>';
+				completedMessage += '<p><strong>Status:</strong> <span style="color: var(--danger);">Stopped early</span></p>';
 			} else {
-				completedMessage += '<p><strong>Status:</strong> <span style="color: #2196F3;">Exactly on time!</span></p>';
+				completedMessage += '<p><strong>Status:</strong> <span style="color: var(--info);">Exactly on time!</span></p>';
 			}
 
-			completedMessage += '<p class="readonly-note" style="margin-top: 20px; color: #999; font-style: italic;">This is a completed session (read-only)</p>' +
+			completedMessage += '<p class="readonly-note" style="margin-top: 20px; color: var(--text-faint); font-style: italic;">This is a completed session (read-only)</p>' +
 				'</div>';
 
 			$('.message').html(completedMessage);
