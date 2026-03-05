@@ -489,8 +489,30 @@ if ($todos_path === '/list') {
         return;
     }
 
-    http_response_code(404);
-    echo json_encode(['error' => 'Not yet implemented']);
+    $limit = min((int) ($_GET['limit'] ?? 20), 50);
+    $offset = max((int) ($_GET['offset'] ?? 0), 0);
+    if ($limit < 1) $limit = 20;
+
+    $completed_todos = $todoHelper->getFullyCompletedHistory($auth_user_id, $limit, $offset);
+
+    $countStmt = $pdo->prepare("
+        SELECT COUNT(*) as total
+        FROM todo_logs tl
+        JOIN todos t ON tl.todo_id = t.todo_id
+        WHERE tl.user_id = ?
+        AND tl.nth >= t.target_count
+    ");
+    $countStmt->execute([$auth_user_id]);
+    $totalCount = (int) $countStmt->fetch(\PDO::FETCH_ASSOC)['total'];
+
+    echo json_encode([
+        'success' => true,
+        'completed_todos' => $completed_todos,
+        'total_count' => $totalCount,
+        'limit' => $limit,
+        'offset' => $offset,
+        'has_more' => ($offset + $limit) < $totalCount
+    ]);
 
 } else {
     http_response_code(404);
