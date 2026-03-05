@@ -65,6 +65,10 @@
     --shadow-info-hover:     0 4px 12px rgba(33,150,243,0.4);
     --shadow-info-active:    0 2px 4px rgba(33,150,243,0.3);
 
+    /* timer page mood backgrounds */
+    --timer-bg-counting: #232323;
+    --timer-bg-success:  #0B6138;
+
     /* forms */
     --input-bg:         #ffffff;
     --input-border-focus: #3498db;
@@ -131,6 +135,9 @@
     --shadow-info-glow:      0 2px 8px rgba(33,150,243,0.4);
     --shadow-info-hover:     0 4px 12px rgba(33,150,243,0.5);
     --shadow-info-active:    0 2px 4px rgba(33,150,243,0.4);
+
+    --timer-bg-counting: #1a1a1a;
+    --timer-bg-success:  #0B6138;
 
     --input-bg:         #2a2a2a;
     --input-border-focus: #7eb8e8;
