@@ -13,6 +13,8 @@ users. API key auth exists *in addition* for agent access. The two coexist.
 **The goal:** Rob can manage his todo list in the browser. Claude agents can
 read and write the same todo list via Jikan. Both see the same data.
 
+---
+
 ## The Question: New MCP or Extend Jikan?
 
 ### Option A: Add to Jikan
@@ -61,10 +63,6 @@ gives agents access without disturbing the browser dashboard. Once todos
 are on `X-API-Key`, adding them to Jikan is trivial — same pattern as
 every other tool.
 
-If you want something working faster, **Option B** is the pragmatic
-fallback — build a separate MCP now with cookie auth, replace it later
-when v1 endpoints exist.
-
 ---
 
 ## Name Candidates (if building a separate MCP)
@@ -110,210 +108,7 @@ browser dashboard unchanged.
 
 ---
 
-## Phase 0: Encrypt Todos and Activities (Deferred)
-
-> **Status: DEFERRED.** Phase 1 (v1 endpoints) is being done first to
-> unblock agent access to the todo list. Encryption can be layered on
-> afterward without changing the API contract — it's transparent to
-> consumers.
-
-Before exposing todos and activities via API keys, their text content
-should ideally be encrypted at rest — the same way the emotional ledger
-encrypts `state` and `content`. Otherwise, DreamHost (or anyone with DB
-access) can read users' todo titles and activity names in plaintext.
-
-### What needs encrypting
-
-| Table | Columns | Current usage |
-|---|---|---|
-| `todos` | `title`, `description` | Display only + secondary sort by title |
-| `activities` | `activity_name`, `description` | Display, ORDER BY, duplicate check, JOINed into every session query |
-
-### What currently relies on plaintext
-
-**Todos — title:**
-1. `Todo.php:58` — `ORDER BY t.title ASC` (secondary sort)
-2. `list.php:161` — `strcasecmp($a['title'], $b['title'])` (PHP sort)
-3. `dashboard.js:369` — `titleA.localeCompare(titleB)` (JS re-sort)
-
-**Activities — activity_name:**
-1. `Activity.php:62-68` — `WHERE user_id = ? AND activity_name = ?`
-   (duplicate check on create — **cannot work on encrypted data**)
-2. `Activity.php:28` — `ORDER BY activity_name` (listing sort)
-3. Every session query (7+ locations) — `JOIN activities` to display
-   `activity_name` alongside session data
-4. `list-activities.php:22` — `ORDER BY activity_name` (legacy listing)
-5. `_activities.php:18` — calls `getActivitiesForUser()` which sorts by name
-
-**No LIKE/FULLTEXT searches exist on any of these columns.** Only exact
-match (duplicate check) and ORDER BY.
-
-### The encryption key question
-
-The emotional ledger derives its key from the raw API key:
-```php
-$encKey = hash_hmac('sha256', 'emotional_v1', $rawApiKey, true);
-```
-
-This works because emotional data is only accessed via `X-API-Key` auth.
-But todos and activities are currently accessed via **cookie/session auth**
-(the browser dashboard), where the raw API key is not available.
-
-**Options:**
-
-1. **Encrypt per-user with a user-derived key** — derive from user's
-   password hash or a stored per-user secret. Available in both cookie
-   and API-key auth contexts. But password changes would require
-   re-encryption.
-
-2. **Encrypt per-API-key (same as emotions)** — only decrypt when
-   accessed via API key. The browser dashboard would need to be updated
-   to call v1 endpoints with an API key (stored in a JS cookie or
-   localStorage). This is the cleanest long-term approach but requires
-   dashboard refactoring.
-
-3. **Server-side encryption with a shared app secret** — encrypt with
-   a key from `Config.php`. Protects against DB-only breaches (hosting
-   provider, backups) but not against app-server compromise. Simpler:
-   works with both auth models without changes.
-
-**Recommendation:** Option 3 for now (app-secret encryption). It solves
-the immediate problem (data at rest) without requiring a dashboard
-rewrite. Upgrade to per-key encryption later when the dashboard moves
-to v1 endpoints.
-
-### Coding order
-
-**0a. [COMMIT] Fix secondary sorts to not depend on plaintext**
-
-Replace title-based sorts with `todo_id` or `created_at_utc`:
-
-- **`Todo.php:58`** — change `ORDER BY t.do_time ASC, t.title ASC`
-  to `ORDER BY t.do_time ASC, t.todo_id ASC`
-- **`list.php:161`** — change `strcasecmp($a['title'], $b['title'])`
-  to `$a['todo_id'] - $b['todo_id']`
-- **`dashboard.js:369`** — change `titleA.localeCompare(titleB)` to
-  compare by `data-todo-id` attribute instead
-
-Similarly for activities:
-- **`Activity.php:28`** — change `ORDER BY activity_name` to
-  `ORDER BY activity_id`
-- **`list-activities.php:22`** — same change
-
-> ```
-> Replace plaintext-dependent sorts with ID-based sorts
-> ```
-
-**0b. [COMMIT] Fix activity duplicate check**
-
-The duplicate check (`WHERE activity_name = ?`) cannot work on encrypted
-data. Options:
-1. Store a **keyed hash** of the name alongside the encrypted blob:
-   `name_hash = hash_hmac('sha256', strtolower(trim($name)), $appSecret)`
-   Check uniqueness against the hash. This preserves the duplicate check
-   without exposing plaintext.
-2. Remove the duplicate check entirely (allow duplicate names).
-3. **Create an Activity Vocabulary** — same pattern as the emotional
-   ledger's `my_ids_for_my_users_state` table. Each activity gets a
-   random numeric `my_id` as its agent-facing handle. The encrypted
-   `activity_name` is stored alongside it. Duplicate checking works by
-   loading the full vocab (decrypting all names) and comparing
-   client-side before creating — exactly how emotion vocab works.
-   This also gives activities the same per-API-key encryption as
-   emotions, keeping the architecture consistent.
-
-Recommendation: Option 3 (activity vocabulary). It reuses a proven
-pattern, keeps per-key encryption consistent across the system, and
-avoids introducing a new app-secret encryption model.
-
-- **New table:** `activity_vocab` (or extend `my_ids_for_my_users_state`
-  with a `vocab_type` column)
-- **Columns:** `vocab_id`, `api_key_id`, `my_id` (random), encrypted
-  `activity_name`, encrypted `description`
-- **Duplicate check:** Agent loads vocab via GET, checks locally, then
-  POSTs only if not already present
-- **Mapping:** `my_id` maps to `activity_id` in the existing
-  `activities` table (or the vocab replaces the activities table for
-  API-key users)
-
-> ```
-> Add hash-based activity duplicate check for encryption compatibility
-> ```
-
-**0c. [COMMIT] Add encryption helpers for app-secret encryption**
-
-- **File:** `classes/Encryption/AppSecret.php` (new class)
-- **Action:** Similar to `Emotional\Ledger` but derives key from
-  `Config::APP_ENCRYPTION_KEY` (a new config constant) instead of
-  a raw API key. Same XSalsa20-Poly1305 algorithm.
-- **File:** `classes/ConfigSample.php` — add `APP_ENCRYPTION_KEY`
-  placeholder
-
-> ```
-> Add app-secret encryption helpers for todo/activity encryption
-> ```
-
-**0d. [COMMIT] Encrypt todo title and description**
-
-- **`Todo.php`:** Encrypt `title` and `description` on
-  `createTodo()` and `updateTodo()`. Decrypt on all read methods.
-- **Schema change:** `ALTER TABLE todos MODIFY title TEXT NOT NULL`
-  (encrypted blobs are longer than 255 chars).
-- **Migration script:** Encrypt all existing plaintext rows in place.
-
-> ```
-> Encrypt todo title and description at rest
-> ```
-
-**0e. [COMMIT] Encrypt activity name and description**
-
-- **`Activity.php`:** Encrypt `activity_name` and `description` on
-  create. Decrypt on all read methods.
-- **Schema change:** `ALTER TABLE activities MODIFY activity_name TEXT NOT NULL`
-- **Migration script:** Encrypt all existing plaintext rows, compute
-  and store `name_hash` for each.
-- **Session queries:** All 7+ queries that JOIN `a.activity_name` will
-  now get encrypted blobs. Add decryption in the PHP code that processes
-  these results (in `_sessions.php`, `list-completed-sessions.php`,
-  `list-active-sessions.php`, `SessionKey.php`, `ActivityKai.php`,
-  `Todo.php` JOIN results).
-
-This is the largest step — many files touch `activity_name` via JOINs.
-
-> ```
-> Encrypt activity name and description at rest
-> ```
-
-**0f. [COMMIT] Verify dashboard still works end-to-end**
-
-- Load the dashboard, verify todos display with decrypted titles
-- List activities, verify names display correctly
-- Create a new todo, verify it encrypts and displays
-- Create a new activity, verify duplicate check works via hash
-- List sessions, verify activity names display correctly
-- Complete a todo, verify completion log works
-
-> ```
-> Verify encryption does not break dashboard functionality
-> ```
-
-### Impact on Jikan (existing activity tools)
-
-Jikan's `create_activity` and `list_activities` tools currently send
-and receive **plaintext** activity names via the v1 API. After
-encryption:
-
-- **`POST /api/v1/activities`** — the endpoint will encrypt the name
-  before storage. **No change needed in Jikan** — the API accepts
-  plaintext and handles encryption server-side.
-- **`GET /api/v1/activities`** — the endpoint will decrypt names before
-  returning them. **No change needed in Jikan** — the API returns
-  plaintext after server-side decryption.
-- The encryption is transparent to API consumers.
-
----
-
-## Phase 1: Migrate Todo Endpoints to API v1
+## Phase 1: Add v1 Todo Endpoints
 
 ### Suggested Coding Order
 
@@ -330,7 +125,7 @@ encryption:
       include __DIR__ . '/_todos.php';
   }
   ```
-- **Test:** `curl -H "X-API-Key: sk_..." .../api/v1/todos/list` → 404
+- **Test:** `curl -H "X-API-Key: sk_..." .../api/v1/todos/list` -> 404
   "not yet implemented"
 
 > ```
@@ -342,8 +137,8 @@ encryption:
 - **Action:** Port logic from `/api/todos/list.php` into the `/list`
   branch. Replace `$_SESSION['user_id']` with `$auth_user_id` (from
   `index.php` auth context). Accept `timezone` as query param.
-- **Returns:** Same JSON shape as the legacy endpoint.
-- **Test:** Compare output of legacy and v1 endpoints side-by-side.
+- **Returns:** Same JSON shape as the cookie endpoint.
+- **Test:** Compare output of cookie and v1 endpoints side-by-side.
 
 > ```
 > Add GET /api/v1/todos/list endpoint
@@ -373,8 +168,7 @@ encryption:
 - **Action:** Port from `/api/todos/create_batch.php` (single-item
   mode) or write a cleaner version. Accept JSON body with todo fields.
 - **Validation:** Whitelist fields same as `createTodo()`. Validate
-  `do_every_n_days` range (1-365) if the days-between feature is
-  merged by then.
+  `do_every_n_days` range (1-365).
 - **Returns:** `{todo_id, title, ...}`
 
 > ```
@@ -393,9 +187,10 @@ encryption:
 
 **7. [COMMIT] DELETE /todos/archive — soft-delete a todo**
 
-- **Action:** Port from `/api/todos/archive.php`. Accept JSON body
-  `{todo_id}`. Sets `is_active = 0`.
-- **Security:** Validate ownership.
+- **Action:** No existing archive endpoint to port from; wire directly
+  to `Todo::deleteTodo()`. Accept JSON body `{todo_id}`.
+  Sets `is_active = 0`.
+- **Security:** `deleteTodo()` already verifies ownership internally.
 
 > ```
 > Add DELETE /api/v1/todos/archive endpoint
@@ -601,25 +396,255 @@ Add all `/todos/*` paths to `wwwroot/api/v1/openapi.yaml`.
 
 ---
 
+## Phase 4: Encrypt Todos and Activities
+
+Todo and activity text is currently stored in plaintext. Once the v1
+endpoints are working, encryption can be added transparently — the API
+contract doesn't change, encryption/decryption happens server-side.
+
+### What needs encrypting
+
+| Table | Columns | Current usage |
+|---|---|---|
+| `todos` | `title`, `description` | Display only + secondary sort by title |
+| `activities` | `activity_name`, `description` | Display, ORDER BY, duplicate check, JOINed into every session query |
+
+### What currently relies on plaintext
+
+**Todos — title:**
+1. `Todo.php:58` — `ORDER BY t.title ASC` (secondary sort)
+2. `list.php:161` — `strcasecmp($a['title'], $b['title'])` (PHP sort)
+3. `dashboard.js:369` — `titleA.localeCompare(titleB)` (JS re-sort)
+
+**Activities — activity_name:**
+1. `Activity.php:62-68` — `WHERE user_id = ? AND activity_name = ?`
+   (duplicate check on create — **cannot work on encrypted data**)
+2. `Activity.php:28` — `ORDER BY activity_name` (listing sort)
+3. Every session query (7+ locations) — `JOIN activities` to display
+   `activity_name` alongside session data
+4. `list-activities.php:22` — `ORDER BY activity_name` (legacy listing)
+5. `_activities.php:18` — calls `getActivitiesForUser()` which sorts by name
+
+**No LIKE/FULLTEXT searches exist on any of these columns.** Only exact
+match (duplicate check) and ORDER BY.
+
+### The encryption key question
+
+The emotional ledger derives its key from the raw API key:
+```php
+$encKey = hash_hmac('sha256', 'emotional_v1', $rawApiKey, true);
+```
+
+This works because emotional data is only accessed via `X-API-Key` auth.
+But todos and activities are accessed via **both** cookie auth (browser
+dashboard) and API key auth (agents). The raw API key is not available
+in cookie auth contexts.
+
+**Options:**
+
+1. **Encrypt per-user with a user-derived key** — derive from user's
+   password hash or a stored per-user secret. Available in both cookie
+   and API-key auth contexts. But password changes would require
+   re-encryption.
+
+2. **Encrypt per-API-key (same as emotions)** — only decrypt when
+   accessed via API key. The browser dashboard would need to be updated
+   to call v1 endpoints with an API key (stored in a JS cookie or
+   localStorage). Cleanest long-term approach but requires dashboard
+   refactoring.
+
+3. **Server-side encryption with a shared app secret** — encrypt with
+   a key from `Config.php`. Protects against DB-only breaches (hosting
+   provider, backups) but not against app-server compromise. Simpler:
+   works with both auth models without changes.
+
+**Recommendation:** Option 3 for now (app-secret encryption). It solves
+the immediate problem (data at rest) without requiring a dashboard
+rewrite. Upgrade to per-key encryption later when the dashboard moves
+to v1 endpoints.
+
+### Coding order
+
+**4a. [COMMIT] Fix secondary sorts to not depend on plaintext**
+
+Replace title-based sorts with `todo_id` or `created_at_utc`:
+
+- **`Todo.php:58`** — change `ORDER BY t.do_time ASC, t.title ASC`
+  to `ORDER BY t.do_time ASC, t.todo_id ASC`
+- **`list.php:161`** — change `strcasecmp($a['title'], $b['title'])`
+  to `$a['todo_id'] - $b['todo_id']`
+- **`dashboard.js:369`** — change `titleA.localeCompare(titleB)` to
+  compare by `data-todo-id` attribute instead
+
+Similarly for activities:
+- **`Activity.php:28`** — change `ORDER BY activity_name` to
+  `ORDER BY activity_id`
+- **`list-activities.php:22`** — same change
+
+> ```
+> Replace plaintext-dependent sorts with ID-based sorts
+> ```
+
+**4b. [COMMIT] Fix activity duplicate check**
+
+The duplicate check (`WHERE activity_name = ?`) cannot work on encrypted
+data. Options:
+1. Store a **keyed hash** of the name alongside the encrypted blob:
+   `name_hash = hash_hmac('sha256', strtolower(trim($name)), $appSecret)`
+   Check uniqueness against the hash. This preserves the duplicate check
+   without exposing plaintext.
+2. Remove the duplicate check entirely (allow duplicate names).
+3. **Create an Activity Vocabulary** — same pattern as the emotional
+   ledger's `my_ids_for_my_users_state` table. Each activity gets a
+   random numeric `my_id` as its agent-facing handle. The encrypted
+   `activity_name` is stored alongside it. Duplicate checking works by
+   loading the full vocab (decrypting all names) and comparing
+   client-side before creating — exactly how emotion vocab works.
+   This also gives activities the same per-API-key encryption as
+   emotions, keeping the architecture consistent.
+
+Recommendation: Option 3 (activity vocabulary). It reuses a proven
+pattern, keeps per-key encryption consistent across the system, and
+avoids introducing a new app-secret encryption model.
+
+- **New table:** `activity_vocab` (or extend `my_ids_for_my_users_state`
+  with a `vocab_type` column)
+- **Columns:** `vocab_id`, `api_key_id`, `my_id` (random), encrypted
+  `activity_name`, encrypted `description`
+- **Duplicate check:** Agent loads vocab via GET, checks locally, then
+  POSTs only if not already present
+- **Mapping:** `my_id` maps to `activity_id` in the existing
+  `activities` table (or the vocab replaces the activities table for
+  API-key users)
+
+> ```
+> Add hash-based activity duplicate check for encryption compatibility
+> ```
+
+**4c. [COMMIT] Add encryption helpers for app-secret encryption**
+
+- **File:** `classes/Encryption/AppSecret.php` (new class)
+- **Action:** Similar to `Emotional\Ledger` but derives key from
+  `Config::APP_ENCRYPTION_KEY` (a new config constant) instead of
+  a raw API key. Same XSalsa20-Poly1305 algorithm.
+- **File:** `classes/ConfigSample.php` — add `APP_ENCRYPTION_KEY`
+  placeholder
+
+> ```
+> Add app-secret encryption helpers for todo/activity encryption
+> ```
+
+**4d. [COMMIT] Encrypt todo title and description**
+
+- **`Todo.php`:** Encrypt `title` and `description` on
+  `createTodo()` and `updateTodo()`. Decrypt on all read methods.
+- **Schema change:** `ALTER TABLE todos MODIFY title TEXT NOT NULL`
+  (encrypted blobs are longer than 255 chars).
+- **Migration script:** Encrypt all existing plaintext rows in place.
+
+> ```
+> Encrypt todo title and description at rest
+> ```
+
+**4e. [COMMIT] Encrypt activity name and description**
+
+- **`Activity.php`:** Encrypt `activity_name` and `description` on
+  create. Decrypt on all read methods.
+- **Schema change:** `ALTER TABLE activities MODIFY activity_name TEXT NOT NULL`
+- **Migration script:** Encrypt all existing plaintext rows, compute
+  and store `name_hash` for each.
+- **Session queries:** All 7+ queries that JOIN `a.activity_name` will
+  now get encrypted blobs. Add decryption in the PHP code that processes
+  these results (in `_sessions.php`, `list-completed-sessions.php`,
+  `list-active-sessions.php`, `SessionKey.php`, `ActivityKai.php`,
+  `Todo.php` JOIN results).
+
+This is the largest step — many files touch `activity_name` via JOINs.
+
+> ```
+> Encrypt activity name and description at rest
+> ```
+
+**4f. [COMMIT] Verify dashboard still works end-to-end**
+
+- Load the dashboard, verify todos display with decrypted titles
+- List activities, verify names display correctly
+- Create a new todo, verify it encrypts and displays
+- Create a new activity, verify duplicate check works via hash
+- List sessions, verify activity names display correctly
+- Complete a todo, verify completion log works
+
+> ```
+> Verify encryption does not break dashboard functionality
+> ```
+
+### Impact on Jikan (existing activity tools)
+
+Jikan's `create_activity` and `list_activities` tools currently send
+and receive **plaintext** activity names via the v1 API. After
+encryption:
+
+- **`POST /api/v1/activities`** — the endpoint will encrypt the name
+  before storage. **No change needed in Jikan** — the API accepts
+  plaintext and handles encryption server-side.
+- **`GET /api/v1/activities`** — the endpoint will decrypt names before
+  returning them. **No change needed in Jikan** — the API returns
+  plaintext after server-side decryption.
+- The encryption is transparent to API consumers.
+
+---
+
+## Phase 5: Jikan API Naming Redesign (v2)
+
+The current "emotion" system (`emotion_vocab`, `emotion_events`) has been
+stretched to serve three purposes beyond its original design:
+
+1. **Emotional state tracking** — the original intent
+2. **Inter-agent messaging** — vocab items like `mg_comms`, `abb_comms`
+   act as channels, events logged against them are messages
+3. **Agent utilities** — `agent read this daily`, `mail_book`, etc.
+
+This works but creates a naming problem: telling a new Claude agent to
+"check the mg_comms channel" makes no sense when the tools are called
+`get_emotion_vocab` and `log_emotion_event`. The optics need to be good
+for other users to adopt the project.
+
+### Proposed v2 Concepts
+
+**Keep what works (no changes needed):**
+- Sessions — time tracking
+- Activities — what sessions track
+- Todos — shared human/agent task list
+
+**Replace "emotions" with two clear concepts:**
+
+| Current | Proposed | Purpose |
+|---|---|---|
+| emotion vocab | **Topics** (notebook) | Named categories for agent's private journal |
+| emotion events | **Entries** (notebook) | Timestamped notes against topics |
+| `*_comms` vocab | **Channels** | Named communication lines between agents |
+| events on `*_comms` | **Messages** | What gets posted to channels |
+
+**v2 MCP tools would look like:**
+- `list_topics`, `create_topic`, `log_entry`, `get_entries` (notebook)
+- `list_channels`, `send_message`, `read_messages` (inter-agent comms)
+
+These names are self-explanatory — no X=Y documentation needed.
+
+### Migration approach
+
+- New v2 API endpoints with clean names
+- New database tables (or renamed) with clear column names
+- Migrate existing data
+- Update Jikan MCP tools
+- Keep v1 emotion endpoints briefly for transition, then drop
+
+---
+
 ## Files Touched Summary
 
 | File | Phase | Work |
 |---|---|---|
-| **Phase 0: Encryption** | | |
-| `classes/Encryption/AppSecret.php` | 0 | **Create** (encryption helper) |
-| `classes/ConfigSample.php` | 0 | Add `APP_ENCRYPTION_KEY` |
-| `classes/ActivityTracking/Todo.php` | 0 | Encrypt/decrypt + fix sorts |
-| `classes/ActivityTracking/Activity.php` | 0 | Encrypt/decrypt + hash-based duplicate check + fix sorts |
-| `classes/ActivityTracking/ActivityKai.php` | 0 | Decrypt activity_name in session results |
-| `classes/ActivityTracking/SessionKey.php` | 0 | Decrypt activity_name in session results |
-| `wwwroot/api/todos/list.php` | 0 | Fix title sort |
-| `wwwroot/api/list-activities.php` | 0 | Fix name sort |
-| `wwwroot/api/list-completed-sessions.php` | 0 | Decrypt activity_name |
-| `wwwroot/api/list-active-sessions.php` | 0 | Decrypt activity_name |
-| `wwwroot/api/v1/_sessions.php` | 0 | Decrypt activity_name |
-| `wwwroot/api/v1/_activities.php` | 0 | Decrypt activity_name |
-| `wwwroot/dashboard/dashboard.js` | 0 | Fix title sort |
-| `db_schemas/` | 0 | Migration: widen columns + encrypt rows + add name_hash |
 | **Phase 1: v1 Endpoints** | | |
 | `wwwroot/api/v1/index.php` | 1 | Add `/todos` routing |
 | `wwwroot/api/v1/_todos.php` | 1 | **Create** (new sub-dispatcher) |
@@ -627,6 +652,24 @@ Add all `/todos/*` paths to `wwwroot/api/v1/openapi.yaml`.
 | `~/jikan/server.py` | 2 | Add ~7 todo tools |
 | **Phase 3: Docs** | | |
 | `wwwroot/api/v1/openapi.yaml` | 3 | Document new endpoints |
+| **Phase 4: Encryption** | | |
+| `classes/Encryption/AppSecret.php` | 4 | **Create** (encryption helper) |
+| `classes/ConfigSample.php` | 4 | Add `APP_ENCRYPTION_KEY` |
+| `classes/ActivityTracking/Todo.php` | 4 | Encrypt/decrypt + fix sorts |
+| `classes/ActivityTracking/Activity.php` | 4 | Encrypt/decrypt + hash-based duplicate check + fix sorts |
+| `classes/ActivityTracking/ActivityKai.php` | 4 | Decrypt activity_name in session results |
+| `classes/ActivityTracking/SessionKey.php` | 4 | Decrypt activity_name in session results |
+| `wwwroot/api/todos/list.php` | 4 | Fix title sort |
+| `wwwroot/api/list-activities.php` | 4 | Fix name sort |
+| `wwwroot/api/list-completed-sessions.php` | 4 | Decrypt activity_name |
+| `wwwroot/api/list-active-sessions.php` | 4 | Decrypt activity_name |
+| `wwwroot/api/v1/_sessions.php` | 4 | Decrypt activity_name |
+| `wwwroot/api/v1/_activities.php` | 4 | Decrypt activity_name |
+| `wwwroot/dashboard/dashboard.js` | 4 | Fix title sort |
+| `db_schemas/` | 4 | Migration: widen columns + encrypt rows + add name_hash |
+| **Phase 5: v2 Redesign** | | |
+| `wwwroot/api/v2/` | 5 | New endpoints with clean names |
+| `~/jikan/server.py` | 5 | Rename emotion tools to notebook/channels |
 
 ---
 
@@ -654,52 +697,5 @@ Add all `/todos/*` paths to `wwwroot/api/v1/openapi.yaml`.
   not a premium API)
 - **Cookie endpoints stay:** Browser dashboard keeps using `/api/todos/*`
   with cookie auth. No changes needed there.
-- **Phase 0 deferred:** Encryption is important but not blocking. Phase 1
-  (v1 endpoints) done first for immediate agent access to todo list.
-
----
-
-## Future: Jikan API Naming Redesign (v2)
-
-The current "emotion" system (`emotion_vocab`, `emotion_events`) has been
-stretched to serve three purposes beyond its original design:
-
-1. **Emotional state tracking** — the original intent
-2. **Inter-agent messaging** — vocab items like `mg_comms`, `abb_comms`
-   act as channels, events logged against them are messages
-3. **Agent utilities** — `agent read this daily`, `mail_book`, etc.
-
-This works but creates a naming problem: telling a new Claude agent to
-"check the mg_comms channel" makes no sense when the tools are called
-`get_emotion_vocab` and `log_emotion_event`. The optics need to be good
-for other users to adopt the project.
-
-### Proposed v2 Concepts
-
-**Keep what works (no changes needed):**
-- Sessions — time tracking
-- Activities — what sessions track
-- Todos — shared human/agent task list (being added in Phase 1)
-
-**Replace "emotions" with two clear concepts:**
-
-| Current | Proposed | Purpose |
-|---|---|---|
-| emotion vocab | **Topics** (notebook) | Named categories for agent's private journal |
-| emotion events | **Entries** (notebook) | Timestamped notes against topics |
-| `*_comms` vocab | **Channels** | Named communication lines between agents |
-| events on `*_comms` | **Messages** | What gets posted to channels |
-
-**v2 MCP tools would look like:**
-- `list_topics`, `create_topic`, `log_entry`, `get_entries` (notebook)
-- `list_channels`, `send_message`, `read_messages` (inter-agent comms)
-
-These names are self-explanatory — no X=Y documentation needed.
-
-### Migration approach
-
-- New v2 API endpoints with clean names
-- New database tables (or renamed) with clear column names
-- Migrate existing data
-- Update Jikan MCP tools
-- Keep v1 emotion endpoints briefly for transition, then drop
+- **Phase order:** v1 endpoints first (unblock agent access), then Jikan
+  tools, then docs, then encryption, then v2 naming redesign.
