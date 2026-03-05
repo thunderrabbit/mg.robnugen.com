@@ -47,7 +47,17 @@ But first, deduplicate:
 > The `h1` color rule was scoped to `.welcome-page h1` to avoid affecting
 > other layouts.
 
-### Step 2 — Move content out of the layout
+### Step 2 — Delete standalone login templates (if unused)
+
+Verify that `templates/login/index.tpl.php` and
+`templates/login/register.tpl.php` are not referenced anywhere, then delete.
+
+> **Moved up from Step 5.** This has no dependencies on the other steps —
+> these are orphaned full-HTML templates that duplicate functionality already
+> handled by `login_content.tpl.php` / `register_content.tpl.php` via the
+> layout system. Deleting dead code early reduces confusion.
+
+### Step 3 — Move content out of the layout
 
 Move these from `welcome_base.tpl.php` into `welcome.tpl.php`:
 
@@ -67,7 +77,7 @@ And the footer text:
 The login/register content templates don't need the h1/subtitle, so this
 content should only be in `welcome.tpl.php`, not in the layout.
 
-### Step 3 — Switch pages to base.tpl.php
+### Step 4 — Switch pages to base.tpl.php
 
 Update these files to use `base.tpl.php` instead of `welcome_base.tpl.php`:
 - `wwwroot/index.php` (welcome page)
@@ -89,14 +99,9 @@ to `base.tpl.php` that gets echoed inside `<head>`. Then pages can inject
 their own CSS links. This is also how `mg_base.tpl.php` could eventually
 merge into `base.tpl.php` (injecting FlipClock CSS/JS).
 
-### Step 4 — Delete welcome_base.tpl.php
+### Step 5 — Delete welcome_base.tpl.php
 
 Once all three pages use `base.tpl.php`, delete `welcome_base.tpl.php`.
-
-### Step 5 — Delete standalone login templates (if unused)
-
-Verify that `templates/login/index.tpl.php` and
-`templates/login/register.tpl.php` are not referenced anywhere, then delete.
 
 ### Step 6 (optional, future) — Merge mg_base.tpl.php into base.tpl.php
 
@@ -121,7 +126,7 @@ layout template.
 ## Suggested commit sequence
 
 1. "Create welcome.css from welcome_base inline styles"
-2. "Move h1, subtitle, footer from welcome_base layout into welcome.tpl.php"
-3. "Switch welcome/login/register pages to base.tpl.php"
-4. "Delete welcome_base.tpl.php"
-5. "Delete unused standalone login/register templates"
+2. "Delete unused standalone login/register templates"
+3. "Move h1, subtitle, footer from welcome_base layout into welcome.tpl.php"
+4. "Switch welcome/login/register pages to base.tpl.php"
+5. "Delete welcome_base.tpl.php"
