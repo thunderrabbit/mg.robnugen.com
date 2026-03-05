@@ -207,8 +207,40 @@ if ($todos_path === '/list') {
         return;
     }
 
-    http_response_code(404);
-    echo json_encode(['error' => 'Not yet implemented']);
+    $body = json_decode(file_get_contents('php://input'), true);
+    $todo_id = (int) ($body['todo_id'] ?? 0);
+    $nth = (int) ($body['nth'] ?? 0);
+    $timezone = $body['timezone'] ?? 'UTC';
+
+    if ($todo_id <= 0 || $nth <= 0) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Required: todo_id (int > 0), nth (int > 0)']);
+        return;
+    }
+
+    if (!$todoHelper->verifyOwnership($todo_id, $auth_user_id)) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Todo not found or access denied']);
+        return;
+    }
+
+    try {
+        $tz = new \DateTimeZone($timezone);
+    } catch (\Exception $e) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Invalid timezone']);
+        return;
+    }
+
+    $now = new \DateTime('now', $tz);
+    $today = $now->format('Y-m-d');
+
+    $removed = $todoHelper->removeCompletion($todo_id, $auth_user_id, $nth, $today);
+
+    echo json_encode([
+        'success' => $removed,
+        'message' => $removed ? 'Completion removed' : 'No completion found to remove'
+    ]);
 
 } elseif ($todos_path === '/create') {
 
