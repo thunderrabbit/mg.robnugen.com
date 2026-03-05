@@ -31,8 +31,7 @@
     <link rel="stylesheet" href="/css/styles.css">
     <link rel="stylesheet" href="/css/buttons.css">
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        .welcome-content {
             max-width: 800px;
             margin: 50px auto;
             padding: 20px;
@@ -137,6 +136,7 @@
 </head>
 <body>
     <?php include __DIR__ . '/../partials/menu.tpl.php'; ?>
+    <div class="welcome-content">
     <h1>🧘 <?= $is_logged_in->isLoggedIn() ? htmlspecialchars($is_logged_in->getSiteTitle()) : 'Meiso Gambare' ?></h1>
     <p class="subtitle"><?= $is_logged_in->isLoggedIn() ? htmlspecialchars($is_logged_in->getSiteSubtitle()) : 'Your simple meditation timer' ?> v.<?= SEMVER ?></p>
 
@@ -147,5 +147,6 @@
     <?php elseif (!$is_logged_in->isPaid() && !$is_logged_in->isAdmin()): ?>
         <p style="color: var(--text-muted); font-size: 0.9em; margin-top: 40px;">Upgrade for multiple timers, recurring todos, and more!</p>
     <?php endif; ?>
+    </div>
 </body>
 </html>
