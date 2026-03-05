@@ -399,8 +399,22 @@ if ($todos_path === '/list') {
         return;
     }
 
-    http_response_code(404);
-    echo json_encode(['error' => 'Not yet implemented']);
+    $body = json_decode(file_get_contents('php://input'), true);
+    $todo_id = (int) ($body['todo_id'] ?? 0);
+
+    if ($todo_id <= 0) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Required: todo_id (int > 0)']);
+        return;
+    }
+
+    // deleteTodo verifies ownership internally
+    if ($todoHelper->deleteTodo($todo_id, $auth_user_id)) {
+        echo json_encode(['success' => true]);
+    } else {
+        http_response_code(403);
+        echo json_encode(['error' => 'Todo not found or access denied']);
+    }
 
 } elseif ($todos_path === '/complete-with-session') {
 
