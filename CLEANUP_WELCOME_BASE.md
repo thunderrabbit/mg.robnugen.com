@@ -29,7 +29,7 @@ The standalone templates can likely be deleted (verify first).
 
 ## Proposed steps
 
-### Step 1 — Create `wwwroot/css/welcome.css`
+### Step 1 — Create `wwwroot/css/welcome.css` ✅ DONE AUTONOMOUSLY
 
 Extract the inline styles from `welcome_base.tpl.php` into a CSS file.
 But first, deduplicate:
@@ -40,6 +40,12 @@ But first, deduplicate:
   `line-height: 1.6` which could go on a `.welcome-page` wrapper class.
 - **Keep** in `welcome.css`: `.subtitle`, `.description`, `.features`,
   `.features li`, `.cta`, `.form-container`, `.form-row` styles
+
+> Body layout properties (`max-width`, `margin`, `padding`, `line-height`)
+> moved to a `.welcome-page` wrapper class. The duplicate `:hover` rule for
+> `input[type="submit"]` (lines 128-133) was also fixed (was declared twice).
+> The `h1` color rule was scoped to `.welcome-page h1` to avoid affecting
+> other layouts.
 
 ### Step 2 — Move content out of the layout
 
