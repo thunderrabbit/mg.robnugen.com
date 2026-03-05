@@ -173,7 +173,7 @@ function handleTodoDrop(evt) {
             loadTodos();
         } else {
             // Flash success?
-             item.css('background-color', '#e8f5e9');
+             item.css('background-color', 'var(--alert-success-bg)');
              setTimeout(function() { item.css('background-color', ''); }, 500);
         }
     });
@@ -853,7 +853,7 @@ function makeEditable($el) {
         css: {
             width: Math.max(width, 80) + 'px', // Min width for usability
             padding: '2px 4px',
-            border: '1px solid #2196F3',
+            border: '1px solid var(--info)',
             borderRadius: '4px',
             fontSize: 'inherit',
             fontFamily: 'inherit'
@@ -932,7 +932,7 @@ function saveEdit($el, newValue) {
     }
 
     // Flash success styling immediately
-    $el.css('background-color', '#e8f5e9');
+    $el.css('background-color', 'var(--alert-success-bg)');
 
     // 2. Send to Server
     $.ajax({
@@ -978,7 +978,7 @@ function revertEdit($el, originalText, originalValue) {
     }
 
     // Flash error
-    $el.css('background-color', '#ffebee');
+    $el.css('background-color', 'var(--alert-error-bg)');
 
 	setTimeout(function() { $el.css('background-color', ''); }, 500);
 }
