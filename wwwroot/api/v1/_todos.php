@@ -424,8 +424,62 @@ if ($todos_path === '/list') {
         return;
     }
 
-    http_response_code(404);
-    echo json_encode(['error' => 'Not yet implemented']);
+    $body = json_decode(file_get_contents('php://input'), true);
+    $todo_id = (int) ($body['todo_id'] ?? 0);
+    $ak_id = (int) ($body['ak_id'] ?? 0);
+    $duration_seconds = isset($body['duration_seconds']) ? (int) $body['duration_seconds'] : null;
+    $timezone = $body['timezone'] ?? 'UTC';
+
+    if ($todo_id <= 0 || $ak_id <= 0) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Required: todo_id (int > 0), ak_id (int > 0)']);
+        return;
+    }
+
+    if (!$todoHelper->verifyOwnership($todo_id, $auth_user_id)) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Todo not found or access denied']);
+        return;
+    }
+
+    $activityHelper = new \ActivityTracking\ActivityKai($pdo);
+    if (!$activityHelper->verifyOwnership($ak_id, $auth_user_id)) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Activity session not found or access denied']);
+        return;
+    }
+
+    try {
+        $tz = new \DateTimeZone($timezone);
+    } catch (\Exception $e) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Invalid timezone']);
+        return;
+    }
+
+    $now = new \DateTime('now', $tz);
+    $today = $now->format('Y-m-d');
+    $date_logged = $now->format('Y-m-d H:i:s');
+
+    $completionCount = $todoHelper->getCompletionCount($todo_id, $today);
+    $nth = $completionCount + 1;
+
+    $log_id = $todoHelper->logCompletion(
+        $todo_id,
+        $auth_user_id,
+        $nth,
+        $date_logged,
+        $timezone,
+        $duration_seconds,
+        $ak_id
+    );
+
+    echo json_encode([
+        'success' => true,
+        'log_id' => $log_id,
+        'nth' => $nth,
+        'date_logged' => $date_logged
+    ]);
 
 } elseif ($todos_path === '/history') {
 
