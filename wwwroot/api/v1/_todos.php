@@ -301,8 +301,95 @@ if ($todos_path === '/list') {
         return;
     }
 
-    http_response_code(404);
-    echo json_encode(['error' => 'Not yet implemented']);
+    $body = json_decode(file_get_contents('php://input'), true);
+    $todo_id = (int) ($body['todo_id'] ?? 0);
+    $field = $body['field'] ?? '';
+    $value = $body['value'] ?? null;
+
+    if ($todo_id <= 0 || $field === '') {
+        http_response_code(400);
+        echo json_encode(['error' => 'Required: todo_id, field']);
+        return;
+    }
+
+    $allowed_fields = ['title', 'do_time', 'due_date', 'target_duration_seconds', 'do_every_n_days'];
+    if (!in_array($field, $allowed_fields, true)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Invalid field. Allowed: ' . implode(', ', $allowed_fields)]);
+        return;
+    }
+
+    if (!$todoHelper->verifyOwnership($todo_id, $auth_user_id)) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Todo not found or access denied']);
+        return;
+    }
+
+    // Field-specific validation (same as cookie endpoint)
+    switch ($field) {
+        case 'title':
+            $value = trim((string) $value);
+            if ($value === '') {
+                http_response_code(400);
+                echo json_encode(['error' => 'Title cannot be empty']);
+                return;
+            }
+            break;
+
+        case 'do_time':
+            if ($value !== null && $value !== '') {
+                if (!preg_match('/^([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/', $value)) {
+                    http_response_code(400);
+                    echo json_encode(['error' => 'Invalid time format (HH:MM or HH:MM:SS)']);
+                    return;
+                }
+            } else {
+                $value = null;
+            }
+            break;
+
+        case 'due_date':
+            if ($value !== null && $value !== '') {
+                $d = \DateTime::createFromFormat('Y-m-d', $value);
+                if (!($d && $d->format('Y-m-d') === $value)) {
+                    http_response_code(400);
+                    echo json_encode(['error' => 'Invalid date format (YYYY-MM-DD)']);
+                    return;
+                }
+            } else {
+                $value = null;
+            }
+            break;
+
+        case 'target_duration_seconds':
+            $value = (int) $value;
+            if ($value < 0) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Duration cannot be negative']);
+                return;
+            }
+            break;
+
+        case 'do_every_n_days':
+            if ($value !== null && $value !== '') {
+                $value = (int) $value;
+                if ($value < 1 || $value > 365) {
+                    http_response_code(400);
+                    echo json_encode(['error' => 'do_every_n_days must be 1-365']);
+                    return;
+                }
+            } else {
+                $value = null;
+            }
+            break;
+    }
+
+    if ($todoHelper->updateTodo($todo_id, [$field => $value])) {
+        echo json_encode(['success' => true]);
+    } else {
+        http_response_code(500);
+        echo json_encode(['error' => 'Failed to update']);
+    }
 
 } elseif ($todos_path === '/archive') {
 
