@@ -30,6 +30,11 @@ if ($method === 'GET' && $sub === '/list') {
         $where[] = 'i.archived_at IS NULL';
     }
 
+    $include_future = (int)($_GET['include_future'] ?? 0);
+    if (!$include_future) {
+        $where[] = '(i.show_date IS NULL OR i.show_date <= NOW())';
+    }
+
     if ($status === 'pending') {
         $where[] = 'i.seen_at IS NULL AND i.done_at IS NULL';
     } elseif ($status === 'seen') {
@@ -44,7 +49,7 @@ if ($method === 'GET' && $sub === '/list') {
     $where_sql = implode(' AND ', $where);
 
     $stmt = $pdo->prepare(
-        "SELECT message_id, message, priority, seen_at, done_at, archived_at, response, created_at, updated_at
+        "SELECT message_id, message, priority, show_date, seen_at, done_at, archived_at, response, created_at, updated_at
          FROM agent_inbox i
          WHERE {$where_sql}
          ORDER BY FIELD(priority, 'high', 'normal', 'low'), created_at DESC
@@ -70,8 +75,9 @@ if ($method === 'GET' && $sub === '/list') {
 } elseif ($method === 'POST' && $sub === '/send') {
     // ── Send a message to the inbox ──────────────────────────────────────
     $input = json_decode(file_get_contents('php://input'), true);
-    $message  = trim($input['message'] ?? '');
-    $priority = trim($input['priority'] ?? 'normal');
+    $message   = trim($input['message'] ?? '');
+    $priority  = trim($input['priority'] ?? 'normal');
+    $show_date = isset($input['show_date']) ? trim($input['show_date']) : null;
 
     if ($message === '') {
         http_response_code(400);
@@ -83,12 +89,22 @@ if ($method === 'GET' && $sub === '/list') {
         echo json_encode(['error' => 'priority must be low, normal, or high']);
         return;
     }
+    if ($show_date !== null && $show_date !== '') {
+        $d = \DateTime::createFromFormat('Y-m-d', $show_date);
+        if (!$d || $d->format('Y-m-d') !== $show_date) {
+            http_response_code(400);
+            echo json_encode(['error' => 'show_date must be YYYY-MM-DD format']);
+            return;
+        }
+    } else {
+        $show_date = null;
+    }
 
     $stmt = $pdo->prepare(
-        "INSERT INTO agent_inbox (user_id, message, priority)
-         VALUES (?, ?, ?)"
+        "INSERT INTO agent_inbox (user_id, message, priority, show_date)
+         VALUES (?, ?, ?, ?)"
     );
-    $stmt->execute([$auth_user_id, $message, $priority]);
+    $stmt->execute([$auth_user_id, $message, $priority, $show_date]);
     $message_id = (int) $pdo->lastInsertId();
 
     http_response_code(201);
@@ -149,15 +165,16 @@ if ($method === 'GET' && $sub === '/list') {
     $message_id = (int)($input['message_id'] ?? 0);
     $message    = isset($input['message']) ? trim($input['message']) : null;
     $priority   = isset($input['priority']) ? trim($input['priority']) : null;
+    $show_date  = array_key_exists('show_date', $input) ? $input['show_date'] : 'NOT_SET';
 
     if ($message_id <= 0) {
         http_response_code(400);
         echo json_encode(['error' => 'message_id is required']);
         return;
     }
-    if ($message === null && $priority === null) {
+    if ($message === null && $priority === null && $show_date === 'NOT_SET') {
         http_response_code(400);
-        echo json_encode(['error' => 'provide message and/or priority to update']);
+        echo json_encode(['error' => 'provide message, priority, and/or show_date to update']);
         return;
     }
 
@@ -180,6 +197,21 @@ if ($method === 'GET' && $sub === '/list') {
         }
         $sets[] = 'priority = ?';
         $params[] = $priority;
+    }
+    if ($show_date !== 'NOT_SET') {
+        if ($show_date !== null && $show_date !== '') {
+            $show_date = trim($show_date);
+            $d = \DateTime::createFromFormat('Y-m-d', $show_date);
+            if (!$d || $d->format('Y-m-d') !== $show_date) {
+                http_response_code(400);
+                echo json_encode(['error' => 'show_date must be YYYY-MM-DD format']);
+                return;
+            }
+            $sets[] = 'show_date = ?';
+            $params[] = $show_date;
+        } else {
+            $sets[] = 'show_date = NULL';
+        }
     }
 
     $set_sql = implode(', ', $sets);

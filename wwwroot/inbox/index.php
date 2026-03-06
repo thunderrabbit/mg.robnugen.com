@@ -37,27 +37,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
     }
 
     if ($_POST['inbox_action'] === 'send') {
-        $message  = trim($_POST['message'] ?? '');
-        $priority = trim($_POST['priority'] ?? 'normal');
+        $message   = trim($_POST['message'] ?? '');
+        $priority  = trim($_POST['priority'] ?? 'normal');
+        $show_date = trim($_POST['show_date'] ?? '');
+        $show_date = $show_date !== '' ? $show_date : null;
 
         if ($message === '') {
             $error_message = 'Message cannot be empty.';
         } else {
             $stmt = $mla_database->prepare(
-                "INSERT INTO agent_inbox (user_id, message, priority) VALUES (?, ?, ?)"
+                "INSERT INTO agent_inbox (user_id, message, priority, show_date) VALUES (?, ?, ?, ?)"
             );
-            $stmt->execute([$user_id, $message, $priority]);
+            $stmt->execute([$user_id, $message, $priority, $show_date]);
             $success_message = 'Message sent to agent inbox.';
         }
     } elseif ($_POST['inbox_action'] === 'edit') {
         $message_id = (int)($_POST['message_id'] ?? 0);
         $message    = trim($_POST['message'] ?? '');
         $priority   = trim($_POST['priority'] ?? '');
+        $show_date  = trim($_POST['show_date'] ?? '');
+        $show_date  = $show_date !== '' ? $show_date : null;
         if ($message_id > 0 && $message !== '') {
             $stmt = $mla_database->prepare(
-                "UPDATE agent_inbox SET message = ?, priority = ? WHERE message_id = ? AND user_id = ?"
+                "UPDATE agent_inbox SET message = ?, priority = ?, show_date = ? WHERE message_id = ? AND user_id = ?"
             );
-            $stmt->execute([$message, $priority, $message_id, $user_id]);
+            $stmt->execute([$message, $priority, $show_date, $message_id, $user_id]);
             $success_message = 'Message updated.';
         }
     } elseif ($_POST['inbox_action'] === 'archive') {
@@ -83,11 +87,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
 
 // Fetch messages
 $show_archived = isset($_GET['show_archived']);
-$archive_filter = $show_archived ? '' : 'AND archived_at IS NULL';
+$show_future = isset($_GET['show_future']);
+$filters = [];
+if (!$show_archived) $filters[] = 'AND archived_at IS NULL';
+if (!$show_future) $filters[] = 'AND (show_date IS NULL OR show_date <= NOW())';
+$filter_sql = implode(' ', $filters);
 $stmt = $mla_database->prepare(
-    "SELECT message_id, message, priority, seen_at, done_at, archived_at, response, created_at, updated_at
+    "SELECT message_id, message, priority, show_date, seen_at, done_at, archived_at, response, created_at, updated_at
      FROM agent_inbox
-     WHERE user_id = ? {$archive_filter}
+     WHERE user_id = ? {$filter_sql}
      ORDER BY archived_at IS NULL DESC, done_at IS NULL DESC, FIELD(priority, 'high', 'normal', 'low'), created_at DESC
      LIMIT 100"
 );
@@ -106,6 +114,7 @@ $page->set('success_message', $success_message);
 $page->set('messages',        $messages);
 $page->set('csrf_token',      $_SESSION['csrf_token']);
 $page->set('show_archived',   $show_archived);
+$page->set('show_future',     $show_future);
 $inner = $page->grabTheGoods();
 
 $layout = new \Template(config: $config, is_logged_in: $is_logged_in);
