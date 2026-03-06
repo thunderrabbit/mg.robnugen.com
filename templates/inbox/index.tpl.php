@@ -53,16 +53,16 @@
                         <span class="inbox-priority inbox-priority-<?= $msg['priority'] ?>"><?= $msg['priority'] ?></span>
                         <span class="inbox-status">
                             <?php if ($msg['archived_at']): ?>
-                                Archived <?= date('M j g:ia', strtotime($msg['archived_at'])) ?>
+                                Archived <span class="utc-time" data-utc="<?= $msg['archived_at'] ?>"></span>
                             <?php elseif ($msg['done_at']): ?>
-                                Done <?= date('M j g:ia', strtotime($msg['done_at'])) ?>
+                                Done <span class="utc-time" data-utc="<?= $msg['done_at'] ?>"></span>
                             <?php elseif ($msg['seen_at']): ?>
-                                Seen <?= date('M j g:ia', strtotime($msg['seen_at'])) ?>
+                                Seen <span class="utc-time" data-utc="<?= $msg['seen_at'] ?>"></span>
                             <?php else: ?>
                                 Pending
                             <?php endif; ?>
                         </span>
-                        <span class="inbox-date"><?= date('M j g:ia', strtotime($msg['created_at'])) ?></span>
+                        <span class="inbox-date"><span class="utc-time" data-utc="<?= $msg['created_at'] ?>"></span></span>
                     </div>
                     <div class="inbox-message"><?= nl2br(htmlspecialchars($msg['message'])) ?></div>
                     <?php if ($msg['response']): ?>
@@ -156,4 +156,15 @@ function toggleEdit(id) {
     var form = document.getElementById('edit-' + id);
     form.style.display = form.style.display === 'none' ? 'block' : 'none';
 }
+document.querySelectorAll('.utc-time').forEach(function(el) {
+    var utc = el.dataset.utc;
+    if (!utc) return;
+    var d = new Date(utc + 'Z');
+    var mon = d.toLocaleString('en-US', {month: 'short'});
+    var day = d.getDate();
+    var h = d.getHours() % 12 || 12;
+    var min = String(d.getMinutes()).padStart(2, '0');
+    var ampm = d.getHours() < 12 ? 'am' : 'pm';
+    el.textContent = mon + ' ' + day + ' ' + h + ':' + min + ampm;
+});
 </script>
