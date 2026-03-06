@@ -31,9 +31,12 @@ if ($todos_path === '/list') {
     }
 
     $now = new \DateTime('now', $tz);
-    $dayOfWeek = $now->format('D');
-    $today = $now->format('Y-m-d');
-    $dayOfMonth = (int) $now->format('j');
+    // Day boundary offset: treat midnight-2:59am as the previous day
+    $logical = clone $now;
+    $logical->modify('-3 hours');
+    $dayOfWeek = $logical->format('D');
+    $today = $logical->format('Y-m-d');
+    $dayOfMonth = (int) $logical->format('j');
 
     $todos = $todoHelper->getTodaysTodos($auth_user_id, $dayOfWeek, $dayOfMonth, $today);
 
@@ -233,7 +236,8 @@ if ($todos_path === '/list') {
     }
 
     $now = new \DateTime('now', $tz);
-    $today = $now->format('Y-m-d');
+    $logical = (clone $now)->modify('-3 hours');
+    $today = $logical->format('Y-m-d');
 
     $removed = $todoHelper->removeCompletion($todo_id, $auth_user_id, $nth, $today);
 
