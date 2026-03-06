@@ -91,7 +91,7 @@ class Todo {
             SELECT COUNT(*) as count
             FROM todo_logs
             WHERE todo_id = ?
-            AND DATE(date_logged) = ?
+            AND DATE(DATE_SUB(date_logged, INTERVAL 3 HOUR)) = ?
         ");
 
         $stmt->execute([$todo_id, $date]);
@@ -111,7 +111,7 @@ class Todo {
             SELECT log_id, nth, date_logged, duration_seconds, ak_id
             FROM todo_logs
             WHERE todo_id = ?
-            AND DATE(date_logged) = ?
+            AND DATE(DATE_SUB(date_logged, INTERVAL 3 HOUR)) = ?
             ORDER BY nth ASC
         ");
 
@@ -217,7 +217,7 @@ class Todo {
             WHERE todo_id = ?
             AND user_id = ?
             AND nth = ?
-            AND DATE(date_logged) = ?
+            AND DATE(DATE_SUB(date_logged, INTERVAL 3 HOUR)) = ?
         ");
 
         $stmt->execute([$todo_id, $user_id, $nth, $date]);
