@@ -312,7 +312,7 @@ if ($todos_path === '/list') {
         return;
     }
 
-    $allowed_fields = ['title', 'do_time', 'due_date', 'target_duration_seconds', 'do_every_n_days'];
+    $allowed_fields = ['title', 'do_time', 'due_date', 'target_duration_seconds', 'do_every_n_days', 'is_timer', 'is_counter'];
     if (!in_array($field, $allowed_fields, true)) {
         http_response_code(400);
         echo json_encode(['error' => 'Invalid field. Allowed: ' . implode(', ', $allowed_fields)]);
@@ -380,6 +380,16 @@ if ($todos_path === '/list') {
                 }
             } else {
                 $value = null;
+            }
+            break;
+
+        case 'is_timer':
+        case 'is_counter':
+            $value = (int) $value;
+            if ($value !== 0 && $value !== 1) {
+                http_response_code(400);
+                echo json_encode(['error' => $field . ' must be 0 or 1']);
+                return;
             }
             break;
     }
