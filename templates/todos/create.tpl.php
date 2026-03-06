@@ -106,7 +106,12 @@
 
                 <div class="form-group">
                     <label for="due_date">Due Date</label>
-                    <input type="date" id="due_date" name="due_date" class="form-control" value="<?= htmlspecialchars($todo['due_date'] ?? '') ?>">
+                    <div class="date-input-group">
+                        <input type="date" id="due_date" name="due_date" class="form-control" value="<?= htmlspecialchars($todo['due_date'] ?? '') ?>">
+                        <?php if (!empty($todo['due_date'])): ?>
+                        <button type="button" class="btn-clear-date" onclick="document.getElementById('due_date').value=''" title="Clear date">&times;</button>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </fieldset>
 
@@ -254,10 +259,14 @@
         content: ''; flex: 1; height: 1px; background: var(--border-color);
     }
     .alert-error {
-        background: #fee; border: 1px solid #c00; color: #900;
+        background: var(--alert-error-bg); border: 1px solid var(--alert-error-border); color: var(--alert-error-text);
         padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1.5rem;
         max-width: 800px; margin-left: auto; margin-right: auto;
     }
-    .field-error { color: #c00; font-size: 0.875rem; margin-top: 0.25rem; }
-    .input-error { border-color: #c00 !important; box-shadow: 0 0 0 2px rgba(204, 0, 0, 0.2); }
+    .field-error { color: var(--danger); font-size: 0.875rem; margin-top: 0.25rem; }
+    .input-error { border-color: var(--danger) !important; box-shadow: 0 0 0 2px var(--danger-subtle-bg); }
+    .date-input-group { display: flex; align-items: center; gap: 0.5rem; }
+    .date-input-group .form-control { flex: 1; }
+    .btn-clear-date { background: transparent; border: 1px solid var(--danger); color: var(--danger); border-radius: 3px; padding: 0.25rem 0.5rem; cursor: pointer; font-size: 1rem; line-height: 1; }
+    .btn-clear-date:hover { background: var(--danger); color: #fff; }
 </style>
