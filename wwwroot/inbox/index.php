@@ -49,6 +49,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
             $stmt->execute([$user_id, $message, $priority]);
             $success_message = 'Message sent to agent inbox.';
         }
+    } elseif ($_POST['inbox_action'] === 'archive') {
+        $message_id = (int)($_POST['message_id'] ?? 0);
+        if ($message_id > 0) {
+            $stmt = $mla_database->prepare(
+                "UPDATE agent_inbox SET archived_at = NOW() WHERE message_id = ? AND user_id = ? AND archived_at IS NULL"
+            );
+            $stmt->execute([$message_id, $user_id]);
+            $success_message = 'Message archived.';
+        }
     } elseif ($_POST['inbox_action'] === 'delete') {
         $message_id = (int)($_POST['message_id'] ?? 0);
         if ($message_id > 0) {
@@ -62,11 +71,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
 }
 
 // Fetch messages
+$show_archived = isset($_GET['show_archived']);
+$archive_filter = $show_archived ? '' : 'AND archived_at IS NULL';
 $stmt = $mla_database->prepare(
-    "SELECT message_id, message, priority, seen_at, done_at, response, created_at, updated_at
+    "SELECT message_id, message, priority, seen_at, done_at, archived_at, response, created_at, updated_at
      FROM agent_inbox
-     WHERE user_id = ?
-     ORDER BY done_at IS NULL DESC, FIELD(priority, 'high', 'normal', 'low'), created_at DESC
+     WHERE user_id = ? {$archive_filter}
+     ORDER BY archived_at IS NULL DESC, done_at IS NULL DESC, FIELD(priority, 'high', 'normal', 'low'), created_at DESC
      LIMIT 100"
 );
 $stmt->execute([$user_id]);
@@ -83,6 +94,7 @@ $page->set('error_message',   $error_message);
 $page->set('success_message', $success_message);
 $page->set('messages',        $messages);
 $page->set('csrf_token',      $_SESSION['csrf_token']);
+$page->set('show_archived',   $show_archived);
 $inner = $page->grabTheGoods();
 
 $layout = new \Template(config: $config, is_logged_in: $is_logged_in);

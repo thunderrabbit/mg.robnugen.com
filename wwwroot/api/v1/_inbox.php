@@ -9,7 +9,8 @@
  *   POST   /inbox/send       — create a new message
  *   PATCH  /inbox/mark-seen  — mark a message as seen
  *   PATCH  /inbox/mark-done  — mark a message as done (with optional response)
- *   DELETE /inbox/delete      — delete a message
+ *   PATCH  /inbox/archive    — archive a message (soft-hide)
+ *   DELETE /inbox/delete      — delete a message permanently
  */
 
 $sub = preg_replace('#^/inbox#', '', $path) ?: '/';
@@ -23,18 +24,26 @@ if ($method === 'GET' && $sub === '/list') {
     $where = ['i.user_id = ?'];
     $params = [$auth_user_id];
 
+    $include_archived = (int)($_GET['include_archived'] ?? 0);
+    if (!$include_archived) {
+        $where[] = 'i.archived_at IS NULL';
+    }
+
     if ($status === 'pending') {
         $where[] = 'i.seen_at IS NULL AND i.done_at IS NULL';
     } elseif ($status === 'seen') {
         $where[] = 'i.seen_at IS NOT NULL AND i.done_at IS NULL';
     } elseif ($status === 'done') {
         $where[] = 'i.done_at IS NOT NULL';
+    } elseif ($status === 'archived') {
+        $where = ['i.user_id = ?', 'i.archived_at IS NOT NULL'];
+        $params = [$auth_user_id];
     }
 
     $where_sql = implode(' AND ', $where);
 
     $stmt = $pdo->prepare(
-        "SELECT message_id, message, priority, seen_at, done_at, response, created_at, updated_at
+        "SELECT message_id, message, priority, seen_at, done_at, archived_at, response, created_at, updated_at
          FROM agent_inbox i
          WHERE {$where_sql}
          ORDER BY FIELD(priority, 'high', 'normal', 'low'), created_at DESC
@@ -130,6 +139,25 @@ if ($method === 'GET' && $sub === '/list') {
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
+
+    echo json_encode(['updated' => $stmt->rowCount()]);
+
+} elseif ($method === 'PATCH' && $sub === '/archive') {
+    // ── Archive a message ────────────────────────────────────────────────
+    $input = json_decode(file_get_contents('php://input'), true);
+    $message_id = (int)($input['message_id'] ?? 0);
+
+    if ($message_id <= 0) {
+        http_response_code(400);
+        echo json_encode(['error' => 'message_id is required']);
+        return;
+    }
+
+    $stmt = $pdo->prepare(
+        "UPDATE agent_inbox SET archived_at = NOW()
+         WHERE message_id = ? AND user_id = ? AND archived_at IS NULL"
+    );
+    $stmt->execute([$message_id, $auth_user_id]);
 
     echo json_encode(['updated' => $stmt->rowCount()]);
 

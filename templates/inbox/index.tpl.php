@@ -38,14 +38,23 @@
 
     <?php if (!empty($messages)): ?>
     <div class="card" style="max-width: 800px; margin: 0 auto;">
-        <h2>Messages</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2>Messages</h2>
+            <?php if ($show_archived): ?>
+                <a href="/inbox/">Hide archived</a>
+            <?php else: ?>
+                <a href="/inbox/?show_archived">Show archived</a>
+            <?php endif; ?>
+        </div>
         <div class="inbox-list">
             <?php foreach ($messages as $msg): ?>
-                <div class="inbox-item <?= $msg['done_at'] ? 'inbox-done' : ($msg['seen_at'] ? 'inbox-seen' : 'inbox-pending') ?>">
+                <div class="inbox-item <?= $msg['archived_at'] ? 'inbox-archived' : ($msg['done_at'] ? 'inbox-done' : ($msg['seen_at'] ? 'inbox-seen' : 'inbox-pending')) ?>">
                     <div class="inbox-meta">
                         <span class="inbox-priority inbox-priority-<?= $msg['priority'] ?>"><?= $msg['priority'] ?></span>
                         <span class="inbox-status">
-                            <?php if ($msg['done_at']): ?>
+                            <?php if ($msg['archived_at']): ?>
+                                Archived <?= date('M j g:ia', strtotime($msg['archived_at'])) ?>
+                            <?php elseif ($msg['done_at']): ?>
                                 Done <?= date('M j g:ia', strtotime($msg['done_at'])) ?>
                             <?php elseif ($msg['seen_at']): ?>
                                 Seen <?= date('M j g:ia', strtotime($msg['seen_at'])) ?>
@@ -61,12 +70,22 @@
                             <strong>Agent response:</strong> <?= nl2br(htmlspecialchars($msg['response'])) ?>
                         </div>
                     <?php endif; ?>
-                    <form method="POST" action="/inbox/" class="inbox-delete-form">
-                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
-                        <input type="hidden" name="inbox_action" value="delete">
-                        <input type="hidden" name="message_id" value="<?= $msg['message_id'] ?>">
-                        <button type="submit" class="btn-sm btn-danger" onclick="return confirm('Delete this message?')">Delete</button>
-                    </form>
+                    <div class="inbox-actions">
+                        <?php if (!$msg['archived_at']): ?>
+                        <form method="POST" action="/inbox/" class="inbox-action-form">
+                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
+                            <input type="hidden" name="inbox_action" value="archive">
+                            <input type="hidden" name="message_id" value="<?= $msg['message_id'] ?>">
+                            <button type="submit" class="btn-sm btn-archive">Archive</button>
+                        </form>
+                        <?php endif; ?>
+                        <form method="POST" action="/inbox/" class="inbox-action-form">
+                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
+                            <input type="hidden" name="inbox_action" value="delete">
+                            <input type="hidden" name="message_id" value="<?= $msg['message_id'] ?>">
+                            <button type="submit" class="btn-sm btn-danger" onclick="return confirm('Permanently delete this message?')">Delete</button>
+                        </form>
+                    </div>
                 </div>
             <?php endforeach; ?>
         </div>
@@ -92,6 +111,7 @@
     .inbox-pending { border-left: 3px solid var(--primary); }
     .inbox-seen { border-left: 3px solid var(--warning, #f90); opacity: 0.85; }
     .inbox-done { border-left: 3px solid var(--success, #0a0); opacity: 0.6; }
+    .inbox-archived { border-left: 3px solid var(--neutral, #999); opacity: 0.5; }
 
     .inbox-meta { display: flex; gap: 0.75rem; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem; align-items: center; }
     .inbox-priority { text-transform: uppercase; font-weight: 700; font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 3px; }
@@ -102,8 +122,11 @@
     .inbox-message { white-space: pre-wrap; line-height: 1.5; }
     .inbox-response { margin-top: 0.75rem; padding: 0.75rem; background: var(--bg-secondary, #f5f5f5); border-radius: var(--radius-sm, 4px); font-size: 0.9rem; }
 
-    .inbox-delete-form { position: absolute; top: 0.75rem; right: 0.75rem; }
+    .inbox-actions { position: absolute; top: 0.75rem; right: 0.75rem; display: flex; gap: 0.4rem; }
+    .inbox-action-form { display: inline; }
     .btn-sm { font-size: 0.75rem; padding: 0.2rem 0.5rem; cursor: pointer; }
+    .btn-archive { background: transparent; border: 1px solid var(--neutral, #999); color: var(--text-muted); border-radius: 3px; }
+    .btn-archive:hover { background: var(--neutral, #999); color: #fff; }
     .btn-danger { background: transparent; border: 1px solid #c00; color: #c00; border-radius: 3px; }
     .btn-danger:hover { background: #c00; color: #fff; }
 </style>

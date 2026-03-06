@@ -1,0 +1,1 @@
+ALTER TABLE agent_inbox ADD COLUMN archived_at DATETIME DEFAULT NULL AFTER done_at;
