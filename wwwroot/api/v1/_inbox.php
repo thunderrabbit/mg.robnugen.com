@@ -9,6 +9,7 @@
  *   POST   /inbox/send       — create a new message
  *   PATCH  /inbox/mark-seen  — mark a message as seen
  *   PATCH  /inbox/mark-done  — mark a message as done (with optional response)
+ *   PATCH  /inbox/edit        — edit message text and/or priority
  *   PATCH  /inbox/archive    — archive a message (soft-hide)
  *   DELETE /inbox/delete      — delete a message permanently
  */
@@ -138,6 +139,54 @@ if ($method === 'GET' && $sub === '/list') {
     $params[] = $auth_user_id;
 
     $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+
+    echo json_encode(['updated' => $stmt->rowCount()]);
+
+} elseif ($method === 'PATCH' && $sub === '/edit') {
+    // ── Edit a message ───────────────────────────────────────────────────
+    $input = json_decode(file_get_contents('php://input'), true);
+    $message_id = (int)($input['message_id'] ?? 0);
+    $message    = isset($input['message']) ? trim($input['message']) : null;
+    $priority   = isset($input['priority']) ? trim($input['priority']) : null;
+
+    if ($message_id <= 0) {
+        http_response_code(400);
+        echo json_encode(['error' => 'message_id is required']);
+        return;
+    }
+    if ($message === null && $priority === null) {
+        http_response_code(400);
+        echo json_encode(['error' => 'provide message and/or priority to update']);
+        return;
+    }
+
+    $sets = [];
+    $params = [];
+    if ($message !== null) {
+        if ($message === '') {
+            http_response_code(400);
+            echo json_encode(['error' => 'message cannot be empty']);
+            return;
+        }
+        $sets[] = 'message = ?';
+        $params[] = $message;
+    }
+    if ($priority !== null) {
+        if (!in_array($priority, ['low', 'normal', 'high'], true)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'priority must be low, normal, or high']);
+            return;
+        }
+        $sets[] = 'priority = ?';
+        $params[] = $priority;
+    }
+
+    $set_sql = implode(', ', $sets);
+    $params[] = $message_id;
+    $params[] = $auth_user_id;
+
+    $stmt = $pdo->prepare("UPDATE agent_inbox SET {$set_sql} WHERE message_id = ? AND user_id = ?");
     $stmt->execute($params);
 
     echo json_encode(['updated' => $stmt->rowCount()]);

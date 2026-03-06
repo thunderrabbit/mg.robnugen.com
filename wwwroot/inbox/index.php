@@ -49,6 +49,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
             $stmt->execute([$user_id, $message, $priority]);
             $success_message = 'Message sent to agent inbox.';
         }
+    } elseif ($_POST['inbox_action'] === 'edit') {
+        $message_id = (int)($_POST['message_id'] ?? 0);
+        $message    = trim($_POST['message'] ?? '');
+        $priority   = trim($_POST['priority'] ?? '');
+        if ($message_id > 0 && $message !== '') {
+            $stmt = $mla_database->prepare(
+                "UPDATE agent_inbox SET message = ?, priority = ? WHERE message_id = ? AND user_id = ?"
+            );
+            $stmt->execute([$message, $priority, $message_id, $user_id]);
+            $success_message = 'Message updated.';
+        }
     } elseif ($_POST['inbox_action'] === 'archive') {
         $message_id = (int)($_POST['message_id'] ?? 0);
         if ($message_id > 0) {

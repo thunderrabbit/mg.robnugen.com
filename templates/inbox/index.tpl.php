@@ -71,6 +71,7 @@
                         </div>
                     <?php endif; ?>
                     <div class="inbox-actions">
+                        <button type="button" class="btn-sm btn-edit" onclick="toggleEdit(<?= $msg['message_id'] ?>)">Edit</button>
                         <?php if (!$msg['archived_at']): ?>
                         <form method="POST" action="/inbox/" class="inbox-action-form">
                             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
@@ -86,6 +87,21 @@
                             <button type="submit" class="btn-sm btn-danger" onclick="return confirm('Permanently delete this message?')">Delete</button>
                         </form>
                     </div>
+                    <form method="POST" action="/inbox/" class="inbox-edit-form" id="edit-<?= $msg['message_id'] ?>" style="display:none;">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
+                        <input type="hidden" name="inbox_action" value="edit">
+                        <input type="hidden" name="message_id" value="<?= $msg['message_id'] ?>">
+                        <textarea name="message" class="form-control" rows="4"><?= htmlspecialchars($msg['message']) ?></textarea>
+                        <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; align-items: center;">
+                            <select name="priority" class="form-control" style="width: auto;">
+                                <option value="high" <?= $msg['priority'] === 'high' ? 'selected' : '' ?>>High</option>
+                                <option value="normal" <?= $msg['priority'] === 'normal' ? 'selected' : '' ?>>Normal</option>
+                                <option value="low" <?= $msg['priority'] === 'low' ? 'selected' : '' ?>>Low</option>
+                            </select>
+                            <button type="submit" class="btn-sm btn-save">Save</button>
+                            <button type="button" class="btn-sm btn-archive" onclick="toggleEdit(<?= $msg['message_id'] ?>)">Cancel</button>
+                        </div>
+                    </form>
                 </div>
             <?php endforeach; ?>
         </div>
@@ -129,4 +145,15 @@
     .btn-archive:hover { background: var(--neutral, #999); color: #fff; }
     .btn-danger { background: transparent; border: 1px solid #c00; color: #c00; border-radius: 3px; }
     .btn-danger:hover { background: #c00; color: #fff; }
+    .btn-edit { background: transparent; border: 1px solid var(--info, #2196F3); color: var(--info, #2196F3); border-radius: 3px; }
+    .btn-edit:hover { background: var(--info, #2196F3); color: #fff; }
+    .btn-save { background: var(--success, #4CAF50); border: 1px solid var(--success, #4CAF50); color: #fff; border-radius: 3px; }
+    .btn-save:hover { background: var(--success-hover, #45a049); }
+    .inbox-edit-form { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color); }
 </style>
+<script>
+function toggleEdit(id) {
+    var form = document.getElementById('edit-' + id);
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+</script>
