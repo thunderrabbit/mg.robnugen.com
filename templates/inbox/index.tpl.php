@@ -18,7 +18,7 @@
 
             <div class="form-group">
                 <label for="message">Message</label>
-                <textarea id="message" name="message" class="form-control" rows="3" placeholder="e.g., Remember to check the deploy logs today..." required></textarea>
+                <textarea id="message" name="message" class="form-control" cols="80" rows="15" placeholder="e.g., Remember to check the deploy logs today..." required></textarea>
             </div>
 
             <div class="form-group">
