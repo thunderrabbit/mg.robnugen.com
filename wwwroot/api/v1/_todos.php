@@ -474,6 +474,7 @@ if ($todos_path === '/list') {
     $completionCount = $todoHelper->getCompletionCount($todo_id, $today);
     $nth = $completionCount + 1;
 
+    // INSERT IGNORE + unique(todo_id, ak_id) prevents duplicate completions
     $log_id = $todoHelper->logCompletion(
         $todo_id,
         $auth_user_id,
@@ -484,11 +485,14 @@ if ($todos_path === '/list') {
         $ak_id
     );
 
+    $already_existed = ($log_id !== 0 && $nth !== $todoHelper->getCompletionCount($todo_id, $today));
+
     echo json_encode([
         'success' => true,
         'log_id' => $log_id,
-        'nth' => $nth,
-        'date_logged' => $date_logged
+        'nth' => $already_existed ? $nth - 1 : $nth,
+        'date_logged' => $date_logged,
+        'already_completed' => $already_existed
     ]);
 
 } elseif ($todos_path === '/history') {
