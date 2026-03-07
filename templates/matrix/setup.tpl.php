@@ -49,6 +49,7 @@ document.getElementById('setup-form').addEventListener('submit', async function(
     errEl.style.display = 'none';
 
     const verifyBlob = await DM.encrypt(p1, DM.VERIFY_STRING);
+    DM.cachePassphrase(p1);
 
     // Submit via hidden form
     const form = document.createElement('form');

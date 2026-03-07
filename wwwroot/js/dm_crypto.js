@@ -56,6 +56,18 @@ const DM = {
         }
     },
 
+    cachePassphrase(passphrase) {
+        sessionStorage.setItem('dm_pass', passphrase);
+    },
+
+    getCachedPassphrase() {
+        return sessionStorage.getItem('dm_pass');
+    },
+
+    clearPassphrase() {
+        sessionStorage.removeItem('dm_pass');
+    },
+
     toBase64(bytes) {
         let binary = '';
         for (const b of bytes) binary += String.fromCharCode(b);

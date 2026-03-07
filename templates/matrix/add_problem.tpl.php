@@ -28,14 +28,16 @@
 const VERIFY_BLOB = <?= json_encode($verify_blob) ?>;
 let PASSPHRASE = '';
 
-async function unlockForm() {
-    const p = document.getElementById('passphrase').value;
+async function unlockForm(passphrase) {
+    const p = passphrase || document.getElementById('passphrase').value;
     const ok = await DM.verify(p, VERIFY_BLOB);
     if (ok) {
         PASSPHRASE = p;
+        DM.cachePassphrase(p);
         document.getElementById('passphrase-gate').style.display = 'none';
         document.getElementById('problem-form').style.display = 'block';
     } else {
+        DM.clearPassphrase();
         document.getElementById('pass-error').style.display = 'block';
     }
 }
@@ -43,6 +45,9 @@ async function unlockForm() {
 document.getElementById('passphrase').addEventListener('keydown', function(e) {
     if (e.key === 'Enter') { e.preventDefault(); unlockForm(); }
 });
+
+const cached = DM.getCachedPassphrase();
+if (cached) unlockForm(cached);
 
 document.getElementById('problem-form').addEventListener('submit', async function(e) {
     e.preventDefault();

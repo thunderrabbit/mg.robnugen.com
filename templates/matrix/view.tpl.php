@@ -32,13 +32,15 @@
 const VERIFY_BLOB = <?= json_encode($verify_blob) ?>;
 const PROBLEMS = <?= $problems_json ?>;
 
-async function unlockMatrix() {
-    const p = document.getElementById('passphrase').value;
+async function unlockMatrix(passphrase) {
+    const p = passphrase || document.getElementById('passphrase').value;
     const ok = await DM.verify(p, VERIFY_BLOB);
     if (!ok) {
+        DM.clearPassphrase();
         document.getElementById('pass-error').style.display = 'block';
         return;
     }
+    DM.cachePassphrase(p);
 
     document.getElementById('passphrase-gate').style.display = 'none';
     document.getElementById('matrix-content').style.display = 'block';
@@ -104,4 +106,8 @@ async function unlockMatrix() {
 document.getElementById('passphrase').addEventListener('keydown', function(e) {
     if (e.key === 'Enter') { e.preventDefault(); unlockMatrix(); }
 });
+
+// Auto-unlock if passphrase is cached
+const cached = DM.getCachedPassphrase();
+if (cached) unlockMatrix(cached);
 </script>
