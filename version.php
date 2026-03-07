@@ -1,6 +1,6 @@
 <?php
 
-const SENTIMENTAL_VERSION = "Add Dark Mode";
-const SEMVER = "0.9.6";
+const SENTIMENTAL_VERSION = "BEGIN Decision Matrix";
+const SEMVER = "0.10.0";
 
 const EMOTIONAL_SESSION_GAP_MINUTES = 30;
