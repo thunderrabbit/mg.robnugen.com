@@ -138,6 +138,10 @@ if ($method === 'POST' && $ak_id === null) {
         $start_local_dt
     );
 
+    // Generate session key so the dashboard can link to /mg/{key}
+    $sessionKeyHelper = new \ActivityTracking\SessionKey($pdo);
+    $session_key = $sessionKeyHelper->createSessionKey($new_ak_id);
+
     http_response_code(201);
     echo json_encode([
         'session' => [
@@ -147,6 +151,7 @@ if ($method === 'POST' && $ak_id === null) {
             'timezone'       => $timezone_str,
             'intended_sec'   => $intended_sec,
             'is_active'      => true,
+            'session_key'    => $session_key,
         ],
     ]);
     exit;

@@ -91,7 +91,7 @@ class Todo {
             SELECT COUNT(*) as count
             FROM todo_logs
             WHERE todo_id = ?
-            AND DATE(date_logged) = ?
+            AND DATE(DATE_SUB(date_logged, INTERVAL 3 HOUR)) = ?
         ");
 
         $stmt->execute([$todo_id, $date]);
@@ -111,7 +111,7 @@ class Todo {
             SELECT log_id, nth, date_logged, duration_seconds, ak_id
             FROM todo_logs
             WHERE todo_id = ?
-            AND DATE(date_logged) = ?
+            AND DATE(DATE_SUB(date_logged, INTERVAL 3 HOUR)) = ?
             ORDER BY nth ASC
         ");
 
@@ -165,7 +165,7 @@ class Todo {
         ?int $ak_id = null
     ): int {
         $stmt = $this->pdo->prepare("
-            INSERT INTO todo_logs (
+            INSERT IGNORE INTO todo_logs (
                 todo_id,
                 user_id,
                 date_logged,
@@ -186,7 +186,20 @@ class Todo {
             $ak_id
         ]);
 
-        return (int)$this->pdo->lastInsertId();
+        $log_id = (int)$this->pdo->lastInsertId();
+
+        // INSERT IGNORE returns 0 for lastInsertId when row was a duplicate
+        if ($log_id === 0 && $ak_id !== null) {
+            $existing = $this->pdo->prepare("
+                SELECT log_id FROM todo_logs
+                WHERE todo_id = ? AND ak_id = ?
+            ");
+            $existing->execute([$todo_id, $ak_id]);
+            $row = $existing->fetch(\PDO::FETCH_ASSOC);
+            return $row ? (int)$row['log_id'] : 0;
+        }
+
+        return $log_id;
     }
 
     /**
@@ -204,7 +217,7 @@ class Todo {
             WHERE todo_id = ?
             AND user_id = ?
             AND nth = ?
-            AND DATE(date_logged) = ?
+            AND DATE(DATE_SUB(date_logged, INTERVAL 3 HOUR)) = ?
         ");
 
         $stmt->execute([$todo_id, $user_id, $nth, $date]);

@@ -85,6 +85,10 @@ if ($path === '/sessions' || preg_match('#^/sessions(/|$)#', $path)) {
     include __DIR__ . '/_stats.php';
 } elseif ($path === '/emotions' || preg_match('#^/emotions(/|$)#', $path)) {
     include __DIR__ . '/_emotions.php';
+} elseif ($path === '/todos' || preg_match('#^/todos(/|$)#', $path)) {
+    include __DIR__ . '/_todos.php';
+} elseif ($path === '/inbox' || preg_match('#^/inbox(/|$)#', $path)) {
+    include __DIR__ . '/_inbox.php';
 } else {
     http_response_code(404);
     echo json_encode(['error' => 'Not found']);

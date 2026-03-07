@@ -3,8 +3,12 @@
         <h1><?= $is_edit ? 'Edit Todo' : 'Create New Todo' ?></h1>
     </header>
 
+    <?php if (!empty($error)): ?>
+        <div class="alert alert-error"><?= htmlspecialchars($error) ?></div>
+    <?php endif; ?>
+
     <div class="card">
-        <form action="/todos/create.php" method="POST" class="create-todo-form">
+        <form action="/todos/create.php" method="POST" class="create-todo-form" id="todo-form">
             <?php if ($is_edit): ?>
                 <input type="hidden" name="todo_id" value="<?= $todo['todo_id'] ?>">
             <?php endif; ?>
@@ -102,7 +106,12 @@
 
                 <div class="form-group">
                     <label for="due_date">Due Date</label>
-                    <input type="date" id="due_date" name="due_date" class="form-control" value="<?= htmlspecialchars($todo['due_date'] ?? '') ?>">
+                    <div class="date-input-group">
+                        <input type="date" id="due_date" name="due_date" class="form-control" value="<?= htmlspecialchars($todo['due_date'] ?? '') ?>">
+                        <?php if (!empty($todo['due_date'])): ?>
+                        <button type="button" class="btn-clear-date" onclick="document.getElementById('due_date').value=''" title="Clear date">&times;</button>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </fieldset>
 
@@ -170,6 +179,57 @@
         updateCounterCheckbox();
         updateDoTimeHelp();
     }
+
+    // Client-side validation
+    const todoForm = document.getElementById('todo-form');
+    if (todoForm) {
+        todoForm.addEventListener('submit', function(e) {
+            clearValidationErrors();
+            const errors = [];
+
+            const title = document.getElementById('title').value.trim();
+            if (!title) {
+                errors.push({ field: 'title', msg: 'Title is required' });
+            }
+
+            const activityId = document.getElementById('activity_id').value;
+            const duration = document.getElementById('target_duration_seconds').value;
+            const count = parseInt(targetCountInput.value) || 1;
+            if (activityId && !duration && count <= 1) {
+                errors.push({ field: 'target_duration_minutes', msg: 'Duration is required when an activity is selected' });
+            }
+
+            const doDates = document.getElementById('do_dates').value.trim();
+            if (doDates) {
+                const parts = doDates.split(',').map(s => s.trim());
+                const invalid = parts.some(d => !d.match(/^\d+$/) || parseInt(d) < 1 || parseInt(d) > 31);
+                if (invalid) {
+                    errors.push({ field: 'do_dates', msg: 'Dates must be numbers 1-31' });
+                }
+            }
+
+            if (errors.length > 0) {
+                e.preventDefault();
+                errors.forEach(err => showFieldError(err.field, err.msg));
+                errors[0].field && document.getElementById(errors[0].field).scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
+    }
+
+    function showFieldError(fieldId, msg) {
+        const field = document.getElementById(fieldId);
+        if (!field) return;
+        field.classList.add('input-error');
+        const errDiv = document.createElement('div');
+        errDiv.className = 'field-error';
+        errDiv.textContent = msg;
+        field.parentNode.appendChild(errDiv);
+    }
+
+    function clearValidationErrors() {
+        document.querySelectorAll('.field-error').forEach(el => el.remove());
+        document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
+    }
 </script>
 
 <style>
@@ -198,4 +258,15 @@
     .recurrence-or-divider::after {
         content: ''; flex: 1; height: 1px; background: var(--border-color);
     }
+    .alert-error {
+        background: var(--alert-error-bg); border: 1px solid var(--alert-error-border); color: var(--alert-error-text);
+        padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1.5rem;
+        max-width: 800px; margin-left: auto; margin-right: auto;
+    }
+    .field-error { color: var(--danger); font-size: 0.875rem; margin-top: 0.25rem; }
+    .input-error { border-color: var(--danger) !important; box-shadow: 0 0 0 2px var(--danger-subtle-bg); }
+    .date-input-group { display: flex; align-items: center; gap: 0.5rem; }
+    .date-input-group .form-control { flex: 1; }
+    .btn-clear-date { background: transparent; border: 1px solid var(--danger); color: var(--danger); border-radius: 3px; padding: 0.25rem 0.5rem; cursor: pointer; font-size: 1rem; line-height: 1; }
+    .btn-clear-date:hover { background: var(--danger); color: #fff; }
 </style>

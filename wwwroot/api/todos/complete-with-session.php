@@ -67,6 +67,7 @@ try {
     $nth = $completionCount + 1;
 
     // Log the completion with ak_id and duration
+    // INSERT IGNORE + unique(todo_id, ak_id) prevents duplicate completions
     $log_id = $todoHelper->logCompletion(
         $todo_id,
         $user_id,
@@ -77,11 +78,15 @@ try {
         $ak_id
     );
 
+    // If nth was bumped but insert was a duplicate, recalculate the real count
+    $already_existed = ($log_id !== 0 && $nth !== $todoHelper->getCompletionCount($todo_id, $today));
+
     echo json_encode([
         'success' => true,
         'log_id' => $log_id,
-        'nth' => $nth,
-        'date_logged' => $date_logged
+        'nth' => $already_existed ? $nth - 1 : $nth,
+        'date_logged' => $date_logged,
+        'already_completed' => $already_existed
     ]);
 
 } catch (\Exception $e) {

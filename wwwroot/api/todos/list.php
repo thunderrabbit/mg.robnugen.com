@@ -25,9 +25,11 @@ try {
     // Create DateTime in user's timezone to get correct day of week
     $tz = new \DateTimeZone($timezone);
     $now = new \DateTime('now', $tz);
-    $dayOfWeek = $now->format('D'); // Sun, Mon, Tue, etc.
-    $today = $now->format('Y-m-d');
-    $dayOfMonth = (int)$now->format('j'); // 1-31
+    // Day boundary offset: treat midnight-2:59am as the previous day
+    $logical = (clone $now)->modify('-3 hours');
+    $dayOfWeek = $logical->format('D');
+    $today = $logical->format('Y-m-d');
+    $dayOfMonth = (int)$logical->format('j');
 
     $todoHelper = new \ActivityTracking\Todo($pdo);
     $todos = $todoHelper->getTodaysTodos($user_id, $dayOfWeek, $dayOfMonth, $today);

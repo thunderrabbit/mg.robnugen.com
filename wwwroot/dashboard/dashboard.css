@@ -621,7 +621,8 @@
 }
 
 /* Start Timer Button */
-.btn-start-timer {
+.btn-start-timer,
+.btn-start-timer:visited {
 	background: linear-gradient(135deg, var(--info) 0%, var(--info-hover) 100%);
 	color: var(--text-on-accent);
 	padding: 10px 20px;
