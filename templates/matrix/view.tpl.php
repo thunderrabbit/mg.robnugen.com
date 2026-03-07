@@ -9,7 +9,18 @@
 </div>
 
 <div id="matrix-content" style="display: none;">
-    <div id="matrix-entries"></div>
+    <div style="overflow-x: auto;">
+        <table id="matrix-table" style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th style="padding: 0.75em; text-align: left; border-bottom: 2px solid var(--border-color); background: var(--bg-panel); color: var(--danger);">Problem</th>
+                    <th style="padding: 0.75em; text-align: left; border-bottom: 2px solid var(--border-color); background: var(--bg-panel); color: var(--success);">Opposite</th>
+                    <th style="padding: 0.75em; text-align: left; border-bottom: 2px solid var(--border-color); background: var(--bg-panel);">Evidence</th>
+                </tr>
+            </thead>
+            <tbody id="matrix-body"></tbody>
+        </table>
+    </div>
 
     <div style="text-align: center; margin-top: 2em;">
         <a href="/matrix/add_problem.php" class="btn btn-primary">Add Another Problem</a>
@@ -32,53 +43,65 @@ async function unlockMatrix() {
     document.getElementById('passphrase-gate').style.display = 'none';
     document.getElementById('matrix-content').style.display = 'block';
 
-    const container = document.getElementById('matrix-entries');
+    const tbody = document.getElementById('matrix-body');
 
     if (PROBLEMS.length === 0) {
-        container.innerHTML = '<div class="PagePanel"><p>Your matrix is empty. Add your first problem to get started.</p></div>';
+        tbody.innerHTML = '<tr><td colspan="3" style="padding: 1em; text-align: center;">Your matrix is empty. Add your first problem to get started.</td></tr>';
         return;
     }
 
+    const cellStyle = 'padding: 0.75em; border-bottom: 1px solid var(--border-color); vertical-align: top;';
+
     for (const prob of PROBLEMS) {
-        const div = document.createElement('div');
-        div.className = 'PagePanel';
-        div.style.marginBottom = '1.5em';
+        const tr = document.createElement('tr');
 
+        // Problem cell
         const problemText = await DM.decrypt(p, prob.problem);
+        const tdProblem = document.createElement('td');
+        tdProblem.style.cssText = cellStyle;
+        tdProblem.textContent = problemText;
+        tr.appendChild(tdProblem);
 
-        let html = '<p><strong>Limiting belief:</strong> <span style="color: var(--danger);">' + escapeHtml(problemText) + '</span></p>';
-
+        // Opposite cell
+        const tdOpposite = document.createElement('td');
+        tdOpposite.style.cssText = cellStyle;
         if (prob.opposite) {
             const oppositeText = await DM.decrypt(p, prob.opposite.opposite);
-            html += '<p><strong>Empowering opposite:</strong> <span style="color: var(--success);">' + escapeHtml(oppositeText) + '</span></p>';
-
-            if (prob.evidence.length > 0) {
-                html += '<p><strong>Evidence:</strong></p><ul>';
-                for (const ev of prob.evidence) {
-                    const evText = await DM.decrypt(p, ev.evidence);
-                    html += '<li>' + escapeHtml(evText) + '</li>';
-                }
-                html += '</ul>';
-                html += '<a href="/matrix/add_evidence.php?dm_mo=' + prob.opposite.dm_mo + '" style="font-size: 0.9em;">+ Add more evidence</a>';
-            } else {
-                html += '<p><em>No evidence yet.</em> <a href="/matrix/add_evidence.php?dm_mo=' + prob.opposite.dm_mo + '">Add evidence</a></p>';
-            }
+            tdOpposite.textContent = oppositeText;
         } else {
-            html += '<p><em>No opposite yet.</em> <a href="/matrix/add_opposite.php?dm_mp=' + prob.dm_mp + '">Add the opposite</a></p>';
+            tdOpposite.innerHTML = '<a href="/matrix/add_opposite.php?dm_mp=' + prob.dm_mp + '">+ Add opposite</a>';
         }
+        tr.appendChild(tdOpposite);
 
-        div.innerHTML = html;
-        container.appendChild(div);
+        // Evidence cell
+        const tdEvidence = document.createElement('td');
+        tdEvidence.style.cssText = cellStyle;
+        if (prob.opposite && prob.evidence.length > 0) {
+            const ul = document.createElement('ul');
+            ul.style.cssText = 'margin: 0; padding-left: 1.2em;';
+            for (const ev of prob.evidence) {
+                const li = document.createElement('li');
+                li.textContent = await DM.decrypt(p, ev.evidence);
+                ul.appendChild(li);
+            }
+            tdEvidence.appendChild(ul);
+            const addLink = document.createElement('a');
+            addLink.href = '/matrix/add_evidence.php?dm_mo=' + prob.opposite.dm_mo;
+            addLink.textContent = '+ Add more';
+            addLink.style.fontSize = '0.9em';
+            tdEvidence.appendChild(addLink);
+        } else if (prob.opposite) {
+            tdEvidence.innerHTML = '<a href="/matrix/add_evidence.php?dm_mo=' + prob.opposite.dm_mo + '">+ Add evidence</a>';
+        } else {
+            tdEvidence.textContent = '—';
+        }
+        tr.appendChild(tdEvidence);
+
+        tbody.appendChild(tr);
     }
 }
 
 document.getElementById('passphrase').addEventListener('keydown', function(e) {
     if (e.key === 'Enter') { e.preventDefault(); unlockMatrix(); }
 });
-
-function escapeHtml(text) {
-    const d = document.createElement('div');
-    d.textContent = text;
-    return d.innerHTML;
-}
 </script>
