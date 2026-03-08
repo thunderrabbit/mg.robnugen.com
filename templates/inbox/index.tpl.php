@@ -73,11 +73,11 @@
                             <?php else: ?>
                                 Pending
                             <?php endif; ?>
+                            <?php if ($msg['show_date']): ?>
+                                · <span class="inbox-show-date" title="Deferred until this date">Show: <span class="utc-time" data-utc="<?= $msg['show_date'] ?>"></span></span>
+                            <?php endif; ?>
+                            · <span class="inbox-date"><span class="utc-time" data-utc="<?= $msg['created_at'] ?>"></span></span>
                         </span>
-                        <?php if ($msg['show_date']): ?>
-                            <span class="inbox-show-date" title="Deferred until this date">Show: <span class="utc-time" data-utc="<?= $msg['show_date'] ?>"></span></span>
-                        <?php endif; ?>
-                        <span class="inbox-date"><span class="utc-time" data-utc="<?= $msg['created_at'] ?>"></span></span>
                     </div>
                     <div class="inbox-message"><?= nl2br(htmlspecialchars($msg['message'])) ?></div>
                     <?php if ($msg['response']): ?>
