@@ -143,7 +143,7 @@
     .inbox-archived { border-left: 3px solid var(--neutral, #999); opacity: 0.5; }
     .inbox-removing { opacity: 0; max-height: 0; padding: 0; margin: 0; border: none; }
 
-    .inbox-meta { display: flex; gap: 0.75rem; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem; align-items: center; }
+    .inbox-meta { display: flex; flex-wrap: wrap; gap: 0.75rem; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem; align-items: center; padding-right: 10rem; }
     .inbox-priority { text-transform: uppercase; font-weight: 700; font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 3px; }
     .inbox-priority-high { background: #fdd; color: #c00; }
     .inbox-priority-normal { background: #eee; color: #555; }
