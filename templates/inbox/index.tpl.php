@@ -153,7 +153,7 @@
     .inbox-message { white-space: pre-wrap; line-height: 1.5; }
     .inbox-response { margin-top: 0.75rem; padding: 0.75rem; background: var(--bg-secondary, #f5f5f5); border-radius: var(--radius-sm, 4px); font-size: 0.9rem; }
 
-    .inbox-actions { position: absolute; top: 0.75rem; right: 0.75rem; display: flex; gap: 0.4rem; }
+    .inbox-actions { position: absolute; top: 0.75rem; right: 0.75rem; display: flex; gap: 0.4rem; z-index: 10; }
     .inbox-action-form { display: inline; }
     .btn-sm { font-size: 0.75rem; padding: 0.2rem 0.5rem; cursor: pointer; }
     .btn-archive { background: transparent; border: 1px solid var(--neutral, #999); color: var(--text-muted); border-radius: 3px; }
