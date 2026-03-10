@@ -334,8 +334,9 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         $params = [];
 
         if (array_key_exists('content', $body)) {
-            $sets[] = 'content = ?';
-            $params[] = $body['content'];
+            $ledger = new \Emotional\Ledger($pdo, $raw_key, $auth_key_id, $auth_user_id);
+            $sets[] = 'encrypted_content = ?';
+            $params[] = $ledger->encrypt($body['content']);
         }
 
         if (array_key_exists('my_id', $body)) {
