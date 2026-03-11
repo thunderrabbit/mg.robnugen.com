@@ -4,6 +4,7 @@
  *
  * GET    /api/v1/sessions                         list sessions
  * POST   /api/v1/sessions                         start a session  (costs 1 credit)
+ * POST   /api/v1/sessions/backfill                create a past session with start/end times (costs 1 credit)
  * GET    /api/v1/sessions/{ak_id}                 get single session
  * PATCH  /api/v1/sessions/{ak_id}/stop            stop a session (server computes duration)
  * DELETE /api/v1/sessions/{ak_id}                 delete a session
@@ -13,19 +14,22 @@
 
 $ak_id      = null;
 $sub_action = null;
+$is_backfill = ($path === '/sessions/backfill');
 
-if (preg_match('#^/sessions/(\d+)/(\w+)$#', $path, $m)) {
-    $ak_id      = (int)$m[1];
-    $sub_action = $m[2];
-} elseif (preg_match('#^/sessions/(\d+)$#', $path, $m)) {
-    $ak_id = (int)$m[1];
+if (!$is_backfill) {
+    if (preg_match('#^/sessions/(\d+)/(\w+)$#', $path, $m)) {
+        $ak_id      = (int)$m[1];
+        $sub_action = $m[2];
+    } elseif (preg_match('#^/sessions/(\d+)$#', $path, $m)) {
+        $ak_id = (int)$m[1];
+    }
 }
 
 $activityHelper = new \ActivityTracking\ActivityKai($pdo);
 
 // ── GET /sessions ─────────────────────────────────────────────────────────────
 
-if ($method === 'GET' && $ak_id === null) {
+if ($method === 'GET' && $ak_id === null && !$is_backfill) {
     $from        = $_GET['from'] ?? null;
     $to          = $_GET['to']   ?? null;
     $activity_id = isset($_GET['activity_id']) ? (int)$_GET['activity_id'] : null;
@@ -102,6 +106,86 @@ if ($method === 'GET' && $ak_id !== null && $sub_action === null) {
     }
 
     echo json_encode(['session' => $session]);
+    exit;
+}
+
+// ── POST /sessions/backfill ──────────────────────────────────────────────────
+
+if ($method === 'POST' && $is_backfill) {
+    require_credit($pdo, $auth_user_id, $auth_key_id, $path);
+
+    $input        = json_decode(file_get_contents('php://input'), true) ?? [];
+    $activity_id  = (int)($input['activity_id']  ?? 1);
+    $timezone_str = trim($input['timezone'] ?? 'UTC');
+    $start_time   = trim($input['start_time'] ?? '');
+    $end_time     = trim($input['end_time']   ?? '');
+
+    if (!$start_time || !$end_time) {
+        http_response_code(400);
+        echo json_encode(['error' => 'start_time and end_time are required']);
+        exit;
+    }
+
+    // Validate timezone
+    try {
+        $tz = new DateTimeZone($timezone_str);
+    } catch (Exception $e) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Invalid timezone: ' . $timezone_str]);
+        exit;
+    }
+
+    // Parse start and end times
+    try {
+        $dtStart = new DateTime($start_time, $tz);
+        $dtEnd   = new DateTime($end_time, $tz);
+    } catch (Exception $e) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Invalid datetime format: ' . $e->getMessage()]);
+        exit;
+    }
+
+    $actual_sec = $dtEnd->getTimestamp() - $dtStart->getTimestamp();
+    if ($actual_sec <= 0) {
+        http_response_code(400);
+        echo json_encode(['error' => 'end_time must be after start_time']);
+        exit;
+    }
+
+    $start_local_dt = $dtStart->format('Y-m-d H:i:s');
+
+    $timezoneHelper = new \ActivityTracking\Timezone($pdo);
+    $timezone_id    = $timezoneHelper->getTimezoneId($timezone_str);
+
+    // Create the session with start time
+    $new_ak_id = $activityHelper->startActivity(
+        $auth_user_id,
+        $activity_id,
+        null,
+        $actual_sec,        // intended_sec = actual_sec for backfills
+        $timezone_id,
+        $start_local_dt
+    );
+
+    // Immediately stop it with the computed duration
+    $activityHelper->stopActivity($new_ak_id, $auth_user_id, $actual_sec, 0);
+
+    // Generate session key
+    $sessionKeyHelper = new \ActivityTracking\SessionKey($pdo);
+    $session_key = $sessionKeyHelper->createSessionKey($new_ak_id);
+
+    http_response_code(201);
+    echo json_encode([
+        'session' => [
+            'ak_id'          => $new_ak_id,
+            'activity_id'    => $activity_id,
+            'start_local_dt' => $start_local_dt,
+            'timezone'       => $timezone_str,
+            'actual_sec'     => $actual_sec,
+            'is_active'      => false,
+            'session_key'    => $session_key,
+        ],
+    ]);
     exit;
 }
 
