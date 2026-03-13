@@ -49,10 +49,10 @@ class Todo {
                 OR
                 (t.do_dates IS NOT NULL AND FIND_IN_SET(?, t.do_dates) > 0)  -- Monthly match
                 OR
-                (t.due_date IS NOT NULL AND DATE(t.due_date) = ?)            -- Specific Due Date
+                (t.due_date IS NOT NULL AND t.do_every_n_days IS NULL AND DATE(t.due_date) = ?)            -- Specific Due Date (not recurring)
                 OR
-                -- specific date is before today but not 2 weeks old
-                (t.due_date IS NOT NULL AND DATE(t.due_date) < ? AND DATE(t.due_date) > DATE_SUB(?, INTERVAL 2 YEAR))
+                -- specific date is before today but not 2 weeks old (not recurring)
+                (t.due_date IS NOT NULL AND t.do_every_n_days IS NULL AND DATE(t.due_date) < ? AND DATE(t.due_date) > DATE_SUB(?, INTERVAL 2 YEAR))
                 OR
                 (t.do_days IS NULL AND t.do_dates IS NULL AND t.due_date IS NULL AND t.do_every_n_days IS NULL) -- Unscheduled / Anytime
                 OR
