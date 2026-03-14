@@ -16,8 +16,14 @@
     <div class="card">
         <?php if (empty($todos)): ?>
             <div class="empty-state">
-                <p>You haven't created any todos yet.</p>
-                <a href="/todos/create.php" class="btn-primary">Create Your First Todo</a>
+                <?php if (!empty($show_only_archived)): ?>
+                    <p>You have no archived todos.</p>
+                <?php elseif (!empty($show_archived)): ?>
+                    <p>You haven't created any todos yet.</p>
+                <?php else: ?>
+                    <p>You haven't created any todos yet.</p>
+                    <a href="/todos/create.php" class="btn-primary">Create Your First Todo</a>
+                <?php endif; ?>
             </div>
         <?php else: ?>
             <div class="table-responsive">
