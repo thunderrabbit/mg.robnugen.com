@@ -1,7 +1,16 @@
 <div class="dashboard-container">
     <header class="dashboard-header">
         <h1>My Todos</h1>
-        <a href="/todos/create.php" class="btn-new-timer">+ Create New Todo</a>
+        <div class="header-actions">
+            <?php if (!empty($show_only_archived)): ?>
+                <a href="/todos/" class="btn-sm btn-toggle-archive">Hide archived</a>
+            <?php elseif (!empty($show_archived)): ?>
+                <a href="/todos/?show_only_archived" class="btn-sm btn-toggle-archive">Show only archived</a>
+            <?php else: ?>
+                <a href="/todos/?show_archived" class="btn-sm btn-toggle-archive">Show archived</a>
+            <?php endif; ?>
+            <a href="/todos/create.php" class="btn-new-timer">+ Create New Todo</a>
+        </div>
     </header>
 
     <div class="card">
@@ -25,9 +34,11 @@
                     </thead>
                     <tbody>
                         <?php foreach ($todos as $todo): ?>
-                        <tr id="todo-row-<?= $todo['todo_id'] ?>">
+                        <?php $is_archived = empty($todo['is_active']); ?>
+                        <tr id="todo-row-<?= $todo['todo_id'] ?>" class="<?= $is_archived ? 'archived-row' : '' ?>">
                             <td>
                                 <strong><?= htmlspecialchars($todo['title']) ?></strong>
+                                <?php if ($is_archived): ?><span class="badge badge-archived">Archived</span><?php endif; ?>
                                 <?php if (!empty($todo['description'])): ?>
                                     <div class="todo-desc"><?= htmlspecialchars(substr($todo['description'], 0, 50)) . (strlen($todo['description']) > 50 ? '...' : '') ?></div>
                                 <?php endif; ?>
@@ -68,10 +79,17 @@
                                 <?= $todo['activity_name'] ? htmlspecialchars($todo['activity_name']) : '-' ?>
                             </td>
                             <td>
-                                <a href="/todos/create.php?todo_id=<?= $todo['todo_id'] ?>" class="btn-sm btn-edit">Edit</a>
-                                <a href="/todos/archive.php?todo_id=<?= $todo['todo_id'] ?>"
-                                   class="btn-sm btn-delete action-archive"
-                                   data-todo-id="<?= $todo['todo_id'] ?>">Archive</a>
+                                <?php if ($is_archived): ?>
+                                    <a href="/todos/de_archive.php?todo_id=<?= $todo['todo_id'] ?>"
+                                       class="btn-sm btn-restore action-restore"
+                                       data-todo-id="<?= $todo['todo_id'] ?>">Restore</a>
+                                    <span class="btn-sm btn-disabled">Delete</span>
+                                <?php else: ?>
+                                    <a href="/todos/create.php?todo_id=<?= $todo['todo_id'] ?>" class="btn-sm btn-edit">Edit</a>
+                                    <a href="/todos/archive.php?todo_id=<?= $todo['todo_id'] ?>"
+                                       class="btn-sm btn-delete action-archive"
+                                       data-todo-id="<?= $todo['todo_id'] ?>">Archive</a>
+                                <?php endif; ?>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -144,6 +162,30 @@
         cursor: not-allowed;
         opacity: 0.6;
     }
+    .btn-restore:hover {
+        border-color: #10b981;
+        color: #10b981;
+        background: rgba(16, 185, 129, 0.05);
+    }
+    .btn-toggle-archive {
+        margin-right: 0.5rem;
+    }
+    .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .archived-row {
+        opacity: 0.55;
+    }
+    .archived-row:hover {
+        opacity: 0.85;
+    }
+    .badge-archived {
+        background: rgba(156, 163, 175, 0.2);
+        color: #9ca3af;
+        margin-left: 0.5rem;
+    }
     .empty-state {
         text-align: center;
         padding: 3rem;
@@ -184,6 +226,41 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('Error:', error);
                 alert('Failed to archive todo: ' + error.message);
                 // Revert optimistic update
+                row.style.display = originalDisplay;
+            });
+        });
+    });
+
+    // Restore (de-archive) handler
+    const restoreLinks = document.querySelectorAll('.action-restore');
+
+    restoreLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            const todoId = this.dataset.todoId;
+            const row = document.getElementById('todo-row-' + todoId);
+            const originalDisplay = row.style.display;
+
+            // Optimistically hide the row
+            row.style.display = 'none';
+
+            fetch(this.href, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to restore');
+                }
+                row.remove();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to restore todo: ' + error.message);
                 row.style.display = originalDisplay;
             });
         });
