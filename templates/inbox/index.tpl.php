@@ -162,6 +162,7 @@
                         </div>
                     <?php endif; ?>
                     <div class="inbox-actions">
+                        <button type="button" class="btn-sm btn-reply" onclick="toggleReply(<?= $msg['message_id'] ?>)">Reply</button>
                         <button type="button" class="btn-sm btn-edit" onclick="toggleEdit(<?= $msg['message_id'] ?>)">Edit</button>
                         <?php if (!$msg['archived_at']): ?>
                         <button type="button" class="btn-sm btn-archive" onclick="archiveMessage(<?= $msg['message_id'] ?>)">Archive</button>
@@ -173,11 +174,19 @@
                             <button type="submit" class="btn-sm btn-danger" onclick="return confirm('Permanently delete this message?')">Delete</button>
                         </form>
                     </div>
+                    <div class="inbox-reply-form" id="reply-<?= $msg['message_id'] ?>" style="display:none;">
+                        <textarea class="form-control inbox-reply-textarea" id="reply-text-<?= $msg['message_id'] ?>" rows="6" placeholder="Type your reply...">re: #<?= $msg['message_id'] ?> </textarea>
+                        <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; align-items: center;">
+                            <button type="button" class="btn-sm btn-save" onclick="sendReply(<?= $msg['message_id'] ?>)">Send</button>
+                            <button type="button" class="btn-sm btn-archive" onclick="toggleReply(<?= $msg['message_id'] ?>)">Cancel</button>
+                            <span class="inbox-reply-status" id="reply-status-<?= $msg['message_id'] ?>"></span>
+                        </div>
+                    </div>
                     <form method="POST" action="/inbox/" class="inbox-edit-form" id="edit-<?= $msg['message_id'] ?>" style="display:none;">
                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
                         <input type="hidden" name="inbox_action" value="edit">
                         <input type="hidden" name="message_id" value="<?= $msg['message_id'] ?>">
-                        <textarea name="message" class="form-control" rows="4"><?= htmlspecialchars($msg['message']) ?></textarea>
+                        <textarea name="message" class="form-control inbox-edit-textarea" rows="10"><?= htmlspecialchars($msg['message']) ?></textarea>
                         <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
                             <select name="priority" class="form-control" style="width: auto;">
                                 <option value="high" <?= $msg['priority'] === 'high' ? 'selected' : '' ?>>High</option>
@@ -254,16 +263,67 @@
     .btn-archive:hover { background: var(--neutral, #999); color: #fff; }
     .btn-danger { background: transparent; border: 1px solid #c00; color: #c00; border-radius: 3px; }
     .btn-danger:hover { background: #c00; color: #fff; }
+    .btn-reply { background: transparent; border: 1px solid var(--success, #4CAF50); color: var(--success, #4CAF50); border-radius: 3px; }
+    .btn-reply:hover { background: var(--success, #4CAF50); color: #fff; }
     .btn-edit { background: transparent; border: 1px solid var(--info, #2196F3); color: var(--info, #2196F3); border-radius: 3px; }
     .btn-edit:hover { background: var(--info, #2196F3); color: #fff; }
     .btn-save { background: var(--success, #4CAF50); border: 1px solid var(--success, #4CAF50); color: #fff; border-radius: 3px; }
     .btn-save:hover { background: var(--success-hover, #45a049); }
+    .inbox-reply-form { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color); }
+    .inbox-reply-textarea { width: 100%; min-height: 8rem; resize: vertical; }
+    .inbox-edit-textarea { width: 100%; min-height: 10rem; resize: vertical; }
+    .inbox-reply-status { font-size: 0.8rem; color: var(--success, #4CAF50); }
     .inbox-edit-form { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color); }
 </style>
 <script>
 function toggleEdit(id) {
     var form = document.getElementById('edit-' + id);
     form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+
+function toggleReply(id) {
+    var form = document.getElementById('reply-' + id);
+    if (form.style.display === 'none') {
+        form.style.display = 'block';
+        var textarea = document.getElementById('reply-text-' + id);
+        textarea.focus();
+        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+    } else {
+        form.style.display = 'none';
+    }
+}
+
+function sendReply(parentId) {
+    var textarea = document.getElementById('reply-text-' + parentId);
+    var status = document.getElementById('reply-status-' + parentId);
+    var message = textarea.value.trim();
+
+    if (!message) { status.textContent = 'Message cannot be empty.'; status.style.color = '#c00'; return; }
+
+    status.textContent = 'Sending...';
+    status.style.color = 'var(--text-muted)';
+
+    fetch('/inbox/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'csrf_token=' + encodeURIComponent('<?= htmlspecialchars($csrf_token) ?>') +
+              '&inbox_action=send&ajax=1' +
+              '&message=' + encodeURIComponent(message) +
+              '&priority=normal'
+    }).then(function(res) { return res.json(); })
+    .then(function(data) {
+        if (data.ok) {
+            status.style.color = 'var(--success, #4CAF50)';
+            status.textContent = 'Message #' + data.message_id + ' sent';
+            textarea.value = 're: #' + parentId + ' ';
+        } else {
+            status.style.color = '#c00';
+            status.textContent = data.error || 'Send failed.';
+        }
+    }).catch(function() {
+        status.style.color = '#c00';
+        status.textContent = 'Network error. Please try again.';
+    });
 }
 
 function archiveMessage(messageId) {

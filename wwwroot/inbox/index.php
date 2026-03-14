@@ -42,13 +42,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
         $show_date = trim($_POST['show_date'] ?? '');
         $show_date = $show_date !== '' ? $show_date : null;
 
+        $is_ajax = !empty($_POST['ajax']);
+
         if ($message === '') {
+            if ($is_ajax) {
+                header('Content-Type: application/json');
+                echo json_encode(['error' => 'Message cannot be empty.']);
+                exit;
+            }
             $error_message = 'Message cannot be empty.';
         } else {
             $stmt = $mla_database->prepare(
                 "INSERT INTO agent_inbox (user_id, message, priority, show_date) VALUES (?, ?, ?, ?)"
             );
             $stmt->execute([$user_id, $message, $priority, $show_date]);
+            $new_message_id = $mla_database->lastInsertId();
+
+            if ($is_ajax) {
+                header('Content-Type: application/json');
+                echo json_encode(['ok' => true, 'message_id' => (int)$new_message_id]);
+                exit;
+            }
             $success_message = 'Message sent to agent inbox.';
         }
     } elseif ($_POST['inbox_action'] === 'edit') {
