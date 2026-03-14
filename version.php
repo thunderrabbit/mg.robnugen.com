@@ -1,6 +1,6 @@
 <?php
 
-const SENTIMENTAL_VERSION = "BEGIN Decision Matrix";
-const SEMVER = "0.10.0";
+const SENTIMENTAL_VERSION = "BEGIN De DeArchive function";
+const SEMVER = "0.10.1";
 
 const EMOTIONAL_SESSION_GAP_MINUTES = 30;
