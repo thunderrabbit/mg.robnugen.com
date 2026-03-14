@@ -421,6 +421,49 @@ class Todo {
 
 
     /**
+     * Get all archived (inactive) todos for a user
+     *
+     * @param int $user_id
+     * @return array
+     */
+    public function getArchivedTodos(int $user_id): array {
+        $stmt = $this->pdo->prepare("
+            SELECT
+                t.*,
+                a.activity_name
+            FROM todos t
+            LEFT JOIN activities a ON t.activity_id = a.activity_id
+            WHERE t.user_id = ?
+            AND t.is_active = 0
+            ORDER BY t.created_at_utc DESC
+        ");
+
+        $stmt->execute([$user_id]);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Restore an archived todo (set is_active = 1)
+     *
+     * @param int $todo_id
+     * @param int $user_id User ID for ownership verification
+     * @return bool Success
+     */
+    public function deArchiveTodo(int $todo_id, int $user_id): bool {
+        if (!$this->verifyOwnership($todo_id, $user_id)) {
+            return false;
+        }
+
+        $stmt = $this->pdo->prepare("
+            UPDATE todos
+            SET is_active = 1
+            WHERE todo_id = ?
+        ");
+
+        return $stmt->execute([$todo_id]);
+    }
+
+    /**
      * Get completed todo history with pagination
      *
      * @param int $user_id

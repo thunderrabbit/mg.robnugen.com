@@ -22,8 +22,20 @@ $user_id = $is_logged_in->loggedInID();
 $pdo = \Database\Base::getPDO($config);
 $todoHelper = new \ActivityTracking\Todo($pdo);
 
-// Get all active todos
-$todos = $todoHelper->getAllTodos($user_id);
+// Determine which todos to show based on query params
+$show_archived = isset($_GET['show_archived']);
+$show_only_archived = isset($_GET['show_only_archived']);
+
+if ($show_only_archived) {
+    $todos = $todoHelper->getArchivedTodos($user_id);
+} elseif ($show_archived) {
+    $todos = array_merge(
+        $todoHelper->getAllTodos($user_id),
+        $todoHelper->getArchivedTodos($user_id)
+    );
+} else {
+    $todos = $todoHelper->getAllTodos($user_id);
+}
 
 // Check completion status for non-repeating todos
 foreach ($todos as &$todo) {
@@ -46,6 +58,8 @@ $page->set("page_title", "My Todos - Meiso Gambare");
 $inner_page = new \Template($config, $is_logged_in);
 $inner_page->setTemplate("todos/index.tpl.php");
 $inner_page->set("todos", $todos);
+$inner_page->set("show_archived", $show_archived);
+$inner_page->set("show_only_archived", $show_only_archived);
 
 $page->set("page_content", $inner_page->grabTheGoods());
 $page->echoToScreen();
