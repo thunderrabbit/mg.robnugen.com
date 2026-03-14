@@ -25,6 +25,7 @@ $todoHelper = new \ActivityTracking\Todo($pdo);
 // Determine which todos to show based on query params
 $show_archived = isset($_GET['show_archived']);
 $show_only_archived = isset($_GET['show_only_archived']);
+$hide_past_completed = isset($_GET['hide_past_completed']);
 
 if ($show_only_archived) {
     $todos = $todoHelper->getArchivedTodos($user_id);
@@ -50,6 +51,18 @@ foreach ($todos as &$todo) {
 }
 unset($todo); // Break reference
 
+// Filter out todos completed before today if requested
+if ($hide_past_completed) {
+    $today = date('Y-m-d');
+    $todos = array_filter($todos, function($todo) use ($today) {
+        if (!empty($todo['is_completed'])) {
+            $completed_date = date('Y-m-d', strtotime($todo['completed_at']));
+            return $completed_date >= $today;
+        }
+        return true;
+    });
+}
+
 // Prepare View
 $page = new \Template($config, $is_logged_in);
 $page->setTemplate("layout/base.tpl.php");
@@ -60,6 +73,7 @@ $inner_page->setTemplate("todos/index.tpl.php");
 $inner_page->set("todos", $todos);
 $inner_page->set("show_archived", $show_archived);
 $inner_page->set("show_only_archived", $show_only_archived);
+$inner_page->set("hide_past_completed", $hide_past_completed);
 
 $page->set("page_content", $inner_page->grabTheGoods());
 $page->echoToScreen();
