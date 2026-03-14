@@ -2,13 +2,31 @@
     <header class="dashboard-header">
         <h1>My Todos</h1>
         <div class="header-actions">
+            <?php
+            // Build base params for archive toggle (preserve hide_past_completed)
+            $hpc_param = !empty($hide_past_completed) ? 'hide_past_completed' : '';
+            ?>
             <?php if (!empty($show_only_archived)): ?>
-                <a href="/todos/" class="btn-sm btn-toggle-archive">Hide archived</a>
+                <a href="/todos/<?= $hpc_param ? '?' . $hpc_param : '' ?>" class="btn-sm btn-toggle-archive">Hide archived</a>
             <?php elseif (!empty($show_archived)): ?>
-                <a href="/todos/?show_only_archived" class="btn-sm btn-toggle-archive">Show only archived</a>
+                <a href="/todos/?show_only_archived<?= $hpc_param ? '&' . $hpc_param : '' ?>" class="btn-sm btn-toggle-archive">Show only archived</a>
             <?php else: ?>
-                <a href="/todos/?show_archived" class="btn-sm btn-toggle-archive">Show archived</a>
+                <a href="/todos/?show_archived<?= $hpc_param ? '&' . $hpc_param : '' ?>" class="btn-sm btn-toggle-archive">Show archived</a>
             <?php endif; ?>
+
+            <?php
+            // Build params for hide_past_completed toggle (preserve archive params)
+            $archive_params = [];
+            if (!empty($show_only_archived)) $archive_params[] = 'show_only_archived';
+            elseif (!empty($show_archived)) $archive_params[] = 'show_archived';
+            $archive_query = implode('&', $archive_params);
+            ?>
+            <?php if (!empty($hide_past_completed)): ?>
+                <a href="/todos/<?= $archive_query ? '?' . $archive_query : '' ?>" class="btn-sm btn-toggle-archive">Show past completed</a>
+            <?php else: ?>
+                <a href="/todos/?<?= $archive_query ? $archive_query . '&' : '' ?>hide_past_completed" class="btn-sm btn-toggle-archive">Hide past completed</a>
+            <?php endif; ?>
+
             <a href="/todos/create.php" class="btn-new-timer">+ Create New Todo</a>
         </div>
     </header>
