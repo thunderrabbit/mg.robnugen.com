@@ -41,23 +41,98 @@
         </form>
     </div>
 
-    <?php if (!empty($messages)): ?>
+    <?php
+    // Helper to build query string, toggling/setting a single param
+    function inbox_url($overrides = [], $removes = []) {
+        global $show_archived, $show_future, $filter_priority, $filter_status, $sort_by, $sort_dir;
+        $params = [];
+        if ($show_archived) $params['show_archived'] = '';
+        if ($show_future) $params['show_future'] = '';
+        if ($filter_priority) $params['priority'] = $filter_priority;
+        if ($filter_status) $params['status'] = $filter_status;
+        if ($sort_by && $sort_by !== 'default') $params['sort'] = $sort_by;
+        if ($sort_dir === 'asc') $params['dir'] = 'asc';
+
+        foreach ($overrides as $k => $v) {
+            if ($v === '' && in_array($k, ['show_archived', 'show_future'])) {
+                $params[$k] = '';
+            } elseif ($v === null || $v === '') {
+                unset($params[$k]);
+            } else {
+                $params[$k] = $v;
+            }
+        }
+        foreach ($removes as $r) unset($params[$r]);
+
+        if (empty($params)) return '/inbox/';
+        $parts = [];
+        foreach ($params as $k => $v) {
+            $parts[] = $v === '' ? htmlspecialchars($k) : htmlspecialchars($k) . '=' . htmlspecialchars($v);
+        }
+        return '/inbox/?' . implode('&', $parts);
+    }
+
+    function sort_link($label, $field) {
+        global $sort_by, $sort_dir;
+        $active = ($sort_by === $field);
+        $new_dir = ($active && $sort_dir === 'desc') ? 'asc' : 'desc';
+        $arrow = $active ? ($sort_dir === 'asc' ? ' &#9650;' : ' &#9660;') : '';
+        $cls = $active ? 'inbox-filter-active' : '';
+        return '<a href="' . inbox_url(['sort' => $field, 'dir' => $new_dir]) . '" class="' . $cls . '">' . $label . $arrow . '</a>';
+    }
+    ?>
+
+    <?php if (!empty($messages) || $filter_priority || $filter_status): ?>
     <div class="card" style="max-width: 800px; margin: 0 auto;">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
             <h2>Messages</h2>
             <div style="display: flex; gap: 1rem; font-size: 0.85rem;">
                 <?php if ($show_archived): ?>
-                    <a href="/inbox/<?= $show_future ? '?show_future' : '' ?>">Hide archived</a>
+                    <a href="<?= inbox_url([], ['show_archived']) ?>">Hide archived</a>
                 <?php else: ?>
-                    <a href="/inbox/?show_archived<?= $show_future ? '&show_future' : '' ?>">Show archived</a>
+                    <a href="<?= inbox_url(['show_archived' => '']) ?>">Show archived</a>
                 <?php endif; ?>
                 <?php if ($show_future): ?>
-                    <a href="/inbox/<?= $show_archived ? '?show_archived' : '' ?>">Hide future</a>
+                    <a href="<?= inbox_url([], ['show_future']) ?>">Hide future</a>
                 <?php else: ?>
-                    <a href="/inbox/?show_future<?= $show_archived ? '&show_archived' : '' ?>">Show future</a>
+                    <a href="<?= inbox_url(['show_future' => '']) ?>">Show future</a>
                 <?php endif; ?>
             </div>
         </div>
+
+        <div class="inbox-controls">
+            <div class="inbox-control-group">
+                <span class="inbox-control-label">Sort:</span>
+                <?= sort_link('ID', 'id') ?>
+                <?= sort_link('Priority', 'priority') ?>
+                <?= sort_link('Date', 'date') ?>
+                <?= sort_link('Status', 'status') ?>
+                <?php if ($sort_by !== 'default'): ?>
+                    <a href="<?= inbox_url([], ['sort', 'dir']) ?>" class="inbox-filter-clear">reset</a>
+                <?php endif; ?>
+            </div>
+            <div class="inbox-control-group">
+                <span class="inbox-control-label">Priority:</span>
+                <?php foreach (['high', 'normal', 'low'] as $p): ?>
+                    <?php if ($filter_priority === $p): ?>
+                        <a href="<?= inbox_url([], ['priority']) ?>" class="inbox-filter-active"><?= $p ?> &times;</a>
+                    <?php else: ?>
+                        <a href="<?= inbox_url(['priority' => $p]) ?>"><?= $p ?></a>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </div>
+            <div class="inbox-control-group">
+                <span class="inbox-control-label">Status:</span>
+                <?php foreach (['pending', 'seen', 'done', 'archived'] as $s): ?>
+                    <?php if ($filter_status === $s): ?>
+                        <a href="<?= inbox_url([], ['status']) ?>" class="inbox-filter-active"><?= $s ?> &times;</a>
+                    <?php else: ?>
+                        <a href="<?= inbox_url(['status' => $s]) ?>"><?= $s ?></a>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php if (!empty($messages)): ?>
         <div class="inbox-list">
             <?php foreach ($messages as $msg): ?>
                 <div class="inbox-item <?= $msg['archived_at'] ? 'inbox-archived' : ($msg['done_at'] ? 'inbox-done' : ($msg['seen_at'] ? 'inbox-seen' : 'inbox-pending')) ?>" id="inbox-msg-<?= $msg['message_id'] ?>">
@@ -119,6 +194,15 @@
                 </div>
             <?php endforeach; ?>
         </div>
+        <?php else: ?>
+        <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+            <?php if ($filter_priority || $filter_status): ?>
+                <p>No messages match the current filters. <a href="/inbox/">Clear filters</a></p>
+            <?php else: ?>
+                <p>No messages to display.</p>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
     </div>
     <?php else: ?>
     <div class="card" style="max-width: 800px; margin: 0 auto; text-align: center; padding: 2rem;">
@@ -135,6 +219,14 @@
     .alert { padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1rem; max-width: 800px; margin-left: auto; margin-right: auto; }
     .alert-error { background: #fee; border: 1px solid #c00; color: #900; }
     .alert-success { background: #efe; border: 1px solid #0a0; color: #060; }
+
+    .inbox-controls { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; padding: 0.75rem 0; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-color); font-size: 0.8rem; }
+    .inbox-control-group { display: flex; align-items: center; gap: 0.4rem; }
+    .inbox-control-label { color: var(--text-muted); font-weight: 600; }
+    .inbox-controls a { color: var(--text-muted); text-decoration: none; padding: 0.15rem 0.4rem; border-radius: 3px; }
+    .inbox-controls a:hover { background: var(--bg-secondary, #f0f0f0); color: var(--text-primary, #333); }
+    .inbox-filter-active { background: var(--primary, #2196F3) !important; color: #fff !important; }
+    .inbox-filter-clear { font-size: 0.7rem; color: var(--text-muted); text-decoration: underline; }
 
     .inbox-list { display: flex; flex-direction: column; gap: 1rem; }
     .inbox-item { border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem; position: relative; transition: opacity 0.3s, max-height 0.3s; overflow: hidden; }
