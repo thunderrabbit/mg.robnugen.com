@@ -83,12 +83,17 @@
                                     <a href="/todos/de_archive.php?todo_id=<?= $todo['todo_id'] ?>"
                                        class="btn-sm btn-restore action-restore"
                                        data-todo-id="<?= $todo['todo_id'] ?>">Restore</a>
-                                    <span class="btn-sm btn-disabled">Delete</span>
+                                    <a href="/todos/delete.php?todo_id=<?= $todo['todo_id'] ?>"
+                                       class="btn-sm btn-hard-delete action-delete"
+                                       data-todo-id="<?= $todo['todo_id'] ?>">&#x1F5D1;&#xFE0F;</a>
                                 <?php else: ?>
                                     <a href="/todos/create.php?todo_id=<?= $todo['todo_id'] ?>" class="btn-sm btn-edit">Edit</a>
                                     <a href="/todos/archive.php?todo_id=<?= $todo['todo_id'] ?>"
                                        class="btn-sm btn-delete action-archive"
                                        data-todo-id="<?= $todo['todo_id'] ?>">Archive</a>
+                                    <a href="/todos/delete.php?todo_id=<?= $todo['todo_id'] ?>"
+                                       class="btn-sm btn-hard-delete action-delete"
+                                       data-todo-id="<?= $todo['todo_id'] ?>">&#x1F5D1;&#xFE0F;</a>
                                 <?php endif; ?>
                             </td>
                         </tr>
@@ -158,9 +163,15 @@
         color: #ef4444;
         background: rgba(239, 68, 68, 0.05);
     }
-    .btn-disabled {
-        cursor: not-allowed;
-        opacity: 0.6;
+    .btn-hard-delete {
+        color: #ef4444;
+        border-color: transparent;
+        font-size: 1.1rem;
+        line-height: 1;
+    }
+    .btn-hard-delete:hover {
+        border-color: #ef4444;
+        background: rgba(239, 68, 68, 0.05);
     }
     .btn-restore:hover {
         border-color: #10b981;
@@ -226,6 +237,45 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('Error:', error);
                 alert('Failed to archive todo: ' + error.message);
                 // Revert optimistic update
+                row.style.display = originalDisplay;
+            });
+        });
+    });
+
+    // Delete (hard delete) handler
+    const deleteLinks = document.querySelectorAll('.action-delete');
+
+    deleteLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            if (!confirm('Permanently delete this todo and all its history? This cannot be undone.')) {
+                return;
+            }
+
+            const todoId = this.dataset.todoId;
+            const row = document.getElementById('todo-row-' + todoId);
+            const originalDisplay = row.style.display;
+
+            // Optimistically hide the row
+            row.style.display = 'none';
+
+            fetch(this.href, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to delete');
+                }
+                row.remove();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to delete todo: ' + error.message);
                 row.style.display = originalDisplay;
             });
         });
