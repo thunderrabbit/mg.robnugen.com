@@ -62,6 +62,7 @@
             <?php foreach ($messages as $msg): ?>
                 <div class="inbox-item <?= $msg['archived_at'] ? 'inbox-archived' : ($msg['done_at'] ? 'inbox-done' : ($msg['seen_at'] ? 'inbox-seen' : 'inbox-pending')) ?>" id="inbox-msg-<?= $msg['message_id'] ?>">
                     <div class="inbox-meta">
+                        <span class="inbox-id">#<?= $msg['message_id'] ?></span>
                         <span class="inbox-priority inbox-priority-<?= $msg['priority'] ?>"><?= $msg['priority'] ?></span>
                         <span class="inbox-status">
                             <?php if ($msg['archived_at']): ?>
@@ -144,6 +145,7 @@
     .inbox-removing { opacity: 0; max-height: 0; padding: 0; margin: 0; border: none; }
 
     .inbox-meta { display: flex; flex-wrap: wrap; gap: 0.75rem; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem; align-items: center; padding-right: 10rem; }
+    .inbox-id { font-family: monospace; font-size: 0.75rem; color: var(--text-muted); }
     .inbox-priority { text-transform: uppercase; font-weight: 700; font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 3px; }
     .inbox-priority-high { background: #fdd; color: #c00; }
     .inbox-priority-normal { background: #eee; color: #555; }
