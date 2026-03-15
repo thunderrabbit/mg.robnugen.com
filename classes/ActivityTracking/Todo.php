@@ -58,6 +58,7 @@ class Todo {
                 OR
                 (
                     t.do_every_n_days IS NOT NULL
+                    AND (t.due_date IS NULL OR DATE(t.due_date) <= ?)
                     AND (
                         NOT EXISTS (
                             SELECT 1 FROM todo_logs tl
@@ -75,7 +76,7 @@ class Todo {
             ORDER BY t.do_time ASC, t.title ASC
         ");
 
-        $stmt->execute([$user_id, $dayOfWeek, $dayOfMonth, $todayDate, $todayDate, $todayDate, $todayDate]);
+        $stmt->execute([$user_id, $dayOfWeek, $dayOfMonth, $todayDate, $todayDate, $todayDate, $todayDate, $todayDate]);
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
