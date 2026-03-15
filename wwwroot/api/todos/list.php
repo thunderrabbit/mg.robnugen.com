@@ -101,8 +101,17 @@ try {
                 $todo['next_due_date'] = $next->format('Y-m-d');
                 $todo['days_until_due'] = (int) $now->diff($next)->format('%r%a');
             } else {
-                $todo['next_due_date'] = $today;
-                $todo['days_until_due'] = 0;
+                // Never completed: start recurring from due_date, not today
+                $start = (!empty($todo['due_date']))
+                    ? (new \DateTime($todo['due_date'], $tz))->format('Y-m-d')
+                    : $today;
+                if ($start > $today) {
+                    $todo['next_due_date'] = $start;
+                    $todo['days_until_due'] = (int) $now->diff(new \DateTime($start, $tz))->format('%r%a');
+                } else {
+                    $todo['next_due_date'] = $today;
+                    $todo['days_until_due'] = 0;
+                }
             }
         }
 

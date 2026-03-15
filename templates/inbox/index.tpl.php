@@ -41,23 +41,99 @@
         </form>
     </div>
 
-    <?php if (!empty($messages)): ?>
+    <?php
+    // Helper to build query string, toggling/setting a single param
+    function inbox_url($overrides = [], $removes = []) {
+        global $show_archived, $show_future, $filter_priority, $filter_status, $sort_by, $sort_dir;
+        $params = [];
+        if ($show_archived) $params['show_archived'] = '';
+        if ($show_future) $params['show_future'] = '';
+        if ($filter_priority) $params['priority'] = $filter_priority;
+        if ($filter_status) $params['status'] = $filter_status;
+        if ($sort_by && $sort_by !== 'id') $params['sort'] = $sort_by;
+        if ($sort_dir === 'asc') $params['dir'] = 'asc';
+        if ($sort_by === 'id' && $sort_dir === 'desc') { unset($params['sort']); unset($params['dir']); }
+
+        foreach ($overrides as $k => $v) {
+            if ($v === '' && in_array($k, ['show_archived', 'show_future'])) {
+                $params[$k] = '';
+            } elseif ($v === null || $v === '') {
+                unset($params[$k]);
+            } else {
+                $params[$k] = $v;
+            }
+        }
+        foreach ($removes as $r) unset($params[$r]);
+
+        if (empty($params)) return '/inbox/';
+        $parts = [];
+        foreach ($params as $k => $v) {
+            $parts[] = $v === '' ? htmlspecialchars($k) : htmlspecialchars($k) . '=' . htmlspecialchars($v);
+        }
+        return '/inbox/?' . implode('&', $parts);
+    }
+
+    function sort_link($label, $field) {
+        global $sort_by, $sort_dir;
+        $active = ($sort_by === $field);
+        $new_dir = ($active && $sort_dir === 'desc') ? 'asc' : 'desc';
+        $arrow = $active ? ($sort_dir === 'asc' ? ' &#9650;' : ' &#9660;') : '';
+        $cls = $active ? 'inbox-filter-active' : '';
+        return '<a href="' . inbox_url(['sort' => $field, 'dir' => $new_dir]) . '" class="' . $cls . '">' . $label . $arrow . '</a>';
+    }
+    ?>
+
+    <?php if (!empty($messages) || $filter_priority || $filter_status): ?>
     <div class="card" style="max-width: 800px; margin: 0 auto;">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
             <h2>Messages</h2>
             <div style="display: flex; gap: 1rem; font-size: 0.85rem;">
                 <?php if ($show_archived): ?>
-                    <a href="/inbox/<?= $show_future ? '?show_future' : '' ?>">Hide archived</a>
+                    <a href="<?= inbox_url([], ['show_archived']) ?>">Hide archived</a>
                 <?php else: ?>
-                    <a href="/inbox/?show_archived<?= $show_future ? '&show_future' : '' ?>">Show archived</a>
+                    <a href="<?= inbox_url(['show_archived' => '']) ?>">Show archived</a>
                 <?php endif; ?>
                 <?php if ($show_future): ?>
-                    <a href="/inbox/<?= $show_archived ? '?show_archived' : '' ?>">Hide future</a>
+                    <a href="<?= inbox_url([], ['show_future']) ?>">Hide future</a>
                 <?php else: ?>
-                    <a href="/inbox/?show_future<?= $show_archived ? '&show_archived' : '' ?>">Show future</a>
+                    <a href="<?= inbox_url(['show_future' => '']) ?>">Show future</a>
                 <?php endif; ?>
             </div>
         </div>
+
+        <div class="inbox-controls">
+            <div class="inbox-control-group">
+                <span class="inbox-control-label">Sort:</span>
+                <?= sort_link('ID', 'id') ?>
+                <?= sort_link('Priority', 'priority') ?>
+                <?= sort_link('Date', 'date') ?>
+                <?= sort_link('Status', 'status') ?>
+                <?php if (!($sort_by === 'id' && $sort_dir === 'desc')): ?>
+                    <a href="<?= inbox_url([], ['sort', 'dir']) ?>" class="inbox-filter-clear">reset</a>
+                <?php endif; ?>
+            </div>
+            <div class="inbox-control-group">
+                <span class="inbox-control-label">Priority:</span>
+                <?php foreach (['high', 'normal', 'low'] as $p): ?>
+                    <?php if ($filter_priority === $p): ?>
+                        <a href="<?= inbox_url([], ['priority']) ?>" class="inbox-filter-active"><?= $p ?> &times;</a>
+                    <?php else: ?>
+                        <a href="<?= inbox_url(['priority' => $p]) ?>"><?= $p ?></a>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </div>
+            <div class="inbox-control-group">
+                <span class="inbox-control-label">Status:</span>
+                <?php foreach (['pending', 'seen', 'done', 'archived'] as $s): ?>
+                    <?php if ($filter_status === $s): ?>
+                        <a href="<?= inbox_url([], ['status']) ?>" class="inbox-filter-active"><?= $s ?> &times;</a>
+                    <?php else: ?>
+                        <a href="<?= inbox_url(['status' => $s]) ?>"><?= $s ?></a>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php if (!empty($messages)): ?>
         <div class="inbox-list">
             <?php foreach ($messages as $msg): ?>
                 <div class="inbox-item <?= $msg['archived_at'] ? 'inbox-archived' : ($msg['done_at'] ? 'inbox-done' : ($msg['seen_at'] ? 'inbox-seen' : 'inbox-pending')) ?>" id="inbox-msg-<?= $msg['message_id'] ?>">
@@ -87,6 +163,7 @@
                         </div>
                     <?php endif; ?>
                     <div class="inbox-actions">
+                        <button type="button" class="btn-sm btn-reply" onclick="toggleReply(<?= $msg['message_id'] ?>)">Reply</button>
                         <button type="button" class="btn-sm btn-edit" onclick="toggleEdit(<?= $msg['message_id'] ?>)">Edit</button>
                         <?php if (!$msg['archived_at']): ?>
                         <button type="button" class="btn-sm btn-archive" onclick="archiveMessage(<?= $msg['message_id'] ?>)">Archive</button>
@@ -98,11 +175,19 @@
                             <button type="submit" class="btn-sm btn-danger" onclick="return confirm('Permanently delete this message?')">Delete</button>
                         </form>
                     </div>
+                    <div class="inbox-reply-form" id="reply-<?= $msg['message_id'] ?>" style="display:none;">
+                        <textarea class="form-control inbox-reply-textarea" id="reply-text-<?= $msg['message_id'] ?>" rows="6" placeholder="Type your reply...">re: #<?= $msg['message_id'] ?> </textarea>
+                        <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; align-items: center;">
+                            <button type="button" class="btn-sm btn-save" onclick="sendReply(<?= $msg['message_id'] ?>)">Send</button>
+                            <button type="button" class="btn-sm btn-archive" onclick="toggleReply(<?= $msg['message_id'] ?>)">Cancel</button>
+                            <span class="inbox-reply-status" id="reply-status-<?= $msg['message_id'] ?>"></span>
+                        </div>
+                    </div>
                     <form method="POST" action="/inbox/" class="inbox-edit-form" id="edit-<?= $msg['message_id'] ?>" style="display:none;">
                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
                         <input type="hidden" name="inbox_action" value="edit">
                         <input type="hidden" name="message_id" value="<?= $msg['message_id'] ?>">
-                        <textarea name="message" class="form-control" rows="4"><?= htmlspecialchars($msg['message']) ?></textarea>
+                        <textarea name="message" class="form-control inbox-edit-textarea" rows="10"><?= htmlspecialchars($msg['message']) ?></textarea>
                         <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
                             <select name="priority" class="form-control" style="width: auto;">
                                 <option value="high" <?= $msg['priority'] === 'high' ? 'selected' : '' ?>>High</option>
@@ -119,6 +204,15 @@
                 </div>
             <?php endforeach; ?>
         </div>
+        <?php else: ?>
+        <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+            <?php if ($filter_priority || $filter_status): ?>
+                <p>No messages match the current filters. <a href="/inbox/">Clear filters</a></p>
+            <?php else: ?>
+                <p>No messages to display.</p>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
     </div>
     <?php else: ?>
     <div class="card" style="max-width: 800px; margin: 0 auto; text-align: center; padding: 2rem;">
@@ -135,6 +229,14 @@
     .alert { padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1rem; max-width: 800px; margin-left: auto; margin-right: auto; }
     .alert-error { background: #fee; border: 1px solid #c00; color: #900; }
     .alert-success { background: #efe; border: 1px solid #0a0; color: #060; }
+
+    .inbox-controls { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; padding: 0.75rem 0; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-color); font-size: 0.8rem; }
+    .inbox-control-group { display: flex; align-items: center; gap: 0.4rem; }
+    .inbox-control-label { color: var(--text-muted); font-weight: 600; }
+    .inbox-controls a { color: var(--text-muted); text-decoration: none; padding: 0.15rem 0.4rem; border-radius: 3px; }
+    .inbox-controls a:hover { background: var(--bg-secondary, #f0f0f0); color: var(--text-primary, #333); }
+    .inbox-filter-active { background: var(--primary, #2196F3) !important; color: #fff !important; }
+    .inbox-filter-clear { font-size: 0.7rem; color: var(--text-muted); text-decoration: underline; }
 
     .inbox-list { display: flex; flex-direction: column; gap: 1rem; }
     .inbox-item { border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem; position: relative; transition: opacity 0.3s, max-height 0.3s; overflow: hidden; }
@@ -162,16 +264,67 @@
     .btn-archive:hover { background: var(--neutral, #999); color: #fff; }
     .btn-danger { background: transparent; border: 1px solid #c00; color: #c00; border-radius: 3px; }
     .btn-danger:hover { background: #c00; color: #fff; }
+    .btn-reply { background: transparent; border: 1px solid var(--success, #4CAF50); color: var(--success, #4CAF50); border-radius: 3px; }
+    .btn-reply:hover { background: var(--success, #4CAF50); color: #fff; }
     .btn-edit { background: transparent; border: 1px solid var(--info, #2196F3); color: var(--info, #2196F3); border-radius: 3px; }
     .btn-edit:hover { background: var(--info, #2196F3); color: #fff; }
     .btn-save { background: var(--success, #4CAF50); border: 1px solid var(--success, #4CAF50); color: #fff; border-radius: 3px; }
     .btn-save:hover { background: var(--success-hover, #45a049); }
+    .inbox-reply-form { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color); }
+    .inbox-reply-textarea { width: 100%; min-height: 8rem; resize: vertical; }
+    .inbox-edit-textarea { width: 100%; min-height: 10rem; resize: vertical; }
+    .inbox-reply-status { font-size: 0.8rem; color: var(--success, #4CAF50); }
     .inbox-edit-form { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color); }
 </style>
 <script>
 function toggleEdit(id) {
     var form = document.getElementById('edit-' + id);
     form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+
+function toggleReply(id) {
+    var form = document.getElementById('reply-' + id);
+    if (form.style.display === 'none') {
+        form.style.display = 'block';
+        var textarea = document.getElementById('reply-text-' + id);
+        textarea.focus();
+        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+    } else {
+        form.style.display = 'none';
+    }
+}
+
+function sendReply(parentId) {
+    var textarea = document.getElementById('reply-text-' + parentId);
+    var status = document.getElementById('reply-status-' + parentId);
+    var message = textarea.value.trim();
+
+    if (!message) { status.textContent = 'Message cannot be empty.'; status.style.color = '#c00'; return; }
+
+    status.textContent = 'Sending...';
+    status.style.color = 'var(--text-muted)';
+
+    fetch('/inbox/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'csrf_token=' + encodeURIComponent('<?= htmlspecialchars($csrf_token) ?>') +
+              '&inbox_action=send&ajax=1' +
+              '&message=' + encodeURIComponent(message) +
+              '&priority=normal'
+    }).then(function(res) { return res.json(); })
+    .then(function(data) {
+        if (data.ok) {
+            status.style.color = 'var(--success, #4CAF50)';
+            status.textContent = 'Message #' + data.message_id + ' sent';
+            textarea.value = 're: #' + parentId + ' ';
+        } else {
+            status.style.color = '#c00';
+            status.textContent = data.error || 'Send failed.';
+        }
+    }).catch(function() {
+        status.style.color = '#c00';
+        status.textContent = 'Network error. Please try again.';
+    });
 }
 
 function archiveMessage(messageId) {

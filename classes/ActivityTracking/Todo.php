@@ -58,6 +58,7 @@ class Todo {
                 OR
                 (
                     t.do_every_n_days IS NOT NULL
+                    AND (t.due_date IS NULL OR DATE(t.due_date) <= ?)
                     AND (
                         NOT EXISTS (
                             SELECT 1 FROM todo_logs tl
@@ -75,7 +76,7 @@ class Todo {
             ORDER BY t.do_time ASC, t.title ASC
         ");
 
-        $stmt->execute([$user_id, $dayOfWeek, $dayOfMonth, $todayDate, $todayDate, $todayDate, $todayDate]);
+        $stmt->execute([$user_id, $dayOfWeek, $dayOfMonth, $todayDate, $todayDate, $todayDate, $todayDate, $todayDate]);
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
@@ -553,7 +554,11 @@ class Todo {
             if ($todo['last_completed_date']) {
                 $todo['next_due_date'] = date('Y-m-d', strtotime($todo['last_completed_date'] . " + {$n} days"));
             } else {
-                $todo['next_due_date'] = $todayDate;
+                // Never completed: start recurring from due_date, not today
+                $start = !empty($todo['due_date'])
+                    ? date('Y-m-d', strtotime($todo['due_date']))
+                    : $todayDate;
+                $todo['next_due_date'] = ($start > $todayDate) ? $start : $todayDate;
             }
         }
 

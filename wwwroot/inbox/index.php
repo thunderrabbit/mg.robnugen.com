@@ -42,13 +42,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
         $show_date = trim($_POST['show_date'] ?? '');
         $show_date = $show_date !== '' ? $show_date : null;
 
+        $is_ajax = !empty($_POST['ajax']);
+
         if ($message === '') {
+            if ($is_ajax) {
+                header('Content-Type: application/json');
+                echo json_encode(['error' => 'Message cannot be empty.']);
+                exit;
+            }
             $error_message = 'Message cannot be empty.';
         } else {
             $stmt = $mla_database->prepare(
                 "INSERT INTO agent_inbox (user_id, message, priority, show_date) VALUES (?, ?, ?, ?)"
             );
             $stmt->execute([$user_id, $message, $priority, $show_date]);
+            $new_message_id = $mla_database->lastInsertId();
+
+            if ($is_ajax) {
+                header('Content-Type: application/json');
+                echo json_encode(['ok' => true, 'message_id' => (int)$new_message_id]);
+                exit;
+            }
             $success_message = 'Message sent to agent inbox.';
         }
     } elseif ($_POST['inbox_action'] === 'edit') {
@@ -85,21 +99,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
     }
 }
 
-// Fetch messages
+// Fetch messages with sort and filter controls
 $show_archived = isset($_GET['show_archived']);
 $show_future = isset($_GET['show_future']);
+$filter_priority = $_GET['priority'] ?? '';
+$filter_status = $_GET['status'] ?? '';
+$sort_by = $_GET['sort'] ?? 'id';
+$sort_dir = ($_GET['dir'] ?? 'desc') === 'asc' ? 'ASC' : 'DESC';
+
 $filters = [];
+$params = [$user_id];
+
 if (!$show_archived) $filters[] = 'AND archived_at IS NULL';
 if (!$show_future) $filters[] = 'AND (show_date IS NULL OR show_date <= NOW())';
+
+if (in_array($filter_priority, ['high', 'normal', 'low'])) {
+    $filters[] = 'AND priority = ?';
+    $params[] = $filter_priority;
+}
+
+if ($filter_status === 'pending') {
+    $filters[] = 'AND seen_at IS NULL AND done_at IS NULL AND archived_at IS NULL';
+} elseif ($filter_status === 'seen') {
+    $filters[] = 'AND seen_at IS NOT NULL AND done_at IS NULL AND archived_at IS NULL';
+} elseif ($filter_status === 'done') {
+    $filters[] = 'AND done_at IS NOT NULL AND archived_at IS NULL';
+} elseif ($filter_status === 'archived') {
+    // Override show_archived to include archived when filtering by archived status
+    $show_archived = true;
+    // Remove the archived_at IS NULL filter if present
+    $filters = array_filter($filters, fn($f) => $f !== 'AND archived_at IS NULL');
+    $filters[] = 'AND archived_at IS NOT NULL';
+}
+
 $filter_sql = implode(' ', $filters);
+
+$order_clauses = match($sort_by) {
+    'id' => "message_id $sort_dir",
+    'priority' => ($sort_dir === 'ASC'
+        ? "FIELD(priority, 'low', 'normal', 'high'), created_at DESC"
+        : "FIELD(priority, 'high', 'normal', 'low'), created_at DESC"),
+    'date' => "created_at $sort_dir",
+    'status' => "archived_at IS NULL DESC, done_at IS NULL DESC, seen_at IS NULL DESC, created_at DESC",
+    default => "archived_at IS NULL DESC, done_at IS NULL DESC, FIELD(priority, 'high', 'normal', 'low'), created_at DESC",
+};
+
 $stmt = $mla_database->prepare(
     "SELECT message_id, message, priority, show_date, seen_at, done_at, archived_at, response, created_at, updated_at
      FROM agent_inbox
      WHERE user_id = ? {$filter_sql}
-     ORDER BY archived_at IS NULL DESC, done_at IS NULL DESC, FIELD(priority, 'high', 'normal', 'low'), created_at DESC
+     ORDER BY {$order_clauses}
      LIMIT 100"
 );
-$stmt->execute([$user_id]);
+$stmt->execute($params);
 $messages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
 // CSRF token
@@ -113,8 +165,12 @@ $page->set('error_message',   $error_message);
 $page->set('success_message', $success_message);
 $page->set('messages',        $messages);
 $page->set('csrf_token',      $_SESSION['csrf_token']);
-$page->set('show_archived',   $show_archived);
-$page->set('show_future',     $show_future);
+$page->set('show_archived',    $show_archived);
+$page->set('show_future',      $show_future);
+$page->set('filter_priority',  $filter_priority);
+$page->set('filter_status',    $filter_status);
+$page->set('sort_by',          $sort_by);
+$page->set('sort_dir',         strtolower($sort_dir));
 $inner = $page->grabTheGoods();
 
 $layout = new \Template(config: $config, is_logged_in: $is_logged_in);
