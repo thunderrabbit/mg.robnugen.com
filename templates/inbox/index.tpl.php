@@ -50,8 +50,9 @@
         if ($show_future) $params['show_future'] = '';
         if ($filter_priority) $params['priority'] = $filter_priority;
         if ($filter_status) $params['status'] = $filter_status;
-        if ($sort_by && $sort_by !== 'default') $params['sort'] = $sort_by;
+        if ($sort_by && $sort_by !== 'id') $params['sort'] = $sort_by;
         if ($sort_dir === 'asc') $params['dir'] = 'asc';
+        if ($sort_by === 'id' && $sort_dir === 'desc') { unset($params['sort']); unset($params['dir']); }
 
         foreach ($overrides as $k => $v) {
             if ($v === '' && in_array($k, ['show_archived', 'show_future'])) {
@@ -107,7 +108,7 @@
                 <?= sort_link('Priority', 'priority') ?>
                 <?= sort_link('Date', 'date') ?>
                 <?= sort_link('Status', 'status') ?>
-                <?php if ($sort_by !== 'default'): ?>
+                <?php if (!($sort_by === 'id' && $sort_dir === 'desc')): ?>
                     <a href="<?= inbox_url([], ['sort', 'dir']) ?>" class="inbox-filter-clear">reset</a>
                 <?php endif; ?>
             </div>

@@ -104,7 +104,7 @@ $show_archived = isset($_GET['show_archived']);
 $show_future = isset($_GET['show_future']);
 $filter_priority = $_GET['priority'] ?? '';
 $filter_status = $_GET['status'] ?? '';
-$sort_by = $_GET['sort'] ?? 'default';
+$sort_by = $_GET['sort'] ?? 'id';
 $sort_dir = ($_GET['dir'] ?? 'desc') === 'asc' ? 'ASC' : 'DESC';
 
 $filters = [];
