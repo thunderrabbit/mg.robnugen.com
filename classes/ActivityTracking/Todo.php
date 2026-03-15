@@ -553,7 +553,11 @@ class Todo {
             if ($todo['last_completed_date']) {
                 $todo['next_due_date'] = date('Y-m-d', strtotime($todo['last_completed_date'] . " + {$n} days"));
             } else {
-                $todo['next_due_date'] = $todayDate;
+                // Never completed: start recurring from due_date, not today
+                $start = !empty($todo['due_date'])
+                    ? date('Y-m-d', strtotime($todo['due_date']))
+                    : $todayDate;
+                $todo['next_due_date'] = ($start > $todayDate) ? $start : $todayDate;
             }
         }
 
