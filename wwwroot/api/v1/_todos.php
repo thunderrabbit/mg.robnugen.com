@@ -447,6 +447,30 @@ if ($todos_path === '/list') {
         echo json_encode(['error' => 'Todo not found or access denied']);
     }
 
+} elseif ($todos_path === '/delete') {
+
+    if ($method !== 'DELETE') {
+        http_response_code(405);
+        echo json_encode(['error' => 'Method not allowed']);
+        return;
+    }
+
+    $body = json_decode(file_get_contents('php://input'), true);
+    $todo_id = (int) ($body['todo_id'] ?? 0);
+
+    if ($todo_id <= 0) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Required: todo_id (int > 0)']);
+        return;
+    }
+
+    if ($todoHelper->hardDeleteTodo($todo_id, $auth_user_id)) {
+        echo json_encode(['success' => true]);
+    } else {
+        http_response_code(403);
+        echo json_encode(['error' => 'Todo not found or access denied']);
+    }
+
 } elseif ($todos_path === '/complete-with-session') {
 
     if ($method !== 'POST') {

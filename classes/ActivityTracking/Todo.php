@@ -420,6 +420,19 @@ class Todo {
         return $stmt->execute([$todo_id]);
     }
 
+    public function hardDeleteTodo(int $todo_id, int $user_id): bool {
+        if (!$this->verifyOwnership($todo_id, $user_id)) {
+            return false;
+        }
+
+        // Delete completion logs first (foreign key)
+        $stmt = $this->pdo->prepare("DELETE FROM todo_logs WHERE todo_id = ?");
+        $stmt->execute([$todo_id]);
+
+        $stmt = $this->pdo->prepare("DELETE FROM todos WHERE todo_id = ?");
+        return $stmt->execute([$todo_id]);
+    }
+
 
     /**
      * Get all archived (inactive) todos for a user
