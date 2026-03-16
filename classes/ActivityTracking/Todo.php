@@ -579,23 +579,6 @@ class Todo {
     }
 
     /**
-     * Permanently delete a todo and all its history
-     *
-     * @param int $todo_id
-     * @param int $user_id User ID for ownership verification
-     * @return bool Success
-     */
-    public function hardDeleteTodo(int $todo_id, int $user_id): bool
-    {
-        if (!$this->verifyOwnership($todo_id, $user_id)) {
-            return false;
-        }
-        $this->pdo->prepare("DELETE FROM todo_logs WHERE todo_id = ?")->execute([$todo_id]);
-        $stmt = $this->pdo->prepare("DELETE FROM todos WHERE todo_id = ?");
-        return $stmt->execute([$todo_id]);
-    }
-
-    /**
      * Get fully completed todo history (where nth >= target_count)
      *
      * @param int $user_id
