@@ -401,10 +401,9 @@ if ($todos_path === '/list') {
             if ($value !== null && $value !== '') {
                 $value = (int) $value;
                 // Verify activity exists
-                $activityCheck = $db->safeQuery(
-                    "SELECT activity_id FROM activities WHERE activity_id = ? AND (user_id IS NULL OR user_id = ?)",
-                    [$value, $auth_user_id]
-                );
+                $stmt = $pdo->prepare("SELECT activity_id FROM activities WHERE activity_id = ? AND (user_id IS NULL OR user_id = ?)");
+                $stmt->execute([$value, $auth_user_id]);
+                $activityCheck = $stmt->fetchAll();
                 if (empty($activityCheck)) {
                     http_response_code(400);
                     echo json_encode(['error' => 'Activity not found or access denied']);
