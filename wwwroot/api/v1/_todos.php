@@ -316,7 +316,7 @@ if ($todos_path === '/list') {
         return;
     }
 
-    $allowed_fields = ['title', 'do_time', 'due_date', 'target_duration_seconds', 'do_every_n_days', 'is_timer', 'is_counter'];
+    $allowed_fields = ['title', 'do_time', 'due_date', 'target_duration_seconds', 'do_every_n_days', 'is_timer', 'is_counter', 'activity_id'];
     if (!in_array($field, $allowed_fields, true)) {
         http_response_code(400);
         echo json_encode(['error' => 'Invalid field. Allowed: ' . implode(', ', $allowed_fields)]);
@@ -394,6 +394,24 @@ if ($todos_path === '/list') {
                 http_response_code(400);
                 echo json_encode(['error' => $field . ' must be 0 or 1']);
                 return;
+            }
+            break;
+
+        case 'activity_id':
+            if ($value !== null && $value !== '') {
+                $value = (int) $value;
+                // Verify activity exists
+                $activityCheck = $db->safeQuery(
+                    "SELECT activity_id FROM activities WHERE activity_id = ? AND (user_id IS NULL OR user_id = ?)",
+                    [$value, $auth_user_id]
+                );
+                if (empty($activityCheck)) {
+                    http_response_code(400);
+                    echo json_encode(['error' => 'Activity not found or access denied']);
+                    return;
+                }
+            } else {
+                $value = null;
             }
             break;
     }
