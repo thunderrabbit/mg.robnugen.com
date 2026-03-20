@@ -279,9 +279,9 @@ if ($todos_path === '/list') {
     // Validate do_every_n_days range
     if (isset($data['do_every_n_days'])) {
         $n = (int) $data['do_every_n_days'];
-        if ($n < 1 || $n > 365) {
+        if ($n < 1 || $n > 65535) {
             http_response_code(400);
-            echo json_encode(['error' => 'do_every_n_days must be 1-365']);
+            echo json_encode(['error' => 'do_every_n_days must be 1-65535']);
             return;
         }
         $data['do_every_n_days'] = $n;
@@ -377,9 +377,9 @@ if ($todos_path === '/list') {
         case 'do_every_n_days':
             if ($value !== null && $value !== '') {
                 $value = (int) $value;
-                if ($value < 1 || $value > 365) {
+                if ($value < 1 || $value > 65535) {
                     http_response_code(400);
-                    echo json_encode(['error' => 'do_every_n_days must be 1-365']);
+                    echo json_encode(['error' => 'do_every_n_days must be 1-65535']);
                     return;
                 }
             } else {
