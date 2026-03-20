@@ -12,9 +12,10 @@
     <?php endif; ?>
 
     <div class="card" style="max-width: 800px; margin: 0 auto 2rem;">
-        <form method="POST" action="/inbox/">
-            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
+        <form id="send-form" method="POST" action="/inbox/">
+            <input type="hidden" id="csrf_token" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
             <input type="hidden" name="inbox_action" value="send">
+            <input type="hidden" name="ajax" value="1">
 
             <div class="form-group">
                 <label for="message">Message</label>
@@ -35,11 +36,77 @@
                     <input type="date" id="show_date" name="show_date" class="form-control" placeholder="Visible immediately if blank">
                 </div>
                 <div class="form-actions" style="flex: 1; margin-bottom: 1rem;">
-                    <button type="submit" class="btn-primary">Send to Agent</button>
+                    <button type="submit" id="send-btn" class="btn-primary">Send to Agent</button>
                 </div>
             </div>
         </form>
+        <div id="send-status" style="margin-top: 0.5rem; display: none;"></div>
     </div>
+
+    <script>
+    document.getElementById('send-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const form = this;
+        const btn = document.getElementById('send-btn');
+        const status = document.getElementById('send-status');
+        const textarea = document.getElementById('message');
+        const savedMessage = textarea.value;
+
+        if (!savedMessage.trim()) return;
+
+        btn.disabled = true;
+        btn.textContent = 'Sending...';
+        status.style.display = 'none';
+
+        async function doSend() {
+            const resp = await fetch('/inbox/', {
+                method: 'POST',
+                body: new FormData(form)
+            });
+            return resp;
+        }
+
+        try {
+            let resp = await doSend();
+
+            // If CSRF expired, fetch a fresh token and retry once
+            if (resp.status === 403) {
+                const pageResp = await fetch('/inbox/');
+                const html = await pageResp.text();
+                const match = html.match(/name="csrf_token"\s+value="([^"]+)"/);
+                if (match) {
+                    document.getElementById('csrf_token').value = match[1];
+                    textarea.value = savedMessage; // restore just in case
+                    resp = await doSend();
+                }
+            }
+
+            if (resp.ok) {
+                const data = await resp.json();
+                if (data.success) {
+                    textarea.value = '';
+                    status.className = 'alert alert-success';
+                    status.textContent = 'Sent! (message #' + data.message_id + ')';
+                    status.style.display = 'block';
+                    // Reload after short delay to show the new message in the list
+                    setTimeout(() => window.location.reload(), 800);
+                } else {
+                    throw new Error(data.error || 'Unknown error');
+                }
+            } else {
+                throw new Error('Server returned ' + resp.status);
+            }
+        } catch (err) {
+            textarea.value = savedMessage; // always restore on failure
+            status.className = 'alert alert-error';
+            status.textContent = 'Failed: ' + err.message + '. Your message is still in the box.';
+            status.style.display = 'block';
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Send to Agent';
+        }
+    });
+    </script>
 
     <?php
     // Helper to build query string, toggling/setting a single param
