@@ -22,11 +22,13 @@ CREATE TABLE IF NOT EXISTS agent_inbox_user (
 
 -- Create the inbox_visibility table
 CREATE TABLE IF NOT EXISTS inbox_visibility (
-    viewer_aiu_id    INT UNSIGNED NOT NULL,
-    viewable_aiu_id  INT UNSIGNED NULL COMMENT 'NULL = can see all actors (supervisor)',
-    UNIQUE KEY uniq_viewer_viewable (viewer_aiu_id, viewable_aiu_id),
-    FOREIGN KEY (viewer_aiu_id) REFERENCES agent_inbox_user(aiu_id) ON DELETE CASCADE,
-    FOREIGN KEY (viewable_aiu_id) REFERENCES agent_inbox_user(aiu_id) ON DELETE CASCADE
+    inbox_user_aiu_id  INT UNSIGNED NOT NULL,
+    inbox_peer_aiu_id  INT UNSIGNED NULL COMMENT 'NULL = all actors (supervisor)',
+    can_read           TINYINT(1) NOT NULL DEFAULT 0,
+    can_send           TINYINT(1) NOT NULL DEFAULT 0,
+    UNIQUE KEY uniq_user_peer (inbox_user_aiu_id, inbox_peer_aiu_id),
+    FOREIGN KEY (inbox_user_aiu_id) REFERENCES agent_inbox_user(aiu_id) ON DELETE CASCADE,
+    FOREIGN KEY (inbox_peer_aiu_id) REFERENCES agent_inbox_user(aiu_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Seed a default human actor for each existing user (all permissions granted)
@@ -38,9 +40,9 @@ FROM users
 WHERE user_id IN (SELECT DISTINCT user_id FROM api_keys)
 ON DUPLICATE KEY UPDATE name = name;
 
--- Give all human actors supervisor visibility (NULL = see all)
-INSERT INTO inbox_visibility (viewer_aiu_id, viewable_aiu_id)
-SELECT aiu_id, NULL
+-- Give all human actors supervisor visibility (NULL = read all, send to all)
+INSERT INTO inbox_visibility (inbox_user_aiu_id, inbox_peer_aiu_id, can_read, can_send)
+SELECT aiu_id, NULL, 1, 1
 FROM agent_inbox_user
 WHERE actor_type = 'human';
 

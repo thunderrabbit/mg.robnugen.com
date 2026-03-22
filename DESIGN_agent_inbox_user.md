@@ -87,65 +87,80 @@ NULL `recipient_aiu` = broadcast (visible to all actors in the account).
 
 ### New table: `inbox_visibility`
 
-Declares which actors' messages each actor can see. This is an access control layer — the API reads this table to build the WHERE clause, so visibility rules are data-driven, inspectable, and changeable without code deploys.
+Controls both read and send permissions between actors. The API reads this table to build WHERE clauses and validate send requests — rules are data-driven, inspectable, and changeable without code deploys.
 
 ```sql
 CREATE TABLE inbox_visibility (
-    viewer_aiu_id    INT UNSIGNED NOT NULL,
-    viewable_aiu_id  INT UNSIGNED NULL COMMENT 'NULL = can see all actors (supervisor)',
-    UNIQUE KEY uniq_viewer_viewable (viewer_aiu_id, viewable_aiu_id),
-    FOREIGN KEY (viewer_aiu_id) REFERENCES agent_inbox_user(aiu_id) ON DELETE CASCADE,
-    FOREIGN KEY (viewable_aiu_id) REFERENCES agent_inbox_user(aiu_id) ON DELETE CASCADE
+    inbox_user_aiu_id  INT UNSIGNED NOT NULL,
+    inbox_peer_aiu_id  INT UNSIGNED NULL COMMENT 'NULL = all actors (supervisor)',
+    can_read           TINYINT(1) NOT NULL DEFAULT 0,
+    can_send           TINYINT(1) NOT NULL DEFAULT 0,
+    UNIQUE KEY uniq_user_peer (inbox_user_aiu_id, inbox_peer_aiu_id),
+    FOREIGN KEY (inbox_user_aiu_id) REFERENCES agent_inbox_user(aiu_id) ON DELETE CASCADE,
+    FOREIGN KEY (inbox_peer_aiu_id) REFERENCES agent_inbox_user(aiu_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 ```
 
 **Rules:**
-- A row with `viewable_aiu_id = NULL` means the viewer can see all messages (supervisor access)
-- A row with `viewable_aiu_id = X` means the viewer can see messages where `recipient_aiu = X`
+- `can_read = 1`: inbox_user can see messages involving this peer (sent by peer, or addressed to peer for supervisors)
+- `can_send = 1`: inbox_user can send messages to this peer
+- `inbox_peer_aiu_id = NULL`: wildcard — applies to all actors (supervisor access)
 - Actors always see broadcast messages (`recipient_aiu IS NULL`) regardless of visibility rules
-- Humans (`actor_type = 'human'`) get a NULL row by default (see everything)
-- Agents get a self-referencing row by default (see own messages only)
+- Humans (`actor_type = 'human'`) get a NULL row with both booleans = 1 by default
+- Agents get a self-referencing row with `can_read = 1, can_send = 0` plus explicit rows for each actor they can send to
 
 **Example for Rob's setup:**
 
 ```
 inbox_visibility
-┌────────────────┬──────────────────┐
-│ viewer_aiu_id  │ viewable_aiu_id  │
-├────────────────┼──────────────────┤
-│ 1 (Rob)        │ NULL  ← see all  │
-│ 2 (Boss Claude)│ NULL  ← see all  │
-│ 3 (Carrie)     │ 3     ← own only │
-│ 4 (Grove)      │ 4     ← own only │
-│ 5 (OtherHuman) │ NULL  ← see all  │
-└────────────────┴──────────────────┘
+┌───────────────────┬───────────────────┬──────────┬──────────┐
+│ inbox_user_aiu_id │ inbox_peer_aiu_id │ can_read │ can_send │
+├───────────────────┼───────────────────┼──────────┼──────────┤
+│ 1 (Rob)           │ NULL (all)        │ 1        │ 1        │
+│ 2 (Boss Claude)   │ NULL (all)        │ 1        │ 1        │
+│ 3 (Carrie)        │ 3 (self)          │ 1        │ 0        │
+│ 3 (Carrie)        │ 1 (Rob)           │ 0        │ 1        │
+│ 3 (Carrie)        │ 2 (Boss Claude)   │ 0        │ 1        │
+│ 4 (Grove)         │ 4 (self)          │ 1        │ 0        │
+│ 4 (Grove)         │ 1 (Rob)           │ 0        │ 1        │
+│ 4 (Grove)         │ 2 (Boss Claude)   │ 0        │ 1        │
+│ 5 (OtherHuman)    │ NULL (all)        │ 1        │ 1        │
+└───────────────────┴───────────────────┴──────────┴──────────┘
 ```
 
-**Adding a new agent:** Insert the agent into `agent_inbox_user`, then insert a self-referencing visibility row. Supervisors with a NULL row automatically see the new agent's messages — no extra visibility rows needed. Middle managers need an explicit row added for the new report.
+Carrie can read her own messages and send to Rob and Boss Claude — but cannot send to Grove or anyone else. A compromised agent is contained to its allowed send list.
+
+**Adding a new agent:** Insert the agent into `agent_inbox_user`, then insert a self-referencing visibility row (`can_read=1`) and rows for each actor it can send to (`can_send=1`). Supervisors with a NULL row automatically see the new agent's messages — no extra visibility rows needed. Middle managers need an explicit row added for the new report.
 
 **More general example:**
 
 ```
 inbox_visibility (multi-layer org)
-┌────────────────┬──────────────────┐
-│ viewer_aiu_id  │ viewable_aiu_id  │
-├────────────────┼──────────────────┤
-│ 1 (Rob)        │ NULL  ← see all  │
-│ 2 (Boss Claude)│ NULL  ← see all  │
-│ 3 (ManagerA)   │ 3     ← own      │
-│ 3 (ManagerA)   │ 5     ← report1  │
-│ 3 (ManagerA)   │ 6     ← report2  │
-│ 4 (ManagerB)   │ 4     ← own      │
-│ 4 (ManagerB)   │ 7     ← report3  │
-│ 4 (ManagerB)   │ 8     ← report4  │
-│ 5 (report1)    │ 5     ← own only │
-│ 6 (report2)    │ 6     ← own only │
-│ 7 (report3)    │ 7     ← own only │
-│ 8 (report4)    │ 8     ← own only │
-└────────────────┴──────────────────┘
+┌───────────────────┬───────────────────┬──────────┬──────────┐
+│ inbox_user_aiu_id │ inbox_peer_aiu_id │ can_read │ can_send │
+├───────────────────┼───────────────────┼──────────┼──────────┤
+│ 1 (Rob)           │ NULL (all)        │ 1        │ 1        │
+│ 2 (Boss Claude)   │ NULL (all)        │ 1        │ 1        │
+│ 3 (ManagerA)      │ 3 (self)          │ 1        │ 0        │
+│ 3 (ManagerA)      │ 5 (report1)       │ 1        │ 1        │
+│ 3 (ManagerA)      │ 6 (report2)       │ 1        │ 1        │
+│ 3 (ManagerA)      │ 1 (Rob)           │ 0        │ 1        │
+│ 4 (ManagerB)      │ 4 (self)          │ 1        │ 0        │
+│ 4 (ManagerB)      │ 7 (report3)       │ 1        │ 1        │
+│ 4 (ManagerB)      │ 8 (report4)       │ 1        │ 1        │
+│ 4 (ManagerB)      │ 1 (Rob)           │ 0        │ 1        │
+│ 5 (report1)       │ 5 (self)          │ 1        │ 0        │
+│ 5 (report1)       │ 3 (ManagerA)      │ 0        │ 1        │
+│ 6 (report2)       │ 6 (self)          │ 1        │ 0        │
+│ 6 (report2)       │ 3 (ManagerA)      │ 0        │ 1        │
+│ 7 (report3)       │ 7 (self)          │ 1        │ 0        │
+│ 7 (report3)       │ 4 (ManagerB)      │ 0        │ 1        │
+│ 8 (report4)       │ 8 (self)          │ 1        │ 0        │
+│ 8 (report4)       │ 4 (ManagerB)      │ 0        │ 1        │
+└───────────────────┴───────────────────┴──────────┴──────────┘
 ```
 
-ManagerA sees messages to herself, report1, and report2 — but not report3 or report4. ManagerB sees the reverse. Adding report5 under ManagerA requires two inserts: a self-referencing row for report5 and a ManagerA → report5 visibility row.
+ManagerA can read and send to her reports (5, 6) and send to Rob — but cannot read or send to ManagerB's reports (7, 8). Reports can only send to their own manager. Adding report5 under ManagerA requires three inserts: a self-referencing row for report5, a ManagerA → report5 row, and a report5 → ManagerA row.
 
 ### Sent message visibility
 
@@ -171,13 +186,13 @@ Both must belong to the same `user_id`. `api_key` handles authentication and acc
 Auto-filter based on the calling key's `aiu_id` and `inbox_visibility`:
 
 ```sql
--- Build viewable set from inbox_visibility
--- If any row has viewable_aiu_id IS NULL → no recipient filter (supervisor)
--- Otherwise → WHERE recipient_aiu IN (viewable set) OR recipient_aiu IS NULL
+-- Build readable set from inbox_visibility
+-- If any row has inbox_peer_aiu_id IS NULL AND can_read = 1 → no filter (supervisor)
+-- Otherwise → filter by readable peers
 
 -- Default query for a scoped agent (e.g., Carrie):
-WHERE (recipient_aiu IN (SELECT viewable_aiu_id FROM inbox_visibility
-                          WHERE viewer_aiu_id = :caller_aiu)
+WHERE (recipient_aiu IN (SELECT inbox_peer_aiu_id FROM inbox_visibility
+                          WHERE inbox_user_aiu_id = :caller_aiu AND can_read = 1)
        OR recipient_aiu IS NULL)
 
 -- With include_sent=1, also show outgoing messages:
@@ -211,6 +226,16 @@ This lets agents discover who else exists and choose a recipient by role, withou
 Auto-populate `sender_aiu` from the calling key's `aiu_id`.
 
 New optional parameter `recipient_aiu` — if omitted, message is broadcast (NULL).
+
+When `recipient_aiu` is provided, verify the sender has permission:
+
+```sql
+SELECT can_send FROM inbox_visibility
+WHERE inbox_user_aiu_id = :caller_aiu
+  AND (inbox_peer_aiu_id = :recipient_aiu OR inbox_peer_aiu_id IS NULL)
+```
+
+Return 403 if no matching row with `can_send = 1`.
 
 ### `mark_inbox_done`, `mark_inbox_seen`, `edit_inbox`
 
@@ -302,8 +327,7 @@ Controls *which* messages you can see within the inbox.
 - Broadcast messages (NULL recipient) are always visible to all actors
 - The API reads `inbox_visibility` to build the WHERE clause — no hardcoded role checks
 
-**What is NOT yet controlled:**
-- Write restrictions (who can send to whom) — currently anyone with `can_write_inbox` can send to anyone
+**Both layers together:** An agent needs `can_write_inbox = 1` (Layer 1) to send at all, AND a `can_send = 1` row for the specific recipient (Layer 2) to send to that actor.
 
 ## Actors for Rob's current setup
 
