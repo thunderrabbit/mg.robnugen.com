@@ -2,12 +2,12 @@
 
 ## Quick wins
 
-### 1. Consistent response field names (`ok` vs `success`)
+### ~~1. Consistent response field names (`ok` vs `success`)~~ FIXED 2026-03-22
 - **Where**: `sendReply()` in `templates/inbox/index.tpl.php` line 383 checks `data.ok`; main send form line 86 checks `data.success`; web controller `wwwroot/inbox/index.php` line 63 returns `{ok: true}`; API `_inbox.php` line 114 returns `{success: true}`
 - **Problem**: Two code paths, two different field names. Works by accident today.
 - **Fix**: Pick one field name and use it everywhere.
 
-### 2. Add `has_more` to API list response
+### ~~2. Add `has_more` to API list response~~ FIXED 2026-03-22
 - **Where**: `wwwroot/api/v1/_inbox.php` lines 68-73
 - **Problem**: API returns `total`, `limit`, `offset` but no `has_more`. Agents have to do math to know if there are more pages.
 - **Fix**: Add `'has_more' => ($offset + $limit) < $total` to the JSON response.
