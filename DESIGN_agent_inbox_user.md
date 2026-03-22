@@ -176,7 +176,11 @@ WHERE (recipient_aiu IN (...) OR recipient_aiu IS NULL
 ```
 
 Optional parameters:
-- `sender_aiu` — filter by sender
+- `sender_aiu` — filter by sender, e.g. "show me only messages from Carrie":
+  ```sql
+  -- Added to the WHERE clause when sender_aiu param is provided:
+  AND sender_aiu = :sender_aiu
+  ```
 - `include_sent` — also return messages where the caller is the sender (default 0)
 
 ### `send_inbox`
