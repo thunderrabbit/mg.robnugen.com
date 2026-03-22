@@ -290,11 +290,23 @@ Two layers of access control work together:
 
 ### Layer 1: Boolean permissions on `agent_inbox_user`
 
-Gate access at the top of each API handler file. Request is blocked before any queries run.
+Gate access at the top of each API handler file (`_inbox.php`, `_todos.php`, `_sessions.php`, `_emotions.php`). Request is blocked before any queries run.
 
 ```php
+// Example guard at top of _todos.php:
+
 // Permission: agent_inbox_user.can_read_todos
+if ($method === 'GET' && !$auth_actor['can_read_todos']) {
+    http_response_code(403);
+    echo json_encode(['error' => 'This API key does not have permission to read todos']);
+    exit;
+}
 // Permission: agent_inbox_user.can_write_todos
+if ($method !== 'GET' && !$auth_actor['can_write_todos']) {
+    http_response_code(403);
+    echo json_encode(['error' => 'This API key does not have permission to modify todos']);
+    exit;
+}
 ```
 
 | Permission | Controls |
