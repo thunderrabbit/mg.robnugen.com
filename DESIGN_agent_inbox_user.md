@@ -2,12 +2,13 @@
 
 ## Problem
 
-The `agent_inbox` table is a flat queue scoped to `user_id`. All API keys under an account have equal access. With multiple agents (Carrie, Grove, Boss Claude) plus the human (Rob), there's no way to:
+All API resources (inbox, todos, sessions, emotions) are scoped by `user_id`, and all API keys under an account have equal access. There is no concept of actor identity — every key can read and write everything the account owns. With multiple agents (Carrie, Grove, Boss Claude) plus the human (Rob), there's no way to:
 
-- Route messages to a specific actor
+- Restrict which API resources an agent can access (e.g., Carrie shouldn't browse emotions)
+- Route inbox messages to a specific actor
 - Know who sent a message (without parsing "From Carrie" text prefixes)
 - Restrict an agent's inbox visibility to only its own messages
-- Define per-actor permissions for inbox, todos, sessions, emotions
+- Grant different permission levels to different agents (read-only vs read-write)
 
 ## Solution
 
@@ -86,7 +87,7 @@ NULL `recipient_aiu` = broadcast (visible to all actors in the account).
 
 ### New table: `inbox_visibility`
 
-Declares which actors' messages each actor can see. This is the access control layer — the API reads this table to build the WHERE clause, so visibility rules are data-driven, inspectable, and changeable without code deploys.
+Declares which actors' messages each actor can see. This is an access control layer — the API reads this table to build the WHERE clause, so visibility rules are data-driven, inspectable, and changeable without code deploys.
 
 ```sql
 CREATE TABLE inbox_visibility (
