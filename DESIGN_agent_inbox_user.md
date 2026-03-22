@@ -294,9 +294,9 @@ JOIN api_keys k ON k.aiu_id = a.aiu_id
 WHERE k.api_key_id = ?
 ```
 
-### Layer 2: `inbox_visibility` table
+### Layer 2: `inbox_visibility` table (only applies when `can_read_inbox = 1`)
 
-Controls *which* messages you can see within the inbox (only applies when `can_read_inbox = 1`).
+Controls *which* messages you can see within the inbox.
 
 - Supervisors (NULL viewable row) see everything; workers see only their own
 - Broadcast messages (NULL recipient) are always visible to all actors
