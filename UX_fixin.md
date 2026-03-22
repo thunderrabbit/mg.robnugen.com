@@ -36,8 +36,8 @@
 ### 9. Mark-seen returns `{updated: 0}` silently if already seen
 - Agent can't distinguish "already seen" from "message doesn't exist" without a separate lookup. Could return `{updated: 0, reason: "already_seen"}` or similar.
 
-### 10. No bulk operations for agents
-- Carrie processes 5+ messages per run, each mark-seen/mark-done is a separate HTTP request. A batch endpoint (`POST /inbox/mark-seen` with `message_ids: [1,2,3]`) would reduce round-trips.
+### ~~10. No bulk operations for agents~~ FIXED 2026-03-22 (mark-seen-bulk only)
+- Added `PATCH /inbox/mark-seen-bulk` accepting `message_ids` array, plus `mark_inbox_seen_bulk` Jikan tool. Bulk mark-done intentionally omitted — each done message should get its own agent response.
 
 ### 11. "Show after" date picker has no visible placeholder
 - `placeholder` attribute doesn't display on `<input type="date">` in most browsers. The label "Show after" is clear enough but the empty state looks like a bug rather than "visible immediately."
