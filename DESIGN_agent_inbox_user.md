@@ -35,8 +35,16 @@ CREATE TABLE agent_inbox_user (
 Add a non-nullable FK linking each API key to an actor.
 
 ```sql
+-- Three-step: add nullable, backfill, then enforce NOT NULL + FK
 ALTER TABLE api_keys
-    ADD COLUMN aiu_id INT UNSIGNED NOT NULL AFTER user_id,
+    ADD COLUMN aiu_id INT UNSIGNED NULL AFTER user_id;
+
+UPDATE api_keys k
+JOIN agent_inbox_user a ON a.user_id = k.user_id AND a.actor_type = 'human'
+SET k.aiu_id = a.aiu_id;
+
+ALTER TABLE api_keys
+    MODIFY COLUMN aiu_id INT UNSIGNED NOT NULL,
     ADD FOREIGN KEY (aiu_id) REFERENCES agent_inbox_user(aiu_id);
 ```
 
