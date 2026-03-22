@@ -111,6 +111,7 @@ if ($method === 'GET' && $sub === '/list') {
     echo json_encode([
         'message_id' => $message_id,
         'created'    => true,
+        'success'    => true,
     ]);
 
 } elseif ($method === 'PATCH' && $sub === '/mark-seen') {
