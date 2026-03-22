@@ -316,7 +316,7 @@ if ($todos_path === '/list') {
         return;
     }
 
-    $allowed_fields = ['title', 'do_time', 'due_date', 'target_duration_seconds', 'do_every_n_days', 'is_timer', 'is_counter', 'activity_id'];
+    $allowed_fields = ['title', 'description', 'do_time', 'due_date', 'target_duration_seconds', 'do_every_n_days', 'is_timer', 'is_counter', 'activity_id'];
     if (!in_array($field, $allowed_fields, true)) {
         http_response_code(400);
         echo json_encode(['error' => 'Invalid field. Allowed: ' . implode(', ', $allowed_fields)]);
