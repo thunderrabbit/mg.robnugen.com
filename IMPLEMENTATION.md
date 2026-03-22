@@ -2,7 +2,8 @@
 
 Reference: `DESIGN_agent_inbox_user.md`
 
-Each session ends with deployable code. Each commit is checked off as completed.
+Each checkbox describes at least one commit. Once all related commits are finished, check the box as completed and include with the final commit.
+Each session ends with deployable code.
 Tests marked [Unit] are Codeception unit tests. Tests marked [WD] are Webdriver tests. Tests marked [Manual] are one-time verification via curl/PHPMyAdmin.
 
 ---
