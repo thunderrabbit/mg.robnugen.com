@@ -111,7 +111,31 @@ inbox_visibility
 └────────────────┴──────────────────┘
 ```
 
-**Adding a new agent:** Insert the agent into `agent_inbox_user`, then insert a self-referencing visibility row. Supervisors with a NULL row automatically see the new agent's messages — no extra visibility rows needed.
+**Adding a new agent:** Insert the agent into `agent_inbox_user`, then insert a self-referencing visibility row. Supervisors with a NULL row automatically see the new agent's messages — no extra visibility rows needed. Middle managers need an explicit row added for the new report.
+
+**More general example:**
+
+```
+inbox_visibility (multi-layer org)
+┌────────────────┬──────────────────┐
+│ viewer_aiu_id  │ viewable_aiu_id  │
+├────────────────┼──────────────────┤
+│ 1 (Rob)        │ NULL  ← see all  │
+│ 2 (Boss Claude)│ NULL  ← see all  │
+│ 3 (ManagerA)   │ 3     ← own      │
+│ 3 (ManagerA)   │ 5     ← report1  │
+│ 3 (ManagerA)   │ 6     ← report2  │
+│ 4 (ManagerB)   │ 4     ← own      │
+│ 4 (ManagerB)   │ 7     ← report3  │
+│ 4 (ManagerB)   │ 8     ← report4  │
+│ 5 (report1)    │ 5     ← own only │
+│ 6 (report2)    │ 6     ← own only │
+│ 7 (report3)    │ 7     ← own only │
+│ 8 (report4)    │ 8     ← own only │
+└────────────────┴──────────────────┘
+```
+
+ManagerA sees messages to herself, report1, and report2 — but not report3 or report4. ManagerB sees the reverse. Adding report5 under ManagerA requires two inserts: a self-referencing row for report5 and a ManagerA → report5 visibility row.
 
 ### Sent message visibility
 
