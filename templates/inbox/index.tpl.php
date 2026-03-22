@@ -380,7 +380,7 @@ function sendReply(parentId) {
               '&priority=normal'
     }).then(function(res) { return res.json(); })
     .then(function(data) {
-        if (data.ok) {
+        if (data.success) {
             status.style.color = 'var(--success, #4CAF50)';
             status.textContent = 'Message #' + data.message_id + ' sent';
             textarea.value = 're: #' + parentId + ' ';

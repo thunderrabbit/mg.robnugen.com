@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
 
             if ($is_ajax) {
                 header('Content-Type: application/json');
-                echo json_encode(['ok' => true, 'message_id' => (int)$new_message_id]);
+                echo json_encode(['success' => true, 'message_id' => (int)$new_message_id]);
                 exit;
             }
             $success_message = 'Message sent to agent inbox.';
