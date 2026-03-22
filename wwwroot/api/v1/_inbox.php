@@ -70,6 +70,7 @@ if ($method === 'GET' && $sub === '/list') {
         'total'    => $total,
         'limit'    => $limit,
         'offset'   => $offset,
+        'has_more' => ($offset + $limit) < $total,
     ]);
 
 } elseif ($method === 'POST' && $sub === '/send') {
@@ -157,6 +158,35 @@ if ($method === 'GET' && $sub === '/list') {
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
+
+    echo json_encode(['updated' => $stmt->rowCount()]);
+
+} elseif ($method === 'PATCH' && $sub === '/mark-seen-bulk') {
+    // ── Bulk mark messages as seen ────────────────────────────────────────
+    $input = json_decode(file_get_contents('php://input'), true);
+    $message_ids = $input['message_ids'] ?? [];
+
+    if (!is_array($message_ids) || empty($message_ids)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'message_ids array is required']);
+        return;
+    }
+
+    $message_ids = array_map('intval', $message_ids);
+    $message_ids = array_filter($message_ids, fn($id) => $id > 0);
+
+    if (empty($message_ids)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'message_ids must contain valid positive integers']);
+        return;
+    }
+
+    $placeholders = implode(',', array_fill(0, count($message_ids), '?'));
+    $stmt = $pdo->prepare(
+        "UPDATE agent_inbox SET seen_at = NOW()
+         WHERE message_id IN ({$placeholders}) AND user_id = ? AND seen_at IS NULL"
+    );
+    $stmt->execute([...$message_ids, $auth_user_id]);
 
     echo json_encode(['updated' => $stmt->rowCount()]);
 
@@ -263,5 +293,5 @@ if ($method === 'GET' && $sub === '/list') {
 
 } else {
     http_response_code(404);
-    echo json_encode(['error' => 'Not found', 'hint' => 'GET /list, POST /send, PATCH /mark-seen, PATCH /mark-done, DELETE /delete']);
+    echo json_encode(['error' => 'Not found', 'hint' => 'GET /list, POST /send, PATCH /mark-seen, PATCH /mark-seen-bulk, PATCH /mark-done, DELETE /delete']);
 }

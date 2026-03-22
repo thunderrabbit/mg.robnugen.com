@@ -250,24 +250,22 @@
                             <span class="inbox-reply-status" id="reply-status-<?= $msg['message_id'] ?>"></span>
                         </div>
                     </div>
-                    <form method="POST" action="/inbox/" class="inbox-edit-form" id="edit-<?= $msg['message_id'] ?>" style="display:none;">
-                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
-                        <input type="hidden" name="inbox_action" value="edit">
-                        <input type="hidden" name="message_id" value="<?= $msg['message_id'] ?>">
-                        <textarea name="message" class="form-control inbox-edit-textarea" rows="10"><?= htmlspecialchars($msg['message']) ?></textarea>
+                    <div class="inbox-edit-form" id="edit-<?= $msg['message_id'] ?>" style="display:none;">
+                        <textarea class="form-control inbox-edit-textarea" id="edit-text-<?= $msg['message_id'] ?>" rows="10"><?= htmlspecialchars($msg['message']) ?></textarea>
                         <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-                            <select name="priority" class="form-control" style="width: auto;">
+                            <select class="form-control" id="edit-priority-<?= $msg['message_id'] ?>" style="width: auto;">
                                 <option value="high" <?= $msg['priority'] === 'high' ? 'selected' : '' ?>>High</option>
                                 <option value="normal" <?= $msg['priority'] === 'normal' ? 'selected' : '' ?>>Normal</option>
                                 <option value="low" <?= $msg['priority'] === 'low' ? 'selected' : '' ?>>Low</option>
                             </select>
                             <label style="font-size: 0.8rem; color: var(--text-muted);">Show after:
-                                <input type="date" name="show_date" class="form-control" style="width: auto; display: inline-block;" value="<?= $msg['show_date'] ? htmlspecialchars(substr($msg['show_date'], 0, 10)) : '' ?>">
+                                <input type="date" id="edit-showdate-<?= $msg['message_id'] ?>" class="form-control" style="width: auto; display: inline-block;" value="<?= $msg['show_date'] ? htmlspecialchars(substr($msg['show_date'], 0, 10)) : '' ?>">
                             </label>
-                            <button type="submit" class="btn-sm btn-save">Save</button>
+                            <button type="button" class="btn-sm btn-save" onclick="saveEdit(<?= $msg['message_id'] ?>)">Save</button>
                             <button type="button" class="btn-sm btn-archive" onclick="toggleEdit(<?= $msg['message_id'] ?>)">Cancel</button>
+                            <span class="inbox-edit-status" id="edit-status-<?= $msg['message_id'] ?>"></span>
                         </div>
-                    </form>
+                    </div>
                 </div>
             <?php endforeach; ?>
         </div>
@@ -277,6 +275,24 @@
                 <p>No messages match the current filters. <a href="/inbox/">Clear filters</a></p>
             <?php else: ?>
                 <p>No messages to display.</p>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
+
+        <?php if ($total_pages > 1): ?>
+        <div class="inbox-pagination">
+            <?php if ($current_page > 1): ?>
+                <a href="<?= inbox_url(['page' => $current_page - 1]) ?>">&laquo; Prev</a>
+            <?php else: ?>
+                <span class="inbox-page-disabled">&laquo; Prev</span>
+            <?php endif; ?>
+
+            <span class="inbox-page-info">Page <?= $current_page ?> of <?= $total_pages ?> (<?= $total_messages ?> messages)</span>
+
+            <?php if ($current_page < $total_pages): ?>
+                <a href="<?= inbox_url(['page' => $current_page + 1]) ?>">Next &raquo;</a>
+            <?php else: ?>
+                <span class="inbox-page-disabled">Next &raquo;</span>
             <?php endif; ?>
         </div>
         <?php endif; ?>
@@ -342,6 +358,13 @@
     .inbox-edit-textarea { width: 100%; min-height: 10rem; resize: vertical; }
     .inbox-reply-status { font-size: 0.8rem; color: var(--success, #4CAF50); }
     .inbox-edit-form { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color); }
+    .inbox-edit-status { font-size: 0.8rem; }
+
+    .inbox-pagination { display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color); font-size: 0.85rem; }
+    .inbox-pagination a { color: var(--primary, #2196F3); text-decoration: none; padding: 0.3rem 0.6rem; border-radius: 3px; }
+    .inbox-pagination a:hover { background: var(--bg-secondary, #f0f0f0); }
+    .inbox-page-info { color: var(--text-muted); }
+    .inbox-page-disabled { color: var(--text-muted); opacity: 0.4; padding: 0.3rem 0.6rem; }
 </style>
 <script>
 function toggleEdit(id) {
@@ -380,13 +403,59 @@ function sendReply(parentId) {
               '&priority=normal'
     }).then(function(res) { return res.json(); })
     .then(function(data) {
-        if (data.ok) {
+        if (data.success) {
             status.style.color = 'var(--success, #4CAF50)';
             status.textContent = 'Message #' + data.message_id + ' sent';
             textarea.value = 're: #' + parentId + ' ';
         } else {
             status.style.color = '#c00';
             status.textContent = data.error || 'Send failed.';
+        }
+    }).catch(function() {
+        status.style.color = '#c00';
+        status.textContent = 'Network error. Please try again.';
+    });
+}
+
+function saveEdit(id) {
+    var textarea = document.getElementById('edit-text-' + id);
+    var priority = document.getElementById('edit-priority-' + id);
+    var showDate = document.getElementById('edit-showdate-' + id);
+    var status = document.getElementById('edit-status-' + id);
+    var message = textarea.value.trim();
+
+    if (!message) { status.textContent = 'Message cannot be empty.'; status.style.color = '#c00'; return; }
+
+    status.textContent = 'Saving...';
+    status.style.color = 'var(--text-muted)';
+
+    fetch('/inbox/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'csrf_token=' + encodeURIComponent('<?= htmlspecialchars($csrf_token) ?>') +
+              '&inbox_action=edit&ajax=1' +
+              '&message_id=' + id +
+              '&message=' + encodeURIComponent(message) +
+              '&priority=' + encodeURIComponent(priority.value) +
+              '&show_date=' + encodeURIComponent(showDate.value)
+    }).then(function(res) { return res.json(); })
+    .then(function(data) {
+        if (data.success) {
+            // Update the displayed message and priority in-place
+            var item = document.getElementById('inbox-msg-' + id);
+            var msgEl = item.querySelector('.inbox-message');
+            if (msgEl) msgEl.innerHTML = message.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+            var prioEl = item.querySelector('.inbox-priority');
+            if (prioEl) {
+                prioEl.textContent = priority.value;
+                prioEl.className = 'inbox-priority inbox-priority-' + priority.value;
+            }
+            status.style.color = 'var(--success, #4CAF50)';
+            status.textContent = 'Saved';
+            setTimeout(function() { toggleEdit(id); status.textContent = ''; }, 800);
+        } else {
+            status.style.color = '#c00';
+            status.textContent = data.error || 'Save failed.';
         }
     }).catch(function() {
         status.style.color = '#c00';
