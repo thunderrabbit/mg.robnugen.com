@@ -121,6 +121,8 @@ $filter_priority = $_GET['priority'] ?? '';
 $filter_status = $_GET['status'] ?? '';
 $sort_by = $_GET['sort'] ?? 'id';
 $sort_dir = ($_GET['dir'] ?? 'desc') === 'asc' ? 'ASC' : 'DESC';
+$per_page = 50;
+$current_page = max(1, (int)($_GET['page'] ?? 1));
 
 $filters = [];
 $params = [$user_id];
@@ -159,12 +161,21 @@ $order_clauses = match($sort_by) {
     default => "archived_at IS NULL DESC, done_at IS NULL DESC, FIELD(priority, 'high', 'normal', 'low'), created_at DESC",
 };
 
+$count_stmt = $mla_database->prepare(
+    "SELECT COUNT(*) FROM agent_inbox WHERE user_id = ? {$filter_sql}"
+);
+$count_stmt->execute($params);
+$total_messages = (int) $count_stmt->fetchColumn();
+$total_pages = max(1, (int) ceil($total_messages / $per_page));
+$current_page = min($current_page, $total_pages);
+$offset = ($current_page - 1) * $per_page;
+
 $stmt = $mla_database->prepare(
     "SELECT message_id, message, priority, show_date, seen_at, done_at, archived_at, response, created_at, updated_at
      FROM agent_inbox
      WHERE user_id = ? {$filter_sql}
      ORDER BY {$order_clauses}
-     LIMIT 100"
+     LIMIT {$per_page} OFFSET {$offset}"
 );
 $stmt->execute($params);
 $messages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -186,6 +197,9 @@ $page->set('filter_priority',  $filter_priority);
 $page->set('filter_status',    $filter_status);
 $page->set('sort_by',          $sort_by);
 $page->set('sort_dir',         strtolower($sort_dir));
+$page->set('current_page',    $current_page);
+$page->set('total_pages',     $total_pages);
+$page->set('total_messages',  $total_messages);
 $inner = $page->grabTheGoods();
 
 $layout = new \Template(config: $config, is_logged_in: $is_logged_in);

@@ -19,7 +19,7 @@
 - **Problem**: Send and archive use AJAX (smooth, no reload). Edit does a full page POST, causing reload and scroll-to-top. Editing a message near the bottom of the list is jarring.
 - **Fix**: Convert edit form to fetch() with inline status, same pattern as sendReply().
 
-### 4. Add pagination controls
+### ~~4. Add pagination controls~~ FIXED 2026-03-22
 - **Where**: `wwwroot/inbox/index.php` line 152 (`LIMIT 100`), `templates/inbox/index.tpl.php`
 - **Problem**: No pagination. Once there are 100+ messages, older ones silently disappear with no indication there are more.
 - **Fix**: Add total count query, show "Page 1 of N" with prev/next links.

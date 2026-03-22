@@ -278,6 +278,24 @@
             <?php endif; ?>
         </div>
         <?php endif; ?>
+
+        <?php if ($total_pages > 1): ?>
+        <div class="inbox-pagination">
+            <?php if ($current_page > 1): ?>
+                <a href="<?= inbox_url(['page' => $current_page - 1]) ?>">&laquo; Prev</a>
+            <?php else: ?>
+                <span class="inbox-page-disabled">&laquo; Prev</span>
+            <?php endif; ?>
+
+            <span class="inbox-page-info">Page <?= $current_page ?> of <?= $total_pages ?> (<?= $total_messages ?> messages)</span>
+
+            <?php if ($current_page < $total_pages): ?>
+                <a href="<?= inbox_url(['page' => $current_page + 1]) ?>">Next &raquo;</a>
+            <?php else: ?>
+                <span class="inbox-page-disabled">Next &raquo;</span>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
     </div>
     <?php else: ?>
     <div class="card" style="max-width: 800px; margin: 0 auto; text-align: center; padding: 2rem;">
@@ -341,6 +359,12 @@
     .inbox-reply-status { font-size: 0.8rem; color: var(--success, #4CAF50); }
     .inbox-edit-form { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color); }
     .inbox-edit-status { font-size: 0.8rem; }
+
+    .inbox-pagination { display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color); font-size: 0.85rem; }
+    .inbox-pagination a { color: var(--primary, #2196F3); text-decoration: none; padding: 0.3rem 0.6rem; border-radius: 3px; }
+    .inbox-pagination a:hover { background: var(--bg-secondary, #f0f0f0); }
+    .inbox-page-info { color: var(--text-muted); }
+    .inbox-page-disabled { color: var(--text-muted); opacity: 0.4; padding: 0.3rem 0.6rem; }
 </style>
 <script>
 function toggleEdit(id) {
