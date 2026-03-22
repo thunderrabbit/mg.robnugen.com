@@ -23,14 +23,6 @@ CREATE TABLE agent_inbox_user (
     description   VARCHAR(255) NULL,
     actor_type    ENUM('human', 'agent') NOT NULL DEFAULT 'agent',
     color         CHAR(7) NULL DEFAULT NULL COMMENT 'hex color e.g. #FF6B35 for UI badges, banners, inbox distinction. NULL for human default.',
-    can_read_inbox      TINYINT(1) NOT NULL DEFAULT 1,
-    can_write_inbox     TINYINT(1) NOT NULL DEFAULT 1,
-    can_read_todos      TINYINT(1) NOT NULL DEFAULT 1,
-    can_write_todos     TINYINT(1) NOT NULL DEFAULT 1,
-    can_read_sessions   TINYINT(1) NOT NULL DEFAULT 1,
-    can_write_sessions  TINYINT(1) NOT NULL DEFAULT 1,
-    can_read_emotions   TINYINT(1) NOT NULL DEFAULT 1,
-    can_write_emotions  TINYINT(1) NOT NULL DEFAULT 1,
     created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     UNIQUE KEY uniq_user_name (user_id, name),
@@ -75,6 +67,50 @@ ALTER TABLE agent_inbox
 NULL `sender_aiu` = legacy message (pre-migration).
 NULL `recipient_aiu` = broadcast (visible to all actors in the account).
 
+### New table: `inbox_visibility`
+
+Declares which actors' messages each actor can see. This is the access control layer — the API reads this table to build the WHERE clause, so visibility rules are data-driven, inspectable, and changeable without code deploys.
+
+```sql
+CREATE TABLE inbox_visibility (
+    viewer_aiu_id    INT UNSIGNED NOT NULL,
+    viewable_aiu_id  INT UNSIGNED NULL COMMENT 'NULL = can see all actors (supervisor)',
+    UNIQUE KEY uniq_viewer_viewable (viewer_aiu_id, viewable_aiu_id),
+    FOREIGN KEY (viewer_aiu_id) REFERENCES agent_inbox_user(aiu_id) ON DELETE CASCADE,
+    FOREIGN KEY (viewable_aiu_id) REFERENCES agent_inbox_user(aiu_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+**Rules:**
+- A row with `viewable_aiu_id = NULL` means the viewer can see all messages (supervisor access)
+- A row with `viewable_aiu_id = X` means the viewer can see messages where `recipient_aiu = X`
+- Actors always see broadcast messages (`recipient_aiu IS NULL`) regardless of visibility rules
+- Humans (`actor_type = 'human'`) get a NULL row by default (see everything)
+- Agents get a self-referencing row by default (see own messages only)
+
+**Example for Rob's setup:**
+
+```
+inbox_visibility
+┌────────────────┬──────────────────┐
+│ viewer_aiu_id  │ viewable_aiu_id  │
+├────────────────┼──────────────────┤
+│ 1 (Rob)        │ NULL  ← see all  │
+│ 2 (Boss Claude)│ NULL  ← see all  │
+│ 3 (Carrie)     │ 3     ← own only │
+│ 4 (Grove)      │ 4     ← own only │
+│ 5 (OtherHuman) │ NULL  ← see all  │
+└────────────────┴──────────────────┘
+```
+
+**Adding a new agent:** Insert the agent into `agent_inbox_user`, then insert a self-referencing visibility row. Supervisors with a NULL row automatically see the new agent's messages — no extra visibility rows needed.
+
+### Sent message visibility
+
+By default, agents do NOT see messages they sent (the inbox is an incoming work queue). An optional `include_sent=1` parameter on `list_inbox` adds `OR sender_aiu = :caller_aiu` to the WHERE clause, allowing agents to review their outbox when needed (e.g., to avoid duplicate questions).
+
+Carrie confirmed she doesn't need to see sent messages. Grove wants the option to check what he previously sent — `include_sent=1` satisfies this without cluttering the default view.
+
 ## Identity chain
 
 ```
@@ -90,15 +126,26 @@ Both must belong to the same `user_id`. `api_key` handles authentication and acc
 
 ### `list_inbox`
 
-Auto-filter based on the calling key's `aiu_id`:
+Auto-filter based on the calling key's `aiu_id` and `inbox_visibility`:
 
+```sql
+-- Build viewable set from inbox_visibility
+-- If any row has viewable_aiu_id IS NULL → no recipient filter (supervisor)
+-- Otherwise → WHERE recipient_aiu IN (viewable set) OR recipient_aiu IS NULL
+
+-- Default query for a scoped agent (e.g., Carrie):
+WHERE (recipient_aiu IN (SELECT viewable_aiu_id FROM inbox_visibility
+                          WHERE viewer_aiu_id = :caller_aiu)
+       OR recipient_aiu IS NULL)
+
+-- With include_sent=1, also show outgoing messages:
+WHERE (recipient_aiu IN (...) OR recipient_aiu IS NULL
+       OR sender_aiu = :caller_aiu)
 ```
-WHERE (recipient_aiu = :caller_aiu OR recipient_aiu IS NULL)
-```
 
-Agent only sees messages addressed to it or broadcast to everyone.
-
-Optional parameter `sender_aiu` for filtering by sender.
+Optional parameters:
+- `sender_aiu` — filter by sender
+- `include_sent` — also return messages where the caller is the sender (default 0)
 
 ### `send_inbox`
 
@@ -115,7 +162,7 @@ Only allowed if the caller's `aiu_id` matches `recipient_aiu` or `recipient_aiu 
 ### Jikan `server.py`
 
 - `send_inbox` gains optional `recipient_aiu` parameter
-- `list_inbox` gains optional `sender_aiu` filter parameter
+- `list_inbox` gains optional `sender_aiu` filter and `include_sent` (bool) parameters
 - Server-side filtering happens at the API level, so MCP just passes params through
 
 ### Per-agent MCP config
@@ -155,20 +202,18 @@ Show sender/recipient names in the message list. Filter controls for "show messa
 
 ## Permissions model
 
-The boolean columns on `agent_inbox_user` define what each actor can access:
+Inbox visibility is controlled by the `inbox_visibility` table (see above). This is data-driven — rules are inspectable via SQL and changeable without code deploys.
 
-| Permission | Controls |
-|-----------|----------|
-| `can_read_inbox` | Can list/see inbox messages |
-| `can_write_inbox` | Can send inbox messages |
-| `can_read_todos` | Can list todos |
-| `can_write_todos` | Can create/complete/update todos |
-| `can_read_sessions` | Can list timer sessions |
-| `can_write_sessions` | Can start/stop timer sessions |
-| `can_read_emotions` | Can query emotion events/vocab |
-| `can_write_emotions` | Can log emotion events, create vocab |
+**What the visibility table controls:**
+- Which actors' incoming messages you can see
+- Supervisors (NULL viewable row) see everything; workers see only their own
+- Broadcast messages (NULL recipient) are always visible to all actors
 
-**Enforcement is incremental.** The columns exist from day one but the API only needs to enforce inbox routing (sender/recipient filtering) initially. Permission checks for todos, sessions, and emotions can be added later without schema changes.
+**What it does NOT control (yet):**
+- Write restrictions (who can send to whom) — currently anyone can send to anyone
+- Todo/session/emotion access — all agents can read all todos for now; scoping these is a separate project
+
+**Enforcement:** The API reads `inbox_visibility` to build the WHERE clause for `list_inbox`. No hardcoded role checks — the table is the single source of truth for inbox access control.
 
 ## Actors for Rob's current setup
 
@@ -188,9 +233,9 @@ The boolean columns on `agent_inbox_user` define what each actor can access:
    - Return 400 with clear error message when limit exceeded (include the limit in the error so callers know)
    - Validate byte length server-side using `strlen()` (not `mb_strlen()` — the DB stores bytes)
    - Add rate limiting or credit cost (1 credit) to `/send` to prevent spam
-1. **Schema**: Create `agent_inbox_user` table, migrate existing keys, add columns to `agent_inbox`
-2. **API**: Auto-populate `sender_aiu` on `send_inbox`, filter `list_inbox` by `recipient_aiu`
-3. **MCP**: Add `recipient_aiu` param to `send_inbox`, `sender_aiu` filter to `list_inbox`
+1. **Schema**: Create `agent_inbox_user` table, `inbox_visibility` table, migrate existing keys, add columns to `agent_inbox`, seed default visibility rows
+2. **API**: Auto-populate `sender_aiu` on `send_inbox`, filter `list_inbox` using `inbox_visibility`, support `include_sent` parameter
+3. **MCP**: Add `recipient_aiu` param to `send_inbox`, `sender_aiu` and `include_sent` params to `list_inbox`
 4. **UI**: Dropdown on API keys page, sender/recipient display on inbox page
 5. **Permissions**: Enforce boolean columns in API endpoints (incremental)
 6. **Reply threading**: Add `parent_message_id` column to `agent_inbox` so replies are linked to their parent message structurally, not just via `re: #123` text prefixes. Currently the text prefix is the only link and can be accidentally deleted.

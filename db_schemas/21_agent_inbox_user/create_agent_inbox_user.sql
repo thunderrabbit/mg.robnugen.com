@@ -6,18 +6,19 @@ CREATE TABLE IF NOT EXISTS agent_inbox_user (
     description   VARCHAR(255) NULL,
     actor_type    ENUM('human', 'agent') NOT NULL DEFAULT 'agent',
     color         CHAR(7) NULL DEFAULT NULL COMMENT 'hex color e.g. #FF6B35 for UI badges',
-    can_read_inbox      TINYINT(1) NOT NULL DEFAULT 1,
-    can_write_inbox     TINYINT(1) NOT NULL DEFAULT 1,
-    can_read_todos      TINYINT(1) NOT NULL DEFAULT 1,
-    can_write_todos     TINYINT(1) NOT NULL DEFAULT 1,
-    can_read_sessions   TINYINT(1) NOT NULL DEFAULT 1,
-    can_write_sessions  TINYINT(1) NOT NULL DEFAULT 1,
-    can_read_emotions   TINYINT(1) NOT NULL DEFAULT 1,
-    can_write_emotions  TINYINT(1) NOT NULL DEFAULT 1,
     created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     UNIQUE KEY uniq_user_name (user_id, name),
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Create the inbox_visibility table
+CREATE TABLE IF NOT EXISTS inbox_visibility (
+    viewer_aiu_id    INT UNSIGNED NOT NULL,
+    viewable_aiu_id  INT UNSIGNED NULL COMMENT 'NULL = can see all actors (supervisor)',
+    UNIQUE KEY uniq_viewer_viewable (viewer_aiu_id, viewable_aiu_id),
+    FOREIGN KEY (viewer_aiu_id) REFERENCES agent_inbox_user(aiu_id) ON DELETE CASCADE,
+    FOREIGN KEY (viewable_aiu_id) REFERENCES agent_inbox_user(aiu_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Seed a default human actor for each existing user (using their username)
@@ -26,6 +27,12 @@ SELECT user_id, username, 'human'
 FROM users
 WHERE user_id IN (SELECT DISTINCT user_id FROM api_keys)
 ON DUPLICATE KEY UPDATE name = name;
+
+-- Give all human actors supervisor visibility (NULL = see all)
+INSERT INTO inbox_visibility (viewer_aiu_id, viewable_aiu_id)
+SELECT aiu_id, NULL
+FROM agent_inbox_user
+WHERE actor_type = 'human';
 
 -- Add aiu_id to api_keys (nullable first so we can backfill)
 ALTER TABLE api_keys
