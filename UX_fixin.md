@@ -26,23 +26,12 @@
 
 ## Medium effort
 
-### 5. Remove delete from default view, add undo
-- **Where**: `templates/inbox/index.tpl.php` lines 238-243
-- **Problem**: Delete is a hard delete with just a `confirm()` dialog. Archive and Delete buttons are adjacent — one misclick and the message is gone forever.
-- **Fix**: Only show Delete on archived messages. Or replace confirm() with a brief "Undo" toast that delays the actual deletion.
-
 ### 6. Fix success flash/reload race
 - **Where**: `templates/inbox/index.tpl.php` lines 87-92
 - **Problem**: After successful send, shows success message for 800ms then fires `window.location.reload()`. On fast connections it's a brief flash; on slow connections the message sits there during page load.
 - **Fix**: Either insert the new message into the DOM without reloading, or reload immediately without the flash.
 
-## Deferred (until agent_inbox_user is built)
-
-### 7. No way to know if a message was meant for a specific agent
-- Covered by `DESIGN_agent_inbox_user.md`. Agents currently read all messages and parse text prefixes like "From Carrie" to skip their own.
-
-### 8. Reply has no parent linkage
-- Reply prefills `re: #123` as text but there's no `parent_id` or threading. If the user edits out the prefix, the relationship is lost. Will matter more once routing is in place.
+## Lower priority
 
 ### 9. Mark-seen returns `{updated: 0}` silently if already seen
 - Agent can't distinguish "already seen" from "message doesn't exist" without a separate lookup. Could return `{updated: 0, reason: "already_seen"}` or similar.
@@ -52,3 +41,8 @@
 
 ### 11. "Show after" date picker has no visible placeholder
 - `placeholder` attribute doesn't display on `<input type="date">` in most browsers. The label "Show after" is clear enough but the empty state looks like a bug rather than "visible immediately."
+
+### 12. Soft delete via `deleted_after` datetime
+- **Where**: `agent_inbox` table, `_inbox.php`, `wwwroot/inbox/index.php`
+- **Problem**: Delete is a hard delete — one misclick and the message is gone forever.
+- **Fix**: Add a `deleted_after` DATETIME column to `agent_inbox`. When the user clicks Delete, set `deleted_after` to NOW() + a grace period (e.g. 5 minutes). A cron job or scheduled query purges rows where `deleted_after < NOW()`. All list queries filter out rows where `deleted_after IS NOT NULL`. This gives a brief window to "undelete" by clearing the field, without changing the current UI flow.
