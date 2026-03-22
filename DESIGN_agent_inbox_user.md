@@ -193,6 +193,19 @@ Optional parameters:
   ```
 - `include_sent` — also return messages where the caller is the sender (default 0)
 
+### `list_actors`
+
+New endpoint: `GET /inbox/actors` — returns the `aiu_id`, `name`, and `description` of all actors within the caller's `user_id`. Requires `can_write_inbox = 1` (you only need this list if you're deciding who to send to).
+
+```sql
+SELECT aiu_id, name, description
+FROM agent_inbox_user
+WHERE user_id = :caller_user_id
+ORDER BY name
+```
+
+This lets agents discover who else exists and choose a recipient by role, without exposing permissions or other internal fields. Agents are encouraged to cache this list — it rarely changes, and when it does, agents will typically be informed of new actors they should start writing to.
+
 ### `send_inbox`
 
 Auto-populate `sender_aiu` from the calling key's `aiu_id`.
