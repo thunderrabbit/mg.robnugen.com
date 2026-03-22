@@ -70,6 +70,7 @@ if ($method === 'GET' && $sub === '/list') {
         'total'    => $total,
         'limit'    => $limit,
         'offset'   => $offset,
+        'has_more' => ($offset + $limit) < $total,
     ]);
 
 } elseif ($method === 'POST' && $sub === '/send') {
