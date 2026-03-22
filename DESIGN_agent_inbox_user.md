@@ -23,6 +23,14 @@ CREATE TABLE agent_inbox_user (
     description   VARCHAR(255) NULL,
     actor_type    ENUM('human', 'agent') NOT NULL DEFAULT 'agent',
     color         CHAR(7) NULL DEFAULT NULL COMMENT 'hex color e.g. #FF6B35 for UI badges, banners, inbox distinction. NULL for human default.',
+    can_read_inbox      TINYINT(1) NOT NULL DEFAULT 0,
+    can_write_inbox     TINYINT(1) NOT NULL DEFAULT 0,
+    can_read_todos      TINYINT(1) NOT NULL DEFAULT 0,
+    can_write_todos     TINYINT(1) NOT NULL DEFAULT 0,
+    can_read_sessions   TINYINT(1) NOT NULL DEFAULT 0,
+    can_write_sessions  TINYINT(1) NOT NULL DEFAULT 0,
+    can_read_emotions   TINYINT(1) NOT NULL DEFAULT 0,
+    can_write_emotions  TINYINT(1) NOT NULL DEFAULT 0,
     created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     UNIQUE KEY uniq_user_name (user_id, name),
@@ -55,8 +63,9 @@ When this schema is applied:
 1. For each distinct `user_id` in `api_keys`, create an `agent_inbox_user` row:
    - `name` = username from `users` table
    - `actor_type` = 'human'
-   - All permissions = 1
+   - All 8 boolean permissions = 1 (full access)
 2. Update all existing `api_keys` rows to point to the new human `aiu_id`
+3. Create agent actors (Carrie, Boss Claude, etc.) and reassign their API keys from the default human actor to the correct agent actor via the UI or PHPMyAdmin
 
 This ensures no nullable `aiu_id` — every key has an identity from day one.
 
@@ -238,18 +247,49 @@ Show sender/recipient names in the message list. Filter controls for "show messa
 
 ## Permissions model
 
-Inbox visibility is controlled by the `inbox_visibility` table (see above). This is data-driven — rules are inspectable via SQL and changeable without code deploys.
+Two layers of access control work together:
 
-**What the visibility table controls:**
-- Which actors' incoming messages you can see
+### Layer 1: Boolean permissions on `agent_inbox_user`
+
+Gate access at the top of each API handler file. Request is blocked before any queries run.
+
+```php
+// Permission: agent_inbox_user.can_read_todos
+// Permission: agent_inbox_user.can_write_todos
+```
+
+| Permission | Controls |
+|-----------|----------|
+| `can_read_inbox` | GET /list, PATCH /mark-seen, PATCH /mark-seen-bulk, PATCH /mark-done, PATCH /archive |
+| `can_write_inbox` | POST /send, PATCH /edit, DELETE /delete |
+| `can_read_todos` | All GET endpoints in _todos.php |
+| `can_write_todos` | All POST/PATCH/DELETE endpoints in _todos.php |
+| `can_read_sessions` | All GET endpoints in _sessions.php |
+| `can_write_sessions` | All POST/PATCH/DELETE endpoints in _sessions.php |
+| `can_read_emotions` | All GET endpoints in _emotions.php |
+| `can_write_emotions` | All POST/PATCH/DELETE endpoints in _emotions.php |
+
+Defaults: all 0 (deny). Migration sets all 1 for human actors. Agent permissions chosen at creation time.
+
+**Enforcement:** `index.php` fetches the actor row via `api_keys.aiu_id` once per request. Each handler file checks the relevant boolean(s) at the top before any queries run.
+
+```sql
+-- Runs once per request in index.php:
+SELECT a.* FROM agent_inbox_user a
+JOIN api_keys k ON k.aiu_id = a.aiu_id
+WHERE k.api_key_id = ?
+```
+
+### Layer 2: `inbox_visibility` table
+
+Controls *which* messages you can see within the inbox (only applies when `can_read_inbox = 1`).
+
 - Supervisors (NULL viewable row) see everything; workers see only their own
 - Broadcast messages (NULL recipient) are always visible to all actors
+- The API reads `inbox_visibility` to build the WHERE clause — no hardcoded role checks
 
-**What it does NOT control (yet):**
-- Write restrictions (who can send to whom) — currently anyone can send to anyone
-- Todo/session/emotion access — all agents can read all todos for now; scoping these is a separate project
-
-**Enforcement:** The API reads `inbox_visibility` to build the WHERE clause for `list_inbox`. No hardcoded role checks — the table is the single source of truth for inbox access control.
+**What is NOT yet controlled:**
+- Write restrictions (who can send to whom) — currently anyone with `can_write_inbox` can send to anyone
 
 ## Actors for Rob's current setup
 

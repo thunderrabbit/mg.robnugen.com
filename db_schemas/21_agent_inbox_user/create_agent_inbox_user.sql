@@ -6,6 +6,14 @@ CREATE TABLE IF NOT EXISTS agent_inbox_user (
     description   VARCHAR(255) NULL,
     actor_type    ENUM('human', 'agent') NOT NULL DEFAULT 'agent',
     color         CHAR(7) NULL DEFAULT NULL COMMENT 'hex color e.g. #FF6B35 for UI badges',
+    can_read_inbox      TINYINT(1) NOT NULL DEFAULT 0,
+    can_write_inbox     TINYINT(1) NOT NULL DEFAULT 0,
+    can_read_todos      TINYINT(1) NOT NULL DEFAULT 0,
+    can_write_todos     TINYINT(1) NOT NULL DEFAULT 0,
+    can_read_sessions   TINYINT(1) NOT NULL DEFAULT 0,
+    can_write_sessions  TINYINT(1) NOT NULL DEFAULT 0,
+    can_read_emotions   TINYINT(1) NOT NULL DEFAULT 0,
+    can_write_emotions  TINYINT(1) NOT NULL DEFAULT 0,
     created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     UNIQUE KEY uniq_user_name (user_id, name),
@@ -21,9 +29,11 @@ CREATE TABLE IF NOT EXISTS inbox_visibility (
     FOREIGN KEY (viewable_aiu_id) REFERENCES agent_inbox_user(aiu_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Seed a default human actor for each existing user (using their username)
-INSERT INTO agent_inbox_user (user_id, name, actor_type)
-SELECT user_id, username, 'human'
+-- Seed a default human actor for each existing user (all permissions granted)
+INSERT INTO agent_inbox_user (user_id, name, actor_type,
+    can_read_inbox, can_write_inbox, can_read_todos, can_write_todos,
+    can_read_sessions, can_write_sessions, can_read_emotions, can_write_emotions)
+SELECT user_id, username, 'human', 1, 1, 1, 1, 1, 1, 1, 1
 FROM users
 WHERE user_id IN (SELECT DISTINCT user_id FROM api_keys)
 ON DUPLICATE KEY UPDATE name = name;
