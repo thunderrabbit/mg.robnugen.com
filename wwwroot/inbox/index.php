@@ -71,11 +71,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
         $priority   = trim($_POST['priority'] ?? '');
         $show_date  = trim($_POST['show_date'] ?? '');
         $show_date  = $show_date !== '' ? $show_date : null;
-        if ($message_id > 0 && $message !== '') {
+        $is_ajax = !empty($_POST['ajax']);
+
+        if ($message_id <= 0 || $message === '') {
+            if ($is_ajax) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'error' => 'Message ID and message text are required.']);
+                exit;
+            }
+            $error_message = 'Message ID and message text are required.';
+        } else {
             $stmt = $mla_database->prepare(
                 "UPDATE agent_inbox SET message = ?, priority = ?, show_date = ? WHERE message_id = ? AND user_id = ?"
             );
             $stmt->execute([$message, $priority, $show_date, $message_id, $user_id]);
+
+            if ($is_ajax) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => true, 'message_id' => $message_id]);
+                exit;
+            }
             $success_message = 'Message updated.';
         }
     } elseif ($_POST['inbox_action'] === 'archive') {

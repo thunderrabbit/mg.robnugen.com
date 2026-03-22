@@ -14,7 +14,7 @@
 
 ## Low effort
 
-### 3. Make edit form AJAX like send/archive
+### ~~3. Make edit form AJAX like send/archive~~ FIXED 2026-03-22
 - **Where**: `templates/inbox/index.tpl.php` lines 253-270
 - **Problem**: Send and archive use AJAX (smooth, no reload). Edit does a full page POST, causing reload and scroll-to-top. Editing a message near the bottom of the list is jarring.
 - **Fix**: Convert edit form to fetch() with inline status, same pattern as sendReply().
