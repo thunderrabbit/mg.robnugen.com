@@ -41,6 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
         $priority  = trim($_POST['priority'] ?? 'normal');
         $show_date = trim($_POST['show_date'] ?? '');
         $show_date = $show_date !== '' ? $show_date : null;
+        $sender_timezone = trim($_POST['sender_timezone'] ?? '');
 
         $is_ajax = !empty($_POST['ajax']);
 
@@ -53,9 +54,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
             $error_message = 'Message cannot be empty.';
         } else {
             $stmt = $mla_database->prepare(
-                "INSERT INTO agent_inbox (user_id, message, priority, show_date) VALUES (?, ?, ?, ?)"
+                "INSERT INTO agent_inbox (user_id, message, priority, show_date, sender_timezone) VALUES (?, ?, ?, ?, ?)"
             );
-            $stmt->execute([$user_id, $message, $priority, $show_date]);
+            $stmt->execute([$user_id, $message, $priority, $show_date, $sender_timezone ?: null]);
             $new_message_id = $mla_database->lastInsertId();
 
             if ($is_ajax) {
@@ -154,11 +155,11 @@ $filter_sql = implode(' ', $filters);
 $order_clauses = match($sort_by) {
     'id' => "message_id $sort_dir",
     'priority' => ($sort_dir === 'ASC'
-        ? "FIELD(priority, 'low', 'normal', 'high'), created_at DESC"
-        : "FIELD(priority, 'high', 'normal', 'low'), created_at DESC"),
-    'date' => "created_at $sort_dir",
-    'status' => "archived_at IS NULL DESC, done_at IS NULL DESC, seen_at IS NULL DESC, created_at DESC",
-    default => "archived_at IS NULL DESC, done_at IS NULL DESC, FIELD(priority, 'high', 'normal', 'low'), created_at DESC",
+        ? "FIELD(priority, 'low', 'normal', 'high'), created_at_utc DESC"
+        : "FIELD(priority, 'high', 'normal', 'low'), created_at_utc DESC"),
+    'date' => "created_at_utc $sort_dir",
+    'status' => "archived_at IS NULL DESC, done_at IS NULL DESC, seen_at IS NULL DESC, created_at_utc DESC",
+    default => "archived_at IS NULL DESC, done_at IS NULL DESC, FIELD(priority, 'high', 'normal', 'low'), created_at_utc DESC",
 };
 
 $count_stmt = $mla_database->prepare(
@@ -171,7 +172,7 @@ $current_page = min($current_page, $total_pages);
 $offset = ($current_page - 1) * $per_page;
 
 $stmt = $mla_database->prepare(
-    "SELECT message_id, message, priority, show_date, seen_at, done_at, archived_at, response, created_at, updated_at
+    "SELECT message_id, message, priority, show_date, sender_timezone, seen_at, done_at, archived_at, response, created_at_utc, updated_at_utc
      FROM agent_inbox
      WHERE user_id = ? {$filter_sql}
      ORDER BY {$order_clauses}

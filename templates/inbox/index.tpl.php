@@ -16,6 +16,7 @@
             <input type="hidden" id="csrf_token" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
             <input type="hidden" name="inbox_action" value="send">
             <input type="hidden" name="ajax" value="1">
+            <input type="hidden" id="sender_timezone" name="sender_timezone" value="">
 
             <div class="form-group">
                 <label for="message">Message</label>
@@ -44,6 +45,9 @@
     </div>
 
     <script>
+    // Detect browser timezone and populate hidden field
+    document.getElementById('sender_timezone').value = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
     document.getElementById('send-form').addEventListener('submit', async function(e) {
         e.preventDefault();
         const form = this;
@@ -220,7 +224,7 @@
                             <?php if ($msg['show_date']): ?>
                                 · <span class="inbox-show-date" title="Deferred until this date">Show: <span class="utc-time" data-utc="<?= $msg['show_date'] ?>"></span></span>
                             <?php endif; ?>
-                            · <span class="inbox-date"><span class="utc-time" data-utc="<?= $msg['created_at'] ?>"></span></span>
+                            · <span class="inbox-date"><span class="utc-time" data-utc="<?= $msg['created_at_utc'] ?>"></span></span>
                         </span>
                     </div>
                     <div class="inbox-message"><?= nl2br(htmlspecialchars($msg['message'])) ?></div>
@@ -400,7 +404,8 @@ function sendReply(parentId) {
         body: 'csrf_token=' + encodeURIComponent('<?= htmlspecialchars($csrf_token) ?>') +
               '&inbox_action=send&ajax=1' +
               '&message=' + encodeURIComponent(message) +
-              '&priority=normal'
+              '&priority=normal' +
+              '&sender_timezone=' + encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone)
     }).then(function(res) { return res.json(); })
     .then(function(data) {
         if (data.success) {
