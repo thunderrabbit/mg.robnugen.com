@@ -220,23 +220,28 @@ Current IMPLEMENTATION.md has schema 21 (agent_inbox_user) as step 1. This timez
 - Run BEFORE agent_inbox_user because both alter `agent_inbox`
 - The agent_inbox_user migration's `ALTER TABLE agent_inbox ADD COLUMN sender_aiu...` should run after the timezone columns exist
 
-## Commits
+## Commits — Status
 
-1. `Base.php`: change session timezone to `+00:00` (deploy simultaneously with #2)
-2. Backfill migration: `CONVERT_TZ` all `_utc` columns across all tables from Pacific to UTC
-3. Schema migration: add `sender_timezone` to `agent_inbox`, rename `created_at`/`updated_at` to `_utc`
-4. PHP: `_inbox.php` send + list changes for `sender_timezone`
-5. PHP: `wwwroot/inbox/index.php` web form + JS timezone detection
-6. Jikan: `send_inbox` timezone parameter
-7. OpenBrain: seed "Rob's current timezone" entry
-8. Carrie prompt: use `created_at_utc` + `sender_timezone` for journal dates
-9. Update IMPLEMENTATION.md ordering
+### Done (2026-03-24)
 
-**Critical:** Steps 1 and 2 must be deployed together. `Base.php` goes live → immediately run the backfill SQL. Any rows written between deploy and backfill will be UTC (correct); existing rows are still Pacific until backfilled.
+- [x] **1. `Base.php`**: changed session timezone to `+00:00` (commit af49937)
+- [x] **2. Backfill**: `DATE_ADD(..., INTERVAL 7 HOUR)` on all tables — agent_inbox, todos, todo_logs, activity_kai, activities, activity_session_keys, interaction_sessions, interaction_events, api_keys, omg_rob_this_happened. Run manually via PHPMyAdmin.
+- [x] **Verified**: new inbox message #247 stored as `11:59 UTC` (correct). Old message #245 shifted from `03:05` Pacific to `10:05` UTC (correct).
 
-## Testing
+### Next session
 
-- [Manual] Send inbox message via web, verify `sender_timezone` and `created_at_utc` are stored correctly
-- [Manual] Send via Jikan, verify same
-- [Manual] Verify Carrie creates a journal entry with the correct date after the changes
-- [Manual] Check existing messages still display correctly (legacy NULL `sender_timezone` falls back to OpenBrain timezone)
+- [ ] **3. Schema migration**: add `sender_timezone VARCHAR(64)` to `agent_inbox`, rename `created_at`/`updated_at` to `_utc`
+- [ ] **4. PHP**: `_inbox.php` POST /send — accept `sender_timezone`, include in INSERT
+- [ ] **5. PHP**: `_inbox.php` GET /list — include `sender_timezone` in SELECT output
+- [ ] **6. PHP**: `wwwroot/inbox/index.php` — add browser timezone detection via JS, include in form POST
+- [ ] **7. Jikan**: `send_inbox` — add optional `sender_timezone` parameter
+- [ ] **8. OpenBrain**: seed "Rob's current timezone: Australia/Adelaide" entry
+- [ ] **9. Carrie prompt**: use `created_at_utc` + `sender_timezone` for journal dates
+- [ ] **10. Update IMPLEMENTATION.md** ordering (timezone fix before agent_inbox_user)
+
+### Testing (after steps 3-9)
+
+- [ ] [Manual] Send inbox message via web, verify `sender_timezone` and `created_at_utc` are stored correctly
+- [ ] [Manual] Send via Jikan, verify same
+- [ ] [Manual] Verify Carrie creates a journal entry with the correct date after the changes
+- [ ] [Manual] Check existing messages still display correctly (legacy NULL `sender_timezone` falls back to OpenBrain timezone)
