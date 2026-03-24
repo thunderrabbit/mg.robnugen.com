@@ -80,6 +80,13 @@ if ($method === 'GET' && $sub === '/list') {
     $priority  = trim($input['priority'] ?? 'normal');
     $show_date = isset($input['show_date']) ? trim($input['show_date']) : null;
     $sender_timezone = trim($input['sender_timezone'] ?? '');
+    // Validate IANA timezone — stored for Carrie (and future agents) to determine
+    // the sender's local date when processing journal entries via the API.
+    // Prepared statement prevents SQL injection, but garbage strings would break
+    // timezone conversion later, so we silently discard invalid values.
+    if ($sender_timezone && !in_array($sender_timezone, \DateTimeZone::listIdentifiers())) {
+        $sender_timezone = '';
+    }
 
     if ($message === '') {
         http_response_code(400);

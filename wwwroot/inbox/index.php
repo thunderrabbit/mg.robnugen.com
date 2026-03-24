@@ -42,6 +42,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
         $show_date = trim($_POST['show_date'] ?? '');
         $show_date = $show_date !== '' ? $show_date : null;
         $sender_timezone = trim($_POST['sender_timezone'] ?? '');
+        // Validate IANA timezone (see _inbox.php for rationale)
+        if ($sender_timezone && !in_array($sender_timezone, \DateTimeZone::listIdentifiers())) {
+            $sender_timezone = '';
+        }
 
         $is_ajax = !empty($_POST['ajax']);
 
