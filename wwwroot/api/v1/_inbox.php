@@ -49,10 +49,10 @@ if ($method === 'GET' && $sub === '/list') {
     $where_sql = implode(' AND ', $where);
 
     $stmt = $pdo->prepare(
-        "SELECT message_id, message, priority, show_date, seen_at, done_at, archived_at, response, created_at, updated_at
+        "SELECT message_id, message, priority, show_date, sender_timezone, seen_at, done_at, archived_at, response, created_at_utc, updated_at_utc
          FROM agent_inbox i
          WHERE {$where_sql}
-         ORDER BY FIELD(priority, 'high', 'normal', 'low'), created_at DESC
+         ORDER BY FIELD(priority, 'high', 'normal', 'low'), created_at_utc DESC
          LIMIT ? OFFSET ?"
     );
     $params[] = $limit;
@@ -79,6 +79,7 @@ if ($method === 'GET' && $sub === '/list') {
     $message   = trim($input['message'] ?? '');
     $priority  = trim($input['priority'] ?? 'normal');
     $show_date = isset($input['show_date']) ? trim($input['show_date']) : null;
+    $sender_timezone = trim($input['sender_timezone'] ?? '');
 
     if ($message === '') {
         http_response_code(400);
@@ -102,10 +103,10 @@ if ($method === 'GET' && $sub === '/list') {
     }
 
     $stmt = $pdo->prepare(
-        "INSERT INTO agent_inbox (user_id, message, priority, show_date)
-         VALUES (?, ?, ?, ?)"
+        "INSERT INTO agent_inbox (user_id, message, priority, show_date, sender_timezone)
+         VALUES (?, ?, ?, ?, ?)"
     );
-    $stmt->execute([$auth_user_id, $message, $priority, $show_date]);
+    $stmt->execute([$auth_user_id, $message, $priority, $show_date, $sender_timezone ?: null]);
     $message_id = (int) $pdo->lastInsertId();
 
     http_response_code(201);
