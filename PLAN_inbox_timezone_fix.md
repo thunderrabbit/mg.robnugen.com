@@ -15,38 +15,124 @@
 
 ## Root cause
 
-`Base.php` sets `SET time_zone` to the connecting PHP process's local timezone (DreamHost = Pacific). So `CURRENT_TIMESTAMP` stores Pacific time. The column has no indication of this. Carrie assumes the times are in her timezone (Adelaide).
+`Base.php` sets `SET time_zone` to the connecting PHP process's local timezone (DreamHost = Pacific). So `CURRENT_TIMESTAMP` and `NOW()` store Pacific time. Every `_utc` column across the whole app (todos, sessions, etc.) is actually Pacific despite the name. Carrie assumes the times are in her timezone (Adelaide).
 
-## Decision: follow todo_logs pattern
+## Decision: Option D — fix at the source + backfill everything
 
-Use a simple `VARCHAR(64)` for timezone (IANA string), matching `todo_logs`. Simpler than the `timezones` table FK used by sessions — no JOIN needed, and the timezone string is directly usable by PHP's `DateTimeZone`.
+### Step 0: Fix `Base.php` to use UTC (one-line change)
 
-## Schema migration (22_inbox_timezone)
+Change `classes/Database/Base.php` line ~35 from:
 
-**Must run BEFORE schema 21 (agent_inbox_user).** Update the IMPLEMENTATION.md to reflect this ordering.
-
-```sql
--- Step 1: Add timezone column and UTC timestamps
-ALTER TABLE agent_inbox
-    ADD COLUMN sender_timezone VARCHAR(64) NULL AFTER priority,
-    ADD COLUMN created_at_utc DATETIME(6) NULL AFTER created_at,
-    ADD COLUMN updated_at_utc DATETIME(6) NULL AFTER updated_at;
-
--- Step 2: Backfill UTC values from existing Pacific timestamps
--- DreamHost MySQL is UTC-7 (PDT). Convert existing values:
-UPDATE agent_inbox
-SET created_at_utc = CONVERT_TZ(created_at, '-07:00', '+00:00'),
-    updated_at_utc = CONVERT_TZ(updated_at, '-07:00', '+00:00');
-
--- Step 3: Make UTC columns NOT NULL with defaults
-ALTER TABLE agent_inbox
-    MODIFY COLUMN created_at_utc DATETIME(6) NOT NULL DEFAULT (UTC_TIMESTAMP(6)),
-    MODIFY COLUMN updated_at_utc DATETIME(6) NOT NULL DEFAULT (UTC_TIMESTAMP(6)) ON UPDATE CURRENT_TIMESTAMP(6);
+```php
+$offset = sprintf('%+d:%02d', $hrs*$sgn, $mins);
 ```
 
-**Note:** Step 2 uses `-07:00` (PDT). Verify this is correct at migration time — DreamHost might be PST (`-08:00`) depending on daylight saving. The query `SELECT NOW(), UTC_TIMESTAMP()` at migration time will confirm.
+to:
 
-**Note:** Keep the old `created_at` and `updated_at` columns for now — don't drop them until everything is verified working. They can be removed in a later migration.
+```php
+$offset = '+00:00';  // Always UTC — columns named _utc should contain UTC
+```
+
+(Do the same on the retry block ~line 51.)
+
+After this change, all `CURRENT_TIMESTAMP`, `NOW()`, and `DEFAULT CURRENT_TIMESTAMP` calls store UTC. Every new row in every table is correct from this point forward.
+
+**Audit of `NOW()` usage** — all safe to switch:
+
+| File | Usage | Impact |
+|------|-------|--------|
+| `_inbox.php` | `seen_at`, `done_at`, `archived_at` = NOW() | Self-consistent — all shift together |
+| `inbox/index.php` | `show_date <= NOW()` | DATE comparison, off by hours won't matter |
+| `_stats.php` | `DATE_SUB(NOW(), 90 DAY)` | Negligible boundary shift |
+| `Ledger.php` | `last_event_time` write + gap check | Self-consistent |
+| `ApiKey.php` | `last_used = NOW()` | Cosmetic |
+| `OmgAlerts.php` | `acknowledged_at = NOW()` | Cosmetic |
+
+No `CURRENT_TIMESTAMP` or `CURDATE()` in PHP code — only in schema DEFAULTs.
+
+### Step 1: Backfill all existing `_utc` columns across all tables
+
+One migration that converts every Pacific timestamp to UTC. This covers the whole app, not just inbox.
+
+**Verify offset at migration time** — run in PHPMyAdmin immediately before:
+
+```sql
+SELECT NOW(), UTC_TIMESTAMP(), TIMEDIFF(NOW(), UTC_TIMESTAMP()) AS offset;
+```
+
+Confirmed as `-07:00` (PDT) on 2026-03-24. Use this value in the migration. If running during PST, it will be `-08:00`.
+
+```sql
+-- Backfill agent_inbox
+UPDATE agent_inbox
+SET created_at = CONVERT_TZ(created_at, '-07:00', '+00:00'),
+    updated_at = CONVERT_TZ(updated_at, '-07:00', '+00:00');
+
+-- Backfill agent_inbox status timestamps
+UPDATE agent_inbox SET seen_at = CONVERT_TZ(seen_at, '-07:00', '+00:00') WHERE seen_at IS NOT NULL;
+UPDATE agent_inbox SET done_at = CONVERT_TZ(done_at, '-07:00', '+00:00') WHERE done_at IS NOT NULL;
+UPDATE agent_inbox SET archived_at = CONVERT_TZ(archived_at, '-07:00', '+00:00') WHERE archived_at IS NOT NULL;
+
+-- Backfill todos
+UPDATE todos
+SET created_at_utc = CONVERT_TZ(created_at_utc, '-07:00', '+00:00'),
+    updated_at_utc = CONVERT_TZ(updated_at_utc, '-07:00', '+00:00');
+
+-- Backfill todo_logs
+UPDATE todo_logs
+SET created_at_utc = CONVERT_TZ(created_at_utc, '-07:00', '+00:00'),
+    updated_at_utc = CONVERT_TZ(updated_at_utc, '-07:00', '+00:00');
+
+-- Backfill activity_kai (sessions)
+UPDATE activity_kai
+SET created_at_utc = CONVERT_TZ(created_at_utc, '-07:00', '+00:00'),
+    updated_at_utc = CONVERT_TZ(updated_at_utc, '-07:00', '+00:00');
+
+-- Backfill activities
+UPDATE activities
+SET created_at_utc = CONVERT_TZ(created_at_utc, '-07:00', '+00:00');
+
+-- Backfill activity_session_keys
+UPDATE activity_session_keys
+SET created_at_utc = CONVERT_TZ(created_at_utc, '-07:00', '+00:00');
+
+-- Backfill emotional ledger
+UPDATE interaction_sessions
+SET last_event_time = CONVERT_TZ(last_event_time, '-07:00', '+00:00');
+
+UPDATE interaction_events
+SET event_timestamp = CONVERT_TZ(event_timestamp, '-07:00', '+00:00');
+
+-- Backfill api_keys
+UPDATE api_keys SET last_used = CONVERT_TZ(last_used, '-07:00', '+00:00') WHERE last_used IS NOT NULL;
+
+-- Backfill omg_alerts
+UPDATE omg_rob_this_happened
+SET acknowledged_at = CONVERT_TZ(acknowledged_at, '-07:00', '+00:00') WHERE acknowledged_at IS NOT NULL;
+```
+
+**Important:** Run the `Base.php` change and this migration at the same time. If you deploy `Base.php` first without backfilling, new rows will be UTC while old rows are Pacific. If you backfill first without deploying `Base.php`, old rows become UTC but new rows are still Pacific.
+
+### Step 2: Add `sender_timezone` and rename inbox columns
+
+After the UTC fix is in place, this is the inbox-specific work:
+
+```sql
+-- Add sender_timezone
+ALTER TABLE agent_inbox
+    ADD COLUMN sender_timezone VARCHAR(64) NULL AFTER priority;
+
+-- Rename columns to reflect they are now truly UTC
+ALTER TABLE agent_inbox
+    CHANGE COLUMN created_at created_at_utc DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    CHANGE COLUMN updated_at updated_at_utc DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6);
+```
+
+Now `CURRENT_TIMESTAMP` stores UTC (because of the `Base.php` change), and the column names are truthful.
+
+## Decision: follow todo_logs pattern for sender_timezone
+
+Use a simple `VARCHAR(64)` for timezone (IANA string), matching `todo_logs`. Simpler than the `timezones` table FK used by sessions — no JOIN needed, and the timezone string is directly usable by PHP's `DateTimeZone`.
 
 ## Verify timezone offset at migration time
 
@@ -62,22 +148,14 @@ Use that offset value in Step 2 instead of hardcoding `-07:00`.
 
 ### `_inbox.php` — POST /send
 
-Currently:
-```php
-$stmt = $pdo->prepare(
-    "INSERT INTO agent_inbox (user_id, message, priority, show_date)
-     VALUES (?, ?, ?, ?)"
-);
-$stmt->execute([$auth_user_id, $message, $priority, $show_date]);
-```
+Add `sender_timezone` to the INSERT (timestamps are now correct automatically via `Base.php` UTC fix):
 
-Change to:
 ```php
 $sender_timezone = trim($input['sender_timezone'] ?? '');
 
 $stmt = $pdo->prepare(
-    "INSERT INTO agent_inbox (user_id, message, priority, show_date, sender_timezone, created_at_utc, updated_at_utc)
-     VALUES (?, ?, ?, ?, ?, UTC_TIMESTAMP(6), UTC_TIMESTAMP(6))"
+    "INSERT INTO agent_inbox (user_id, message, priority, show_date, sender_timezone)
+     VALUES (?, ?, ?, ?, ?)"
 );
 $stmt->execute([$auth_user_id, $message, $priority, $show_date, $sender_timezone ?: null]);
 ```
@@ -87,7 +165,6 @@ $stmt->execute([$auth_user_id, $message, $priority, $show_date, $sender_timezone
 Add browser timezone detection to the send form (same pattern as `dashboard.js`):
 
 ```javascript
-// Add to the send form JS
 var senderTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 ```
 
@@ -95,7 +172,7 @@ Include `sender_timezone` in the form POST data.
 
 ### `_inbox.php` — GET /list
 
-Include `sender_timezone` and `created_at_utc` in the SELECT output so Carrie can read them.
+Include `sender_timezone` in the SELECT output so Carrie can read it. Column is already renamed to `created_at_utc` by the migration.
 
 ## Jikan changes
 
@@ -145,13 +222,17 @@ Current IMPLEMENTATION.md has schema 21 (agent_inbox_user) as step 1. This timez
 
 ## Commits
 
-1. Schema migration file (`db_schemas/22_inbox_timezone/`)
-2. PHP: `_inbox.php` send + list changes
-3. PHP: `wwwroot/inbox/index.php` web form + JS timezone detection
-4. Jikan: `send_inbox` timezone parameter
-5. OpenBrain: seed "Rob's current timezone" entry
-6. Carrie prompt: use `created_at_utc` + `sender_timezone` for journal dates
-7. Update IMPLEMENTATION.md ordering
+1. `Base.php`: change session timezone to `+00:00` (deploy simultaneously with #2)
+2. Backfill migration: `CONVERT_TZ` all `_utc` columns across all tables from Pacific to UTC
+3. Schema migration: add `sender_timezone` to `agent_inbox`, rename `created_at`/`updated_at` to `_utc`
+4. PHP: `_inbox.php` send + list changes for `sender_timezone`
+5. PHP: `wwwroot/inbox/index.php` web form + JS timezone detection
+6. Jikan: `send_inbox` timezone parameter
+7. OpenBrain: seed "Rob's current timezone" entry
+8. Carrie prompt: use `created_at_utc` + `sender_timezone` for journal dates
+9. Update IMPLEMENTATION.md ordering
+
+**Critical:** Steps 1 and 2 must be deployed together. `Base.php` goes live → immediately run the backfill SQL. Any rows written between deploy and backfill will be UTC (correct); existing rows are still Pacific until backfilled.
 
 ## Testing
 
