@@ -8,6 +8,23 @@ Tests marked [Unit] are Codeception unit tests. Tests marked [WD] are Webdriver 
 
 ---
 
+## Prerequisite: Timezone Fix (DONE — deployed on `master`)
+
+Completed 2026-03-24/25. See `PLAN_inbox_timezone_fix.md` for details.
+
+- [x] `Base.php` changed to always use UTC for DB session timezone
+- [x] All existing timestamps backfilled from Pacific to UTC across all tables
+- [x] Schema 21 (`db_schemas/21_inbox_timezone/`): added `sender_timezone VARCHAR(64)` to `agent_inbox`, renamed `created_at`/`updated_at` to `_utc`
+- [x] PHP: `_inbox.php` and `wwwroot/inbox/index.php` accept and validate `sender_timezone`
+- [x] JS: browser timezone auto-detected via `Intl.DateTimeFormat().resolvedOptions().timeZone`
+- [x] Jikan: `send_inbox` auto-detects `sender_timezone`
+- [x] OpenBrain: seeded "Rob's current timezone: Australia/Adelaide"
+- [x] Carrie prompt: uses `created_at_utc` + `sender_timezone` for journal dates
+
+**Impact on this plan:** Schema 21 is now taken by the timezone fix. The `agent_inbox_user` schema must use **22** (or higher). Session B references below are updated accordingly.
+
+---
+
 ## Session A: Security Hardening
 
 Independent of identity work. Can deploy immediately.
@@ -30,7 +47,7 @@ Independent of identity work. Can deploy immediately.
 
 ## Session B: Schema + Migration
 
-- [ ] **B1.** Review `db_schemas/21_agent_inbox_user/create_agent_inbox_user.sql` one final time against design doc
+- [ ] **B1.** Review `db_schemas/22_agent_inbox_user/create_agent_inbox_user.sql` one final time against design doc (renumbered from 21 — schema 21 is now the timezone fix)
 - [ ] **B2.** Run migration via `/admin/migrate_tables.php`
 - [ ] **B3.** [Manual] Verify in PHPMyAdmin:
   - `agent_inbox_user` table exists with correct columns and defaults (booleans = 0)
@@ -148,7 +165,7 @@ Independent of identity work. Can deploy immediately.
 
 ## Session L: Reply Threading (optional, lower priority)
 
-- [ ] **L1.** Add `parent_message_id` column to `agent_inbox` (new schema 22)
+- [ ] **L1.** Add `parent_message_id` column to `agent_inbox` (new schema 23)
 - [ ] **L2.** Update `POST /send` to accept optional `parent_message_id`
 - [ ] **L3.** Update reply JS to include `parent_message_id` when sending from the reply form
 - [ ] **L4.** Update MCP `send_inbox` to accept `parent_message_id`
