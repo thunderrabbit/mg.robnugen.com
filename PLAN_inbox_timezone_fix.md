@@ -228,20 +228,22 @@ Current IMPLEMENTATION.md has schema 21 (agent_inbox_user) as step 1. This timez
 - [x] **2. Backfill**: `DATE_ADD(..., INTERVAL 7 HOUR)` on all tables — agent_inbox, todos, todo_logs, activity_kai, activities, activity_session_keys, interaction_sessions, interaction_events, api_keys, omg_rob_this_happened. Run manually via PHPMyAdmin.
 - [x] **Verified**: new inbox message #247 stored as `11:59 UTC` (correct). Old message #245 shifted from `03:05` Pacific to `10:05` UTC (correct).
 
-### Next session
+### Done (2026-03-25)
 
-- [ ] **3. Schema migration**: add `sender_timezone VARCHAR(64)` to `agent_inbox`, rename `created_at`/`updated_at` to `_utc`
-- [ ] **4. PHP**: `_inbox.php` POST /send — accept `sender_timezone`, include in INSERT
-- [ ] **5. PHP**: `_inbox.php` GET /list — include `sender_timezone` in SELECT output
-- [ ] **6. PHP**: `wwwroot/inbox/index.php` — add browser timezone detection via JS, include in form POST
-- [ ] **7. Jikan**: `send_inbox` — add optional `sender_timezone` parameter
-- [ ] **8. OpenBrain**: seed "Rob's current timezone: Australia/Adelaide" entry
-- [ ] **9. Carrie prompt**: use `created_at_utc` + `sender_timezone` for journal dates
-- [ ] **10. Update IMPLEMENTATION.md** ordering (timezone fix before agent_inbox_user)
+- [x] **3. Schema migration**: deployed schema 21 — added `sender_timezone VARCHAR(64)`, renamed `created_at`/`updated_at` to `_utc`
+- [x] **4. PHP**: `_inbox.php` POST /send — accepts `sender_timezone`, validates against IANA list
+- [x] **5. PHP**: `_inbox.php` GET /list — includes `sender_timezone` in SELECT output
+- [x] **6. PHP**: `wwwroot/inbox/index.php` — browser timezone detection via JS, included in form POST and reply
+- [x] **7. Jikan**: `send_inbox` — `sender_timezone` param with auto-detection fallback
+- [x] **8. OpenBrain**: seeded "Rob's current timezone: Australia/Adelaide" (thought #123)
+- [x] **9. Carrie prompt**: uses `created_at_utc` + `sender_timezone` for journal dates
+- [x] **10. IMPLEMENTATION.md**: updated on `agent_inbox_master` branch — schema renumbered to 22, prerequisite section added
 
-### Testing (after steps 3-9)
+### Testing
 
-- [ ] [Manual] Send inbox message via web, verify `sender_timezone` and `created_at_utc` are stored correctly
+- [x] [Manual] Inbox message #254 sent via web: `sender_timezone = "Australia/Adelaide"`, `created_at_utc = 08:12 UTC` matches 18:42 ACDT
 - [ ] [Manual] Send via Jikan, verify same
 - [ ] [Manual] Verify Carrie creates a journal entry with the correct date after the changes
-- [ ] [Manual] Check existing messages still display correctly (legacy NULL `sender_timezone` falls back to OpenBrain timezone)
+- [x] [Manual] Legacy messages display correctly with `sender_timezone = NULL`
+
+## Status: COMPLETE (pending Carrie and Jikan verification)
