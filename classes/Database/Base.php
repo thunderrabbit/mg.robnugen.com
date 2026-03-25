@@ -32,7 +32,7 @@ class Base{
                 $mins = abs($mins);
                 $hrs = floor($mins / 60);
                 $mins -= $hrs * 60;
-                $offset = sprintf('%+d:%02d', $hrs*$sgn, $mins);
+                $offset = '+00:00'; // Always UTC — was: sprintf('%+d:%02d', $hrs*$sgn, $mins);
                 $stmt = self::$pdo->prepare("SET time_zone = ?");
                 $stmt->execute([$offset]);
 
@@ -48,7 +48,7 @@ class Base{
                     $mins = abs($mins);
                     $hrs = floor($mins / 60);
                     $mins -= $hrs * 60;
-                    $offset = sprintf('%+d:%02d', $hrs*$sgn, $mins);
+                    $offset = '+00:00'; // Always UTC — was: sprintf('%+d:%02d', $hrs*$sgn, $mins);
                     $stmt = self::$pdo->prepare("SET time_zone = ?");
                     $stmt->execute([$offset]);
                 } catch (\PDOException $e2) {
