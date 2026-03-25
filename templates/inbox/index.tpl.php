@@ -263,6 +263,7 @@
                     </div>
                     <div class="inbox-reply-form" id="reply-<?= $msg['message_id'] ?>" style="display:none;">
                         <textarea class="form-control inbox-reply-textarea" id="reply-text-<?= $msg['message_id'] ?>" rows="6" placeholder="Type your reply...">re: #<?= $msg['message_id'] ?> </textarea>
+                        <div class="byte-counter" id="reply-counter-<?= $msg['message_id'] ?>">0 / 10,240 bytes</div>
                         <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; align-items: center;">
                             <button type="button" class="btn-sm btn-save" onclick="sendReply(<?= $msg['message_id'] ?>)">Send</button>
                             <button type="button" class="btn-sm btn-archive" onclick="toggleReply(<?= $msg['message_id'] ?>)">Cancel</button>
@@ -271,6 +272,7 @@
                     </div>
                     <div class="inbox-edit-form" id="edit-<?= $msg['message_id'] ?>" style="display:none;">
                         <textarea class="form-control inbox-edit-textarea" id="edit-text-<?= $msg['message_id'] ?>" rows="10"><?= htmlspecialchars($msg['message']) ?></textarea>
+                        <div class="byte-counter" id="edit-counter-<?= $msg['message_id'] ?>">0 / 10,240 bytes</div>
                         <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
                             <select class="form-control" id="edit-priority-<?= $msg['message_id'] ?>" style="width: auto;">
                                 <option value="high" <?= $msg['priority'] === 'high' ? 'selected' : '' ?>>High</option>
@@ -510,6 +512,24 @@ function archiveMessage(messageId) {
         alert('Network error. Please try again.');
     });
 }
+
+// Attach byte counters to reply and edit textareas
+document.querySelectorAll('.inbox-reply-textarea').forEach(function(ta) {
+    var id = ta.id.replace('reply-text-', '');
+    var counter = document.getElementById('reply-counter-' + id);
+    if (counter) {
+        ta.addEventListener('input', function() { updateByteCounter(ta, counter); });
+        updateByteCounter(ta, counter);
+    }
+});
+document.querySelectorAll('.inbox-edit-textarea').forEach(function(ta) {
+    var id = ta.id.replace('edit-text-', '');
+    var counter = document.getElementById('edit-counter-' + id);
+    if (counter) {
+        ta.addEventListener('input', function() { updateByteCounter(ta, counter); });
+        updateByteCounter(ta, counter);
+    }
+});
 
 document.querySelectorAll('.utc-time').forEach(function(el) {
     var utc = el.dataset.utc;
