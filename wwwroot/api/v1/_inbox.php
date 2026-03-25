@@ -2,11 +2,9 @@
 /**
  * Agent Inbox API sub-dispatcher
  *
- * All endpoints are free (0 credits).
- *
  * Routes:
- *   GET    /inbox/list       — list messages (optionally filter by status)
- *   POST   /inbox/send       — create a new message
+ *   GET    /inbox/list       — list messages (free)
+ *   POST   /inbox/send       — create a new message (1 credit)
  *   PATCH  /inbox/mark-seen  — mark a message as seen
  *   PATCH  /inbox/mark-done  — mark a message as done (with optional response)
  *   PATCH  /inbox/edit        — edit message text and/or priority
@@ -74,7 +72,8 @@ if ($method === 'GET' && $sub === '/list') {
     ]);
 
 } elseif ($method === 'POST' && $sub === '/send') {
-    // ── Send a message to the inbox ──────────────────────────────────────
+    // ── Send a message to the inbox (costs 1 credit) ─────────────────────
+    require_credit($pdo, $auth_user_id, $auth_key_id, 'inbox/send');
     $input = json_decode(file_get_contents('php://input'), true);
     $message   = trim($input['message'] ?? '');
     $priority  = trim($input['priority'] ?? 'normal');
