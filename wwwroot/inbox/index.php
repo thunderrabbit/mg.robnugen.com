@@ -56,6 +56,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
                 exit;
             }
             $error_message = 'Message cannot be empty.';
+        } elseif (strlen($message) > 10240) {
+            if ($is_ajax) {
+                header('Content-Type: application/json');
+                echo json_encode(['error' => 'Message exceeds 10,240 byte limit (' . strlen($message) . ' bytes).']);
+                exit;
+            }
+            $error_message = 'Message exceeds 10,240 byte limit (' . strlen($message) . ' bytes).';
         } else {
             $stmt = $mla_database->prepare(
                 "INSERT INTO agent_inbox (user_id, message, priority, show_date, sender_timezone) VALUES (?, ?, ?, ?, ?)"

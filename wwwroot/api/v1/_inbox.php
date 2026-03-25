@@ -93,6 +93,11 @@ if ($method === 'GET' && $sub === '/list') {
         echo json_encode(['error' => 'message is required']);
         return;
     }
+    if (strlen($message) > 10240) {
+        http_response_code(400);
+        echo json_encode(['error' => 'message exceeds 10240 byte limit (' . strlen($message) . ' bytes)']);
+        return;
+    }
     if (!in_array($priority, ['low', 'normal', 'high'], true)) {
         http_response_code(400);
         echo json_encode(['error' => 'priority must be low, normal, or high']);
@@ -223,6 +228,11 @@ if ($method === 'GET' && $sub === '/list') {
         if ($message === '') {
             http_response_code(400);
             echo json_encode(['error' => 'message cannot be empty']);
+            return;
+        }
+        if (strlen($message) > 10240) {
+            http_response_code(400);
+            echo json_encode(['error' => 'message exceeds 10240 byte limit (' . strlen($message) . ' bytes)']);
             return;
         }
         $sets[] = 'message = ?';
