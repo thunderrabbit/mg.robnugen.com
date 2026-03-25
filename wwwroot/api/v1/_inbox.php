@@ -158,6 +158,11 @@ if ($method === 'GET' && $sub === '/list') {
         echo json_encode(['error' => 'message_id is required']);
         return;
     }
+    if (strlen($response) > 10240) {
+        http_response_code(400);
+        echo json_encode(['error' => 'response exceeds 10240 byte limit (' . strlen($response) . ' bytes)']);
+        return;
+    }
 
     $sql = "UPDATE agent_inbox SET done_at = NOW(), seen_at = COALESCE(seen_at, NOW())";
     $params = [];
