@@ -21,6 +21,7 @@
             <div class="form-group">
                 <label for="message">Message</label>
                 <textarea id="message" name="message" class="form-control" cols="80" rows="15" placeholder="e.g., Remember to check the deploy logs today..." required></textarea>
+                <div class="byte-counter" id="message-counter">0 / 10,240 bytes</div>
             </div>
 
             <div style="display: flex; gap: 1rem; align-items: flex-end;">
@@ -47,6 +48,20 @@
     <script>
     // Detect browser timezone and populate hidden field
     document.getElementById('sender_timezone').value = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    // Byte counter for textareas (10,240 byte limit)
+    var BYTE_LIMIT = 10240;
+    function updateByteCounter(textarea, counterEl) {
+        var bytes = new Blob([textarea.value]).size;
+        counterEl.textContent = bytes.toLocaleString() + ' / ' + BYTE_LIMIT.toLocaleString() + ' bytes';
+        counterEl.classList.toggle('byte-counter-warn', bytes > BYTE_LIMIT * 0.9);
+        counterEl.classList.toggle('byte-counter-over', bytes > BYTE_LIMIT);
+    }
+    // Main send textarea
+    var msgEl = document.getElementById('message');
+    var msgCounter = document.getElementById('message-counter');
+    msgEl.addEventListener('input', function() { updateByteCounter(msgEl, msgCounter); });
+    updateByteCounter(msgEl, msgCounter);
 
     document.getElementById('send-form').addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -362,6 +377,10 @@
     .inbox-edit-textarea { width: 100%; min-height: 10rem; resize: vertical; }
     .inbox-reply-status { font-size: 0.8rem; color: var(--success, #4CAF50); }
     .inbox-edit-form { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color); }
+
+    .byte-counter { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; }
+    .byte-counter-warn { color: #e67e22; font-weight: 600; }
+    .byte-counter-over { color: #c00; font-weight: 700; }
     .inbox-edit-status { font-size: 0.8rem; }
 
     .inbox-pagination { display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color); font-size: 0.85rem; }
