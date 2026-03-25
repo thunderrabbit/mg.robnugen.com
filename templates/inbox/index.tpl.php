@@ -60,7 +60,13 @@
     // Main send textarea
     var msgEl = document.getElementById('message');
     var msgCounter = document.getElementById('message-counter');
-    msgEl.addEventListener('input', function() { updateByteCounter(msgEl, msgCounter); });
+    var sendBtn = document.getElementById('send-btn');
+    function updateSendButton() {
+        var over = new Blob([msgEl.value]).size > BYTE_LIMIT;
+        sendBtn.disabled = over;
+        sendBtn.title = over ? 'Message exceeds ' + BYTE_LIMIT.toLocaleString() + ' byte limit' : '';
+    }
+    msgEl.addEventListener('input', function() { updateByteCounter(msgEl, msgCounter); updateSendButton(); });
     updateByteCounter(msgEl, msgCounter);
 
     document.getElementById('send-form').addEventListener('submit', async function(e) {
