@@ -29,17 +29,17 @@ Completed 2026-03-24/25. See `PLAN_inbox_timezone_fix.md` for details.
 
 Independent of identity work. Can deploy immediately.
 
-- [ ] **A1.** Add UTF-8 character counter JS to main send textarea (`templates/inbox/index.tpl.php`)
+- [x] **A1.** Add UTF-8 character counter JS to main send textarea (`templates/inbox/index.tpl.php`)
   - Show "X / 10,240 bytes" below textarea, warn visually (red) near limit
   - Count bytes via `new Blob([str]).size` for accuracy
-- [ ] **A2.** Add character counter to reply textarea and edit textarea (same file)
-- [ ] **A3.** [WD] Test: type multi-byte characters (emoji, Japanese), verify counter reflects byte count not char count
-- [ ] **A4.** Add 10KB server-side length check on `message` in `/send` and `/edit` (both `_inbox.php` and `wwwroot/inbox/index.php`)
+- [x] **A2.** Add character counter to reply textarea and edit textarea (same file)
+- [ ] **A3.** [WD] Test: type multi-byte characters (emoji, Japanese), verify counter reflects byte count not char count (needs Vagrant)
+- [x] **A4.** Add 10KB server-side length check on `message` in `/send` and `/edit` (both `_inbox.php` and `wwwroot/inbox/index.php`)
   - `strlen()` not `mb_strlen()`
   - Return 400 with `error: "message exceeds 10240 byte limit (N bytes)"`
-- [ ] **A5.** Add 10KB server-side length check on `response` in `/mark-done` (`_inbox.php`)
-- [ ] **A6.** [Unit] Test: POST to `/send` with 10241-byte message returns 400. POST with 10240 bytes succeeds.
-- [ ] **A7.** Add rate limiting or credit cost (1 credit) to `POST /send` in `_inbox.php`
+- [x] **A5.** Add 10KB server-side length check on `response` in `/mark-done` (`_inbox.php`)
+- [ ] **A6.** [Unit] Test: POST to `/send` with 10241-byte message returns 400. POST with 10240 bytes succeeds. (needs Vagrant)
+- [x] **A7.** Add rate limiting: 1 credit charged per `POST /send` in `_inbox.php`
 - [ ] **A8.** [Manual] Verify rate limit: send 3 messages rapidly via curl, confirm credit deduction or throttle
 - [ ] Deploy session A. Update `UX_fixin.md` to mark security items done.
 
