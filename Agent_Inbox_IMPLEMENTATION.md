@@ -87,9 +87,9 @@ Independent of identity work. Can deploy immediately.
 
 ## Session E: API — Inbox Visibility Filtering
 
-- [ ] **E1.** Update `list_inbox` in `_inbox.php` to query `inbox_visibility` for the caller's readable set. Supervisor (NULL peer) skips filter. Scoped agents get `WHERE recipient_aiu IN (readable set) OR recipient_aiu IS NULL`.
-- [ ] **E2.** Add `include_sent` parameter support: `OR sender_aiu = :caller_aiu`
-- [ ] **E3.** Add `sender_aiu` filter parameter: `AND sender_aiu = :sender_aiu`
+- [x] **E1.** Update `list_inbox` in `_inbox.php` to query `inbox_visibility` for the caller's readable set. Supervisor (NULL peer) skips filter. Scoped agents get `WHERE recipient_aiu IN (readable set) OR recipient_aiu IS NULL`.
+- [x] **E2.** Add `include_sent` parameter support: `OR sender_aiu = :caller_aiu`
+- [x] **E3.** Add `sender_aiu` filter parameter: `AND sender_aiu = :sender_aiu`
 - [ ] **E4.** [Unit] Test: supervisor sees all messages. Scoped agent sees only own + broadcasts. `include_sent=1` adds sent messages.
 - [ ] **E5.** [Manual] Call `list_inbox` with Carrie's API key — verify she only sees messages addressed to her and broadcasts.
 - [ ] Deploy session E.
