@@ -43,8 +43,14 @@ class PermissionGuardsTest extends Unit
 
     // ── Setup / Teardown ─────────────────────────────────────────────────
 
-    public static function setUpBeforeClass(): void
+    private static bool $keysLoaded = false;
+
+    private static function loadKeys(): void
     {
+        if (self::$keysLoaded) {
+            return;
+        }
+
         $required = [
             'MG_TEST_KEY_FULL',
             'MG_TEST_KEY_NONE',
@@ -60,7 +66,6 @@ class PermissionGuardsTest extends Unit
         }
 
         if ($missing) {
-            // Hard fail — not markTestSkipped
             fwrite(STDERR, "\n\nABORT: Missing required env vars: " . implode(', ', $missing) . "\n");
             fwrite(STDERR, "Set them in .env and run: export \$(grep -v '^#' .env | xargs)\n\n");
             exit(1);
@@ -70,6 +75,17 @@ class PermissionGuardsTest extends Unit
         self::$keyNone  = getenv('MG_TEST_KEY_NONE');
         self::$keyAlpha = getenv('MG_TEST_KEY_ALPHA');
         self::$keyBeta  = getenv('MG_TEST_KEY_BETA');
+        self::$keysLoaded = true;
+    }
+
+    public static function setUpBeforeClass(): void
+    {
+        self::loadKeys();
+    }
+
+    protected function _before(): void
+    {
+        self::loadKeys();
     }
 
     public static function tearDownAfterClass(): void
