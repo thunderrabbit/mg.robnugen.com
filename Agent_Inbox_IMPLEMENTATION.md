@@ -130,24 +130,24 @@ Independent of identity work. Can deploy immediately.
 
 ## Session I: UI — Create Agent + API Key Assignment
 
-- [ ] **I1.** Add "Create Agent" form to `/settings/` page: name, description, actor_type, 8 boolean checkboxes
+- [x] **I1.** Add "Create Agent" form to `/settings/` page: name, description, 8 boolean checkboxes, tabbed UI
   - On submit: INSERT into `agent_inbox_user`, INSERT self-referencing `inbox_visibility` row (can_read=1)
-- [ ] **I2.** Add "Inbox User" dropdown to each API key row on `/settings/` — shows all `agent_inbox_user` rows for this user
+- [x] **I2.** Add "Inbox User" dropdown to each API key row on `/settings/` + actor dropdown on generate form
   - On change: UPDATE `api_keys.aiu_id`
-- [ ] **I3.** [WD] Test: create a new agent via the form, verify it appears in the dropdown, assign a key to it
-- [ ] **I4.** Add inbox visibility management: when creating an agent, show checkboxes for "can send to [each existing actor]"
+- [ ] **I3.** [WD] Test: create a new agent via the form, verify it appears in the dropdown, assign a key to it (deferred to Monday)
+- [x] **I4.** Add inbox visibility management: when creating an agent, show checkboxes for "can send to [each existing actor]"
   - On submit: INSERT `inbox_visibility` rows for each selected peer with `can_send=1`
-- [ ] **I5.** [WD] Test: create agent, set send permissions, verify `inbox_visibility` rows exist
-- [ ] Deploy session I.
+- [ ] **I5.** [WD] Test: create agent, set send permissions, verify `inbox_visibility` rows exist (deferred to Monday)
+- [x] Deploy session I.
 
 ---
 
 ## Session J: UI — Inbox Page Sender/Recipient Display
 
-- [ ] **J1.** JOIN `agent_inbox_user` in the inbox page query to get sender/recipient names
-- [ ] **J2.** Display sender name and recipient name (or "Broadcast") on each message in the inbox list
-- [ ] **J3.** Add recipient dropdown to the send form (populated from `list_actors` or inline query)
-- [ ] **J4.** Add "Filter by sender" and "Show messages to me / all" controls
+- [x] **J1.** JOIN `agent_inbox_user` in the inbox page query to get sender/recipient names
+- [x] **J2.** Display sender name and recipient name (or "Broadcast") on each message in the inbox list
+- [x] **J3.** Add recipient dropdown to the send form (populated from inline query)
+- [ ] **J4.** Add "Filter by sender" and "Show messages to me / all" controls (deferred)
 - [ ] **J5.** [WD] Test: send a message with a recipient, verify sender/recipient names display correctly
 - [ ] Deploy session J.
 
