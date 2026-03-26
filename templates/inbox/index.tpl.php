@@ -145,12 +145,14 @@
     <?php
     // Helper to build query string, toggling/setting a single param
     function inbox_url($overrides = [], $removes = []) {
-        global $show_archived, $show_future, $filter_priority, $filter_status, $sort_by, $sort_dir;
+        global $show_archived, $show_future, $filter_priority, $filter_status, $sort_by, $sort_dir, $filter_to, $filter_from;
         $params = [];
         if ($show_archived) $params['show_archived'] = '';
         if ($show_future) $params['show_future'] = '';
         if ($filter_priority) $params['priority'] = $filter_priority;
         if ($filter_status) $params['status'] = $filter_status;
+        if ($filter_to) $params['to'] = $filter_to;
+        if ($filter_from) $params['from'] = $filter_from;
         if ($sort_by && $sort_by !== 'id') $params['sort'] = $sort_by;
         if ($sort_dir === 'asc') $params['dir'] = 'asc';
         if ($sort_by === 'id' && $sort_dir === 'desc') { unset($params['sort']); unset($params['dir']); }
@@ -230,6 +232,26 @@
                         <a href="<?= inbox_url([], ['status']) ?>" class="inbox-filter-active"><?= $s ?> &times;</a>
                     <?php else: ?>
                         <a href="<?= inbox_url(['status' => $s]) ?>"><?= $s ?></a>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </div>
+            <div class="inbox-control-group">
+                <span class="inbox-control-label">To:</span>
+                <?php foreach (['me' => 'Me', 'broadcast' => 'Broadcast'] as $tv => $tl): ?>
+                    <?php if ($filter_to === $tv): ?>
+                        <a href="<?= inbox_url([], ['to']) ?>" class="inbox-filter-active"><?= $tl ?> &times;</a>
+                    <?php else: ?>
+                        <a href="<?= inbox_url(['to' => $tv]) ?>"><?= $tl ?></a>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </div>
+            <div class="inbox-control-group">
+                <span class="inbox-control-label">From:</span>
+                <?php foreach ($inbox_actors as $a): ?>
+                    <?php if ($filter_from === (int)$a['aiu_id']): ?>
+                        <a href="<?= inbox_url([], ['from']) ?>" class="inbox-filter-active"><?= htmlspecialchars($a['name']) ?> &times;</a>
+                    <?php else: ?>
+                        <a href="<?= inbox_url(['from' => $a['aiu_id']]) ?>"><?= htmlspecialchars($a['name']) ?></a>
                     <?php endif; ?>
                 <?php endforeach; ?>
             </div>
