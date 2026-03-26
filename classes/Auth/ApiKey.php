@@ -55,15 +55,24 @@ class ApiKey
      * The raw key is shown to the user once and never stored — only the hash is kept.
      * Key format: 'sk_' prefix + 61 random chars = 64 chars total.
      */
-    public function generateKey(int $user_id, string $label = ''): string
+    public function generateKey(int $user_id, string $label = '', ?int $aiu_id = null): string
     {
+        // If no aiu_id provided, default to the user's human actor
+        if ($aiu_id === null) {
+            $stmt = $this->di_pdo->prepare(
+                "SELECT aiu_id FROM agent_inbox_user WHERE user_id = ? AND actor_type = 'human' LIMIT 1"
+            );
+            $stmt->execute([$user_id]);
+            $aiu_id = (int) $stmt->fetchColumn();
+        }
+
         $raw_key  = 'sk_' . \Utilities::randomString(61);
         $key_hash = hash('sha256', $raw_key);
 
         $stmt = $this->di_pdo->prepare(
-            "INSERT INTO api_keys (user_id, api_key_hash, label) VALUES (?, ?, ?)"
+            "INSERT INTO api_keys (user_id, aiu_id, api_key_hash, label) VALUES (?, ?, ?, ?)"
         );
-        $stmt->execute([$user_id, $key_hash, $label]);
+        $stmt->execute([$user_id, $aiu_id, $key_hash, $label]);
 
         return $raw_key;
     }
