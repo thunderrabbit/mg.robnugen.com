@@ -8,7 +8,7 @@ class InboxByteCounterCest
 {
     public function _before(AcceptanceTester $I)
     {
-        $I->loginAsPaid();
+        $I->loginAsTester();
     }
 
     public function mainTextareaCountsAsciiBytes(AcceptanceTester $I)
@@ -27,15 +27,28 @@ class InboxByteCounterCest
         $I->waitForElementVisible('#message', 10);
 
         // Emoji 😋 is 4 bytes in UTF-8, but 1 character
-        $I->fillField('#message', '😋');
+        // Use executeJS because ChromeDriver cannot type non-BMP characters via fillField
+        $I->executeJS("
+            var ta = document.getElementById('message');
+            ta.value = '😋';
+            ta.dispatchEvent(new Event('input'));
+        ");
         $I->waitForText('4 / 10,240 bytes', 5, '#message-counter');
 
         // Japanese あ is 3 bytes in UTF-8, but 1 character
-        $I->fillField('#message', 'あ');
+        $I->executeJS("
+            var ta = document.getElementById('message');
+            ta.value = 'あ';
+            ta.dispatchEvent(new Event('input'));
+        ");
         $I->waitForText('3 / 10,240 bytes', 5, '#message-counter');
 
         // Mix: "aあ😋" = 1 + 3 + 4 = 8 bytes
-        $I->fillField('#message', 'aあ😋');
+        $I->executeJS("
+            var ta = document.getElementById('message');
+            ta.value = 'aあ😋';
+            ta.dispatchEvent(new Event('input'));
+        ");
         $I->waitForText('8 / 10,240 bytes', 5, '#message-counter');
     }
 
@@ -72,8 +85,12 @@ class InboxByteCounterCest
         $I->fillField('#message', 'Hello');
         $I->waitForText('5 / 10,240 bytes', 5, '#message-counter');
 
-        // Clear the textarea
-        $I->fillField('#message', '');
+        // Clear the textarea — must use executeJS to trigger input event
+        $I->executeJS("
+            var ta = document.getElementById('message');
+            ta.value = '';
+            ta.dispatchEvent(new Event('input'));
+        ");
         $I->waitForText('0 / 10,240 bytes', 5, '#message-counter');
 
         // Warning class should be gone
