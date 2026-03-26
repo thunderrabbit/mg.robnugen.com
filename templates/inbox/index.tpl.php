@@ -285,6 +285,9 @@
                         </form>
                     </div>
                     <div class="inbox-reply-form" id="reply-<?= $msg['message_id'] ?>" style="display:none;">
+                        <?php $reply_to_name = $msg['sender_name'] ?? 'everyone'; $reply_to_aiu = $msg['sender_aiu'] ?? ''; ?>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">Replying to <strong><?= htmlspecialchars($reply_to_name) ?></strong></div>
+                        <input type="hidden" id="reply-recipient-<?= $msg['message_id'] ?>" value="<?= (int)$reply_to_aiu ?>">
                         <textarea class="form-control inbox-reply-textarea" id="reply-text-<?= $msg['message_id'] ?>" rows="6" placeholder="Type your reply...">re: #<?= $msg['message_id'] ?> </textarea>
                         <div class="byte-counter" id="reply-counter-<?= $msg['message_id'] ?>">0 / 10,240 bytes</div>
                         <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; align-items: center;">
@@ -438,21 +441,26 @@ function toggleReply(id) {
 function sendReply(parentId) {
     var textarea = document.getElementById('reply-text-' + parentId);
     var status = document.getElementById('reply-status-' + parentId);
+    var recipientEl = document.getElementById('reply-recipient-' + parentId);
     var message = textarea.value.trim();
+    var recipientAiu = recipientEl ? recipientEl.value : '';
 
     if (!message) { status.textContent = 'Message cannot be empty.'; status.style.color = '#c00'; return; }
 
     status.textContent = 'Sending...';
     status.style.color = 'var(--text-muted)';
 
-    fetch('/inbox/', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: 'csrf_token=' + encodeURIComponent('<?= htmlspecialchars($csrf_token) ?>') +
+    var body = 'csrf_token=' + encodeURIComponent('<?= htmlspecialchars($csrf_token) ?>') +
               '&inbox_action=send&ajax=1' +
               '&message=' + encodeURIComponent(message) +
               '&priority=normal' +
-              '&sender_timezone=' + encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone)
+              '&sender_timezone=' + encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone);
+    if (recipientAiu) { body += '&recipient_aiu=' + encodeURIComponent(recipientAiu); }
+
+    fetch('/inbox/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: body
     }).then(function(res) { return res.json(); })
     .then(function(data) {
         if (data.success) {
