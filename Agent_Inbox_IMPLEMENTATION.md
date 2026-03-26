@@ -33,55 +33,49 @@ Independent of identity work. Can deploy immediately.
   - Show "X / 10,240 bytes" below textarea, warn visually (red) near limit
   - Count bytes via `new Blob([str]).size` for accuracy
 - [x] **A2.** Add character counter to reply textarea and edit textarea (same file)
-- [ ] **A3.** [WD] Test: type multi-byte characters (emoji, Japanese), verify counter reflects byte count not char count (needs Vagrant)
 - [x] **A4.** Add 10KB server-side length check on `message` in `/send` and `/edit` (both `_inbox.php` and `wwwroot/inbox/index.php`)
   - `strlen()` not `mb_strlen()`
   - Return 400 with `error: "message exceeds 10240 byte limit (N bytes)"`
 - [x] **A5.** Add 10KB server-side length check on `response` in `/mark-done` (`_inbox.php`)
-- [ ] **A6.** [Unit] Test: POST to `/send` with 10241-byte message returns 400. POST with 10240 bytes succeeds. (needs Vagrant)
 - [x] **A7.** Add rate limiting: 1 credit charged per `POST /send` in `_inbox.php`
+- [x] **A3.** [WD] Test written by mgTester — InboxByteCounterCest.php (all passing)
+- [x] **A6.** [Unit] Test written by mgTester — InboxMessageLimitTest.php (all passing)
 - [ ] **A8.** [Manual] Verify rate limit: send 3 messages rapidly via curl, confirm credit deduction or throttle
-- [ ] Deploy session A. Update `UX_fixin.md` to mark security items done.
+- [x] Deploy session A.
 
 ---
 
 ## Session B: Schema + Migration
 
-- [ ] **B1.** Review `db_schemas/22_agent_inbox_user/create_agent_inbox_user.sql` one final time against design doc (renumbered from 21 — schema 21 is now the timezone fix)
-- [ ] **B2.** Run migration via `/admin/migrate_tables.php`
-- [ ] **B3.** [Manual] Verify in PHPMyAdmin:
-  - `agent_inbox_user` table exists with correct columns and defaults (booleans = 0)
-  - One human actor per existing user with all booleans = 1
-  - `inbox_visibility` has NULL-peer rows for each human (can_read=1, can_send=1)
-  - `api_keys` has `aiu_id` column, all keys point to their user's human actor
-  - `agent_inbox` has `sender_aiu` and `recipient_aiu` columns (all NULL for existing rows)
-- [ ] **B4.** Create agent actors via PHPMyAdmin: Boss Claude, Carrie (with appropriate booleans)
-- [ ] **B5.** Create `inbox_visibility` rows for each agent (self can_read, explicit can_send to Rob/Boss Claude)
-- [ ] **B6.** Reassign Carrie's API key from human actor to Carrie actor in `api_keys.aiu_id`
-- [ ] **B7.** Reassign Boss Claude's API key similarly
-- [ ] **B8.** [Manual] Verify: `SELECT * FROM agent_inbox_user` shows correct actors. `SELECT * FROM inbox_visibility` shows correct permissions. `SELECT api_key_id, aiu_id FROM api_keys` shows correct assignments.
-- [ ] Deploy session B (schema only — API doesn't use the new columns yet, so nothing breaks).
+- [x] **B1.** Review `db_schemas/22_agent_inbox_user/create_agent_inbox_user.sql` one final time against design doc
+- [x] **B2.** Run migration via PHPMyAdmin
+- [x] **B3.** [Manual] Verified all tables, columns, defaults, visibility rows, key assignments
+- [x] **B4.** Created agent actors: Boss Claude (8), Carrie (9), mgTester (10)
+- [x] **B5.** Created `inbox_visibility` rows for each agent
+- [x] **B6.** Carrie separated to own API key (key_id 18) with own MCP config (`carrie-mcp.json`)
+- [x] **B7.** Boss Claude key (key_id 13) assigned to aiu_id 8, mgTester (key_id 16) to aiu_id 10
+- [x] **B8.** Verified all assignments in PHPMyAdmin
+- [x] Deploy session B.
 
 ---
 
 ## Session C: API — Actor Lookup in index.php
 
-- [ ] **C1.** Add `$auth_actor` fetch in `wwwroot/api/v1/index.php` — JOIN `api_keys.aiu_id` → `agent_inbox_user` row. Make it available to all handler files.
-- [ ] **C2.** [Manual] Verify: add temporary `echo json_encode($auth_actor); exit;` at top of `_inbox.php`, call via curl, confirm actor row is returned. Remove debug line.
-- [ ] Deploy session C.
+- [x] **C1.** Add `$auth_actor` fetch in `wwwroot/api/v1/index.php` — JOIN `api_keys.aiu_id` → `agent_inbox_user` row.
+- [x] **C2.** Verified: Boss Claude, Carrie, and Grove all work with the new actor lookup.
+- [x] Deploy session C.
 
 ---
 
 ## Session D: API — Boolean Permission Guards
 
-- [ ] **D1.** Add read/write guard to `_inbox.php` (check `can_read_inbox` / `can_write_inbox`)
-- [ ] **D2.** Add read/write guard to `_todos.php` (check `can_read_todos` / `can_write_todos`)
-- [ ] **D3.** Add read/write guard to `_sessions.php` (check `can_read_sessions` / `can_write_sessions`)
-- [ ] **D4.** Add read/write guard to `_emotions.php` (check `can_read_emotions` / `can_write_emotions`)
-- [ ] **D5.** [Unit] Test: create a mock actor with `can_read_todos=0`, verify GET /todos returns 403
-- [ ] **D6.** [Unit] Test: same actor with `can_write_todos=0`, verify POST /todos returns 403
-- [ ] **D7.** [Manual] Verify Carrie can still list inbox and send (her booleans should allow it). Verify she gets 403 on emotions if you set `can_read_emotions=0`.
-- [ ] Deploy session D. Existing behavior unchanged for human keys (all booleans = 1).
+- [x] **D1.** Add read/write guard to `_inbox.php` (can_read_inbox / can_write_inbox, with special inbox read/write split)
+- [x] **D2.** Add read/write guard to `_todos.php` (can_read_todos / can_write_todos)
+- [x] **D3.** Add read/write guard to `_sessions.php` (can_read_sessions / can_write_sessions)
+- [x] **D4.** Add read/write guard to `_emotions.php` (can_read_emotions / can_write_emotions)
+- [x] **D5-D6.** [Unit] PermissionGuardsTest.php — 32 tests, all passing (full/none/alpha/beta actors)
+- [x] **D7.** Carrie verified working after deploy.
+- [x] Deploy session D.
 
 ---
 
@@ -90,30 +84,30 @@ Independent of identity work. Can deploy immediately.
 - [x] **E1.** Update `list_inbox` in `_inbox.php` to query `inbox_visibility` for the caller's readable set. Supervisor (NULL peer) skips filter. Scoped agents get `WHERE recipient_aiu IN (readable set) OR recipient_aiu IS NULL`.
 - [x] **E2.** Add `include_sent` parameter support: `OR sender_aiu = :caller_aiu`
 - [x] **E3.** Add `sender_aiu` filter parameter: `AND sender_aiu = :sender_aiu`
-- [ ] **E4.** [Unit] Test: supervisor sees all messages. Scoped agent sees only own + broadcasts. `include_sent=1` adds sent messages.
-- [ ] **E5.** [Manual] Call `list_inbox` with Carrie's API key — verify she only sees messages addressed to her and broadcasts.
-- [ ] Deploy session E.
+- [x] **E4.** [Unit] VisibilityAndRoutingTest.php — 11 tests, all passing (visibility + routing combined)
+- [x] **E5.** Verified via tests: supervisor sees all, scoped agents see own + broadcasts, include_sent works.
+- [x] Deploy session E.
 
 ---
 
 ## Session F: API — Send with Routing
 
-- [ ] **F1.** Auto-populate `sender_aiu` from `$auth_actor['aiu_id']` on `POST /send` in `_inbox.php`
-- [ ] **F2.** Accept optional `recipient_aiu` parameter on `POST /send`
-- [ ] **F3.** Add send permission check: query `inbox_visibility` for `can_send=1` on the target peer. Return 403 if not allowed.
-- [ ] **F4.** Same changes in `wwwroot/inbox/index.php` (web form): auto-populate sender, accept recipient dropdown (placeholder — UI comes in session I)
-- [ ] **F5.** [Unit] Test: agent with `can_send=1` for peer X can send to X. Agent without `can_send` for peer Y gets 403.
-- [ ] **F6.** [Manual] Send a message via curl with Carrie's key and `recipient_aiu` for Rob — verify it saves with correct sender/recipient. Try sending to Grove — verify 403.
-- [ ] Deploy session F.
+- [x] **F1.** Auto-populate `sender_aiu` from `$auth_actor['aiu_id']` on `POST /send` in `_inbox.php`
+- [x] **F2.** Accept optional `recipient_aiu` parameter on `POST /send`
+- [x] **F3.** Add send permission check: query `inbox_visibility` for `can_send=1`. Returns 403 if not allowed.
+- [x] **F4.** Web form: auto-populate sender_aiu, recipient dropdown added in Session J
+- [x] **F5.** [Unit] Covered by VisibilityAndRoutingTest.php (Beta→Alpha allowed, Beta→None blocked)
+- [x] **F6.** Verified: msg #285 sent with sender_aiu=8, recipient_aiu=1. Send permission enforced.
+- [x] Deploy session F.
 
 ---
 
 ## Session G: API — list_actors Endpoint
 
 - [x] **G1.** Add `GET /inbox/actors` endpoint in `_inbox.php` — returns `aiu_id`, `name`, `description` for all actors in caller's `user_id`. Gated by `can_write_inbox`.
-- [ ] **G2.** [Unit] Test: agent with `can_write_inbox=1` gets actor list. Agent with `can_write_inbox=0` gets 403.
+- [ ] **G2.** [Unit] Test: agent with `can_write_inbox=1` gets actor list. Agent with `can_write_inbox=0` gets 403. (deferred to Monday)
 - [x] **G3.** Update API 404 hint to include `/inbox/actors`
-- [ ] Deploy session G.
+- [x] Deploy session G.
 
 ---
 
@@ -148,8 +142,8 @@ Independent of identity work. Can deploy immediately.
 - [x] **J2.** Display sender name and recipient name (or "Broadcast") on each message in the inbox list
 - [x] **J3.** Add recipient dropdown to the send form (populated from inline query)
 - [ ] **J4.** Add "Filter by sender" and "Show messages to me / all" controls (deferred)
-- [ ] **J5.** [WD] Test: send a message with a recipient, verify sender/recipient names display correctly
-- [ ] Deploy session J.
+- [ ] **J5.** [WD] Test: send a message with a recipient, verify sender/recipient names display correctly (deferred to Monday)
+- [x] Deploy session J.
 
 ---
 
