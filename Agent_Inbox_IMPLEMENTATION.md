@@ -155,11 +155,11 @@ Independent of identity work. Can deploy immediately.
 
 ## Session K: Agent Prompt Updates
 
-- [ ] **K1.** Update Carrie's prompt: remove "From Carrie" skip hack, use `recipient_aiu` when sending, note she can use `list_actors` to discover peers
-- [ ] **K2.** Update Grove's prompt (if applicable): note `include_sent=1` for reviewing outbox
-- [ ] **K3.** [Manual] Let Carrie run one cycle, verify she sends with `recipient_aiu` and reads only her messages
-- [ ] **K4.** [Manual] Verify Grove's next run works correctly with the new params
-- [ ] Deploy session K.
+- [x] **K1.** Update Carrie's prompt: remove "From Carrie" skip hack, use `recipient_aiu` when sending, `sender_aiu` for skip check
+- [x] **K2.** Grove: no changes needed (own user_id, no other agents). `include_sent` available via updated Jikan.
+- [x] **K3.** Carrie run verified: msg #286 received, reply #289 sent with sender_aiu=9, recipient_aiu=8. No text prefix. Clean.
+- [x] **K4.** Grove verified earlier — API works with his key after permission guards deployed.
+- [x] Deploy session K.
 
 ---
 
