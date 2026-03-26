@@ -76,6 +76,15 @@
                 <div class="fix"></div>
             </div>
             <div class="PageRow noborder">
+                <label>Can send to:</label>
+                <div class="PageInput" style="display: flex; flex-wrap: wrap; gap: 4px 20px;">
+                    <?php foreach ($actors as $a): ?>
+                    <label><input type="checkbox" name="can_send_to[]" value="<?= (int)$a['aiu_id'] ?>"> <?= htmlspecialchars($a['name']) ?></label>
+                    <?php endforeach; ?>
+                </div>
+                <div class="fix"></div>
+            </div>
+            <div class="PageRow noborder">
                 <input type="submit" value="Create Agent" class="greyishBtn submitForm" />
                 <div class="fix"></div>
             </div>

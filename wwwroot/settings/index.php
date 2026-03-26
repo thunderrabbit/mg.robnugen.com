@@ -52,11 +52,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_key_action'])) {
             ]);
             $new_aiu_id = (int) $mla_database->lastInsertId();
 
-            // Auto-create self-referencing visibility row
+            // Auto-create self-referencing visibility row (can read own messages)
             $vis_stmt = $mla_database->prepare(
                 "INSERT INTO inbox_visibility (inbox_user_aiu_id, inbox_peer_aiu_id, can_read, can_send) VALUES (?, ?, 1, 0)"
             );
             $vis_stmt->execute([$new_aiu_id, $new_aiu_id]);
+
+            // Create send-to visibility rows for selected actors
+            $send_to = $_POST['can_send_to'] ?? [];
+            if (!empty($send_to)) {
+                $send_stmt = $mla_database->prepare(
+                    "INSERT INTO inbox_visibility (inbox_user_aiu_id, inbox_peer_aiu_id, can_read, can_send) VALUES (?, ?, 0, 1)"
+                );
+                foreach ($send_to as $peer_aiu_id) {
+                    $peer_aiu_id = (int) $peer_aiu_id;
+                    if ($peer_aiu_id > 0 && $peer_aiu_id !== $new_aiu_id) {
+                        $send_stmt->execute([$new_aiu_id, $peer_aiu_id]);
+                    }
+                }
+            }
 
             $success_message = "Agent '$name' created (ID: $new_aiu_id).";
         }
