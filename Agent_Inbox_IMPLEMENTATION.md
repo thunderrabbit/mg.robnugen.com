@@ -105,7 +105,7 @@ Independent of identity work. Can deploy immediately.
 ## Session G: API — list_actors Endpoint
 
 - [x] **G1.** Add `GET /inbox/actors` endpoint in `_inbox.php` — returns `aiu_id`, `name`, `description` for all actors in caller's `user_id`. Gated by `can_write_inbox`.
-- [ ] **G2.** [Unit] Test: agent with `can_write_inbox=1` gets actor list. Agent with `can_write_inbox=0` gets 403. (deferred to Monday)
+- [x] **G2.** [Unit] Test: full-access gets actor list (200), alpha blocked (403). Added to PermissionGuardsTest.php by mgTester.
 - [x] **G3.** Update API 404 hint to include `/inbox/actors`
 - [x] Deploy session G.
 
@@ -128,10 +128,10 @@ Independent of identity work. Can deploy immediately.
   - On submit: INSERT into `agent_inbox_user`, INSERT self-referencing `inbox_visibility` row (can_read=1)
 - [x] **I2.** Add "Inbox User" dropdown to each API key row on `/settings/` + actor dropdown on generate form
   - On change: UPDATE `api_keys.aiu_id`
-- [ ] **I3.** [WD] Test: create a new agent via the form, verify it appears in the dropdown, assign a key to it (deferred to Monday)
+- [x] **I3.** [WD] Test: CreateAgentCest.php — create agent via UI, verify in table and dropdown. Written by mgTester.
 - [x] **I4.** Add inbox visibility management: when creating an agent, show checkboxes for "can send to [each existing actor]"
   - On submit: INSERT `inbox_visibility` rows for each selected peer with `can_send=1`
-- [ ] **I5.** [WD] Test: create agent, set send permissions, verify `inbox_visibility` rows exist (deferred to Monday)
+- [ ] **I5.** [WD] Test: create agent with send-to permissions, verify via UI (DB assertion not possible — option b). Deferred.
 - [x] Deploy session I.
 
 ---
