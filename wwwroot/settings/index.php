@@ -26,6 +26,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_key_action'])) {
         $label       = trim($_POST['api_key_label'] ?? '');
         $new_api_key = $apiKeyHelper->generateKey($user_id, $label);
         $success_message = 'API key generated. Copy it now — it will not be shown again.';
+    } elseif ($_POST['api_key_action'] === 'create_agent') {
+        $name = trim($_POST['agent_name'] ?? '');
+        $description = trim($_POST['agent_description'] ?? '');
+        if ($name === '') {
+            $errors[] = 'Agent name is required.';
+        } else {
+            $perms = [];
+            foreach (['can_read_inbox','can_write_inbox','can_read_todos','can_write_todos','can_read_sessions','can_write_sessions','can_read_emotions','can_write_emotions'] as $p) {
+                $perms[$p] = isset($_POST[$p]) ? 1 : 0;
+            }
+            $stmt = $mla_database->prepare(
+                "INSERT INTO agent_inbox_user (user_id, name, description, actor_type,
+                 can_read_inbox, can_write_inbox, can_read_todos, can_write_todos,
+                 can_read_sessions, can_write_sessions, can_read_emotions, can_write_emotions)
+                 VALUES (?, ?, ?, 'agent', ?, ?, ?, ?, ?, ?, ?, ?)"
+            );
+            $stmt->execute([
+                $user_id, $name, $description ?: null,
+                $perms['can_read_inbox'], $perms['can_write_inbox'],
+                $perms['can_read_todos'], $perms['can_write_todos'],
+                $perms['can_read_sessions'], $perms['can_write_sessions'],
+                $perms['can_read_emotions'], $perms['can_write_emotions'],
+            ]);
+            $new_aiu_id = (int) $mla_database->lastInsertId();
+
+            // Auto-create self-referencing visibility row
+            $vis_stmt = $mla_database->prepare(
+                "INSERT INTO inbox_visibility (inbox_user_aiu_id, inbox_peer_aiu_id, can_read, can_send) VALUES (?, ?, 1, 0)"
+            );
+            $vis_stmt->execute([$new_aiu_id, $new_aiu_id]);
+
+            $success_message = "Agent '$name' created (ID: $new_aiu_id).";
+        }
     } elseif ($_POST['api_key_action'] === 'revoke') {
         $key_id = (int)($_POST['key_id'] ?? 0);
         if ($key_id > 0 && $apiKeyHelper->revokeKey($key_id, $user_id)) {
