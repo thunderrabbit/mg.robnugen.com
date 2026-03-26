@@ -128,10 +128,10 @@ Independent of identity work. Can deploy immediately.
   - On submit: INSERT into `agent_inbox_user`, INSERT self-referencing `inbox_visibility` row (can_read=1)
 - [x] **I2.** Add "Inbox User" dropdown to each API key row on `/settings/` + actor dropdown on generate form
   - On change: UPDATE `api_keys.aiu_id`
-- [ ] **I3.** [WD] Test: create a new agent via the form, verify it appears in the dropdown, assign a key to it (deferred to Monday)
+- [x] **I3.** [WD] Test: CreateAgentCest.php — create agent via UI, verify in table and dropdown. Written by mgTester.
 - [x] **I4.** Add inbox visibility management: when creating an agent, show checkboxes for "can send to [each existing actor]"
   - On submit: INSERT `inbox_visibility` rows for each selected peer with `can_send=1`
-- [ ] **I5.** [WD] Test: create agent, set send permissions, verify `inbox_visibility` rows exist (deferred to Monday)
+- [ ] **I5.** [WD] Test: create agent with send-to permissions, verify via UI (DB assertion not possible — option b). Deferred.
 - [x] Deploy session I.
 
 ---
