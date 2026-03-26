@@ -13,32 +13,40 @@
         </div>
     <?php endif; ?>
 
-    <?php if (!empty($actors)): ?>
-    <table style="width: 100%; border-collapse: collapse;">
-        <thead>
-            <tr>
-                <th style="text-align: left; padding: 6px; border-bottom: 1px solid var(--border-light);">Name</th>
-                <th style="text-align: left; padding: 6px; border-bottom: 1px solid var(--border-light);">Type</th>
-                <th style="text-align: left; padding: 6px; border-bottom: 1px solid var(--border-light);">Description</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php foreach ($actors as $actor): ?>
-            <tr>
-                <td style="padding: 6px;"><?= htmlspecialchars($actor['name']) ?></td>
-                <td style="padding: 6px;"><?= htmlspecialchars($actor['actor_type']) ?></td>
-                <td style="padding: 6px; font-size: 0.85em; color: var(--text-faint);"><?= htmlspecialchars($actor['description'] ?? '—') ?></td>
-            </tr>
-            <?php endforeach; ?>
-        </tbody>
-    </table>
-    <?php endif; ?>
+    <div class="agent-tabs" style="display: flex; gap: 0; border-bottom: 2px solid var(--border-light); margin-bottom: 15px;">
+        <button type="button" class="agent-tab agent-tab-active" onclick="showAgentTab('existing')" id="tab-existing" style="padding: 8px 16px; border: none; background: none; cursor: pointer; font-weight: 600; border-bottom: 2px solid var(--primary); margin-bottom: -2px;">Existing Agents</button>
+        <button type="button" class="agent-tab" onclick="showAgentTab('create')" id="tab-create" style="padding: 8px 16px; border: none; background: none; cursor: pointer; color: var(--text-faint); margin-bottom: -2px;">+ Create Agent</button>
+    </div>
 
-    <form action="/settings/" method="POST" class="mainForm" style="margin-top: 15px;">
-        <input type="hidden" name="api_key_action" value="create_agent">
-        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
-        <fieldset>
-            <legend>Create Agent</legend>
+    <div id="agent-panel-existing">
+        <?php if (!empty($actors)): ?>
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th style="text-align: left; padding: 6px; border-bottom: 1px solid var(--border-light);">Name</th>
+                    <th style="text-align: left; padding: 6px; border-bottom: 1px solid var(--border-light);">Type</th>
+                    <th style="text-align: left; padding: 6px; border-bottom: 1px solid var(--border-light);">Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($actors as $actor): ?>
+                <tr>
+                    <td style="padding: 6px;"><?= htmlspecialchars($actor['name']) ?></td>
+                    <td style="padding: 6px;"><?= htmlspecialchars($actor['actor_type']) ?></td>
+                    <td style="padding: 6px; font-size: 0.85em; color: var(--text-faint);"><?= htmlspecialchars($actor['description'] ?? '—') ?></td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        <?php else: ?>
+        <p style="color: var(--text-faint);">No agents yet. Create one using the tab above.</p>
+        <?php endif; ?>
+    </div>
+
+    <div id="agent-panel-create" style="display: none;">
+        <form action="/settings/" method="POST" class="mainForm">
+            <input type="hidden" name="api_key_action" value="create_agent">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
             <div class="PageRow noborder">
                 <label for="agent_name">Name:</label>
                 <div class="PageInput">
@@ -71,8 +79,21 @@
                 <input type="submit" value="Create Agent" class="greyishBtn submitForm" />
                 <div class="fix"></div>
             </div>
-        </fieldset>
-    </form>
+        </form>
+    </div>
+
+    <script>
+    function showAgentTab(which) {
+        document.getElementById('agent-panel-existing').style.display = which === 'existing' ? 'block' : 'none';
+        document.getElementById('agent-panel-create').style.display = which === 'create' ? 'block' : 'none';
+        document.getElementById('tab-existing').style.borderBottom = which === 'existing' ? '2px solid var(--primary)' : 'none';
+        document.getElementById('tab-existing').style.color = which === 'existing' ? '' : 'var(--text-faint)';
+        document.getElementById('tab-existing').style.fontWeight = which === 'existing' ? '600' : '';
+        document.getElementById('tab-create').style.borderBottom = which === 'create' ? '2px solid var(--primary)' : 'none';
+        document.getElementById('tab-create').style.color = which === 'create' ? '' : 'var(--text-faint)';
+        document.getElementById('tab-create').style.fontWeight = which === 'create' ? '600' : '';
+    }
+    </script>
 </div>
 
 <div class="PagePanel">
