@@ -464,4 +464,33 @@ class PermissionGuardsTest extends Unit
             'beta/write_emotions'
         );
     }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    //  GET /inbox/actors — requires can_write_inbox
+    // ═══════════════════════════════════════════════════════════════════════
+
+    public function testFullAccessCanListActors()
+    {
+        $result = self::rawRequest(self::$keyFull, 'GET', '/inbox/actors');
+        $this->assertAllowed($result, 'full/inbox_actors');
+        $this->assertEquals(200, $result['status'], 'Expected 200 from /inbox/actors');
+        $this->assertArrayHasKey('actors', $result['body'], 'Response should contain "actors" array');
+        $this->assertIsArray($result['body']['actors']);
+        $this->assertNotEmpty($result['body']['actors'], 'Actors list should not be empty');
+
+        // Each actor should have aiu_id, name, description
+        $first = $result['body']['actors'][0];
+        $this->assertArrayHasKey('aiu_id', $first, 'Actor should have aiu_id');
+        $this->assertArrayHasKey('name', $first, 'Actor should have name');
+        $this->assertArrayHasKey('description', $first, 'Actor should have description');
+    }
+
+    public function testAlphaBlockedFromListActors()
+    {
+        $this->assertDenied(
+            self::rawRequest(self::$keyAlpha, 'GET', '/inbox/actors'),
+            'This API key does not have permission to list actors',
+            'alpha/inbox_actors'
+        );
+    }
 }
