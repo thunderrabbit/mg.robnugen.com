@@ -14,7 +14,7 @@ class CreateAgentCest
 {
     public function _before(AcceptanceTester $I)
     {
-        $I->loginAsPaid();
+        $I->loginAsTester();
     }
 
     public function canCreateAgentViaUI(AcceptanceTester $I)
