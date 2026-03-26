@@ -131,7 +131,7 @@ Independent of identity work. Can deploy immediately.
 - [x] **I3.** [WD] Test: CreateAgentCest.php — create agent via UI, verify in table and dropdown. Written by mgTester.
 - [x] **I4.** Add inbox visibility management: when creating an agent, show checkboxes for "can send to [each existing actor]"
   - On submit: INSERT `inbox_visibility` rows for each selected peer with `can_send=1`
-- [ ] **I5.** [WD] Test: create agent with send-to permissions, verify via UI (DB assertion not possible — option b). Deferred.
+- [x] **I5.** [WD] Test: CreateAgentCest — create agent with send-to permissions, verify via UI (option b). Written by mgTester.
 - [x] Deploy session I.
 
 ---
@@ -142,7 +142,7 @@ Independent of identity work. Can deploy immediately.
 - [x] **J2.** Display sender name and recipient name (or "Broadcast") on each message in the inbox list
 - [x] **J3.** Add recipient dropdown to the send form (populated from inline query)
 - [ ] **J4.** Add "Filter by sender" and "Show messages to me / all" controls (deferred)
-- [ ] **J5.** [WD] Test: send a message with a recipient, verify sender/recipient names display correctly (deferred to Monday)
+- [x] **J5.** [WD] Test: InboxRoutingDisplayCest — send with recipient, verify sender/recipient badges. Written by mgTester.
 - [x] Deploy session J.
 
 ---
