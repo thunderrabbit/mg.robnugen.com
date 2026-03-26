@@ -70,8 +70,8 @@
                     <label><input type="checkbox" name="can_write_todos"> Write Todos</label>
                     <label><input type="checkbox" name="can_read_sessions"> Read Sessions</label>
                     <label><input type="checkbox" name="can_write_sessions"> Write Sessions</label>
-                    <label><input type="checkbox" name="can_read_emotions"> Read Emotions</label>
-                    <label><input type="checkbox" name="can_write_emotions"> Write Emotions</label>
+                    <label><input type="checkbox" name="can_read_emotions"> Read Notebook</label>
+                    <label><input type="checkbox" name="can_write_emotions"> Write Notebook</label>
                 </div>
                 <div class="fix"></div>
             </div>
