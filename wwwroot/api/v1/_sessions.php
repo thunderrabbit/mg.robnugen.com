@@ -12,6 +12,19 @@
  * Variables from index.php: $pdo, $auth_user_id, $method, $path
  */
 
+// Permission: agent_inbox_user.can_read_sessions
+if ($method === 'GET' && !$auth_actor['can_read_sessions']) {
+    http_response_code(403);
+    echo json_encode(['error' => 'This API key does not have permission to read sessions']);
+    exit;
+}
+// Permission: agent_inbox_user.can_write_sessions
+if ($method !== 'GET' && !$auth_actor['can_write_sessions']) {
+    http_response_code(403);
+    echo json_encode(['error' => 'This API key does not have permission to modify sessions']);
+    exit;
+}
+
 $ak_id      = null;
 $sub_action = null;
 $is_backfill = ($path === '/sessions/backfill');
