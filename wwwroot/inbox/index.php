@@ -198,7 +198,7 @@ $order_clauses = match($sort_by) {
 };
 
 $count_stmt = $mla_database->prepare(
-    "SELECT COUNT(*) FROM agent_inbox WHERE user_id = ? {$filter_sql}"
+    "SELECT COUNT(*) FROM agent_inbox i WHERE i.user_id = ? {$filter_sql}"
 );
 $count_stmt->execute($params);
 $total_messages = (int) $count_stmt->fetchColumn();
