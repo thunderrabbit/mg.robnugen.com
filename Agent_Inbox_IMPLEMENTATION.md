@@ -141,7 +141,7 @@ Independent of identity work. Can deploy immediately.
 - [x] **J1.** JOIN `agent_inbox_user` in the inbox page query to get sender/recipient names
 - [x] **J2.** Display sender name and recipient name (or "Broadcast") on each message in the inbox list
 - [x] **J3.** Add recipient dropdown to the send form (populated from inline query)
-- [ ] **J4.** Add "Filter by sender" and "Show messages to me / all" controls (deferred)
+- [x] **J4.** Add "To: Me/Broadcast" and "From: [actor]" filter controls to inbox page
 - [x] **J5.** [WD] Test: InboxRoutingDisplayCest — send with recipient, verify sender/recipient badges. Written by mgTester.
 - [x] Deploy session J.
 
