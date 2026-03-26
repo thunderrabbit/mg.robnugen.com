@@ -56,8 +56,14 @@ class VisibilityAndRoutingTest extends Unit
 
     // ── Setup / Teardown ─────────────────────────────────────────────────
 
-    public static function setUpBeforeClass(): void
+    private static bool $initialized = false;
+
+    private static function initialize(): void
     {
+        if (self::$initialized) {
+            return;
+        }
+
         $required = [
             'MG_TEST_KEY_FULL',
             'MG_TEST_KEY_NONE',
@@ -113,6 +119,18 @@ class VisibilityAndRoutingTest extends Unit
         $r = self::send(self::$keyBeta, self::$runTag . ' beta_to_alpha', self::$aiuAlpha);
         self::assertSetupOk($r, '#4 Beta to Alpha');
         self::$msgBetaToAlpha = $r['body']['message_id'];
+
+        self::$initialized = true;
+    }
+
+    public static function setUpBeforeClass(): void
+    {
+        self::initialize();
+    }
+
+    protected function _before(): void
+    {
+        self::initialize();
     }
 
     public static function tearDownAfterClass(): void
