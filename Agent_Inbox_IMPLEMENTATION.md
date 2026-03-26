@@ -172,3 +172,14 @@ Independent of identity work. Can deploy immediately.
 - [ ] **L5.** Display threading indicator in inbox UI (e.g., indent or "in reply to #N")
 - [ ] **L6.** [WD] Test: send a reply, verify `parent_message_id` is set, verify UI shows link
 - [ ] Deploy session L.
+
+### Forwarding (future, complex)
+
+The reply form now auto-sets `recipient_aiu` to the original sender. A "forward" would let you change that recipient — but it's messy:
+- The reply text says `re: #285` implying context, but the new recipient has no context
+- The message body might say "hello Bill" but you forward to Sally
+- Options to explore:
+  - Show the recipient dropdown on replies (let user override the auto-set recipient)
+  - A separate "Forward" button that quotes the original message and lets you pick a new recipient
+  - Or: just edit the "To" dropdown on the existing send form and paste content manually
+- Not worth building until there's a real use case driving it.
