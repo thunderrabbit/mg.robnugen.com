@@ -105,7 +105,7 @@ Independent of identity work. Can deploy immediately.
 ## Session G: API — list_actors Endpoint
 
 - [x] **G1.** Add `GET /inbox/actors` endpoint in `_inbox.php` — returns `aiu_id`, `name`, `description` for all actors in caller's `user_id`. Gated by `can_write_inbox`.
-- [ ] **G2.** [Unit] Test: agent with `can_write_inbox=1` gets actor list. Agent with `can_write_inbox=0` gets 403. (deferred to Monday)
+- [x] **G2.** [Unit] Test: full-access gets actor list (200), alpha blocked (403). Added to PermissionGuardsTest.php by mgTester.
 - [x] **G3.** Update API 404 hint to include `/inbox/actors`
 - [x] Deploy session G.
 
