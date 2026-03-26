@@ -98,7 +98,7 @@ class ApiKey
     public function getKeysForUser(int $user_id): array
     {
         $stmt = $this->di_pdo->prepare(
-            "SELECT key_id, label, created_at, last_used
+            "SELECT key_id, aiu_id, label, created_at, last_used
              FROM api_keys
              WHERE user_id = ? AND is_active = 1
              ORDER BY created_at DESC"

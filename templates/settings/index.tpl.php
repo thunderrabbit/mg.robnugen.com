@@ -103,6 +103,17 @@
                 <div class="fix"></div>
             </div>
             <div class="PageRow noborder">
+                <label for="gen_aiu_id">Actor:</label>
+                <div class="PageInput">
+                    <select name="aiu_id" id="gen_aiu_id">
+                        <?php foreach ($actors as $a): ?>
+                        <option value="<?= (int)$a['aiu_id'] ?>"><?= htmlspecialchars($a['name']) ?> (<?= $a['actor_type'] ?>)</option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="fix"></div>
+            </div>
+            <div class="PageRow noborder">
                 <input type="submit" value="Generate API Key" class="greyishBtn submitForm" />
                 <div class="fix"></div>
             </div>
@@ -114,6 +125,7 @@
             <thead>
                 <tr>
                     <th style="text-align: left; padding: 6px; border-bottom: 1px solid var(--border-light);">Label</th>
+                    <th style="text-align: left; padding: 6px; border-bottom: 1px solid var(--border-light);">Actor</th>
                     <th style="text-align: left; padding: 6px; border-bottom: 1px solid var(--border-light);">Created</th>
                     <th style="text-align: left; padding: 6px; border-bottom: 1px solid var(--border-light);">Last used</th>
                     <th style="padding: 6px; border-bottom: 1px solid var(--border-light);"></th>
@@ -123,6 +135,18 @@
                 <?php foreach ($api_keys as $key): ?>
                 <tr>
                     <td style="padding: 6px;"><?= htmlspecialchars($key['label'] ?: '—') ?></td>
+                    <td style="padding: 6px;">
+                        <form action="/settings/" method="POST" style="display:inline;">
+                            <input type="hidden" name="api_key_action" value="assign_actor">
+                            <input type="hidden" name="key_id" value="<?= (int)$key['key_id'] ?>">
+                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+                            <select name="aiu_id" onchange="this.form.submit();">
+                                <?php foreach ($actors as $a): ?>
+                                <option value="<?= (int)$a['aiu_id'] ?>" <?= ((int)$key['aiu_id'] === (int)$a['aiu_id']) ? 'selected' : '' ?>><?= htmlspecialchars($a['name']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </form>
+                    </td>
                     <td style="padding: 6px;"><?= htmlspecialchars($key['created_at']) ?></td>
                     <td style="padding: 6px;"><?= htmlspecialchars($key['last_used'] ?: 'never') ?></td>
                     <td style="padding: 6px;">
