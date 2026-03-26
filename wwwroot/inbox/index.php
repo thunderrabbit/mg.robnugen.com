@@ -190,14 +190,25 @@ $current_page = min($current_page, $total_pages);
 $offset = ($current_page - 1) * $per_page;
 
 $stmt = $mla_database->prepare(
-    "SELECT message_id, message, priority, show_date, sender_timezone, seen_at, done_at, archived_at, response, created_at_utc, updated_at_utc
-     FROM agent_inbox
-     WHERE user_id = ? {$filter_sql}
+    "SELECT i.message_id, i.message, i.priority, i.show_date, i.sender_timezone, i.sender_aiu, i.recipient_aiu,
+            i.seen_at, i.done_at, i.archived_at, i.response, i.created_at_utc, i.updated_at_utc,
+            s.name AS sender_name, r.name AS recipient_name
+     FROM agent_inbox i
+     LEFT JOIN agent_inbox_user s ON i.sender_aiu = s.aiu_id
+     LEFT JOIN agent_inbox_user r ON i.recipient_aiu = r.aiu_id
+     WHERE i.user_id = ? {$filter_sql}
      ORDER BY {$order_clauses}
      LIMIT {$per_page} OFFSET {$offset}"
 );
 $stmt->execute($params);
 $messages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+// Fetch actors for recipient dropdown
+$actors_stmt = $mla_database->prepare(
+    "SELECT aiu_id, name FROM agent_inbox_user WHERE user_id = ? ORDER BY created_at_utc ASC"
+);
+$actors_stmt->execute([$user_id]);
+$inbox_actors = $actors_stmt->fetchAll(\PDO::FETCH_ASSOC);
 
 // CSRF token
 if (empty($_SESSION['csrf_token'])) {
@@ -209,6 +220,7 @@ $page->setTemplate('inbox/index.tpl.php');
 $page->set('error_message',   $error_message);
 $page->set('success_message', $success_message);
 $page->set('messages',        $messages);
+$page->set('inbox_actors',   $inbox_actors);
 $page->set('csrf_token',      $_SESSION['csrf_token']);
 $page->set('show_archived',    $show_archived);
 $page->set('show_future',      $show_future);
