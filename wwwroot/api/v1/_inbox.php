@@ -106,7 +106,7 @@ if ($method === 'GET' && $sub === '/list') {
     $where_sql = implode(' AND ', $where);
 
     $stmt = $pdo->prepare(
-        "SELECT message_id, message, priority, show_date, sender_timezone, seen_at, done_at, archived_at, response, created_at_utc, updated_at_utc
+        "SELECT message_id, message, priority, show_date, sender_timezone, sender_aiu, recipient_aiu, seen_at, done_at, archived_at, response, created_at_utc, updated_at_utc
          FROM agent_inbox i
          WHERE {$where_sql}
          ORDER BY FIELD(priority, 'high', 'normal', 'low'), created_at_utc DESC
