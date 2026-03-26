@@ -141,6 +141,8 @@ $filter_priority = $_GET['priority'] ?? '';
 $filter_status = $_GET['status'] ?? '';
 $sort_by = $_GET['sort'] ?? 'id';
 $sort_dir = ($_GET['dir'] ?? 'desc') === 'asc' ? 'ASC' : 'DESC';
+$filter_to = $_GET['to'] ?? '';      // 'me', 'broadcast', or '' (all)
+$filter_from = (int)($_GET['from'] ?? 0);  // sender aiu_id or 0 (all)
 $per_page = 50;
 $current_page = max(1, (int)($_GET['page'] ?? 1));
 
@@ -167,6 +169,20 @@ if ($filter_status === 'pending') {
     // Remove the archived_at IS NULL filter if present
     $filters = array_filter($filters, fn($f) => $f !== 'AND archived_at IS NULL');
     $filters[] = 'AND archived_at IS NOT NULL';
+}
+
+// Recipient filter (to me / broadcast / all)
+if ($filter_to === 'me') {
+    $filters[] = 'AND i.recipient_aiu = ?';
+    $params[] = $web_sender_aiu;
+} elseif ($filter_to === 'broadcast') {
+    $filters[] = 'AND i.recipient_aiu IS NULL';
+}
+
+// Sender filter
+if ($filter_from > 0) {
+    $filters[] = 'AND i.sender_aiu = ?';
+    $params[] = $filter_from;
 }
 
 $filter_sql = implode(' ', $filters);
@@ -229,6 +245,8 @@ $page->set('filter_priority',  $filter_priority);
 $page->set('filter_status',    $filter_status);
 $page->set('sort_by',          $sort_by);
 $page->set('sort_dir',         strtolower($sort_dir));
+$page->set('filter_to',        $filter_to);
+$page->set('filter_from',      $filter_from);
 $page->set('current_page',    $current_page);
 $page->set('total_pages',     $total_pages);
 $page->set('total_messages',  $total_messages);
