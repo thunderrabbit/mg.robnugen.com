@@ -20,7 +20,7 @@ class CreateAgentCest
     public function canCreateAgentViaUI(AcceptanceTester $I)
     {
         $agentName = 'test_ui_agent_' . substr(bin2hex(random_bytes(4)), 0, 8);
-        $agentDesc = 'Created by Webdriver test';
+        $agentDesc = 'Webdriver test ' . date('Y M d');
 
         $I->amOnPage('/settings/');
 
