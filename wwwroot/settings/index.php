@@ -89,7 +89,7 @@ $api_keys         = $apiKeyHelper->getKeysForUser($user_id);
 
 // Fetch actors for this user (for agent management + key assignment dropdowns)
 $actors_stmt = $mla_database->prepare(
-    "SELECT * FROM agent_inbox_user WHERE user_id = ? ORDER BY actor_type DESC, name"
+    "SELECT * FROM agent_inbox_user WHERE user_id = ? ORDER BY created_at_utc ASC"
 );
 $actors_stmt->execute([$user_id]);
 $actors = $actors_stmt->fetchAll(\PDO::FETCH_ASSOC);
