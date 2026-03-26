@@ -43,6 +43,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_key_action'])) {
 $apiKeyHelper     = new \Auth\ApiKey($mla_database);
 $api_keys         = $apiKeyHelper->getKeysForUser($user_id);
 
+// Fetch actors for this user (for agent management + key assignment dropdowns)
+$actors_stmt = $mla_database->prepare(
+    "SELECT * FROM agent_inbox_user WHERE user_id = ? ORDER BY actor_type DESC, name"
+);
+$actors_stmt->execute([$user_id]);
+$actors = $actors_stmt->fetchAll(\PDO::FETCH_ASSOC);
+
 $credits_stmt = $mla_database->prepare(
     'SELECT credits_remaining FROM api_credits WHERE user_id = ? LIMIT 1'
 );
@@ -56,6 +63,7 @@ $page->set('success_message', $success_message);
 $page->set('new_api_key',     $new_api_key);
 $page->set('api_keys',        $api_keys);
 $page->set('credits_remaining', $credits_remaining);
+$page->set('actors',           $actors);
 $inner = $page->grabTheGoods();
 
 $layout = new \Template(config: $config, is_logged_in: $is_logged_in);
