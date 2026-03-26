@@ -110,18 +110,18 @@ Independent of identity work. Can deploy immediately.
 
 ## Session G: API — list_actors Endpoint
 
-- [ ] **G1.** Add `GET /inbox/actors` endpoint in `_inbox.php` — returns `aiu_id`, `name`, `description` for all actors in caller's `user_id`. Gated by `can_write_inbox`.
+- [x] **G1.** Add `GET /inbox/actors` endpoint in `_inbox.php` — returns `aiu_id`, `name`, `description` for all actors in caller's `user_id`. Gated by `can_write_inbox`.
 - [ ] **G2.** [Unit] Test: agent with `can_write_inbox=1` gets actor list. Agent with `can_write_inbox=0` gets 403.
-- [ ] **G3.** Update API 404 hint to include `/inbox/actors`
+- [x] **G3.** Update API 404 hint to include `/inbox/actors`
 - [ ] Deploy session G.
 
 ---
 
 ## Session H: MCP — Jikan + gkan
 
-- [ ] **H1.** Add `recipient_aiu` optional param to `send_inbox` in `~/jikan/server.py`
-- [ ] **H2.** Add `sender_aiu` and `include_sent` optional params to `list_inbox` in `~/jikan/server.py`
-- [ ] **H3.** Add `list_actors` tool in `~/jikan/server.py`
+- [x] **H1.** Add `recipient_aiu` optional param to `send_inbox` in `~/jikan/server.py`
+- [x] **H2.** Add `sender_aiu` and `include_sent` optional params to `list_inbox` in `~/jikan/server.py`
+- [x] **H3.** Add `list_actors` tool in `~/jikan/server.py`
 - [ ] **H4.** Repeat H1-H3 for Grove's `~/jikan/server.py` on Lemur 10 (deploy via Rob)
 - [ ] **H5.** [Manual] Restart conversation, verify new params work: `list_inbox(include_sent=1)`, `send_inbox(message="test", recipient_aiu=1)`, `list_actors()`
 - [ ] Deploy session H (Rob deploys gkan to Grove).
