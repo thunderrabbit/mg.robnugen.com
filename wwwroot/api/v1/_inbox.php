@@ -37,9 +37,50 @@ if ($method === 'GET' && $sub === '/list') {
     $status = trim($_GET['status'] ?? '');   // pending | seen | done | (empty = all)
     $limit  = max(1, min(100, (int)($_GET['limit'] ?? 50)));
     $offset = max(0, (int)($_GET['offset'] ?? 0));
+    $include_sent = (int)($_GET['include_sent'] ?? 0);
+    $filter_sender_aiu = (int)($_GET['sender_aiu'] ?? 0);
+
+    $caller_aiu = (int) $auth_actor['aiu_id'];
 
     $where = ['i.user_id = ?'];
     $params = [$auth_user_id];
+
+    // ── Visibility filtering via inbox_visibility ─────────────────────
+    // Check if caller has supervisor access (NULL peer = see all)
+    $vis_stmt = $pdo->prepare(
+        "SELECT inbox_peer_aiu_id FROM inbox_visibility
+         WHERE inbox_user_aiu_id = ? AND can_read = 1"
+    );
+    $vis_stmt->execute([$caller_aiu]);
+    $vis_rows = $vis_stmt->fetchAll(\PDO::FETCH_COLUMN);
+
+    $is_supervisor = in_array(null, $vis_rows, true);
+
+    if (!$is_supervisor) {
+        // Scoped: see messages addressed to readable peers + broadcasts
+        $readable_ids = array_filter($vis_rows, fn($id) => $id !== null);
+        if (empty($readable_ids)) {
+            // No visibility rows with can_read — see only broadcasts
+            $vis_filter = 'i.recipient_aiu IS NULL';
+        } else {
+            $placeholders = implode(',', array_fill(0, count($readable_ids), '?'));
+            $vis_filter = "(i.recipient_aiu IN ({$placeholders}) OR i.recipient_aiu IS NULL)";
+            $params = array_merge($params, $readable_ids);
+        }
+        // Optional: include messages the caller sent
+        if ($include_sent) {
+            $vis_filter = "({$vis_filter} OR i.sender_aiu = ?)";
+            $params[] = $caller_aiu;
+        }
+        $where[] = $vis_filter;
+    }
+    // Supervisors skip visibility filter — they see everything
+
+    // Optional: filter by sender
+    if ($filter_sender_aiu > 0) {
+        $where[] = 'i.sender_aiu = ?';
+        $params[] = $filter_sender_aiu;
+    }
 
     $include_archived = (int)($_GET['include_archived'] ?? 0);
     if (!$include_archived) {
