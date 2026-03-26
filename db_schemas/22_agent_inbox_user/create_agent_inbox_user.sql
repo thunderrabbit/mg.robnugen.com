@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS agent_inbox_user (
     can_write_sessions  TINYINT(1) NOT NULL DEFAULT 0,
     can_read_emotions   TINYINT(1) NOT NULL DEFAULT 0,
     can_write_emotions  TINYINT(1) NOT NULL DEFAULT 0,
-    created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at_utc DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
 
     UNIQUE KEY uniq_user_name (user_id, name),
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
