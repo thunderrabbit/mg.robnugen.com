@@ -34,6 +34,15 @@
                     </select>
                 </div>
                 <div class="form-group" style="flex: 0 0 auto;">
+                    <label for="recipient_aiu">To</label>
+                    <select id="recipient_aiu" name="recipient_aiu" class="form-control">
+                        <option value="">Broadcast (all)</option>
+                        <?php foreach ($inbox_actors as $a): ?>
+                        <option value="<?= (int)$a['aiu_id'] ?>"><?= htmlspecialchars($a['name']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="form-group" style="flex: 0 0 auto;">
                     <label for="show_date">Show after</label>
                     <input type="date" id="show_date" name="show_date" class="form-control" placeholder="Visible immediately if blank">
                 </div>

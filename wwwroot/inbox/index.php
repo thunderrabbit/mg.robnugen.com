@@ -71,10 +71,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
             }
             $error_message = 'Message exceeds 10,240 byte limit (' . strlen($message) . ' bytes).';
         } else {
+            $recipient_aiu = (int)($_POST['recipient_aiu'] ?? 0) ?: null;
             $stmt = $mla_database->prepare(
-                "INSERT INTO agent_inbox (user_id, message, priority, show_date, sender_timezone, sender_aiu) VALUES (?, ?, ?, ?, ?, ?)"
+                "INSERT INTO agent_inbox (user_id, message, priority, show_date, sender_timezone, sender_aiu, recipient_aiu) VALUES (?, ?, ?, ?, ?, ?, ?)"
             );
-            $stmt->execute([$user_id, $message, $priority, $show_date, $sender_timezone ?: null, $web_sender_aiu]);
+            $stmt->execute([$user_id, $message, $priority, $show_date, $sender_timezone ?: null, $web_sender_aiu, $recipient_aiu]);
             $new_message_id = $mla_database->lastInsertId();
 
             if ($is_ajax) {
