@@ -14,6 +14,24 @@
 
 $sub = preg_replace('#^/inbox#', '', $path) ?: '/';
 
+// Permission: agent_inbox_user.can_read_inbox
+// Covers: GET /list, PATCH /mark-seen, /mark-seen-bulk, /mark-done, /archive
+$is_read_op = ($method === 'GET') ||
+              ($method === 'PATCH' && in_array($sub, ['/mark-seen', '/mark-seen-bulk', '/mark-done', '/archive']));
+if ($is_read_op && !$auth_actor['can_read_inbox']) {
+    http_response_code(403);
+    echo json_encode(['error' => 'This API key does not have permission to read inbox']);
+    exit;
+}
+// Permission: agent_inbox_user.can_write_inbox
+// Covers: POST /send, PATCH /edit, DELETE /delete
+$is_write_op = ($method === 'POST') || ($method === 'DELETE') || ($method === 'PATCH' && $sub === '/edit');
+if ($is_write_op && !$auth_actor['can_write_inbox']) {
+    http_response_code(403);
+    echo json_encode(['error' => 'This API key does not have permission to write inbox']);
+    exit;
+}
+
 if ($method === 'GET' && $sub === '/list') {
     // ── List inbox messages ──────────────────────────────────────────────
     $status = trim($_GET['status'] ?? '');   // pending | seen | done | (empty = all)
