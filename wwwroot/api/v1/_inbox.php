@@ -393,7 +393,25 @@ if ($method === 'GET' && $sub === '/list') {
 
     echo json_encode(['deleted' => $stmt->rowCount()]);
 
+} elseif ($method === 'GET' && $sub === '/actors') {
+    // ── List actors in this account ───────────────────────────────────────
+    // Requires can_write_inbox (you only need this if deciding who to send to)
+    if (!$auth_actor['can_write_inbox']) {
+        http_response_code(403);
+        echo json_encode(['error' => 'This API key does not have permission to list actors']);
+        exit;
+    }
+
+    $stmt = $pdo->prepare(
+        "SELECT aiu_id, name, description FROM agent_inbox_user WHERE user_id = ? ORDER BY name"
+    );
+    $stmt->execute([$auth_user_id]);
+
+    echo json_encode([
+        'actors' => $stmt->fetchAll(\PDO::FETCH_ASSOC),
+    ]);
+
 } else {
     http_response_code(404);
-    echo json_encode(['error' => 'Not found', 'hint' => 'GET /list, POST /send, PATCH /mark-seen, PATCH /mark-seen-bulk, PATCH /mark-done, DELETE /delete']);
+    echo json_encode(['error' => 'Not found', 'hint' => 'GET /list, GET /actors, POST /send, PATCH /mark-seen, PATCH /mark-seen-bulk, PATCH /mark-done, DELETE /delete']);
 }
