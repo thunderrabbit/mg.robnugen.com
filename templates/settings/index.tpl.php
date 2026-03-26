@@ -33,6 +33,46 @@
         </tbody>
     </table>
     <?php endif; ?>
+
+    <form action="/settings/" method="POST" class="mainForm" style="margin-top: 15px;">
+        <input type="hidden" name="api_key_action" value="create_agent">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+        <fieldset>
+            <legend>Create Agent</legend>
+            <div class="PageRow noborder">
+                <label for="agent_name">Name:</label>
+                <div class="PageInput">
+                    <input type="text" name="agent_name" id="agent_name" placeholder="e.g. Carrie" maxlength="100" required />
+                </div>
+                <div class="fix"></div>
+            </div>
+            <div class="PageRow noborder">
+                <label for="agent_description">Description:</label>
+                <div class="PageInput">
+                    <input type="text" name="agent_description" id="agent_description" placeholder="e.g. Hourly inbox agent" maxlength="255" />
+                </div>
+                <div class="fix"></div>
+            </div>
+            <div class="PageRow noborder">
+                <label>Permissions:</label>
+                <div class="PageInput" style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px;">
+                    <label><input type="checkbox" name="can_read_inbox" checked> Read Inbox</label>
+                    <label><input type="checkbox" name="can_write_inbox"> Write Inbox</label>
+                    <label><input type="checkbox" name="can_read_todos"> Read Todos</label>
+                    <label><input type="checkbox" name="can_write_todos"> Write Todos</label>
+                    <label><input type="checkbox" name="can_read_sessions"> Read Sessions</label>
+                    <label><input type="checkbox" name="can_write_sessions"> Write Sessions</label>
+                    <label><input type="checkbox" name="can_read_emotions"> Read Emotions</label>
+                    <label><input type="checkbox" name="can_write_emotions"> Write Emotions</label>
+                </div>
+                <div class="fix"></div>
+            </div>
+            <div class="PageRow noborder">
+                <input type="submit" value="Create Agent" class="greyishBtn submitForm" />
+                <div class="fix"></div>
+            </div>
+        </fieldset>
+    </form>
 </div>
 
 <div class="PagePanel">
