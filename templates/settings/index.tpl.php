@@ -1,9 +1,5 @@
 <div class="PagePanel">
-    <div class="head"><h5>API Keys</h5></div>
-
-    <p>Credits remaining: <strong><?= (int)$credits_remaining ?></strong>
-        &nbsp; <a href="/billing/">Buy more</a>
-    </p>
+    <div class="head"><h5>Agents</h5></div>
 
     <?php if (!empty($success_message)): ?>
         <div class="success-message" style="color: var(--alert-success-text); padding: 10px; margin: 10px 0; border: 1px solid var(--alert-success-border); background-color: var(--alert-success-bg);">
@@ -16,6 +12,35 @@
             <?= $error_message ?>
         </div>
     <?php endif; ?>
+
+    <?php if (!empty($actors)): ?>
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr>
+                <th style="text-align: left; padding: 6px; border-bottom: 1px solid var(--border-light);">Name</th>
+                <th style="text-align: left; padding: 6px; border-bottom: 1px solid var(--border-light);">Type</th>
+                <th style="text-align: left; padding: 6px; border-bottom: 1px solid var(--border-light);">Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($actors as $actor): ?>
+            <tr>
+                <td style="padding: 6px;"><?= htmlspecialchars($actor['name']) ?></td>
+                <td style="padding: 6px;"><?= htmlspecialchars($actor['actor_type']) ?></td>
+                <td style="padding: 6px; font-size: 0.85em; color: var(--text-faint);"><?= htmlspecialchars($actor['description'] ?? '—') ?></td>
+            </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+    <?php endif; ?>
+</div>
+
+<div class="PagePanel">
+    <div class="head"><h5>API Keys</h5></div>
+
+    <p>Credits remaining: <strong><?= (int)$credits_remaining ?></strong>
+        &nbsp; <a href="/billing/">Buy more</a>
+    </p>
 
     <?php if (!empty($new_api_key)): ?>
         <div class="success-message" style="color: var(--alert-success-text); padding: 10px; margin: 10px 0; border: 1px solid var(--alert-success-border); background-color: var(--alert-success-bg);">
