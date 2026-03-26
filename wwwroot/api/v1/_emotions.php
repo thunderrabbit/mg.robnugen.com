@@ -11,6 +11,19 @@
 
 $emotions_path = rtrim(preg_replace('#^/emotions#', '', $path), '/') ?: '/';
 
+// Permission: agent_inbox_user.can_read_emotions
+if ($method === 'GET' && !$auth_actor['can_read_emotions']) {
+    http_response_code(403);
+    echo json_encode(['error' => 'This API key does not have permission to read emotions']);
+    exit;
+}
+// Permission: agent_inbox_user.can_write_emotions
+if ($method !== 'GET' && !$auth_actor['can_write_emotions']) {
+    http_response_code(403);
+    echo json_encode(['error' => 'This API key does not have permission to modify emotions']);
+    exit;
+}
+
 if ($emotions_path === '/vocab' || $emotions_path === '/') {
 
     if ($method === 'POST') {
