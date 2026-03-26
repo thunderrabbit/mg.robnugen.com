@@ -24,6 +24,7 @@ class InboxRoutingDisplayCest
         $tag = 'routing_display_' . bin2hex(random_bytes(4));
 
         $I->amOnPage('/inbox/');
+        $I->seeInTitle('Agent Inbox');
         $I->waitForElementVisible('#send-form', 5);
 
         // Pick a specific recipient (not broadcast) — select the 2nd option (index 1)
@@ -49,6 +50,7 @@ class InboxRoutingDisplayCest
         $tag = 'routing_broadcast_' . bin2hex(random_bytes(4));
 
         $I->amOnPage('/inbox/');
+        $I->seeInTitle('Agent Inbox');
         $I->waitForElementVisible('#send-form', 5);
 
         // Leave recipient as broadcast (default empty value)
