@@ -232,6 +232,14 @@
                     <div class="inbox-meta">
                         <span class="inbox-id">#<?= $msg['message_id'] ?></span>
                         <span class="inbox-priority inbox-priority-<?= $msg['priority'] ?>"><?= $msg['priority'] ?></span>
+                        <?php if ($msg['sender_name']): ?>
+                            <span class="inbox-sender">from <?= htmlspecialchars($msg['sender_name']) ?></span>
+                        <?php endif; ?>
+                        <?php if ($msg['recipient_name']): ?>
+                            <span class="inbox-recipient">to <?= htmlspecialchars($msg['recipient_name']) ?></span>
+                        <?php else: ?>
+                            <span class="inbox-recipient inbox-broadcast">broadcast</span>
+                        <?php endif; ?>
                         <span class="inbox-status">
                             <?php if ($msg['archived_at']): ?>
                                 Archived <span class="utc-time" data-utc="<?= $msg['archived_at'] ?>"></span>
@@ -362,6 +370,9 @@
     .inbox-priority-high { background: #fdd; color: #c00; }
     .inbox-priority-normal { background: #eee; color: #555; }
     .inbox-priority-low { background: #eef; color: #66a; }
+    .inbox-sender { font-size: 0.75rem; color: var(--info, #2196F3); }
+    .inbox-recipient { font-size: 0.75rem; color: var(--success, #4CAF50); }
+    .inbox-broadcast { font-style: italic; color: var(--text-muted); }
     .inbox-show-date { font-style: italic; color: var(--info, #2196F3); }
 
     .inbox-message { white-space: pre-wrap; line-height: 1.5; }
