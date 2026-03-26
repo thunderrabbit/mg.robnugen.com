@@ -122,9 +122,9 @@ Independent of identity work. Can deploy immediately.
 - [x] **H1.** Add `recipient_aiu` optional param to `send_inbox` in `~/jikan/server.py`
 - [x] **H2.** Add `sender_aiu` and `include_sent` optional params to `list_inbox` in `~/jikan/server.py`
 - [x] **H3.** Add `list_actors` tool in `~/jikan/server.py`
-- [ ] **H4.** Repeat H1-H3 for Grove's `~/jikan/server.py` on Lemur 10 (deploy via Rob)
-- [ ] **H5.** [Manual] Restart conversation, verify new params work: `list_inbox(include_sent=1)`, `send_inbox(message="test", recipient_aiu=1)`, `list_actors()`
-- [ ] Deploy session H (Rob deploys gkan to Grove).
+- [x] **H4.** Repeat H1-H3 for Grove's `~/jikan/server.py` on Lemur 10 (deployed via scp)
+- [x] **H5.** [Manual] Verified: `list_actors()` returns 4 actors, `send_inbox(recipient_aiu=1)` creates msg #285 with sender_aiu=8, `list_inbox(include_sent=1)` shows sent messages. gkan `list_actors()` returns Grove's account.
+- [x] Deploy session H.
 
 ---
 
