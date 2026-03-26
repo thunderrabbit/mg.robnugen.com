@@ -138,12 +138,33 @@ if ($method === 'GET' && $sub === '/list') {
     $priority  = trim($input['priority'] ?? 'normal');
     $show_date = isset($input['show_date']) ? trim($input['show_date']) : null;
     $sender_timezone = trim($input['sender_timezone'] ?? '');
+    $recipient_aiu = isset($input['recipient_aiu']) ? (int) $input['recipient_aiu'] : null;
     // Validate IANA timezone — stored for Carrie (and future agents) to determine
     // the sender's local date when processing journal entries via the API.
     // Prepared statement prevents SQL injection, but garbage strings would break
     // timezone conversion later, so we silently discard invalid values.
     if ($sender_timezone && !in_array($sender_timezone, \DateTimeZone::listIdentifiers())) {
         $sender_timezone = '';
+    }
+
+    // Auto-populate sender from the calling key's actor
+    $sender_aiu = (int) $auth_actor['aiu_id'];
+
+    // Validate recipient_aiu if provided
+    if ($recipient_aiu !== null) {
+        // Check send permission via inbox_visibility
+        $send_stmt = $pdo->prepare(
+            "SELECT can_send FROM inbox_visibility
+             WHERE inbox_user_aiu_id = ?
+             AND (inbox_peer_aiu_id = ? OR inbox_peer_aiu_id IS NULL)"
+        );
+        $send_stmt->execute([$sender_aiu, $recipient_aiu]);
+        $send_row = $send_stmt->fetch(\PDO::FETCH_ASSOC);
+        if (!$send_row || !$send_row['can_send']) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Not authorized to send to this recipient']);
+            return;
+        }
     }
 
     if ($message === '') {
@@ -173,10 +194,10 @@ if ($method === 'GET' && $sub === '/list') {
     }
 
     $stmt = $pdo->prepare(
-        "INSERT INTO agent_inbox (user_id, message, priority, show_date, sender_timezone)
-         VALUES (?, ?, ?, ?, ?)"
+        "INSERT INTO agent_inbox (user_id, message, priority, show_date, sender_timezone, sender_aiu, recipient_aiu)
+         VALUES (?, ?, ?, ?, ?, ?, ?)"
     );
-    $stmt->execute([$auth_user_id, $message, $priority, $show_date, $sender_timezone ?: null]);
+    $stmt->execute([$auth_user_id, $message, $priority, $show_date, $sender_timezone ?: null, $sender_aiu, $recipient_aiu]);
     $message_id = (int) $pdo->lastInsertId();
 
     http_response_code(201);

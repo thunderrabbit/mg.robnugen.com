@@ -26,6 +26,13 @@ if (empty($api_keys)) {
     exit;
 }
 
+// Get the human actor for this user (for sender_aiu on web form sends)
+$aiu_stmt = $mla_database->prepare(
+    "SELECT aiu_id FROM agent_inbox_user WHERE user_id = ? AND actor_type = 'human' LIMIT 1"
+);
+$aiu_stmt->execute([$user_id]);
+$web_sender_aiu = (int) $aiu_stmt->fetchColumn() ?: null;
+
 $error_message   = '';
 $success_message = '';
 
@@ -65,9 +72,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
             $error_message = 'Message exceeds 10,240 byte limit (' . strlen($message) . ' bytes).';
         } else {
             $stmt = $mla_database->prepare(
-                "INSERT INTO agent_inbox (user_id, message, priority, show_date, sender_timezone) VALUES (?, ?, ?, ?, ?)"
+                "INSERT INTO agent_inbox (user_id, message, priority, show_date, sender_timezone, sender_aiu) VALUES (?, ?, ?, ?, ?, ?)"
             );
-            $stmt->execute([$user_id, $message, $priority, $show_date, $sender_timezone ?: null]);
+            $stmt->execute([$user_id, $message, $priority, $show_date, $sender_timezone ?: null, $web_sender_aiu]);
             $new_message_id = $mla_database->lastInsertId();
 
             if ($is_ajax) {
