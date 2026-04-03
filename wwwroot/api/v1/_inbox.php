@@ -291,18 +291,19 @@ if ($method === 'GET' && $sub === '/list') {
     // ── Edit a message ───────────────────────────────────────────────────
     $input = json_decode(file_get_contents('php://input'), true);
     $message_id = (int)($input['message_id'] ?? 0);
-    $message    = isset($input['message']) ? trim($input['message']) : null;
-    $priority   = isset($input['priority']) ? trim($input['priority']) : null;
-    $show_date  = array_key_exists('show_date', $input) ? $input['show_date'] : 'NOT_SET';
+    $message       = isset($input['message']) ? trim($input['message']) : null;
+    $priority      = isset($input['priority']) ? trim($input['priority']) : null;
+    $show_date     = array_key_exists('show_date', $input) ? $input['show_date'] : 'NOT_SET';
+    $recipient_aiu = isset($input['recipient_aiu']) ? (int) $input['recipient_aiu'] : null;
 
     if ($message_id <= 0) {
         http_response_code(400);
         echo json_encode(['error' => 'message_id is required']);
         return;
     }
-    if ($message === null && $priority === null && $show_date === 'NOT_SET') {
+    if ($message === null && $priority === null && $show_date === 'NOT_SET' && $recipient_aiu === null) {
         http_response_code(400);
-        echo json_encode(['error' => 'provide message, priority, and/or show_date to update']);
+        echo json_encode(['error' => 'provide message, priority, show_date, and/or recipient_aiu to update']);
         return;
     }
 
@@ -344,6 +345,27 @@ if ($method === 'GET' && $sub === '/list') {
             $params[] = $show_date;
         } else {
             $sets[] = 'show_date = NULL';
+        }
+    }
+    if ($recipient_aiu !== null) {
+        $sender_aiu = (int) $auth_actor['aiu_id'];
+        $send_stmt = $pdo->prepare(
+            "SELECT can_send FROM inbox_visibility
+             WHERE inbox_user_aiu_id = ?
+             AND (inbox_peer_aiu_id = ? OR inbox_peer_aiu_id IS NULL)"
+        );
+        $send_stmt->execute([$sender_aiu, $recipient_aiu]);
+        $send_row = $send_stmt->fetch(\PDO::FETCH_ASSOC);
+        if (!$send_row || !$send_row['can_send']) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Not authorized to send to this recipient']);
+            return;
+        }
+        if ($recipient_aiu === 0) {
+            $sets[] = 'recipient_aiu = NULL';
+        } else {
+            $sets[] = 'recipient_aiu = ?';
+            $params[] = $recipient_aiu;
         }
     }
 
