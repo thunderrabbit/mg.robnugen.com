@@ -327,6 +327,12 @@
                                 <option value="normal" <?= $msg['priority'] === 'normal' ? 'selected' : '' ?>>Normal</option>
                                 <option value="low" <?= $msg['priority'] === 'low' ? 'selected' : '' ?>>Low</option>
                             </select>
+                            <select class="form-control" id="edit-recipient-<?= $msg['message_id'] ?>" style="width: auto;">
+                                <option value="" <?= empty($msg['recipient_aiu']) ? 'selected' : '' ?>>Broadcast (all)</option>
+                                <?php foreach ($inbox_actors as $a): ?>
+                                <option value="<?= (int)$a['aiu_id'] ?>" <?= (int)$msg['recipient_aiu'] === (int)$a['aiu_id'] ? 'selected' : '' ?>><?= htmlspecialchars($a['name']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
                             <label style="font-size: 0.8rem; color: var(--text-muted);">Show after:
                                 <input type="date" id="edit-showdate-<?= $msg['message_id'] ?>" class="form-control" style="width: auto; display: inline-block;" value="<?= $msg['show_date'] ? htmlspecialchars(substr($msg['show_date'], 0, 10)) : '' ?>">
                             </label>
@@ -502,6 +508,7 @@ function sendReply(parentId) {
 function saveEdit(id) {
     var textarea = document.getElementById('edit-text-' + id);
     var priority = document.getElementById('edit-priority-' + id);
+    var recipient = document.getElementById('edit-recipient-' + id);
     var showDate = document.getElementById('edit-showdate-' + id);
     var status = document.getElementById('edit-status-' + id);
     var message = textarea.value.trim();
@@ -519,6 +526,7 @@ function saveEdit(id) {
               '&message_id=' + id +
               '&message=' + encodeURIComponent(message) +
               '&priority=' + encodeURIComponent(priority.value) +
+              '&recipient_aiu=' + encodeURIComponent(recipient.value) +
               '&show_date=' + encodeURIComponent(showDate.value)
     }).then(function(res) { return res.json(); })
     .then(function(data) {
@@ -531,6 +539,17 @@ function saveEdit(id) {
             if (prioEl) {
                 prioEl.textContent = priority.value;
                 prioEl.className = 'inbox-priority inbox-priority-' + priority.value;
+            }
+            var recipEl = item.querySelector('.inbox-recipient');
+            if (recipEl) {
+                var selOpt = recipient.options[recipient.selectedIndex];
+                if (recipient.value) {
+                    recipEl.textContent = 'to ' + selOpt.textContent;
+                    recipEl.className = 'inbox-recipient';
+                } else {
+                    recipEl.textContent = 'broadcast';
+                    recipEl.className = 'inbox-recipient inbox-broadcast';
+                }
             }
             status.style.color = 'var(--success, #4CAF50)';
             status.textContent = 'Saved';

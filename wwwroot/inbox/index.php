@@ -89,6 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
         $message_id = (int)($_POST['message_id'] ?? 0);
         $message    = trim($_POST['message'] ?? '');
         $priority   = trim($_POST['priority'] ?? '');
+        $recipient_aiu = (int)($_POST['recipient_aiu'] ?? 0) ?: null;
         $show_date  = trim($_POST['show_date'] ?? '');
         $show_date  = $show_date !== '' ? $show_date : null;
         $is_ajax = !empty($_POST['ajax']);
@@ -102,9 +103,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
             $error_message = 'Message ID and message text are required.';
         } else {
             $stmt = $mla_database->prepare(
-                "UPDATE agent_inbox SET message = ?, priority = ?, show_date = ? WHERE message_id = ? AND user_id = ?"
+                "UPDATE agent_inbox SET message = ?, priority = ?, recipient_aiu = ?, show_date = ? WHERE message_id = ? AND user_id = ?"
             );
-            $stmt->execute([$message, $priority, $show_date, $message_id, $user_id]);
+            $stmt->execute([$message, $priority, $recipient_aiu, $show_date, $message_id, $user_id]);
 
             if ($is_ajax) {
                 header('Content-Type: application/json');
