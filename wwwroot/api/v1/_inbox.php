@@ -99,8 +99,7 @@ if ($method === 'GET' && $sub === '/list') {
     } elseif ($status === 'done') {
         $where[] = 'i.done_at IS NOT NULL';
     } elseif ($status === 'archived') {
-        $where = ['i.user_id = ?', 'i.archived_at IS NOT NULL'];
-        $params = [$auth_user_id];
+        $where[] = 'i.archived_at IS NOT NULL';
     }
 
     $where_sql = implode(' AND ', $where);
