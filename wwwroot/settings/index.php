@@ -25,8 +25,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_key_action'])) {
     if ($_POST['api_key_action'] === 'generate') {
         $label       = trim($_POST['api_key_label'] ?? '');
         $aiu_id      = (int)($_POST['aiu_id'] ?? 0) ?: null;
-        $new_api_key = $apiKeyHelper->generateKey($user_id, $label, $aiu_id);
-        $success_message = 'API key generated. Copy it now — it will not be shown again.';
+        try {
+            $new_api_key = $apiKeyHelper->generateKey($user_id, $label, $aiu_id);
+            $success_message = 'API key generated. Copy it now — it will not be shown again.';
+        } catch (\RuntimeException $e) {
+            $errors[] = $e->getMessage();
+        }
     } elseif ($_POST['api_key_action'] === 'create_agent') {
         $name = trim($_POST['agent_name'] ?? '');
         $description = trim($_POST['agent_description'] ?? '');

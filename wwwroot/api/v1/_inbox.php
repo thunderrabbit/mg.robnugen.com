@@ -17,7 +17,7 @@ $sub = preg_replace('#^/inbox#', '', $path) ?: '/';
 // Permission: agent_inbox_user.can_read_inbox
 // Covers: GET /list, PATCH /mark-seen, /mark-seen-bulk, /mark-done, /archive
 $is_read_op = ($method === 'GET') ||
-              ($method === 'PATCH' && in_array($sub, ['/mark-seen', '/mark-seen-bulk', '/mark-done', '/archive']));
+              ($method === 'PATCH' && in_array($sub, ['/mark-seen', '/mark-seen-bulk', '/mark-done', '/mark-unseen', '/archive']));
 if ($is_read_op && !$auth_actor['can_read_inbox']) {
     http_response_code(403);
     echo json_encode(['error' => 'This API key does not have permission to read inbox']);
@@ -432,7 +432,28 @@ if ($method === 'GET' && $sub === '/list') {
         'actors' => $stmt->fetchAll(\PDO::FETCH_ASSOC),
     ]);
 
+} elseif ($method === 'PATCH' && $sub === '/mark-unseen') {
+    // ── Reset message to pending (clear seen_at) ────────────────────────
+    // Use case: message was marked seen but not processed (e.g. budget ran
+    // out mid-session). Resetting to unseen lets the next cron wake pick it up.
+    $input = json_decode(file_get_contents('php://input'), true);
+    $message_id = (int)($input['message_id'] ?? 0);
+
+    if ($message_id <= 0) {
+        http_response_code(400);
+        echo json_encode(['error' => 'message_id is required']);
+        return;
+    }
+
+    $stmt = $pdo->prepare(
+        "UPDATE agent_inbox SET seen_at = NULL
+         WHERE message_id = ? AND user_id = ? AND done_at IS NULL"
+    );
+    $stmt->execute([$message_id, $auth_user_id]);
+
+    echo json_encode(['updated' => $stmt->rowCount()]);
+
 } else {
     http_response_code(404);
-    echo json_encode(['error' => 'Not found', 'hint' => 'GET /list, GET /actors, POST /send, PATCH /mark-seen, PATCH /mark-seen-bulk, PATCH /mark-done, DELETE /delete']);
+    echo json_encode(['error' => 'Not found', 'hint' => 'GET /list, GET /actors, POST /send, PATCH /mark-seen, PATCH /mark-seen-bulk, PATCH /mark-done, PATCH /mark-unseen, DELETE /delete']);
 }

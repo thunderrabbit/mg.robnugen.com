@@ -66,6 +66,18 @@ class ApiKey
             $aiu_id = (int) $stmt->fetchColumn();
         }
 
+        // Enforce max 2 active keys per agent (like AWS IAM)
+        $count_stmt = $this->di_pdo->prepare(
+            "SELECT COUNT(*) FROM api_keys WHERE user_id = ? AND aiu_id = ? AND is_active = 1"
+        );
+        $count_stmt->execute([$user_id, $aiu_id]);
+        if ((int) $count_stmt->fetchColumn() >= 2) {
+            throw new \RuntimeException(
+                "Agent aiu_id $aiu_id already has 2 active API keys. " .
+                "Revoke one before generating a new key."
+            );
+        }
+
         $raw_key  = 'sk_' . \Utilities::randomString(61);
         $key_hash = hash('sha256', $raw_key);
 

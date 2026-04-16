@@ -249,7 +249,13 @@ if ($method === 'POST' && $sub === '/keys') {
     require_credit($pdo, $auth_user_id, $auth_key_id, 'POST /agents/keys');
 
     $apiKeyHelper = new \Auth\ApiKey($pdo);
-    $raw_key = $apiKeyHelper->generateKey($auth_user_id, $label ?: $agent['name'], $aiu_id);
+    try {
+        $raw_key = $apiKeyHelper->generateKey($auth_user_id, $label ?: $agent['name'], $aiu_id);
+    } catch (\RuntimeException $e) {
+        http_response_code(409);
+        echo json_encode(['error' => $e->getMessage()]);
+        exit;
+    }
 
     http_response_code(201);
     echo json_encode([
