@@ -221,7 +221,47 @@ if ($method === 'POST' && $sub === '/visibility') {
     exit;
 }
 
+// ── POST /agents/keys ────────────────────────────────────────────────────────
+// Generate an API key for an agent. Returns the raw key ONCE — it cannot be retrieved again.
+
+if ($method === 'POST' && $sub === '/keys') {
+    $input = json_decode(file_get_contents('php://input'), true) ?? [];
+
+    $aiu_id = (int)($input['aiu_id'] ?? 0);
+    $label  = trim($input['label'] ?? '');
+
+    if ($aiu_id <= 0) {
+        http_response_code(400);
+        echo json_encode(['error' => 'aiu_id is required']);
+        exit;
+    }
+
+    // Verify agent belongs to this user
+    $check = $pdo->prepare("SELECT name FROM agent_inbox_user WHERE aiu_id = ? AND user_id = ?");
+    $check->execute([$aiu_id, $auth_user_id]);
+    $agent = $check->fetch(\PDO::FETCH_ASSOC);
+    if (!$agent) {
+        http_response_code(404);
+        echo json_encode(['error' => "aiu_id $aiu_id not found in your account"]);
+        exit;
+    }
+
+    require_credit($pdo, $auth_user_id, $auth_key_id, 'POST /agents/keys');
+
+    $apiKeyHelper = new \Auth\ApiKey($pdo);
+    $raw_key = $apiKeyHelper->generateKey($auth_user_id, $label ?: $agent['name'], $aiu_id);
+
+    http_response_code(201);
+    echo json_encode([
+        'api_key'  => $raw_key,
+        'aiu_id'   => $aiu_id,
+        'label'    => $label ?: $agent['name'],
+        'warning'  => 'Store this key securely — it cannot be retrieved again',
+    ]);
+    exit;
+}
+
 // ── Fallthrough ──────────────────────────────────────────────────────────────
 
 http_response_code(405);
-echo json_encode(['error' => 'Method not allowed', 'hint' => 'GET /agents, POST /agents, POST /agents/visibility']);
+echo json_encode(['error' => 'Method not allowed', 'hint' => 'GET /agents, POST /agents, POST /agents/keys, POST /agents/visibility']);
