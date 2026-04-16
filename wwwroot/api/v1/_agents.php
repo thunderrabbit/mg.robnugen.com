@@ -65,6 +65,11 @@ if ($method === 'POST' && $sub === '') {
         echo json_encode(['error' => 'name is required']);
         exit;
     }
+    if (mb_strlen($name) > 100) {
+        http_response_code(400);
+        echo json_encode(['error' => 'name must be 100 characters or fewer']);
+        exit;
+    }
 
     // Check for duplicate name
     $dup = $pdo->prepare(
@@ -149,6 +154,13 @@ if ($method === 'POST' && $sub === '/visibility') {
     if ($reader_aiu <= 0) {
         http_response_code(400);
         echo json_encode(['error' => 'reader_aiu_id is required']);
+        exit;
+    }
+
+    // Supervisor grants (peer=NULL) are too powerful for API — use settings UI
+    if ($peer_aiu === null) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Supervisor grants must be done via the settings UI']);
         exit;
     }
 
