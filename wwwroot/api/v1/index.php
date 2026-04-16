@@ -100,6 +100,8 @@ if ($path === '/sessions' || preg_match('#^/sessions(/|$)#', $path)) {
     include __DIR__ . '/_todos.php';
 } elseif ($path === '/inbox' || preg_match('#^/inbox(/|$)#', $path)) {
     include __DIR__ . '/_inbox.php';
+} elseif ($path === '/agents' || preg_match('#^/agents(/|$)#', $path)) {
+    include __DIR__ . '/_agents.php';
 } else {
     http_response_code(404);
     echo json_encode(['error' => 'Not found']);
