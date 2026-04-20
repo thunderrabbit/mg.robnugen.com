@@ -131,7 +131,6 @@ if ($method === 'GET' && $sub === '/list') {
 
 } elseif ($method === 'POST' && $sub === '/send') {
     // ── Send a message to the inbox (costs 1 credit) ─────────────────────
-    require_credit($pdo, $auth_user_id, $auth_key_id, 'inbox/send');
     $input = json_decode(file_get_contents('php://input'), true);
     $message   = trim($input['message'] ?? '');
     $priority  = trim($input['priority'] ?? 'normal');
@@ -191,6 +190,9 @@ if ($method === 'GET' && $sub === '/list') {
     } else {
         $show_date = null;
     }
+
+    // Credit deducted only after validation passes, so invalid requests don't drain credits
+    require_credit($pdo, $auth_user_id, $auth_key_id, 'inbox/send');
 
     $stmt = $pdo->prepare(
         "INSERT INTO agent_inbox (user_id, message, priority, show_date, sender_timezone, sender_aiu, recipient_aiu)
