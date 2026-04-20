@@ -16,8 +16,11 @@ class AdminUserCest
     public function canSeeAdminDashboard(AcceptanceTester $I)
     {
         $I->amOnPage('/');
-        $I->see("Today's Todos");
-        $I->see("My Active Timers");
+        // Dashboard is JS-rendered; wait for the sections to appear rather than asserting immediately
+        $I->waitForText("Today's Todos", 10);
+        // "My Active Timers" heading is display:none until a timer is running,
+        // so assert on the always-visible button in the same section instead.
+        $I->waitForText("Start New Timer", 10);
     }
 
     public function canAccessAdminArea(AcceptanceTester $I)
@@ -50,9 +53,9 @@ class AdminUserCest
         // Submit the form
         $I->click('button[type=submit]');
 
-        // Should redirect to dashboard with success message
+        // Should redirect to dashboard with success message; dashboard sections load via JS
         $I->seeInCurrentUrl('/?msg=todo_created');
-        $I->see("Today's Todos");
+        $I->waitForText("Today's Todos", 10);
     }
 
     // === NEGATIVE TESTS ===

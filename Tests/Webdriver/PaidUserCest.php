@@ -16,7 +16,8 @@ class PaidUserCest
     public function canSeeDashboard(AcceptanceTester $I)
     {
         $I->amOnPage('/');
-        $I->see("Today's Todos");
+        // Dashboard is JS-rendered; wait for the section label to appear
+        $I->waitForText("Today's Todos", 10);
         $I->dontSee('A simple countdown timer for your meditation practice');
         $I->dontSee('Admin');  // Paid users don't see admin link
     }
@@ -49,9 +50,9 @@ class PaidUserCest
         // Submit the form
         $I->click('button[type=submit]');
 
-        // Should redirect to dashboard with success message
+        // Should redirect to dashboard with success message; dashboard sections load via JS
         $I->seeInCurrentUrl('/?msg=todo_created');
-        $I->see("Today's Todos");
+        $I->waitForText("Today's Todos", 10);
     }
 
     // === NEGATIVE TESTS ===
