@@ -217,11 +217,16 @@ if ($method === 'GET' && $sub === '/list') {
         return;
     }
 
+    // Mutation auth: caller must be sender, recipient, or supervisor
+    $caller_aiu = (int) $auth_actor['aiu_id'];
     $stmt = $pdo->prepare(
         "UPDATE agent_inbox SET seen_at = NOW()
-         WHERE message_id = ? AND user_id = ? AND seen_at IS NULL"
+         WHERE message_id = ? AND user_id = ? AND seen_at IS NULL
+           AND (sender_aiu = ? OR recipient_aiu = ? OR EXISTS (
+                SELECT 1 FROM inbox_visibility
+                WHERE inbox_user_aiu_id = ? AND inbox_peer_aiu_id IS NULL AND can_read = 1))"
     );
-    $stmt->execute([$message_id, $auth_user_id]);
+    $stmt->execute([$message_id, $auth_user_id, $caller_aiu, $caller_aiu, $caller_aiu]);
 
     echo json_encode(['updated' => $stmt->rowCount()]);
 
@@ -242,15 +247,23 @@ if ($method === 'GET' && $sub === '/list') {
         return;
     }
 
+    // Mutation auth: caller must be sender, recipient, or supervisor
+    $caller_aiu = (int) $auth_actor['aiu_id'];
     $sql = "UPDATE agent_inbox SET done_at = NOW(), seen_at = COALESCE(seen_at, NOW())";
     $params = [];
     if ($response !== '') {
         $sql .= ", response = ?";
         $params[] = $response;
     }
-    $sql .= " WHERE message_id = ? AND user_id = ? AND done_at IS NULL";
+    $sql .= " WHERE message_id = ? AND user_id = ? AND done_at IS NULL
+              AND (sender_aiu = ? OR recipient_aiu = ? OR EXISTS (
+                   SELECT 1 FROM inbox_visibility
+                   WHERE inbox_user_aiu_id = ? AND inbox_peer_aiu_id IS NULL AND can_read = 1))";
     $params[] = $message_id;
     $params[] = $auth_user_id;
+    $params[] = $caller_aiu;
+    $params[] = $caller_aiu;
+    $params[] = $caller_aiu;
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
@@ -277,12 +290,17 @@ if ($method === 'GET' && $sub === '/list') {
         return;
     }
 
+    // Mutation auth: caller must be sender, recipient, or supervisor
+    $caller_aiu = (int) $auth_actor['aiu_id'];
     $placeholders = implode(',', array_fill(0, count($message_ids), '?'));
     $stmt = $pdo->prepare(
         "UPDATE agent_inbox SET seen_at = NOW()
-         WHERE message_id IN ({$placeholders}) AND user_id = ? AND seen_at IS NULL"
+         WHERE message_id IN ({$placeholders}) AND user_id = ? AND seen_at IS NULL
+           AND (sender_aiu = ? OR recipient_aiu = ? OR EXISTS (
+                SELECT 1 FROM inbox_visibility
+                WHERE inbox_user_aiu_id = ? AND inbox_peer_aiu_id IS NULL AND can_read = 1))"
     );
-    $stmt->execute([...$message_ids, $auth_user_id]);
+    $stmt->execute([...$message_ids, $auth_user_id, $caller_aiu, $caller_aiu, $caller_aiu]);
 
     echo json_encode(['updated' => $stmt->rowCount()]);
 
@@ -388,11 +406,16 @@ if ($method === 'GET' && $sub === '/list') {
         return;
     }
 
+    // Mutation auth: caller must be sender, recipient, or supervisor
+    $caller_aiu = (int) $auth_actor['aiu_id'];
     $stmt = $pdo->prepare(
         "UPDATE agent_inbox SET archived_at = NOW()
-         WHERE message_id = ? AND user_id = ? AND archived_at IS NULL"
+         WHERE message_id = ? AND user_id = ? AND archived_at IS NULL
+           AND (sender_aiu = ? OR recipient_aiu = ? OR EXISTS (
+                SELECT 1 FROM inbox_visibility
+                WHERE inbox_user_aiu_id = ? AND inbox_peer_aiu_id IS NULL AND can_read = 1))"
     );
-    $stmt->execute([$message_id, $auth_user_id]);
+    $stmt->execute([$message_id, $auth_user_id, $caller_aiu, $caller_aiu, $caller_aiu]);
 
     echo json_encode(['updated' => $stmt->rowCount()]);
 
@@ -407,10 +430,16 @@ if ($method === 'GET' && $sub === '/list') {
         return;
     }
 
+    // Mutation auth: caller must be sender, recipient, or supervisor
+    $caller_aiu = (int) $auth_actor['aiu_id'];
     $stmt = $pdo->prepare(
-        "DELETE FROM agent_inbox WHERE message_id = ? AND user_id = ?"
+        "DELETE FROM agent_inbox
+         WHERE message_id = ? AND user_id = ?
+           AND (sender_aiu = ? OR recipient_aiu = ? OR EXISTS (
+                SELECT 1 FROM inbox_visibility
+                WHERE inbox_user_aiu_id = ? AND inbox_peer_aiu_id IS NULL AND can_read = 1))"
     );
-    $stmt->execute([$message_id, $auth_user_id]);
+    $stmt->execute([$message_id, $auth_user_id, $caller_aiu, $caller_aiu, $caller_aiu]);
 
     echo json_encode(['deleted' => $stmt->rowCount()]);
 
@@ -445,11 +474,16 @@ if ($method === 'GET' && $sub === '/list') {
         return;
     }
 
+    // Mutation auth: caller must be sender, recipient, or supervisor
+    $caller_aiu = (int) $auth_actor['aiu_id'];
     $stmt = $pdo->prepare(
         "UPDATE agent_inbox SET seen_at = NULL
-         WHERE message_id = ? AND user_id = ? AND done_at IS NULL"
+         WHERE message_id = ? AND user_id = ? AND done_at IS NULL
+           AND (sender_aiu = ? OR recipient_aiu = ? OR EXISTS (
+                SELECT 1 FROM inbox_visibility
+                WHERE inbox_user_aiu_id = ? AND inbox_peer_aiu_id IS NULL AND can_read = 1))"
     );
-    $stmt->execute([$message_id, $auth_user_id]);
+    $stmt->execute([$message_id, $auth_user_id, $caller_aiu, $caller_aiu, $caller_aiu]);
 
     echo json_encode(['updated' => $stmt->rowCount()]);
 
