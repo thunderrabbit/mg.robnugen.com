@@ -45,6 +45,9 @@ $page->set("page_title", "Projects - Meiso Gambare");
 $inner_page = new \Template($config, $is_logged_in);
 $inner_page->setTemplate("projects/index.tpl.php");
 $inner_page->set("projects", $projects);
+if (isset($_GET['msg'])) {
+    $inner_page->set("msg", $_GET['msg']);
+}
 
 $page->set("page_content", $inner_page->grabTheGoods());
 $page->echoToScreen();

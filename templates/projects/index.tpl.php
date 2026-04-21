@@ -1,4 +1,18 @@
 <div class="dashboard-container">
+    <?php if (isset($msg)): ?>
+        <?php
+        $msgs = [
+            'project_not_found' => 'Project not found.',
+        ];
+        $text = $msgs[$msg] ?? null;
+        ?>
+        <?php if ($text !== null): ?>
+            <div class="alert-error">
+                <?= htmlspecialchars($text) ?>
+            </div>
+        <?php endif; ?>
+    <?php endif; ?>
+
     <header class="dashboard-header">
         <h1>Projects</h1>
     </header>
