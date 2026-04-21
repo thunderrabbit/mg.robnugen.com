@@ -86,6 +86,27 @@ function require_credit(\PDO $pdo, int $user_id, int $key_id, string $endpoint):
     }
 }
 
+// Project membership lookup used by the issue tracker endpoints.
+// Returns ['can_read'=>int,'can_write'=>int] if the caller is a member of the project
+// AND the project belongs to the authed account. Returns null for "no access."
+// Project admin ops (create/update/delete project, membership CRUD) do NOT use this —
+// they gate on actor_type='human' plus account ownership, per Rob's rule that humans
+// can admin any project in their account but still need membership to read contents.
+function project_membership(\PDO $pdo, int $project_id, int $user_id, int $caller_aiu): ?array
+{
+    $stmt = $pdo->prepare(
+        "SELECT pm.can_read, pm.can_write
+         FROM project_members pm
+         JOIN projects p ON p.project_id = pm.project_id
+         WHERE pm.project_id = ? AND pm.member_aiu = ? AND p.user_id = ?
+         LIMIT 1"
+    );
+    $stmt->execute([$project_id, $caller_aiu, $user_id]);
+    $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+    if (!$row) return null;
+    return ['can_read' => (int)$row['can_read'], 'can_write' => (int)$row['can_write']];
+}
+
 // ── Route dispatch ────────────────────────────────────────────────────────────
 
 if ($path === '/sessions' || preg_match('#^/sessions(/|$)#', $path)) {
@@ -102,6 +123,8 @@ if ($path === '/sessions' || preg_match('#^/sessions(/|$)#', $path)) {
     include __DIR__ . '/_inbox.php';
 } elseif ($path === '/agents' || preg_match('#^/agents(/|$)#', $path)) {
     include __DIR__ . '/_agents.php';
+} elseif ($path === '/projects' || preg_match('#^/projects(/|$)#', $path)) {
+    include __DIR__ . '/_projects.php';
 } else {
     http_response_code(404);
     echo json_encode(['error' => 'Not found']);
