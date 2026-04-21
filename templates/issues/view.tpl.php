@@ -1,6 +1,6 @@
 <div class="dashboard-container">
     <header class="dashboard-header">
-        <h1><?= htmlspecialchars($issue['title']) ?></h1>
+        <h1><span class="issue-id">#<?= (int)$issue['issue_id'] ?></span> <?= htmlspecialchars($issue['title']) ?></h1>
         <div class="header-actions">
             <a href="/projects/view.php?project_id=<?= (int)$issue['project_id'] ?>" class="btn-sm">← Back to <?= htmlspecialchars($issue['project_name']) ?></a>
         </div>

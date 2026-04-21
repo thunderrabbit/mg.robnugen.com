@@ -29,6 +29,7 @@
                 <?php foreach ($issues as $issue): ?>
                     <li class="issue-item">
                         <span class="issue-status"><?= htmlspecialchars($issue['status_label']) ?></span>
+                        <span class="issue-id">#<?= (int)$issue['issue_id'] ?></span>
                         <span class="issue-title">
                             <a href="/issues/view.php?issue_id=<?= (int)$issue['issue_id'] ?>">
                                 <?= htmlspecialchars($issue['title']) ?>
