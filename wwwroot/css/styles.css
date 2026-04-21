@@ -109,4 +109,53 @@ a:visited {
     color: var(--alert-warn-text);
 }
 
+.form-field {
+    display: block;
+    margin-bottom: 1.2em;
+}
+
+.form-field label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.35em;
+    color: var(--text-primary);
+}
+
+.form-field input[type="text"],
+.form-field input[type="email"],
+.form-field input[type="password"],
+.form-field textarea,
+.form-field select {
+    display: block;
+    width: 100%;
+    max-width: 640px;
+    box-sizing: border-box;
+    padding: 0.5em 0.6em;
+    font-family: inherit;
+    font-size: 1em;
+    color: var(--text-primary);
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+
+.form-field textarea {
+    min-height: 8em;
+    resize: vertical;
+}
+
+.form-field input:focus,
+.form-field textarea:focus,
+.form-field select:focus {
+    outline: 2px solid var(--info);
+    outline-offset: -1px;
+    border-color: var(--info);
+}
+
+.form-actions {
+    margin-top: 1.5em;
+    display: flex;
+    gap: 0.75em;
+    align-items: center;
+}
 
