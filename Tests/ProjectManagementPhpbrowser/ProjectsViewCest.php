@@ -36,5 +36,6 @@ class ProjectsViewCest
         $I->amOnPage('/projects/view.php?project_id=2');
         $I->see('Open Issues');                              // section header
         $I->see('Wire up the frontend for issues list');     // the seeded issue title
+        $I->see('#4');
     }
 }

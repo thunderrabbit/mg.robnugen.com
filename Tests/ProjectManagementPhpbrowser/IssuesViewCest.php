@@ -12,6 +12,7 @@ class IssuesViewCest
         $I->amOnPage('/issues/view.php?issue_id=4');
         $I->seeInCurrentUrl('/issues/view.php');
         $I->see('Wire up the frontend for issues list');
+        $I->see('#4');
     }
 
     public function freeUserCannotAccessIssueDetail(AcceptanceTester $I)
