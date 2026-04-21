@@ -434,9 +434,10 @@ if ($method === 'DELETE' && $sub === '/remove-member') {
 // Both exclude terminal statuses. Scoped to projects where caller is a member.
 
 if ($method === 'GET' && $sub === '/dashboard') {
-    // My assigned issues (across all projects I'm a member of)
+    // My assigned issues (across all projects I'm a member of).
+    // Sort high-priority first, then by recency.
     $mine_stmt = $pdo->prepare(
-        "SELECT i.issue_id, i.project_id, p.name AS project_name,
+        "SELECT i.issue_id, i.priority, i.project_id, p.name AS project_name,
                 i.title, i.status_id, s.slug AS status_slug, s.label AS status_label,
                 i.assignee_aiu, i.author_aiu, i.parent_issue_id,
                 i.created_at_utc, i.updated_at_utc
@@ -445,13 +446,14 @@ if ($method === 'GET' && $sub === '/dashboard') {
          JOIN issue_statuses s   ON s.status_id = i.status_id
          JOIN project_members pm ON pm.project_id = i.project_id AND pm.member_aiu = ?
          WHERE i.assignee_aiu = ? AND s.is_terminal = 0 AND p.user_id = ?
-         ORDER BY i.updated_at_utc DESC"
+         ORDER BY FIELD(i.priority, 'high', 'normal', 'low'), i.updated_at_utc DESC"
     );
     $mine_stmt->execute([$caller_aiu, $caller_aiu, $auth_user_id]);
 
-    // Unassigned queue (across all projects I'm a member of)
+    // Unassigned queue (across all projects I'm a member of).
+    // Sort high-priority first, then by creation order (FIFO for same priority).
     $queue_stmt = $pdo->prepare(
-        "SELECT i.issue_id, i.project_id, p.name AS project_name,
+        "SELECT i.issue_id, i.priority, i.project_id, p.name AS project_name,
                 i.title, i.status_id, s.slug AS status_slug, s.label AS status_label,
                 i.author_aiu, i.parent_issue_id,
                 i.created_at_utc, i.updated_at_utc
@@ -460,7 +462,7 @@ if ($method === 'GET' && $sub === '/dashboard') {
          JOIN issue_statuses s   ON s.status_id = i.status_id
          JOIN project_members pm ON pm.project_id = i.project_id AND pm.member_aiu = ?
          WHERE i.assignee_aiu IS NULL AND s.is_terminal = 0 AND p.user_id = ?
-         ORDER BY i.created_at_utc ASC"
+         ORDER BY FIELD(i.priority, 'high', 'normal', 'low'), i.created_at_utc ASC"
     );
     $queue_stmt->execute([$caller_aiu, $auth_user_id]);
 

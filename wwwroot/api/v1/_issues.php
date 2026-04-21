@@ -175,7 +175,7 @@ if ($method === 'GET' && $sub === '/list') {
     $where_sql = implode(' AND ', $where);
 
     $stmt = $pdo->prepare(
-        "SELECT i.issue_id, i.project_id, i.parent_issue_id,
+        "SELECT i.issue_id, i.priority, i.project_id, i.parent_issue_id,
                 i.author_aiu, i.assignee_aiu,
                 i.status_id, s.slug AS status_slug, s.label AS status_label, s.is_terminal,
                 i.title, i.created_at_utc, i.updated_at_utc, i.done_at_utc
@@ -183,7 +183,7 @@ if ($method === 'GET' && $sub === '/list') {
          JOIN projects p       ON p.project_id = i.project_id
          JOIN issue_statuses s ON s.status_id = i.status_id
          WHERE {$where_sql}
-         ORDER BY i.updated_at_utc DESC
+         ORDER BY FIELD(i.priority, 'high', 'normal', 'low'), i.updated_at_utc DESC
          LIMIT ? OFFSET ?"
     );
     $params[] = $limit;
@@ -267,7 +267,13 @@ if ($method === 'POST' && $sub === '/create') {
                        ? (int)$input['parent_issue_id'] : null;
     $status_id       = array_key_exists('status_id', $input) && $input['status_id'] !== null
                        ? (int)$input['status_id'] : null;
+    $priority        = trim((string)($input['priority'] ?? 'normal'));
 
+    if (!in_array($priority, ['low', 'normal', 'high'], true)) {
+        http_response_code(400);
+        echo json_encode(['error' => "priority must be 'low', 'normal', or 'high'"]);
+        return;
+    }
     if ($project_id <= 0) {
         http_response_code(400);
         echo json_encode(['error' => 'project_id is required']);
@@ -361,11 +367,11 @@ if ($method === 'POST' && $sub === '/create') {
     $done_clause = $is_terminal ? 'NOW(6)' : 'NULL';
     $stmt = $pdo->prepare(
         "INSERT INTO issues
-            (project_id, parent_issue_id, author_aiu, assignee_aiu, status_id, title, description, done_at_utc)
-         VALUES (?, ?, ?, ?, ?, ?, ?, {$done_clause})"
+            (project_id, priority, parent_issue_id, author_aiu, assignee_aiu, status_id, title, description, done_at_utc)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, {$done_clause})"
     );
     $stmt->execute([
-        $project_id, $parent_issue_id, $caller_aiu, $assignee_aiu, $status_id,
+        $project_id, $priority, $parent_issue_id, $caller_aiu, $assignee_aiu, $status_id,
         $title, $description !== null && $description !== '' ? $description : null,
     ]);
     $issue_id = (int) $pdo->lastInsertId();
@@ -375,6 +381,7 @@ if ($method === 'POST' && $sub === '/create') {
         'issue' => [
             'issue_id'        => $issue_id,
             'project_id'      => $project_id,
+            'priority'        => $priority,
             'parent_issue_id' => $parent_issue_id,
             'author_aiu'      => $caller_aiu,
             'assignee_aiu'    => $assignee_aiu,
@@ -401,6 +408,14 @@ if ($method === 'PATCH' && $sub === '/update') {
                           ? $input['parent_issue_id'] : 'NOT_SET';
     $status_id_in       = array_key_exists('status_id', $input)
                           ? (int)$input['status_id'] : null;
+    $priority_in        = array_key_exists('priority', $input)
+                          ? trim((string)$input['priority']) : null;
+
+    if ($priority_in !== null && !in_array($priority_in, ['low', 'normal', 'high'], true)) {
+        http_response_code(400);
+        echo json_encode(['error' => "priority must be 'low', 'normal', or 'high'"]);
+        return;
+    }
 
     if ($issue_id <= 0) {
         http_response_code(400);
@@ -408,7 +423,7 @@ if ($method === 'PATCH' && $sub === '/update') {
         return;
     }
     if ($title_in === null && $description_in === 'NOT_SET' && $assignee_in === 'NOT_SET'
-        && $parent_in === 'NOT_SET' && $status_id_in === null) {
+        && $parent_in === 'NOT_SET' && $status_id_in === null && $priority_in === null) {
         http_response_code(400);
         echo json_encode(['error' => 'provide at least one field to update']);
         return;
@@ -533,6 +548,11 @@ if ($method === 'PATCH' && $sub === '/update') {
         } else {
             $sets[] = 'done_at_utc = NULL';
         }
+    }
+
+    if ($priority_in !== null) {
+        $sets[] = 'priority = ?';
+        $params[] = $priority_in;
     }
 
     require_credit($pdo, $auth_user_id, $auth_key_id, 'issues/update');
