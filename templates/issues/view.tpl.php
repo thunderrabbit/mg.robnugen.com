@@ -25,4 +25,25 @@
             <p class="empty-state"><em>No description.</em></p>
         <?php endif; ?>
     </div>
+
+    <div class="card">
+        <h2>Comments</h2>
+        <?php if (empty($comments)): ?>
+            <p class="empty-state"><em>No comments yet.</em></p>
+        <?php else: ?>
+            <ul class="comment-list">
+                <?php foreach ($comments as $comment): ?>
+                    <li class="comment-item">
+                        <div class="comment-meta">
+                            <strong class="comment-author"><?= htmlspecialchars($comment['author_name']) ?></strong>
+                            <span class="comment-date"><?= htmlspecialchars($comment['created_at_utc']) ?></span>
+                        </div>
+                        <div class="comment-body">
+                            <?= nl2br(htmlspecialchars($comment['body'])) ?>
+                        </div>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+    </div>
 </div>

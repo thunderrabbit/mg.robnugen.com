@@ -55,6 +55,18 @@ if (!$issue) {
     exit;
 }
 
+// Comments on this issue, oldest first (conversation order)
+$comment_stmt = $pdo->prepare(
+    "SELECT c.issue_comment_id, c.body, c.created_at_utc,
+            a.name AS author_name
+     FROM issue_comments c
+     JOIN agent_inbox_user a ON a.aiu_id = c.author_aiu
+     WHERE c.issue_id = ?
+     ORDER BY c.created_at_utc ASC"
+);
+$comment_stmt->execute([$issue_id]);
+$comments = $comment_stmt->fetchAll(\PDO::FETCH_ASSOC);
+
 $page = new \Template($config, $is_logged_in);
 $page->setTemplate("layout/base.tpl.php");
 $page->set("page_title", $issue['title'] . " - Meiso Gambare");
@@ -62,6 +74,7 @@ $page->set("page_title", $issue['title'] . " - Meiso Gambare");
 $inner_page = new \Template($config, $is_logged_in);
 $inner_page->setTemplate("issues/view.tpl.php");
 $inner_page->set("issue", $issue);
+$inner_page->set("comments", $comments);
 
 $page->set("page_content", $inner_page->grabTheGoods());
 $page->echoToScreen();
