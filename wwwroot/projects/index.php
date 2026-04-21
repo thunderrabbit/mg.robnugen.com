@@ -25,10 +25,18 @@ $pdo = \Database\Base::getPDO($config);
 // Single-account invariant (project.user_id = aiu.user_id) is expressed via the double WHERE.
 $stmt = $pdo->prepare(
     "SELECT p.project_id, p.name, p.description, p.is_archived,
-            pm.can_read, pm.can_write
+            pm.can_read, pm.can_write,
+            COALESCE(iss.open_count, 0) AS open_issue_count
      FROM projects p
      JOIN project_members pm ON pm.project_id = p.project_id
      JOIN agent_inbox_user a ON a.aiu_id = pm.member_aiu
+     LEFT JOIN (
+         SELECT i.project_id, COUNT(*) AS open_count
+         FROM issues i
+         JOIN issue_statuses s ON s.status_id = i.status_id
+         WHERE s.is_terminal = 0
+         GROUP BY i.project_id
+     ) iss ON iss.project_id = p.project_id
      WHERE p.user_id = ?
        AND a.user_id = ?
        AND a.actor_type = 'human'

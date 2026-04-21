@@ -32,6 +32,10 @@
                                 <?= htmlspecialchars($project['name']) ?>
                             </a>
                         </strong>
+                        <span class="project-issue-count">
+                            <?php $count = (int)($project['open_issue_count'] ?? 0); ?>
+                            <?= $count ?> open <?= $count === 1 ? 'issue' : 'issues' ?>
+                        </span>
                         <?php if (!empty($project['description'])): ?>
                             <p class="project-description"><?= nl2br(htmlspecialchars($project['description'])) ?></p>
                         <?php endif; ?>
