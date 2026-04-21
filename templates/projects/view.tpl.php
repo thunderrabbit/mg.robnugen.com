@@ -21,7 +21,12 @@
     </div>
 
     <div class="card">
-        <h2>Open Issues</h2>
+        <header class="dashboard-header">
+            <h2>Open Issues</h2>
+            <div class="header-actions">
+                <a href="/issues/create.php?project_id=<?= (int)$project['project_id'] ?>" class="btn-new-timer">+ New Issue</a>
+            </div>
+        </header>
         <?php if (empty($issues)): ?>
             <p class="empty-state"><em>No open issues in this project.</em></p>
         <?php else: ?>

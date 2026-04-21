@@ -4,6 +4,7 @@
         $msgs = [
             'project_not_found' => 'Project not found.',
             'issue_not_found'   => 'Issue not found.',
+            'no_write_access'   => 'You have read access to that project but not write access.',
         ];
         $text = $msgs[$msg] ?? null;
         ?>
@@ -16,6 +17,9 @@
 
     <header class="dashboard-header">
         <h1>Projects</h1>
+        <div class="header-actions">
+            <a href="/projects/create.php" class="btn-new-timer">+ New Project</a>
+        </div>
     </header>
 
     <div class="card">
