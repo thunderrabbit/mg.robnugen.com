@@ -62,6 +62,18 @@ $issue_stmt = $pdo->prepare(
 $issue_stmt->execute([$project_id]);
 $issues = $issue_stmt->fetchAll(\PDO::FETCH_ASSOC);
 
+// Project members — everyone aiu_id, name, actor_type, perm bits
+$member_stmt = $pdo->prepare(
+    "SELECT pm.member_aiu, pm.can_read, pm.can_write,
+            a.name, a.actor_type
+     FROM project_members pm
+     JOIN agent_inbox_user a ON a.aiu_id = pm.member_aiu
+     WHERE pm.project_id = ?
+     ORDER BY a.actor_type DESC, a.name ASC"
+);
+$member_stmt->execute([$project_id]);
+$members = $member_stmt->fetchAll(\PDO::FETCH_ASSOC);
+
 $page = new \Template($config, $is_logged_in);
 $page->setTemplate("layout/base.tpl.php");
 $page->set("page_title", $project['name'] . " - Meiso Gambare");
@@ -70,6 +82,7 @@ $inner_page = new \Template($config, $is_logged_in);
 $inner_page->setTemplate("projects/view.tpl.php");
 $inner_page->set("project", $project);
 $inner_page->set("issues", $issues);
+$inner_page->set("members", $members);
 
 $page->set("page_content", $inner_page->grabTheGoods());
 $page->echoToScreen();

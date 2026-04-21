@@ -48,4 +48,28 @@
             </ul>
         <?php endif; ?>
     </div>
+
+    <div class="card">
+        <header class="dashboard-header">
+            <h2>Members</h2>
+        </header>
+        <?php if (empty($members)): ?>
+            <p class="empty-state"><em>No members.</em></p>
+        <?php else: ?>
+            <ul class="member-list">
+                <?php foreach ($members as $member): ?>
+                    <li class="member-item">
+                        <strong class="member-name"><?= htmlspecialchars($member['name']) ?></strong>
+                        <span class="member-type">(<?= htmlspecialchars($member['actor_type']) ?>)</span>
+                        <span class="member-perms">
+                            <?php if ($member['can_write']): ?>Read + Write
+                            <?php elseif ($member['can_read']): ?>Read only
+                            <?php else: ?>No access
+                            <?php endif; ?>
+                        </span>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+    </div>
 </div>
