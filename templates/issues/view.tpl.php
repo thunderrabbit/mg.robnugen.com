@@ -26,7 +26,7 @@
         <?php endif; ?>
     </div>
 
-    <div class="card">
+    <div class="card" id="comments">
         <h2>Comments</h2>
         <?php if (empty($comments)): ?>
             <p class="empty-state"><em>No comments yet.</em></p>
@@ -44,6 +44,19 @@
                     </li>
                 <?php endforeach; ?>
             </ul>
+        <?php endif; ?>
+
+        <?php if (!empty($issue['can_write'])): ?>
+            <form method="POST" action="/issues/comment.php" class="comment-form">
+                <input type="hidden" name="issue_id" value="<?= (int)$issue['issue_id'] ?>">
+                <div class="form-field">
+                    <label for="comment-body">Add a comment</label>
+                    <textarea id="comment-body" name="body" rows="3" required maxlength="65535"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Post comment</button>
+                </div>
+            </form>
         <?php endif; ?>
     </div>
 </div>

@@ -33,7 +33,8 @@ $stmt = $pdo->prepare(
             i.assignee_aiu, xa.name AS assignee_name,
             s.slug AS status_slug, s.label AS status_label, s.is_terminal,
             i.created_at_utc, i.updated_at_utc, i.done_at_utc,
-            p.name AS project_name
+            p.name AS project_name,
+            pm.can_write
      FROM issues i
      JOIN projects p           ON p.project_id = i.project_id
      JOIN project_members pm   ON pm.project_id = i.project_id
