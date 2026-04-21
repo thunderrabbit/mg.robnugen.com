@@ -27,6 +27,7 @@ class ProjectsViewCest
         $I->loginAsAdmin();
         $I->amOnPage('/projects/view.php?project_id=1');
         $I->seeInCurrentUrl('/projects/?msg=project_not_found');
+        $I->see('Project not found.');
         $I->dontSee('mg.robnugen.com');
     }
 }
