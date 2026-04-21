@@ -64,6 +64,15 @@
                     <li class="member-item">
                         <strong class="member-name"><?= htmlspecialchars($member['name']) ?></strong>
                         <span class="member-type">(<?= htmlspecialchars($member['actor_type']) ?>)</span>
+                        <span class="member-perms">
+                            <?php if ($member['can_read'] && $member['can_write']): ?>
+                                Read + Write
+                            <?php elseif ($member['can_read']): ?>
+                                Read only
+                            <?php else: ?>
+                                No access
+                            <?php endif; ?>
+                        </span>
                         <form method="POST" action="/projects/update-member.php" class="member-perms-form">
                             <input type="hidden" name="project_id" value="<?= (int)$project['project_id'] ?>">
                             <input type="hidden" name="member_aiu" value="<?= (int)$member['member_aiu'] ?>">
