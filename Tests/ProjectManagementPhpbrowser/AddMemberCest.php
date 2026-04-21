@@ -17,9 +17,12 @@ class AddMemberCest
     {
         $I->loginAsAdmin();
         $I->amOnPage('/projects/add-member.php?project_id=2');
-        $I->see('Add Member to', 'h1');
-        // Project 2 has all account actors already as members, so empty-state appears:
-        $I->see('No actors in your account are available to add');
+        $I->see('Add Member to');
+        $I->seeElement('select[name=member_aiu]');
+        $I->see('TestAgent13');
+        $I->seeElement('input[name=can_read]');
+        $I->seeElement('input[name=can_write]');
+        $I->seeElement('button[type=submit]');
     }
 
     public function freeUserCannotAccessAddMember(AcceptanceTester $I)
