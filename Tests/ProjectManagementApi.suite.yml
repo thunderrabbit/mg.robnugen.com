@@ -1,0 +1,16 @@
+# Codeception Test Suite Configuration
+#
+# Suite for /api/v1/* HTTP API tests.
+# No login form, no session cookies — auth via X-API-Key header per request.
+
+actor: AcceptanceTester
+modules:
+    enabled:
+        - Tests\Support\Helper\Acceptance
+        - REST:
+            url: https://mg.robnugen.com
+            depends: PhpBrowser
+        - PhpBrowser:
+            url: https://mg.robnugen.com
+            headers:
+                Accept: application/json
