@@ -2,6 +2,9 @@
     <header class="dashboard-header">
         <h1><span class="issue-id">#<?= (int)$issue['issue_id'] ?></span> <?= htmlspecialchars($issue['title']) ?></h1>
         <div class="header-actions">
+            <?php if (!empty($issue['can_write'])): ?>
+                <a href="/issues/edit.php?issue_id=<?= (int)$issue['issue_id'] ?>" class="btn-sm">Edit</a>
+            <?php endif; ?>
             <a href="/projects/view.php?project_id=<?= (int)$issue['project_id'] ?>" class="btn-sm">← Back to <?= htmlspecialchars($issue['project_name']) ?></a>
         </div>
     </header>
