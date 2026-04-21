@@ -19,4 +19,23 @@
             <p class="empty-state"><em>No description.</em></p>
         <?php endif; ?>
     </div>
+
+    <div class="card">
+        <h2>Open Issues</h2>
+        <?php if (empty($issues)): ?>
+            <p class="empty-state"><em>No open issues in this project.</em></p>
+        <?php else: ?>
+            <ul class="issue-list">
+                <?php foreach ($issues as $issue): ?>
+                    <li class="issue-item">
+                        <span class="issue-status"><?= htmlspecialchars($issue['status_label']) ?></span>
+                        <span class="issue-title"><?= htmlspecialchars($issue['title']) ?></span>
+                        <?php if (!empty($issue['assignee_name'])): ?>
+                            <span class="issue-assignee">→ <?= htmlspecialchars($issue['assignee_name']) ?></span>
+                        <?php endif; ?>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+    </div>
 </div>
