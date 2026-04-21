@@ -30,4 +30,11 @@ class ProjectsViewCest
         $I->see('Project not found.');
         $I->dontSee('mg.robnugen.com');
     }
+
+    public function adminSeesOpenIssuesListOnProjectDetail(AcceptanceTester $I) {
+        $I->loginAsAdmin();
+        $I->amOnPage('/projects/view.php?project_id=2');
+        $I->see('Open Issues');                              // section header
+        $I->see('Wire up the frontend for issues list');     // the seeded issue title
+    }
 }
