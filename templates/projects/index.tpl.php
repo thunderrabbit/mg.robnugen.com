@@ -12,7 +12,11 @@
             <ul class="project-list">
                 <?php foreach ($projects as $project): ?>
                     <li class="project-item">
-                        <strong class="project-name"><?= htmlspecialchars($project['name']) ?></strong>
+                        <strong class="project-name">
+                            <a href="/projects/view.php?project_id=<?= (int)$project['project_id'] ?>">
+                                <?= htmlspecialchars($project['name']) ?>
+                            </a>
+                        </strong>
                         <?php if (!empty($project['description'])): ?>
                             <p class="project-description"><?= nl2br(htmlspecialchars($project['description'])) ?></p>
                         <?php endif; ?>
