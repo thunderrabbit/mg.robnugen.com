@@ -1,6 +1,6 @@
 <?php
 
-const SENTIMENTAL_VERSION = "BEGIN #50 clean up issue create/edit page";
-const SEMVER = "0.14.1";
+const SENTIMENTAL_VERSION = "BEGIN #51 allow setting assignee when editing issues";
+const SEMVER = "0.14.2";
 
 const EMOTIONAL_SESSION_GAP_MINUTES = 30;
