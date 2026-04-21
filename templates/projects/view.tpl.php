@@ -48,4 +48,52 @@
             </ul>
         <?php endif; ?>
     </div>
+
+    <div class="card">
+        <header class="dashboard-header">
+            <h2>Members</h2>
+            <div class="header-actions">
+                <a href="/projects/add-member.php?project_id=<?= (int)$project['project_id'] ?>" class="btn-new-timer">+ Add Member</a>
+            </div>
+        </header>
+        <?php if (empty($members)): ?>
+            <p class="empty-state"><em>No members.</em></p>
+        <?php else: ?>
+            <ul class="member-list">
+                <?php foreach ($members as $member): ?>
+                    <li class="member-item">
+                        <strong class="member-name"><?= htmlspecialchars($member['name']) ?></strong>
+                        <span class="member-type">(<?= htmlspecialchars($member['actor_type']) ?>)</span>
+                        <span class="member-perms">
+                            <?php if ($member['can_read'] && $member['can_write']): ?>
+                                Read + Write
+                            <?php elseif ($member['can_read']): ?>
+                                Read only
+                            <?php else: ?>
+                                No access
+                            <?php endif; ?>
+                        </span>
+                        <form method="POST" action="/projects/update-member.php" class="member-perms-form">
+                            <input type="hidden" name="project_id" value="<?= (int)$project['project_id'] ?>">
+                            <input type="hidden" name="member_aiu" value="<?= (int)$member['member_aiu'] ?>">
+                            <label>
+                                <input type="checkbox" name="can_read" value="1" <?= $member['can_read'] ? 'checked' : '' ?>>
+                                Read
+                            </label>
+                            <label>
+                                <input type="checkbox" name="can_write" value="1" <?= $member['can_write'] ? 'checked' : '' ?>>
+                                Write
+                            </label>
+                            <button type="submit" class="btn-sm">Update perms</button>
+                        </form>
+                        <form method="POST" action="/projects/remove-member.php" class="member-remove-form">
+                            <input type="hidden" name="project_id" value="<?= (int)$project['project_id'] ?>">
+                            <input type="hidden" name="member_aiu" value="<?= (int)$member['member_aiu'] ?>">
+                            <button type="submit" class="btn-sm">Remove</button>
+                        </form>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+    </div>
 </div>
