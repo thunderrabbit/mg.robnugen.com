@@ -125,6 +125,8 @@ if ($path === '/sessions' || preg_match('#^/sessions(/|$)#', $path)) {
     include __DIR__ . '/_agents.php';
 } elseif ($path === '/projects' || preg_match('#^/projects(/|$)#', $path)) {
     include __DIR__ . '/_projects.php';
+} elseif ($path === '/repositories' || preg_match('#^/repositories(/|$)#', $path)) {
+    include __DIR__ . '/_repositories.php';
 } else {
     http_response_code(404);
     echo json_encode(['error' => 'Not found']);
