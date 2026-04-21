@@ -86,6 +86,19 @@ function require_credit(\PDO $pdo, int $user_id, int $key_id, string $endpoint):
     }
 }
 
+// Coarse subsystem gate for /projects, /repositories, /issues.
+// GET → can_read_project; everything else (POST/PATCH/DELETE) → can_write_project.
+// Fine-grained access within the subsystem continues to flow through project_members.
+function require_project_perm(array $auth_actor, string $method): void
+{
+    $needs = ($method === 'GET') ? 'can_read_project' : 'can_write_project';
+    if (empty($auth_actor[$needs])) {
+        http_response_code(403);
+        echo json_encode(['error' => "This API key does not have permission ({$needs}) for the project subsystem"]);
+        exit;
+    }
+}
+
 // Project membership lookup used by the issue tracker endpoints.
 // Returns ['can_read'=>int,'can_write'=>int] if the caller is a member of the project
 // AND the project belongs to the authed account. Returns null for "no access."
@@ -124,10 +137,13 @@ if ($path === '/sessions' || preg_match('#^/sessions(/|$)#', $path)) {
 } elseif ($path === '/agents' || preg_match('#^/agents(/|$)#', $path)) {
     include __DIR__ . '/_agents.php';
 } elseif ($path === '/projects' || preg_match('#^/projects(/|$)#', $path)) {
+    require_project_perm($auth_actor, $method);
     include __DIR__ . '/_projects.php';
 } elseif ($path === '/repositories' || preg_match('#^/repositories(/|$)#', $path)) {
+    require_project_perm($auth_actor, $method);
     include __DIR__ . '/_repositories.php';
 } elseif ($path === '/issues' || preg_match('#^/issues(/|$)#', $path)) {
+    require_project_perm($auth_actor, $method);
     include __DIR__ . '/_issues.php';
 } else {
     http_response_code(404);
