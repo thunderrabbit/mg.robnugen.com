@@ -4,6 +4,7 @@
         $msgs = [
             'project_not_found' => 'Project not found.',
             'issue_not_found'   => 'Issue not found.',
+            'no_write_access'   => 'You have read access to that project but not write access.',
         ];
         $text = $msgs[$msg] ?? null;
         ?>
