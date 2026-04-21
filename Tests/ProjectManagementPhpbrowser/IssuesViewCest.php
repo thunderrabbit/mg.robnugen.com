@@ -30,4 +30,12 @@ class IssuesViewCest
         $I->see('Issue not found.');
         $I->dontSee('Get current tests working');
     }
+
+    public function adminSeesCommentsOnOwnIssueDetail(AcceptanceTester $I)
+    {
+        $I->loginAsAdmin();
+        $I->amOnPage('/issues/view.php?issue_id=4');
+        $I->see('Comments');
+        $I->see('First comment on this administrator dogfood issue');
+    }
 }
