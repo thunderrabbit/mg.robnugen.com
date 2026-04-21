@@ -22,4 +22,12 @@ class ProjectsIndexCest
         $I->seeInCurrentUrl('/?msg=upgrade_required');
         $I->dontSee('administrator test project');
     }
+
+    public function adminSeesOpenIssueCountNextToProject(AcceptanceTester $I)
+    {
+        $I->loginAsAdmin();
+        $I->amOnPage('/projects/');
+        $I->see('administrator test project');
+        $I->see('1 open issue');
+    }
 }
