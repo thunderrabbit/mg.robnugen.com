@@ -34,6 +34,7 @@ if (isset($is_logged_in) && is_object($is_logged_in) && method_exists($is_logged
     <?php if ($user_is_admin || $user_is_paid): ?>
         <a href="/todos/">Todos</a> |
         <a href="/inbox/?sort=id&dir=desc">Inbox</a> |
+        <a href="/projects/">Projects</a> |
     <?php endif; ?>
 
     <?php if ($user_is_logged_in): ?>
