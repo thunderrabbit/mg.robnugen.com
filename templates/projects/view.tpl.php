@@ -52,6 +52,9 @@
     <div class="card">
         <header class="dashboard-header">
             <h2>Members</h2>
+            <div class="header-actions">
+                <a href="/projects/add-member.php?project_id=<?= (int)$project['project_id'] ?>" class="btn-new-timer">+ Add Member</a>
+            </div>
         </header>
         <?php if (empty($members)): ?>
             <p class="empty-state"><em>No members.</em></p>
