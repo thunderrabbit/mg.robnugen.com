@@ -16,6 +16,9 @@
 
     <header class="dashboard-header">
         <h1>Projects</h1>
+        <div class="header-actions">
+            <a href="/projects/create.php" class="btn-new-timer">+ New Project</a>
+        </div>
     </header>
 
     <div class="card">
