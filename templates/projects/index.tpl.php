@@ -3,6 +3,7 @@
         <?php
         $msgs = [
             'project_not_found' => 'Project not found.',
+            'issue_not_found'   => 'Issue not found.',
         ];
         $text = $msgs[$msg] ?? null;
         ?>

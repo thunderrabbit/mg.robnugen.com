@@ -29,7 +29,11 @@
                 <?php foreach ($issues as $issue): ?>
                     <li class="issue-item">
                         <span class="issue-status"><?= htmlspecialchars($issue['status_label']) ?></span>
-                        <span class="issue-title"><?= htmlspecialchars($issue['title']) ?></span>
+                        <span class="issue-title">
+                            <a href="/issues/view.php?issue_id=<?= (int)$issue['issue_id'] ?>">
+                                <?= htmlspecialchars($issue['title']) ?>
+                            </a>
+                        </span>
                         <?php if (!empty($issue['assignee_name'])): ?>
                             <span class="issue-assignee">→ <?= htmlspecialchars($issue['assignee_name']) ?></span>
                         <?php endif; ?>
