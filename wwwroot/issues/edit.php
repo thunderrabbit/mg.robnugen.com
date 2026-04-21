@@ -38,7 +38,7 @@ if ($human_aiu <= 0) {
 }
 
 $stmt = $pdo->prepare(
-    "SELECT i.issue_id, i.project_id, i.title, i.description,
+    "SELECT i.issue_id, i.project_id, i.title, i.description, i.assignee_aiu,
             p.name AS project_name, pm.can_write
      FROM issues i
      JOIN projects p         ON p.project_id = i.project_id
@@ -58,21 +58,41 @@ if (empty($issue['can_write'])) {
     exit;
 }
 
+// Candidate assignees: project members of this issue's project.
+$assignee_stmt = $pdo->prepare(
+    "SELECT a.aiu_id, a.name, a.actor_type
+     FROM project_members pm
+     JOIN agent_inbox_user a ON a.aiu_id = pm.member_aiu
+     WHERE pm.project_id = ?
+     ORDER BY a.actor_type DESC, a.name ASC"
+);
+$assignee_stmt->execute([$issue['project_id']]);
+$assignee_choices = $assignee_stmt->fetchAll(\PDO::FETCH_ASSOC);
+
 $error = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $title       = trim($_POST['title'] ?? '');
-    $description = trim($_POST['description'] ?? '');
+    $title          = trim($_POST['title'] ?? '');
+    $description    = trim($_POST['description'] ?? '');
+    $assignee_input = $_POST['assignee_aiu'] ?? '';
+    $assignee_aiu   = ($assignee_input === '') ? null : (int)$assignee_input;
 
     if ($title === '') {
         $error = "Title is required.";
     } elseif (mb_strlen($title) > 255) {
         $error = "Title must be 255 characters or fewer.";
-    } else {
+    } elseif ($assignee_aiu !== null) {
+        $valid_ids = array_column($assignee_choices, 'aiu_id');
+        if (!in_array($assignee_aiu, array_map('intval', $valid_ids), true)) {
+            $error = "Assignee must be a member of this project.";
+        }
+    }
+
+    if ($error === null) {
         $upd = $pdo->prepare(
-            "UPDATE issues SET title = ?, description = ? WHERE issue_id = ?"
+            "UPDATE issues SET title = ?, description = ?, assignee_aiu = ? WHERE issue_id = ?"
         );
-        $upd->execute([$title, $description !== '' ? $description : null, $issue_id]);
+        $upd->execute([$title, $description !== '' ? $description : null, $assignee_aiu, $issue_id]);
         header("Location: /issues/view.php?issue_id={$issue_id}");
         exit;
     }
@@ -85,9 +105,11 @@ $page->set("page_title", "Edit #{$issue_id} - Meiso Gambare");
 $inner = new \Template($config, $is_logged_in);
 $inner->setTemplate("issues/edit.tpl.php");
 $inner->set("issue", $issue);
-if ($error !== null)              $inner->set("error", $error);
-if (isset($_POST['title']))       $inner->set("form_title", $_POST['title']);
-if (isset($_POST['description'])) $inner->set("form_description", $_POST['description']);
+$inner->set("assignee_choices", $assignee_choices);
+if ($error !== null)               $inner->set("error", $error);
+if (isset($_POST['title']))        $inner->set("form_title", $_POST['title']);
+if (isset($_POST['description']))  $inner->set("form_description", $_POST['description']);
+if (isset($_POST['assignee_aiu'])) $inner->set("form_assignee_aiu", $_POST['assignee_aiu']);
 
 $page->set("page_content", $inner->grabTheGoods());
 $page->echoToScreen();
