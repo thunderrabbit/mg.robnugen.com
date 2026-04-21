@@ -68,6 +68,12 @@ $comment_stmt = $pdo->prepare(
 $comment_stmt->execute([$issue_id]);
 $comments = $comment_stmt->fetchAll(\PDO::FETCH_ASSOC);
 
+$statuses_stmt = $pdo->query(
+    "SELECT status_id, slug, label, sort_order, is_terminal
+     FROM issue_statuses ORDER BY sort_order ASC"
+);
+$statuses = $statuses_stmt->fetchAll(\PDO::FETCH_ASSOC);
+
 $page = new \Template($config, $is_logged_in);
 $page->setTemplate("layout/base.tpl.php");
 $page->set("page_title", $issue['title'] . " - Meiso Gambare");
@@ -76,6 +82,8 @@ $inner_page = new \Template($config, $is_logged_in);
 $inner_page->setTemplate("issues/view.tpl.php");
 $inner_page->set("issue", $issue);
 $inner_page->set("comments", $comments);
+$inner_page->set("statuses", $statuses);
+if (isset($_GET['msg'])) $inner_page->set("msg", $_GET['msg']);
 
 $page->set("page_content", $inner_page->grabTheGoods());
 $page->echoToScreen();
