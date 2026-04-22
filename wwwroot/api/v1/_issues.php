@@ -443,6 +443,10 @@ if ($method === 'PATCH' && $sub === '/update') {
     $issue      = $access['issue'];
     $project_id = (int)$issue['project_id'];
 
+    // All SET clauses must be qualified with `i.` — the UPDATE joins `projects p`,
+    // which has overlapping column names (notably `description`), so unqualified
+    // writes trigger MySQL error 1052 (ambiguous column) and produce an empty
+    // response body.
     $sets = [];
     $params = [];
 
@@ -452,16 +456,16 @@ if ($method === 'PATCH' && $sub === '/update') {
             echo json_encode(['error' => 'title must be 1-255 characters']);
             return;
         }
-        $sets[] = 'title = ?';
+        $sets[] = 'i.title = ?';
         $params[] = $title_in;
     }
     if ($description_in !== 'NOT_SET') {
-        $sets[] = 'description = ?';
+        $sets[] = 'i.description = ?';
         $params[] = ($description_in === '') ? null : $description_in;
     }
     if ($assignee_in !== 'NOT_SET') {
         if ($assignee_in === null || $assignee_in === 0 || $assignee_in === '0' || $assignee_in === '') {
-            $sets[] = 'assignee_aiu = NULL';
+            $sets[] = 'i.assignee_aiu = NULL';
         } else {
             $new_assignee = (int)$assignee_in;
             $a = $pdo->prepare(
@@ -473,13 +477,13 @@ if ($method === 'PATCH' && $sub === '/update') {
                 echo json_encode(['error' => 'assignee_aiu is not a member of this project']);
                 return;
             }
-            $sets[] = 'assignee_aiu = ?';
+            $sets[] = 'i.assignee_aiu = ?';
             $params[] = $new_assignee;
         }
     }
     if ($parent_in !== 'NOT_SET') {
         if ($parent_in === null || $parent_in === 0 || $parent_in === '0' || $parent_in === '') {
-            $sets[] = 'parent_issue_id = NULL';
+            $sets[] = 'i.parent_issue_id = NULL';
         } else {
             $new_parent = (int)$parent_in;
             if ($new_parent === $issue_id) {
@@ -510,7 +514,7 @@ if ($method === 'PATCH' && $sub === '/update') {
                 echo json_encode(['error' => 'this issue already has children; it cannot itself become a child']);
                 return;
             }
-            $sets[] = 'parent_issue_id = ?';
+            $sets[] = 'i.parent_issue_id = ?';
             $params[] = $new_parent;
         }
     }
@@ -541,17 +545,17 @@ if ($method === 'PATCH' && $sub === '/update') {
             }
         }
 
-        $sets[] = 'status_id = ?';
+        $sets[] = 'i.status_id = ?';
         $params[] = $status_id_in;
         if ($new_is_terminal) {
-            $sets[] = 'done_at_utc = NOW(6)';
+            $sets[] = 'i.done_at_utc = NOW(6)';
         } else {
-            $sets[] = 'done_at_utc = NULL';
+            $sets[] = 'i.done_at_utc = NULL';
         }
     }
 
     if ($priority_in !== null) {
-        $sets[] = 'priority = ?';
+        $sets[] = 'i.priority = ?';
         $params[] = $priority_in;
     }
 
