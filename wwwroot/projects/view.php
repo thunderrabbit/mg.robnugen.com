@@ -48,6 +48,8 @@ if (!$project) {
     exit;
 }
 
+$show_done = !empty($_GET['show_done']);
+
 // Open (non-terminal) issues in this project
 $issue_stmt = $pdo->prepare(
     "SELECT i.issue_id, i.title,
@@ -61,6 +63,23 @@ $issue_stmt = $pdo->prepare(
 );
 $issue_stmt->execute([$project_id]);
 $issues = $issue_stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+$done_issues = [];
+if ($show_done) {
+    $done_stmt = $pdo->prepare(
+        "SELECT i.issue_id, i.title,
+                s.slug AS status_slug, s.label AS status_label,
+                i.assignee_aiu, a.name AS assignee_name,
+                i.done_at_utc
+         FROM issues i
+         JOIN issue_statuses s      ON s.status_id = i.status_id
+         LEFT JOIN agent_inbox_user a ON a.aiu_id = i.assignee_aiu
+         WHERE i.project_id = ? AND s.is_terminal = 1
+         ORDER BY i.done_at_utc DESC"
+    );
+    $done_stmt->execute([$project_id]);
+    $done_issues = $done_stmt->fetchAll(\PDO::FETCH_ASSOC);
+}
 
 // Project members — everyone aiu_id, name, actor_type, perm bits
 $member_stmt = $pdo->prepare(
@@ -82,6 +101,8 @@ $inner_page = new \Template($config, $is_logged_in);
 $inner_page->setTemplate("projects/view.tpl.php");
 $inner_page->set("project", $project);
 $inner_page->set("issues", $issues);
+$inner_page->set("done_issues", $done_issues);
+$inner_page->set("show_done", $show_done);
 $inner_page->set("members", $members);
 
 $page->set("page_content", $inner_page->grabTheGoods());

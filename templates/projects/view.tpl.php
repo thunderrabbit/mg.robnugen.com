@@ -25,6 +25,11 @@
             <h2>Open Issues</h2>
             <div class="header-actions">
                 <a href="/issues/create.php?project_id=<?= (int)$project['project_id'] ?>" class="btn-new-timer">+ New Issue</a>
+                <?php if (!empty($show_done)): ?>
+                    <a href="/projects/view.php?project_id=<?= (int)$project['project_id'] ?>" class="btn-sm">Hide done</a>
+                <?php else: ?>
+                    <a href="/projects/view.php?project_id=<?= (int)$project['project_id'] ?>&amp;show_done=1" class="btn-sm">Show done</a>
+                <?php endif; ?>
             </div>
         </header>
         <?php if (empty($issues)): ?>
@@ -48,6 +53,34 @@
             </ul>
         <?php endif; ?>
     </div>
+
+    <?php if (!empty($show_done)): ?>
+        <div class="card card-muted">
+            <header class="dashboard-header">
+                <h2>Done Issues</h2>
+            </header>
+            <?php if (empty($done_issues)): ?>
+                <p class="empty-state"><em>No done issues in this project.</em></p>
+            <?php else: ?>
+                <ul class="issue-list issue-list-done">
+                    <?php foreach ($done_issues as $issue): ?>
+                        <li class="issue-item issue-item-done">
+                            <span class="issue-status"><?= htmlspecialchars($issue['status_label']) ?></span>
+                            <span class="issue-id">#<?= (int)$issue['issue_id'] ?></span>
+                            <span class="issue-title">
+                                <a href="/issues/view.php?issue_id=<?= (int)$issue['issue_id'] ?>">
+                                    <?= htmlspecialchars($issue['title']) ?>
+                                </a>
+                            </span>
+                            <?php if (!empty($issue['assignee_name'])): ?>
+                                <span class="issue-assignee">→ <?= htmlspecialchars($issue['assignee_name']) ?></span>
+                            <?php endif; ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
 
     <div class="card">
         <header class="dashboard-header">
