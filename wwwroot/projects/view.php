@@ -50,16 +50,34 @@ if (!$project) {
 
 $show_done = !empty($_GET['show_done']);
 
+// Sort whitelist: keys are safe tokens accepted from ?sort=, values are SQL expressions.
+$sort_map = [
+    'updated'  => 'i.updated_at_utc',
+    'created'  => 'i.created_at_utc',
+    'status'   => 's.sort_order',
+    'title'    => 'i.title',
+    'priority' => "FIELD(i.priority, 'low', 'normal', 'high')",
+];
+$sort = $_GET['sort'] ?? 'updated';
+if (!isset($sort_map[$sort])) {
+    $sort = 'updated';
+}
+$dir = strtolower($_GET['dir'] ?? 'desc');
+if ($dir !== 'asc') {
+    $dir = 'desc';
+}
+$order_clause = $sort_map[$sort] . ' ' . strtoupper($dir);
+
 // Open (non-terminal) issues in this project
 $issue_stmt = $pdo->prepare(
-    "SELECT i.issue_id, i.title,
+    "SELECT i.issue_id, i.title, i.priority, i.created_at_utc, i.updated_at_utc,
             s.slug AS status_slug, s.label AS status_label,
             i.assignee_aiu, a.name AS assignee_name
      FROM issues i
      JOIN issue_statuses s      ON s.status_id = i.status_id
      LEFT JOIN agent_inbox_user a ON a.aiu_id = i.assignee_aiu
      WHERE i.project_id = ? AND s.is_terminal = 0
-     ORDER BY i.updated_at_utc DESC"
+     ORDER BY {$order_clause}, i.issue_id DESC"
 );
 $issue_stmt->execute([$project_id]);
 $issues = $issue_stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -67,7 +85,7 @@ $issues = $issue_stmt->fetchAll(\PDO::FETCH_ASSOC);
 $done_issues = [];
 if ($show_done) {
     $done_stmt = $pdo->prepare(
-        "SELECT i.issue_id, i.title,
+        "SELECT i.issue_id, i.title, i.priority, i.created_at_utc, i.updated_at_utc,
                 s.slug AS status_slug, s.label AS status_label,
                 i.assignee_aiu, a.name AS assignee_name,
                 i.done_at_utc
@@ -75,7 +93,7 @@ if ($show_done) {
          JOIN issue_statuses s      ON s.status_id = i.status_id
          LEFT JOIN agent_inbox_user a ON a.aiu_id = i.assignee_aiu
          WHERE i.project_id = ? AND s.is_terminal = 1
-         ORDER BY i.done_at_utc DESC"
+         ORDER BY {$order_clause}, i.issue_id DESC"
     );
     $done_stmt->execute([$project_id]);
     $done_issues = $done_stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -104,6 +122,8 @@ $inner_page->set("issues", $issues);
 $inner_page->set("done_issues", $done_issues);
 $inner_page->set("show_done", $show_done);
 $inner_page->set("members", $members);
+$inner_page->set("sort", $sort);
+$inner_page->set("dir", $dir);
 
 $page->set("page_content", $inner_page->grabTheGoods());
 $page->echoToScreen();
