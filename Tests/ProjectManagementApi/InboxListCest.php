@@ -7,12 +7,44 @@ use Tests\Support\AcceptanceTester;
 /**
  * Verifies /api/v1/inbox/list ordering per issue #98.
  *
- * Strategy: POST N messages with a shared unique marker in the body, then GET
- * /inbox/list with each `order` value. Because `message_id` is monotonically
- * increasing and included as a tiebreaker in every order_clause, back-to-back
- * POSTs give deterministic ordering without needing distinct-second timestamps.
- * Tests filter the response to messages containing the marker and assert the
- * `message_id` sequence matches expectations.
+ * Strategy: POST N broadcast messages with a shared unique marker in the body,
+ * then GET /inbox/list with each `order` value. Because `message_id` is
+ * monotonically increasing and included as a tiebreaker in every order_clause,
+ * back-to-back POSTs give deterministic ordering without needing
+ * distinct-second timestamps. Tests filter the response to messages containing
+ * the marker and assert the `message_id` sequence matches expectations.
+ *
+ * ── Three-key dance (intentional, read before "simplifying") ────────────────
+ *
+ * POST + DELETE run under MG_TEST_KEY_BETA (test_beta, aiu 14). GET runs under
+ * MG_TEST_KEY_ALPHA (test_alpha, aiu 13). Neither key has supervisor
+ * inbox_visibility rows, and each has exactly one of (can_write_inbox,
+ * can_read_inbox) set — so neither standalone can do both sides. That's on
+ * purpose here, not a blocker to work around:
+ *
+ *   - BETA as writer means every row this test inserts has `sender_aiu = 14`.
+ *     /inbox/delete's auth clause is `sender_aiu = caller OR recipient_aiu =
+ *     caller OR (caller is supervisor)`. With BETA non-supervisor, the ONLY
+ *     branch that fires is `sender_aiu = 14`. If a stray id ever leaked into
+ *     $this->created (future refactor, server bug, cosmic ray) the server
+ *     refuses to DELETE any row we didn't send. Server-side safety net.
+ *
+ *   - ALPHA as reader means GET /inbox/list runs without supervisor bypass.
+ *     ALPHA sees broadcasts (recipient_aiu IS NULL) plus explicit peer-read
+ *     grants. BETA's broadcasts pass the first filter, so the test data shows
+ *     up. Both actors live on user_id=30 (the Dr-Hilbert test sandbox), so
+ *     the whole thing stays inside an account separate from Rob's primary
+ *     user_id=1 — additional isolation at the account level.
+ *
+ * MG_TEST_KEY_FULL (Dr_Hilbert_Space_mgTester, aiu 11) is NOT used here even
+ * though it's more convenient, because it has a NULL-peer supervisor row on
+ * inbox_visibility. Under FULL, /inbox/delete's EXISTS-supervisor branch
+ * always fires, and the only remaining WHERE filter is `message_id = ?` —
+ * meaning a single bad id in $this->created would delete someone else's
+ * message (bounded to user_id=30, but still). BETA+ALPHA removes that footgun.
+ *
+ * Supervisor access legitimately matters for triage/admin use cases; it just
+ * shouldn't be what guards a destructive test teardown.
  */
 class InboxListCest
 {
@@ -28,46 +60,27 @@ class InboxListCest
 
     public function _after(AcceptanceTester $I): void
     {
-        // Cleanup: DELETE each message we created so the test leaves the inbox
-        // as it found it.
-        //
-        // Safety note: MG_TEST_KEY_FULL has supervisor permissions (inbox_visibility
-        // row with inbox_peer_aiu_id=NULL, can_read=1), which means the DELETE
-        // endpoint's sender_aiu/recipient_aiu check is bypassed. The only filter
-        // actually constraining the DELETE to "our" rows is message_id = ?.
-        // So we belt-and-suspenders: before DELETEing, fetch each id and verify
-        // the body still contains this test's unique marker. If it doesn't,
-        // skip — something went wrong and we'd rather leak a row than delete
-        // someone else's.
+        // Cleanup: DELETE each message we created. Server authorizes on
+        // sender_aiu = caller (BETA = 14) since BETA has no supervisor row,
+        // so a leaked foreign id would 404-silently rather than succeed.
+        // That's the second layer of defense — the first is that
+        // $this->created is only written by postMarked() from 201 responses
+        // to our own POSTs, so in practice the array never holds a foreign id.
         foreach ($this->created as $id) {
-            $I->haveHttpHeader('X-API-Key', getenv('MG_TEST_KEY_FULL'));
-            $I->sendGET('/api/v1/inbox/list?limit=100');
-            $decoded = json_decode($I->grabResponse(), true);
-            $matched = false;
-            foreach (($decoded['messages'] ?? []) as $m) {
-                if ((int)($m['message_id'] ?? 0) === $id
-                    && isset($m['message'])
-                    && str_contains($m['message'], $this->marker)
-                ) {
-                    $matched = true;
-                    break;
-                }
-            }
-            if (!$matched) {
-                continue; // safety: don't DELETE an id we can't confirm is ours
-            }
+            $I->haveHttpHeader('X-API-Key', getenv('MG_TEST_KEY_BETA'));
             $I->haveHttpHeader('Content-Type', 'application/json');
             $I->sendDELETE('/api/v1/inbox/delete', ['message_id' => $id]);
         }
     }
 
     /**
-     * POSTs a message and records the resulting message_id.
-     * Returns the message_id so tests can assert on it.
+     * POSTs a broadcast message (no recipient_aiu) as BETA, records the
+     * resulting message_id. Broadcast means ALPHA's GET can see it on the
+     * read side without a per-peer grant.
      */
     private function postMarked(AcceptanceTester $I, string $suffix, string $priority = 'normal'): int
     {
-        $I->haveHttpHeader('X-API-Key', getenv('MG_TEST_KEY_FULL'));
+        $I->haveHttpHeader('X-API-Key', getenv('MG_TEST_KEY_BETA'));
         $I->haveHttpHeader('Content-Type', 'application/json');
         $I->sendPOST('/api/v1/inbox/send', json_encode([
             'message'  => $this->marker . ' ' . $suffix,
@@ -85,14 +98,15 @@ class InboxListCest
     }
 
     /**
-     * GET /inbox/list and return the message_ids of rows whose body contains
-     * the current test's marker, preserving response order.
+     * GETs /inbox/list as ALPHA (non-supervisor reader) and returns
+     * message_ids of rows whose body contains the current test's marker,
+     * preserving response order.
      *
      * @return int[]
      */
     private function grabMarkedIds(AcceptanceTester $I, string $query): array
     {
-        $I->haveHttpHeader('X-API-Key', getenv('MG_TEST_KEY_FULL'));
+        $I->haveHttpHeader('X-API-Key', getenv('MG_TEST_KEY_ALPHA'));
         $I->sendGET('/api/v1/inbox/list?' . $query);
         $I->seeResponseCodeIs(200);
         $decoded = json_decode($I->grabResponse(), true);
