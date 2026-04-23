@@ -30,6 +30,33 @@
                 <?php endif; ?>
             </div>
         </header>
+        <?php
+            $sort_cols = [
+                ['key' => 'updated',  'label' => 'Updated',  'default_dir' => 'desc'],
+                ['key' => 'created',  'label' => 'Created',  'default_dir' => 'desc'],
+                ['key' => 'status',   'label' => 'Status',   'default_dir' => 'asc'],
+                ['key' => 'title',    'label' => 'Title',    'default_dir' => 'asc'],
+                ['key' => 'priority', 'label' => 'Priority', 'default_dir' => 'desc'],
+            ];
+            $base_q = '?project_id=' . (int)$project['project_id']
+                . (!empty($show_done) ? '&amp;show_done=1' : '');
+        ?>
+        <div class="issue-list-controls">
+            <span class="sort-label">Sort by:</span>
+            <?php foreach ($sort_cols as $col): ?>
+                <?php
+                    $is_active = ($sort === $col['key']);
+                    $link_dir = $is_active
+                        ? ($dir === 'asc' ? 'desc' : 'asc')
+                        : $col['default_dir'];
+                    $arrow = $is_active ? ($dir === 'asc' ? ' ↑' : ' ↓') : '';
+                ?>
+                <a class="sort-link<?= $is_active ? ' sort-link-active' : '' ?>"
+                   href="<?= $base_q ?>&amp;sort=<?= htmlspecialchars($col['key']) ?>&amp;dir=<?= htmlspecialchars($link_dir) ?>">
+                    <?= htmlspecialchars($col['label']) ?><?= $arrow ?>
+                </a>
+            <?php endforeach; ?>
+        </div>
         <?php if (empty($issues)): ?>
             <p class="empty-state"><em>No open issues in this project.</em></p>
         <?php else: ?>
@@ -37,11 +64,15 @@
                 <?php foreach ($issues as $issue): ?>
                     <li class="issue-item">
                         <span class="issue-status"><?= htmlspecialchars($issue['status_label']) ?></span>
+                        <span class="issue-priority issue-priority-<?= htmlspecialchars($issue['priority']) ?>"><?= htmlspecialchars($issue['priority']) ?></span>
                         <span class="issue-id">#<?= (int)$issue['issue_id'] ?></span>
                         <span class="issue-title">
                             <a href="/issues/view.php?issue_id=<?= (int)$issue['issue_id'] ?>">
                                 <?= htmlspecialchars($issue['title']) ?>
                             </a>
+                        </span>
+                        <span class="issue-date" title="Created <?= htmlspecialchars($issue['created_at_utc']) ?> UTC">
+                            <?= htmlspecialchars(substr($issue['created_at_utc'], 0, 10)) ?>
                         </span>
                         <?php if (!empty($issue['assignee_name'])): ?>
                             <span class="issue-assignee">→ <?= htmlspecialchars($issue['assignee_name']) ?></span>
@@ -64,11 +95,15 @@
                     <?php foreach ($done_issues as $issue): ?>
                         <li class="issue-item issue-item-done">
                             <span class="issue-status"><?= htmlspecialchars($issue['status_label']) ?></span>
+                            <span class="issue-priority issue-priority-<?= htmlspecialchars($issue['priority']) ?>"><?= htmlspecialchars($issue['priority']) ?></span>
                             <span class="issue-id">#<?= (int)$issue['issue_id'] ?></span>
                             <span class="issue-title">
                                 <a href="/issues/view.php?issue_id=<?= (int)$issue['issue_id'] ?>">
                                     <?= htmlspecialchars($issue['title']) ?>
                                 </a>
+                            </span>
+                            <span class="issue-date" title="Created <?= htmlspecialchars($issue['created_at_utc']) ?> UTC">
+                                <?= htmlspecialchars(substr($issue['created_at_utc'], 0, 10)) ?>
                             </span>
                             <?php if (!empty($issue['assignee_name'])): ?>
                                 <span class="issue-assignee">→ <?= htmlspecialchars($issue['assignee_name']) ?></span>
