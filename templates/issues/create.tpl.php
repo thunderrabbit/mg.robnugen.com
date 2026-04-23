@@ -23,31 +23,33 @@
                 <textarea id="description" name="description" rows="5"><?= htmlspecialchars($form_description ?? '') ?></textarea>
             </div>
 
-            <div class="form-field">
-                <label for="assignee_aiu">Assignee</label>
-                <?php
-                    $selected_assignee = isset($form_assignee_aiu)
-                        ? ($form_assignee_aiu === '' ? null : (int)$form_assignee_aiu)
-                        : null;
-                ?>
-                <select id="assignee_aiu" name="assignee_aiu">
-                    <option value=""<?= $selected_assignee === null ? ' selected' : '' ?>>— unassigned —</option>
-                    <?php foreach ($assignee_choices as $choice): ?>
-                        <option value="<?= (int)$choice['aiu_id'] ?>"<?= $selected_assignee === (int)$choice['aiu_id'] ? ' selected' : '' ?>>
-                            <?= htmlspecialchars($choice['name']) ?> (<?= htmlspecialchars($choice['actor_type']) ?>)
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
+            <div class="form-row">
+                <div class="form-field">
+                    <label for="assignee_aiu">Assignee</label>
+                    <?php
+                        $selected_assignee = isset($form_assignee_aiu)
+                            ? ($form_assignee_aiu === '' ? null : (int)$form_assignee_aiu)
+                            : null;
+                    ?>
+                    <select id="assignee_aiu" name="assignee_aiu">
+                        <option value=""<?= $selected_assignee === null ? ' selected' : '' ?>>— unassigned —</option>
+                        <?php foreach ($assignee_choices as $choice): ?>
+                            <option value="<?= (int)$choice['aiu_id'] ?>"<?= $selected_assignee === (int)$choice['aiu_id'] ? ' selected' : '' ?>>
+                                <?= htmlspecialchars($choice['name']) ?> (<?= htmlspecialchars($choice['actor_type']) ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
 
-            <div class="form-field">
-                <label for="priority">Priority</label>
-                <?php $sel = $form_priority ?? 'normal'; ?>
-                <select id="priority" name="priority">
-                    <option value="low"<?= $sel === 'low' ? ' selected' : '' ?>>Low</option>
-                    <option value="normal"<?= $sel === 'normal' ? ' selected' : '' ?>>Normal</option>
-                    <option value="high"<?= $sel === 'high' ? ' selected' : '' ?>>High</option>
-                </select>
+                <div class="form-field">
+                    <label for="priority">Priority</label>
+                    <?php $sel = $form_priority ?? 'normal'; ?>
+                    <select id="priority" name="priority">
+                        <option value="low"<?= $sel === 'low' ? ' selected' : '' ?>>Low</option>
+                        <option value="normal"<?= $sel === 'normal' ? ' selected' : '' ?>>Normal</option>
+                        <option value="high"<?= $sel === 'high' ? ' selected' : '' ?>>High</option>
+                    </select>
+                </div>
             </div>
 
             <div class="form-actions">

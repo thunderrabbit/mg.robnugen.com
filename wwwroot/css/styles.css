@@ -123,6 +123,25 @@ a:visited {
     margin-bottom: 1.4em;
 }
 
+.form-row {
+    display: flex;
+    gap: 1.25em;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    margin-bottom: 0;
+}
+
+.form-row > .form-field {
+    flex: 1 1 220px;
+    min-width: 0;
+}
+
+.form-row > .form-field select,
+.form-row > .form-field input,
+.form-row > .form-field textarea {
+    max-width: none;
+}
+
 .form-field label {
     display: block;
     font-weight: 600;
