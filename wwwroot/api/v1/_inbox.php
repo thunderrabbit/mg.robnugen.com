@@ -4,6 +4,17 @@
  *
  * Routes:
  *   GET    /inbox/list       — list messages (free)
+ *                              Query params:
+ *                                status=pending|seen|done|archived (default: all)
+ *                                limit (default 50, max 100)
+ *                                offset (default 0)
+ *                                sender_aiu (filter by sender)
+ *                                include_sent (include messages you sent)
+ *                                include_archived, include_future
+ *                                order=newest|urgent|oldest (default: newest)
+ *                                  newest: created_at_utc DESC — "did X reply?"
+ *                                  urgent: priority DESC, created_at_utc DESC — triage
+ *                                  oldest: created_at_utc ASC — FIFO
  *   POST   /inbox/send       — create a new message (1 credit)
  *   PATCH  /inbox/mark-seen  — mark a message as seen
  *   PATCH  /inbox/mark-done  — mark a message as done (with optional response)
@@ -104,11 +115,25 @@ if ($method === 'GET' && $sub === '/list') {
 
     $where_sql = implode(' AND ', $where);
 
+    // Ordering whitelist. Default: newest-first (matches the most common agent
+    // use case of "did X reply to my ping?"). `urgent` keeps the old
+    // priority-weighted triage view. `oldest` preserves FIFO semantics.
+    $order_map = [
+        'newest' => 'i.created_at_utc DESC, i.message_id DESC',
+        'urgent' => "FIELD(i.priority, 'high', 'normal', 'low'), i.created_at_utc DESC",
+        'oldest' => 'i.created_at_utc ASC, i.message_id ASC',
+    ];
+    $order = $_GET['order'] ?? 'newest';
+    if (!isset($order_map[$order])) {
+        $order = 'newest';
+    }
+    $order_clause = $order_map[$order];
+
     $stmt = $pdo->prepare(
         "SELECT message_id, message, priority, show_date, sender_timezone, sender_aiu, recipient_aiu, seen_at, done_at, archived_at, response, created_at_utc, updated_at_utc
          FROM agent_inbox i
          WHERE {$where_sql}
-         ORDER BY FIELD(priority, 'high', 'normal', 'low'), created_at_utc ASC
+         ORDER BY {$order_clause}
          LIMIT ? OFFSET ?"
     );
     $params[] = $limit;
