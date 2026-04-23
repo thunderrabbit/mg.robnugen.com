@@ -120,7 +120,7 @@ if ($method === 'GET' && $sub === '/list') {
     // priority-weighted triage view. `oldest` preserves FIFO semantics.
     $order_map = [
         'newest' => 'i.created_at_utc DESC, i.message_id DESC',
-        'urgent' => "FIELD(i.priority, 'high', 'normal', 'low'), i.created_at_utc DESC",
+        'urgent' => "FIELD(i.priority, 'high', 'normal', 'low'), i.created_at_utc DESC, i.message_id DESC",
         'oldest' => 'i.created_at_utc ASC, i.message_id ASC',
     ];
     $order = $_GET['order'] ?? 'newest';
