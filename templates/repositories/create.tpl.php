@@ -1,9 +1,7 @@
 <div class="dashboard-container">
     <header class="dashboard-header">
+        <a href="/repositories/" class="btn-sm btn-back">← Back to Repositories</a>
         <h1>Create Repository</h1>
-        <div class="header-actions">
-            <a href="/repositories/" class="btn-sm">← Back to Repositories</a>
-        </div>
     </header>
 
     <div class="card">

@@ -32,6 +32,11 @@
 	margin: 0;
 	font-size: 28px;
 	color: var(--text-secondary);
+	flex: 1 0 auto;
+}
+
+.dashboard-header .btn-back {
+	margin-right: 16px;
 }
 
 .btn-new-timer {

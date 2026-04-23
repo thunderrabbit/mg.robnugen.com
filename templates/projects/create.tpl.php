@@ -1,9 +1,7 @@
 <div class="dashboard-container">
     <header class="dashboard-header">
+        <a href="/projects/" class="btn-sm btn-back">← Back to Projects</a>
         <h1>Create Project</h1>
-        <div class="header-actions">
-            <a href="/projects/" class="btn-sm">← Back to Projects</a>
-        </div>
     </header>
 
     <div class="card">
