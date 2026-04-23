@@ -16,16 +16,18 @@ class CreateProjectCest
         $I->seeElement('textarea[name=description]');
     }
 
-    public function adminCanCreateProjectFromForm(AcceptanceTester $I)
+    public function duplicateNameShowsError(AcceptanceTester $I)
     {
         $I->loginAsAdmin();
         $I->amOnPage('/projects/create.php');
-        $projName = 'Test Project via Form ' . time();
-        $I->fillField('name', $projName);
-        $I->fillField('description', 'Created by Codeception test.');
-        $I->click('Create Project');
-        $I->seeInCurrentUrl('/projects/view.php?project_id=');
-        $I->see($projName, 'h1');
+        $I->see('Create Project', 'h1');
+        $I->seeElement('input[name=name]');
+        $I->submitForm('form[action="/projects/create.php"]', [
+            'name'        => 'CreateProjectCest fixture',
+            'description' => 'ignored by the duplicate guard',
+        ]);
+        $I->seeInCurrentUrl('/projects/create.php');
+        $I->see('already exists');
     }
 
     public function freeUserCannotAccessCreateForm(AcceptanceTester $I)
