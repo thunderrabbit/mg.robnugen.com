@@ -92,6 +92,14 @@ class CreateIssueCest
         $I->dontSee('assigned to');
     }
 
+    public function assigneeAndPriorityInFormRow(AcceptanceTester $I)
+    {
+        $I->loginAsAdmin();
+        $I->amOnPage('/issues/create.php?project_id=2');
+        $I->seeElement('.form-row select[name=assignee_aiu]');
+        $I->seeElement('.form-row select[name=priority]');
+    }
+
     public function createWithNonMemberAssigneeShowsError(AcceptanceTester $I)
     {
         $I->loginAsAdmin();
