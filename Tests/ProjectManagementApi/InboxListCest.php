@@ -28,11 +28,34 @@ class InboxListCest
 
     public function _after(AcceptanceTester $I): void
     {
-        // Best-effort cleanup: DELETE each message we created so the test
-        // leaves the inbox as it found it. Ignore response codes — if a row
-        // is already gone or auth failed, we still want the next test to run.
+        // Cleanup: DELETE each message we created so the test leaves the inbox
+        // as it found it.
+        //
+        // Safety note: MG_TEST_KEY_FULL has supervisor permissions (inbox_visibility
+        // row with inbox_peer_aiu_id=NULL, can_read=1), which means the DELETE
+        // endpoint's sender_aiu/recipient_aiu check is bypassed. The only filter
+        // actually constraining the DELETE to "our" rows is message_id = ?.
+        // So we belt-and-suspenders: before DELETEing, fetch each id and verify
+        // the body still contains this test's unique marker. If it doesn't,
+        // skip — something went wrong and we'd rather leak a row than delete
+        // someone else's.
         foreach ($this->created as $id) {
             $I->haveHttpHeader('X-API-Key', getenv('MG_TEST_KEY_FULL'));
+            $I->sendGET('/api/v1/inbox/list?limit=100');
+            $decoded = json_decode($I->grabResponse(), true);
+            $matched = false;
+            foreach (($decoded['messages'] ?? []) as $m) {
+                if ((int)($m['message_id'] ?? 0) === $id
+                    && isset($m['message'])
+                    && str_contains($m['message'], $this->marker)
+                ) {
+                    $matched = true;
+                    break;
+                }
+            }
+            if (!$matched) {
+                continue; // safety: don't DELETE an id we can't confirm is ours
+            }
             $I->haveHttpHeader('Content-Type', 'application/json');
             $I->sendDELETE('/api/v1/inbox/delete', ['message_id' => $id]);
         }
