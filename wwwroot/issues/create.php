@@ -59,12 +59,25 @@ if (!$mem['can_write']) {
 }
 $project_name = $mem['name'];
 
+// Candidate assignees: project members of this project.
+$assignee_stmt = $pdo->prepare(
+    "SELECT a.aiu_id, a.name, a.actor_type
+     FROM project_members pm
+     JOIN agent_inbox_user a ON a.aiu_id = pm.member_aiu
+     WHERE pm.project_id = ?
+     ORDER BY a.actor_type DESC, a.name ASC"
+);
+$assignee_stmt->execute([$project_id]);
+$assignee_choices = $assignee_stmt->fetchAll(\PDO::FETCH_ASSOC);
+
 $error = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $title       = trim($_POST['title'] ?? '');
-    $description = trim($_POST['description'] ?? '');
-    $priority    = trim($_POST['priority'] ?? 'normal');
+    $title          = trim($_POST['title'] ?? '');
+    $description    = trim($_POST['description'] ?? '');
+    $priority       = trim($_POST['priority'] ?? 'normal');
+    $assignee_input = $_POST['assignee_aiu'] ?? '';
+    $assignee_aiu   = ($assignee_input === '') ? null : (int)$assignee_input;
 
     if ($title === '') {
         $error = "Title is required.";
@@ -72,7 +85,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = "Title must be 255 characters or fewer.";
     } elseif (!in_array($priority, ['low', 'normal', 'high'], true)) {
         $error = "Invalid priority.";
-    } else {
+    } elseif ($assignee_aiu !== null) {
+        $valid_ids = array_map('intval', array_column($assignee_choices, 'aiu_id'));
+        if (!in_array($assignee_aiu, $valid_ids, true)) {
+            $error = "Assignee must be a member of this project.";
+        }
+    }
+
+    if ($error === null) {
         $status_stmt = $pdo->query(
             "SELECT status_id FROM issue_statuses WHERE is_default = 1 LIMIT 1"
         );
@@ -80,11 +100,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $ins = $pdo->prepare(
             "INSERT INTO issues
-                (project_id, priority, author_aiu, status_id, title, description)
-             VALUES (?, ?, ?, ?, ?, ?)"
+                (project_id, priority, author_aiu, assignee_aiu, status_id, title, description)
+             VALUES (?, ?, ?, ?, ?, ?, ?)"
         );
         $ins->execute([
-            $project_id, $priority, $human_aiu, $default_status_id,
+            $project_id, $priority, $human_aiu, $assignee_aiu, $default_status_id,
             $title, $description !== '' ? $description : null,
         ]);
         $new_issue_id = (int) $pdo->lastInsertId();
@@ -102,10 +122,12 @@ $inner = new \Template($config, $is_logged_in);
 $inner->setTemplate("issues/create.tpl.php");
 $inner->set("project_id", $project_id);
 $inner->set("project_name", $project_name);
-if ($error !== null)              $inner->set("error", $error);
-if (isset($_POST['title']))       $inner->set("form_title", $_POST['title']);
-if (isset($_POST['description'])) $inner->set("form_description", $_POST['description']);
-if (isset($_POST['priority']))    $inner->set("form_priority", $_POST['priority']);
+$inner->set("assignee_choices", $assignee_choices);
+if ($error !== null)               $inner->set("error", $error);
+if (isset($_POST['title']))        $inner->set("form_title", $_POST['title']);
+if (isset($_POST['description']))  $inner->set("form_description", $_POST['description']);
+if (isset($_POST['priority']))     $inner->set("form_priority", $_POST['priority']);
+if (isset($_POST['assignee_aiu'])) $inner->set("form_assignee_aiu", $_POST['assignee_aiu']);
 
 $page->set("page_content", $inner->grabTheGoods());
 $page->echoToScreen();
