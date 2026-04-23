@@ -109,15 +109,24 @@ a:visited {
     color: var(--alert-warn-text);
 }
 
+.card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 1.5em 1.75em;
+    margin-bottom: 1.5em;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
 .form-field {
     display: block;
-    margin-bottom: 1.2em;
+    margin-bottom: 1.4em;
 }
 
 .form-field label {
     display: block;
     font-weight: 600;
-    margin-bottom: 0.35em;
+    margin-bottom: 0.5em;
     color: var(--text-primary);
 }
 
