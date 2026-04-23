@@ -34,7 +34,7 @@ class InboxListCest
         foreach ($this->created as $id) {
             $I->haveHttpHeader('X-API-Key', getenv('MG_TEST_KEY_FULL'));
             $I->haveHttpHeader('Content-Type', 'application/json');
-            $I->sendDELETE('/api/v1/inbox/delete', json_encode(['message_id' => $id]));
+            $I->sendDELETE('/api/v1/inbox/delete', ['message_id' => $id]);
         }
     }
 
@@ -89,7 +89,7 @@ class InboxListCest
         $third  = $this->postMarked($I, 'third');
 
         $ids = $this->grabMarkedIds($I, 'limit=100');
-        $I->assertSame([$third, $second, $first], $ids, 'Default order should be newest-first (reverse of insertion order).');
+        \PHPUnit\Framework\Assert::assertSame([$third, $second, $first], $ids, 'Default order should be newest-first (reverse of insertion order).');
     }
 
     public function listOrderUrgentPutsHighPriorityFirst(AcceptanceTester $I): void
@@ -99,14 +99,14 @@ class InboxListCest
         $normalLast = $this->postMarked($I, 'normal-last','normal');
 
         $urgent = $this->grabMarkedIds($I, 'order=urgent&limit=100');
-        $I->assertSame(
+        \PHPUnit\Framework\Assert::assertSame(
             [$highMiddle, $normalLast, $lowFirst],
             $urgent,
             'order=urgent should group by priority (high, normal, low) and within each tier newest-first.'
         );
 
         $newest = $this->grabMarkedIds($I, 'limit=100');
-        $I->assertSame(
+        \PHPUnit\Framework\Assert::assertSame(
             [$normalLast, $highMiddle, $lowFirst],
             $newest,
             'Default (newest) should ignore priority and return strictly in reverse insertion order.'
@@ -122,9 +122,9 @@ class InboxListCest
         $newest = $this->grabMarkedIds($I, 'order=newest&limit=100');
         $oldest = $this->grabMarkedIds($I, 'order=oldest&limit=100');
 
-        $I->assertSame([$c, $b, $a], $newest);
-        $I->assertSame([$a, $b, $c], $oldest);
-        $I->assertSame(array_reverse($newest), $oldest, 'order=oldest should be the exact reverse of order=newest on the same data.');
+        \PHPUnit\Framework\Assert::assertSame([$c, $b, $a], $newest);
+        \PHPUnit\Framework\Assert::assertSame([$a, $b, $c], $oldest);
+        \PHPUnit\Framework\Assert::assertSame(array_reverse($newest), $oldest, 'order=oldest should be the exact reverse of order=newest on the same data.');
     }
 
     public function listInvalidOrderFallsBackToNewest(AcceptanceTester $I): void
@@ -133,6 +133,6 @@ class InboxListCest
         $y = $this->postMarked($I, 'y');
 
         $ids = $this->grabMarkedIds($I, 'order=nonsense&limit=100');
-        $I->assertSame([$y, $x], $ids, 'Invalid order values should silently fall back to newest (not crash, not use some undefined order).');
+        \PHPUnit\Framework\Assert::assertSame([$y, $x], $ids, 'Invalid order values should silently fall back to newest (not crash, not use some undefined order).');
     }
 }
