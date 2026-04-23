@@ -1,9 +1,7 @@
 <div class="dashboard-container">
     <header class="dashboard-header">
+        <a href="/issues/view.php?issue_id=<?= (int)$issue['issue_id'] ?>" class="btn-sm btn-back">← Back to issue</a>
         <h1>Edit <span class="issue-id">#<?= (int)$issue['issue_id'] ?></span></h1>
-        <div class="header-actions">
-            <a href="/issues/view.php?issue_id=<?= (int)$issue['issue_id'] ?>" class="btn-sm">← Back to issue</a>
-        </div>
     </header>
 
     <div class="card">

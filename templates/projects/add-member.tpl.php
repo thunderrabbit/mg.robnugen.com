@@ -1,9 +1,7 @@
 <div class="dashboard-container">
     <header class="dashboard-header">
+        <a href="/projects/view.php?project_id=<?= (int)$project['project_id'] ?>" class="btn-sm btn-back">← Back to <?= htmlspecialchars($project['name']) ?></a>
         <h1>Add Member to <?= htmlspecialchars($project['name']) ?></h1>
-        <div class="header-actions">
-            <a href="/projects/view.php?project_id=<?= (int)$project['project_id'] ?>" class="btn-sm">← Back to <?= htmlspecialchars($project['name']) ?></a>
-        </div>
     </header>
 
     <div class="card">
