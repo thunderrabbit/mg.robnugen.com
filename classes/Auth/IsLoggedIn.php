@@ -152,10 +152,13 @@ class IsLoggedIn
 
     public function isPaid(): bool
     {
+        $role = $this->getUserRole();
         if ($this->logged_in_aiu !== null) {
-            return false;
+            // Agents inherit their team's paid-feature access. An admin team
+            // is also entitled to paid features, so accept either tier.
+            return $role === 'paid' || $role === 'admin';
         }
-        return $this->getUserRole() === 'paid';
+        return $role === 'paid';
     }
 
     private function setAutoLoginCookie(int $user_id, ?int $aiu_id = null):void
