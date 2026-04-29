@@ -141,11 +141,18 @@ class IsLoggedIn
 
     public function isAdmin(): bool
     {
+        // Agent sessions never inherit the parent user's elevated role.
+        if ($this->logged_in_aiu !== null) {
+            return false;
+        }
         return $this->getUserRole() === 'admin';
     }
 
     public function isPaid(): bool
     {
+        if ($this->logged_in_aiu !== null) {
+            return false;
+        }
         return $this->getUserRole() === 'paid';
     }
 
