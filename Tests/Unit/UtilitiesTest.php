@@ -108,4 +108,45 @@ class UtilitiesTest extends Unit
         $this->assertStringEndsWith('create_users.sql', $result);
         $this->assertFileExists($result);
     }
+
+    // === renderMarkdown tests ===
+
+    public function testRenderMarkdownBoldAndItalic()
+    {
+        $html = \Utilities::renderMarkdown('**bold** and *italic*');
+        $this->assertStringContainsString('<strong>bold</strong>', $html);
+        $this->assertStringContainsString('<em>italic</em>', $html);
+    }
+
+    public function testRenderMarkdownHeadingsAndHr()
+    {
+        $html = \Utilities::renderMarkdown("## Heading\n\n---");
+        $this->assertStringContainsString('<h2>Heading</h2>', $html);
+        $this->assertStringContainsString('<hr', $html);
+    }
+
+    public function testRenderMarkdownLists()
+    {
+        $html = \Utilities::renderMarkdown("1. one\n2. two");
+        $this->assertStringContainsString('<ol>', $html);
+        $this->assertStringContainsString('<li>one</li>', $html);
+
+        $html = \Utilities::renderMarkdown("- a\n- b");
+        $this->assertStringContainsString('<ul>', $html);
+        $this->assertStringContainsString('<li>a</li>', $html);
+    }
+
+    public function testRenderMarkdownEscapesRawHtml()
+    {
+        $html = \Utilities::renderMarkdown('Hi <script>alert(1)</script>');
+        $this->assertStringNotContainsString('<script>', $html);
+        $this->assertStringContainsString('&lt;script&gt;', $html);
+    }
+
+    public function testRenderMarkdownNeutralizesJavascriptLink()
+    {
+        $html = \Utilities::renderMarkdown('[click](javascript:alert(1))');
+        // safe mode URL-encodes the colon so the browser won't treat it as a javascript: URL
+        $this->assertStringNotContainsString('href="javascript:', $html);
+    }
 }
