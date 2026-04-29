@@ -31,7 +31,7 @@ $stmt = $pdo->prepare(
     "SELECT i.issue_id, i.project_id, i.title, i.description,
             i.author_aiu, ia.name AS author_name,
             i.assignee_aiu, xa.name AS assignee_name,
-            s.slug AS status_slug, s.label AS status_label, s.is_terminal,
+            i.status_id, s.slug AS status_slug, s.label AS status_label, s.is_terminal,
             i.created_at_utc, i.updated_at_utc, i.done_at_utc,
             p.name AS project_name,
             pm.can_write
