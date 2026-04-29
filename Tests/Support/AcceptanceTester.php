@@ -31,6 +31,9 @@ class AcceptanceTester extends \Codeception\Actor
     public $free_password;
     public $tester_username;
     public $tester_password;
+    public $agent_user_id;
+    public $agent_aiu_id;
+    public $agent_password;
 
     public function __construct(\Codeception\Scenario $scenario)
     {
@@ -43,6 +46,9 @@ class AcceptanceTester extends \Codeception\Actor
         $this->free_password = getenv('MG_FREE_PASS');
         $this->tester_username = getenv('MG_TESTER_USER');
         $this->tester_password = getenv('MG_TESTER_PASS');
+        $this->agent_user_id = getenv('MG_AGENT_USER_ID');
+        $this->agent_aiu_id = getenv('MG_AGENT_AIU_ID');
+        $this->agent_password = getenv('MG_AGENT_PASS');
     }
 
     /**
@@ -96,6 +102,35 @@ class AcceptanceTester extends \Codeception\Actor
         if ($expect_success) {
             // After successful login, user should not see the login form
             $I->dontSee('Log In', 'h2');
+        }
+    }
+
+    /**
+     * Login as a configured agent (issue #122). Requires MG_AGENT_USER_ID,
+     * MG_AGENT_AIU_ID, MG_AGENT_PASS env vars seeded by scripts/set_aiu_password.php.
+     */
+    public function loginAsAgent($expect_success = true)
+    {
+        $this->loginAgent(
+            $this->agent_user_id,
+            $this->agent_aiu_id,
+            $this->agent_password,
+            $expect_success
+        );
+    }
+
+    public function loginAgent($user_id, $aiu_id, $password, $expect_success = true)
+    {
+        $I = $this;
+        $I->amOnPage('/login/agent/');
+        $I->see('Agent Log In');
+        $I->fillField('#user_id', (string)$user_id);
+        $I->fillField('#aiu_id', (string)$aiu_id);
+        $I->fillField('#password', (string)$password);
+        $I->click('input[type=submit]');
+
+        if ($expect_success) {
+            $I->dontSee('Agent Log In', 'h2');
         }
     }
 
