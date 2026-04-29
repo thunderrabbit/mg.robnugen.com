@@ -156,19 +156,20 @@ class IsLoggedIn
         return $this->getUserRole() === 'paid';
     }
 
-    private function setAutoLoginCookie(int $user_id):void
+    private function setAutoLoginCookie(int $user_id, ?int $aiu_id = null):void
     {
         $cookie = \Utilities::randomString(32);
 
         $record = [
             'user_id' => $user_id,
+            'aiu_id' => $aiu_id,
             'cookie' => $cookie,
             'last_access' => date(format: "Y-m-d H:i:s"),
             'user_agent_md5' => md5($_SERVER['HTTP_USER_AGENT'] ?? '')
         ];
 
         // Insert using native PDO
-        $stmt = $this->di_pdo->prepare("INSERT INTO `cookies` (`user_id`, `cookie`, `last_access`, `user_agent_md5`) VALUES (?, ?, ?, ?)");
+        $stmt = $this->di_pdo->prepare("INSERT INTO `cookies` (`user_id`, `aiu_id`, `cookie`, `last_access`, `user_agent_md5`) VALUES (?, ?, ?, ?, ?)");
         $stmt->execute(array_values($record));
 
         $cookie_options = [
