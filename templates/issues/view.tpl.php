@@ -49,7 +49,7 @@
 
         <?php if (!empty($issue['description'])): ?>
             <div class="issue-description">
-                <?= nl2br(htmlspecialchars($issue['description'])) ?>
+                <?= Utilities::renderMarkdown($issue['description']) ?>
             </div>
         <?php else: ?>
             <p class="empty-state"><em>No description.</em></p>
@@ -69,7 +69,7 @@
                             <span class="comment-date"><?= htmlspecialchars($comment['created_at_utc']) ?></span>
                         </div>
                         <div class="comment-body">
-                            <?= nl2br(htmlspecialchars($comment['body'])) ?>
+                            <?= Utilities::renderMarkdown($comment['body']) ?>
                         </div>
                     </li>
                 <?php endforeach; ?>
