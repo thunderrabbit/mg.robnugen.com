@@ -9,6 +9,8 @@ namespace Auth;
 
 class IsLoggedIn
 {
+    public const AIU_MIN_PASSWORD_LENGTH = 100;
+
     private int $who_is_logged_in = 0;
     private ?int $logged_in_aiu = null;
 
@@ -273,6 +275,42 @@ class IsLoggedIn
     public function loggedInAIU(): ?int
     {
         return $this->logged_in_aiu;
+    }
+
+    /**
+     * Authenticate an agent via the (user_id, aiu_id, password) tuple used by
+     * /login/agent/. On success, sets the login cookie scoped to the aiu and
+     * returns true. The agent's parent user_id is taken from the matched
+     * agent_inbox_user row, NOT from the form input (the form's user_id is
+     * just identity-proof so the caller has to know which team the aiu is on).
+     */
+    public function attemptAIULogin(int $user_id, int $aiu_id, string $password): bool
+    {
+        $current_ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+
+        $stmt = $this->di_pdo->prepare(
+            "SELECT `user_id`, `password_hash` FROM `agent_inbox_user`
+             WHERE `aiu_id` = ? AND `user_id` = ? AND `password_hash` IS NOT NULL
+             LIMIT 1"
+        );
+        $stmt->execute([$aiu_id, $user_id]);
+        $row = $stmt->fetch();
+
+        if (!$row || !password_verify($password, $row['password_hash'])) {
+            $this->logAuth("aiu: {$aiu_id}, IP: {$current_ip} - Agent login FAILED");
+            $this->who_is_logged_in = 0;
+            $this->logged_in_aiu = null;
+            return false;
+        }
+
+        $matched_user_id = (int)$row['user_id'];
+        $this->logAuth("user_id: {$matched_user_id}, aiu: {$aiu_id}, IP: {$current_ip} - Agent login SUCCESS");
+        session_regenerate_id(true);
+        $this->setAutoLoginCookie($matched_user_id, $aiu_id);
+        $this->who_is_logged_in = $matched_user_id;
+        $this->logged_in_aiu = $aiu_id;
+        $this->setUsernameOfLoggedInID($matched_user_id);
+        return true;
     }
 
 
