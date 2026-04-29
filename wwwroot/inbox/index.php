@@ -26,6 +26,13 @@ if (empty($api_keys)) {
     exit;
 }
 
+// Get the human actor for this user (for sender_aiu on web form sends)
+$aiu_stmt = $mla_database->prepare(
+    "SELECT aiu_id FROM agent_inbox_user WHERE user_id = ? AND actor_type = 'human' LIMIT 1"
+);
+$aiu_stmt->execute([$user_id]);
+$web_sender_aiu = (int) $aiu_stmt->fetchColumn() ?: null;
+
 $error_message   = '';
 $success_message = '';
 
@@ -56,11 +63,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
                 exit;
             }
             $error_message = 'Message cannot be empty.';
+        } elseif (strlen($message) > 10240) {
+            if ($is_ajax) {
+                header('Content-Type: application/json');
+                echo json_encode(['error' => 'Message exceeds 10,240 byte limit (' . strlen($message) . ' bytes).']);
+                exit;
+            }
+            $error_message = 'Message exceeds 10,240 byte limit (' . strlen($message) . ' bytes).';
         } else {
+            $recipient_aiu = (int)($_POST['recipient_aiu'] ?? 0) ?: null;
             $stmt = $mla_database->prepare(
-                "INSERT INTO agent_inbox (user_id, message, priority, show_date, sender_timezone) VALUES (?, ?, ?, ?, ?)"
+                "INSERT INTO agent_inbox (user_id, message, priority, show_date, sender_timezone, sender_aiu, recipient_aiu) VALUES (?, ?, ?, ?, ?, ?, ?)"
             );
-            $stmt->execute([$user_id, $message, $priority, $show_date, $sender_timezone ?: null]);
+            $stmt->execute([$user_id, $message, $priority, $show_date, $sender_timezone ?: null, $web_sender_aiu, $recipient_aiu]);
             $new_message_id = $mla_database->lastInsertId();
 
             if ($is_ajax) {
@@ -74,6 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
         $message_id = (int)($_POST['message_id'] ?? 0);
         $message    = trim($_POST['message'] ?? '');
         $priority   = trim($_POST['priority'] ?? '');
+        $recipient_aiu = (int)($_POST['recipient_aiu'] ?? 0) ?: null;
         $show_date  = trim($_POST['show_date'] ?? '');
         $show_date  = $show_date !== '' ? $show_date : null;
         $is_ajax = !empty($_POST['ajax']);
@@ -87,9 +103,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
             $error_message = 'Message ID and message text are required.';
         } else {
             $stmt = $mla_database->prepare(
-                "UPDATE agent_inbox SET message = ?, priority = ?, show_date = ? WHERE message_id = ? AND user_id = ?"
+                "UPDATE agent_inbox SET message = ?, priority = ?, recipient_aiu = ?, show_date = ? WHERE message_id = ? AND user_id = ?"
             );
-            $stmt->execute([$message, $priority, $show_date, $message_id, $user_id]);
+            $stmt->execute([$message, $priority, $recipient_aiu, $show_date, $message_id, $user_id]);
 
             if ($is_ajax) {
                 header('Content-Type: application/json');
@@ -126,6 +142,8 @@ $filter_priority = $_GET['priority'] ?? '';
 $filter_status = $_GET['status'] ?? '';
 $sort_by = $_GET['sort'] ?? 'id';
 $sort_dir = ($_GET['dir'] ?? 'desc') === 'asc' ? 'ASC' : 'DESC';
+$filter_to = $_GET['to'] ?? '';      // 'me', 'broadcast', or '' (all)
+$filter_from = (int)($_GET['from'] ?? 0);  // sender aiu_id or 0 (all)
 $per_page = 50;
 $current_page = max(1, (int)($_GET['page'] ?? 1));
 
@@ -154,6 +172,20 @@ if ($filter_status === 'pending') {
     $filters[] = 'AND archived_at IS NOT NULL';
 }
 
+// Recipient filter (to me / broadcast / all)
+if ($filter_to === 'me') {
+    $filters[] = 'AND i.recipient_aiu = ?';
+    $params[] = $web_sender_aiu;
+} elseif ($filter_to === 'broadcast') {
+    $filters[] = 'AND i.recipient_aiu IS NULL';
+}
+
+// Sender filter
+if ($filter_from > 0) {
+    $filters[] = 'AND i.sender_aiu = ?';
+    $params[] = $filter_from;
+}
+
 $filter_sql = implode(' ', $filters);
 
 $order_clauses = match($sort_by) {
@@ -167,7 +199,7 @@ $order_clauses = match($sort_by) {
 };
 
 $count_stmt = $mla_database->prepare(
-    "SELECT COUNT(*) FROM agent_inbox WHERE user_id = ? {$filter_sql}"
+    "SELECT COUNT(*) FROM agent_inbox i WHERE i.user_id = ? {$filter_sql}"
 );
 $count_stmt->execute($params);
 $total_messages = (int) $count_stmt->fetchColumn();
@@ -176,14 +208,25 @@ $current_page = min($current_page, $total_pages);
 $offset = ($current_page - 1) * $per_page;
 
 $stmt = $mla_database->prepare(
-    "SELECT message_id, message, priority, show_date, sender_timezone, seen_at, done_at, archived_at, response, created_at_utc, updated_at_utc
-     FROM agent_inbox
-     WHERE user_id = ? {$filter_sql}
+    "SELECT i.message_id, i.message, i.priority, i.show_date, i.sender_timezone, i.sender_aiu, i.recipient_aiu,
+            i.seen_at, i.done_at, i.archived_at, i.response, i.created_at_utc, i.updated_at_utc,
+            s.name AS sender_name, r.name AS recipient_name
+     FROM agent_inbox i
+     LEFT JOIN agent_inbox_user s ON i.sender_aiu = s.aiu_id
+     LEFT JOIN agent_inbox_user r ON i.recipient_aiu = r.aiu_id
+     WHERE i.user_id = ? {$filter_sql}
      ORDER BY {$order_clauses}
      LIMIT {$per_page} OFFSET {$offset}"
 );
 $stmt->execute($params);
 $messages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+// Fetch actors for recipient dropdown
+$actors_stmt = $mla_database->prepare(
+    "SELECT aiu_id, name FROM agent_inbox_user WHERE user_id = ? ORDER BY created_at_utc ASC"
+);
+$actors_stmt->execute([$user_id]);
+$inbox_actors = $actors_stmt->fetchAll(\PDO::FETCH_ASSOC);
 
 // CSRF token
 if (empty($_SESSION['csrf_token'])) {
@@ -195,6 +238,7 @@ $page->setTemplate('inbox/index.tpl.php');
 $page->set('error_message',   $error_message);
 $page->set('success_message', $success_message);
 $page->set('messages',        $messages);
+$page->set('inbox_actors',   $inbox_actors);
 $page->set('csrf_token',      $_SESSION['csrf_token']);
 $page->set('show_archived',    $show_archived);
 $page->set('show_future',      $show_future);
@@ -202,6 +246,8 @@ $page->set('filter_priority',  $filter_priority);
 $page->set('filter_status',    $filter_status);
 $page->set('sort_by',          $sort_by);
 $page->set('sort_dir',         strtolower($sort_dir));
+$page->set('filter_to',        $filter_to);
+$page->set('filter_from',      $filter_from);
 $page->set('current_page',    $current_page);
 $page->set('total_pages',     $total_pages);
 $page->set('total_messages',  $total_messages);

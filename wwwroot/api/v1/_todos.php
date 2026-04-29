@@ -10,6 +10,19 @@
 
 $todos_path = rtrim(preg_replace('#^/todos#', '', $path), '/') ?: '/';
 
+// Permission: agent_inbox_user.can_read_todos
+if ($method === 'GET' && !$auth_actor['can_read_todos']) {
+    http_response_code(403);
+    echo json_encode(['error' => 'This API key does not have permission to read todos']);
+    exit;
+}
+// Permission: agent_inbox_user.can_write_todos
+if ($method !== 'GET' && !$auth_actor['can_write_todos']) {
+    http_response_code(403);
+    echo json_encode(['error' => 'This API key does not have permission to modify todos']);
+    exit;
+}
+
 $todoHelper = new \ActivityTracking\Todo($pdo);
 
 if ($todos_path === '/list') {

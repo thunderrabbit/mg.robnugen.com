@@ -1,0 +1,11 @@
+# Codeception Test Suite Configuration
+#
+# Suite for project-management acceptance tests that DO NOT need JS.
+# Uses PhpBrowser for fast, HTTP-level page assertions.
+
+actor: AcceptanceTester
+modules:
+    enabled:
+        - PhpBrowser:
+            url: https://mg.robnugen.com
+        - Tests\Support\Helper\Acceptance

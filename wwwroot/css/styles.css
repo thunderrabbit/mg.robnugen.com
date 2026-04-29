@@ -109,4 +109,130 @@ a:visited {
     color: var(--alert-warn-text);
 }
 
+.card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 1.5em 1.75em;
+    margin-bottom: 1.5em;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.form-field {
+    display: block;
+    margin-bottom: 1.4em;
+}
+
+.form-row {
+    display: flex;
+    gap: 1.25em;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    margin-bottom: 0;
+}
+
+.form-row > .form-field {
+    flex: 1 1 220px;
+    min-width: 0;
+}
+
+.form-row > .form-field select,
+.form-row > .form-field input,
+.form-row > .form-field textarea {
+    max-width: none;
+}
+
+.form-field label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5em;
+    color: var(--text-primary);
+}
+
+.form-field input[type="text"],
+.form-field input[type="email"],
+.form-field input[type="password"],
+.form-field textarea,
+.form-field select {
+    display: block;
+    width: 100%;
+    max-width: 640px;
+    box-sizing: border-box;
+    padding: 0.5em 0.6em;
+    font-family: inherit;
+    font-size: 1em;
+    color: var(--text-primary);
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+
+.form-field textarea {
+    min-height: 8em;
+    resize: vertical;
+}
+
+.form-field input:focus,
+.form-field textarea:focus,
+.form-field select:focus {
+    outline: 2px solid var(--info);
+    outline-offset: -1px;
+    border-color: var(--info);
+}
+
+.form-actions {
+    margin-top: 1.5em;
+    display: flex;
+    gap: 0.75em;
+    align-items: center;
+}
+
+.issue-list-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75em;
+    margin-bottom: 1em;
+    font-size: 0.9em;
+    color: var(--text-faint);
+}
+
+.issue-list-controls .sort-label {
+    font-weight: 600;
+}
+
+.issue-list-controls .sort-link {
+    color: var(--text-secondary);
+    text-decoration: none;
+    padding: 0.2em 0.5em;
+    border-radius: 4px;
+}
+
+.issue-list-controls .sort-link:hover {
+    background-color: var(--border-light);
+}
+
+.issue-list-controls .sort-link-active {
+    background-color: var(--info);
+    color: var(--text-on-accent);
+}
+
+.issue-date {
+    color: var(--text-faint);
+    font-size: 0.85em;
+    font-variant-numeric: tabular-nums;
+    margin-left: 0.5em;
+}
+
+.issue-priority {
+    font-size: 0.75em;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.1em 0.5em;
+    border-radius: 3px;
+    font-weight: 600;
+}
+
+.issue-priority-low    { background-color: var(--border-light); color: var(--text-faint); }
+.issue-priority-normal { background-color: var(--border-light); color: var(--text-secondary); }
+.issue-priority-high   { background-color: var(--alert-warn-bg, #fee); color: var(--alert-warn-text, #900); }
 

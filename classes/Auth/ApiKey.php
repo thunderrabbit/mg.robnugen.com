@@ -55,15 +55,36 @@ class ApiKey
      * The raw key is shown to the user once and never stored — only the hash is kept.
      * Key format: 'sk_' prefix + 61 random chars = 64 chars total.
      */
-    public function generateKey(int $user_id, string $label = ''): string
+    public function generateKey(int $user_id, string $label = '', ?int $aiu_id = null): string
     {
+        // If no aiu_id provided, default to the user's human actor
+        if ($aiu_id === null) {
+            $stmt = $this->di_pdo->prepare(
+                "SELECT aiu_id FROM agent_inbox_user WHERE user_id = ? AND actor_type = 'human' LIMIT 1"
+            );
+            $stmt->execute([$user_id]);
+            $aiu_id = (int) $stmt->fetchColumn();
+        }
+
+        // Enforce max 2 active keys per agent (like AWS IAM)
+        $count_stmt = $this->di_pdo->prepare(
+            "SELECT COUNT(*) FROM api_keys WHERE user_id = ? AND aiu_id = ? AND is_active = 1"
+        );
+        $count_stmt->execute([$user_id, $aiu_id]);
+        if ((int) $count_stmt->fetchColumn() >= 2) {
+            throw new \RuntimeException(
+                "Agent aiu_id $aiu_id already has 2 active API keys. " .
+                "Revoke one before generating a new key."
+            );
+        }
+
         $raw_key  = 'sk_' . \Utilities::randomString(61);
         $key_hash = hash('sha256', $raw_key);
 
         $stmt = $this->di_pdo->prepare(
-            "INSERT INTO api_keys (user_id, api_key_hash, label) VALUES (?, ?, ?)"
+            "INSERT INTO api_keys (user_id, aiu_id, api_key_hash, label) VALUES (?, ?, ?, ?)"
         );
-        $stmt->execute([$user_id, $key_hash, $label]);
+        $stmt->execute([$user_id, $aiu_id, $key_hash, $label]);
 
         return $raw_key;
     }
@@ -89,7 +110,7 @@ class ApiKey
     public function getKeysForUser(int $user_id): array
     {
         $stmt = $this->di_pdo->prepare(
-            "SELECT key_id, label, created_at, last_used
+            "SELECT key_id, aiu_id, label, created_at, last_used
              FROM api_keys
              WHERE user_id = ? AND is_active = 1
              ORDER BY created_at DESC"

@@ -29,6 +29,8 @@ class AcceptanceTester extends \Codeception\Actor
     public $paid_password;
     public $free_username;
     public $free_password;
+    public $tester_username;
+    public $tester_password;
 
     public function __construct(\Codeception\Scenario $scenario)
     {
@@ -39,6 +41,8 @@ class AcceptanceTester extends \Codeception\Actor
         $this->paid_password = getenv('MG_PAID_PASS');
         $this->free_username = getenv('MG_FREE_USER');
         $this->free_password = getenv('MG_FREE_PASS');
+        $this->tester_username = getenv('MG_TESTER_USER');
+        $this->tester_password = getenv('MG_TESTER_PASS');
     }
 
     /**
@@ -63,6 +67,14 @@ class AcceptanceTester extends \Codeception\Actor
     public function loginAsFree()
     {
         $this->login($this->free_username, $this->free_password);
+    }
+
+    /**
+     * Login as tester user (Dr_Hilbert_Space_mgTester — has API keys and actors)
+     */
+    public function loginAsTester()
+    {
+        $this->login($this->tester_username, $this->tester_password);
     }
 
     /**

@@ -21,6 +21,7 @@
             <div class="form-group">
                 <label for="message">Message</label>
                 <textarea id="message" name="message" class="form-control" cols="80" rows="15" placeholder="e.g., Remember to check the deploy logs today..." required></textarea>
+                <div class="byte-counter" id="message-counter">0 / 10,240 bytes</div>
             </div>
 
             <div style="display: flex; gap: 1rem; align-items: flex-end;">
@@ -30,6 +31,15 @@
                         <option value="high">High</option>
                         <option value="normal" selected>Normal</option>
                         <option value="low">Low</option>
+                    </select>
+                </div>
+                <div class="form-group" style="flex: 0 0 auto;">
+                    <label for="recipient_aiu">To</label>
+                    <select id="recipient_aiu" name="recipient_aiu" class="form-control">
+                        <option value="">Broadcast (all)</option>
+                        <?php foreach ($inbox_actors as $a): ?>
+                        <option value="<?= (int)$a['aiu_id'] ?>"><?= htmlspecialchars($a['name']) ?></option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
                 <div class="form-group" style="flex: 0 0 auto;">
@@ -47,6 +57,26 @@
     <script>
     // Detect browser timezone and populate hidden field
     document.getElementById('sender_timezone').value = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    // Byte counter for textareas (10,240 byte limit)
+    var BYTE_LIMIT = 10240;
+    function updateByteCounter(textarea, counterEl) {
+        var bytes = new Blob([textarea.value]).size;
+        counterEl.textContent = bytes.toLocaleString() + ' / ' + BYTE_LIMIT.toLocaleString() + ' bytes';
+        counterEl.classList.toggle('byte-counter-warn', bytes > BYTE_LIMIT * 0.9);
+        counterEl.classList.toggle('byte-counter-over', bytes > BYTE_LIMIT);
+    }
+    // Main send textarea
+    var msgEl = document.getElementById('message');
+    var msgCounter = document.getElementById('message-counter');
+    var sendBtn = document.getElementById('send-btn');
+    function updateSendButton() {
+        var over = new Blob([msgEl.value]).size > BYTE_LIMIT;
+        sendBtn.disabled = over;
+        sendBtn.title = over ? 'Message exceeds ' + BYTE_LIMIT.toLocaleString() + ' byte limit' : '';
+    }
+    msgEl.addEventListener('input', function() { updateByteCounter(msgEl, msgCounter); updateSendButton(); });
+    updateByteCounter(msgEl, msgCounter);
 
     document.getElementById('send-form').addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -115,12 +145,14 @@
     <?php
     // Helper to build query string, toggling/setting a single param
     function inbox_url($overrides = [], $removes = []) {
-        global $show_archived, $show_future, $filter_priority, $filter_status, $sort_by, $sort_dir;
+        global $show_archived, $show_future, $filter_priority, $filter_status, $sort_by, $sort_dir, $filter_to, $filter_from;
         $params = [];
         if ($show_archived) $params['show_archived'] = '';
         if ($show_future) $params['show_future'] = '';
         if ($filter_priority) $params['priority'] = $filter_priority;
         if ($filter_status) $params['status'] = $filter_status;
+        if ($filter_to) $params['to'] = $filter_to;
+        if ($filter_from) $params['from'] = $filter_from;
         if ($sort_by && $sort_by !== 'id') $params['sort'] = $sort_by;
         if ($sort_dir === 'asc') $params['dir'] = 'asc';
         if ($sort_by === 'id' && $sort_dir === 'desc') { unset($params['sort']); unset($params['dir']); }
@@ -203,6 +235,26 @@
                     <?php endif; ?>
                 <?php endforeach; ?>
             </div>
+            <div class="inbox-control-group">
+                <span class="inbox-control-label">To:</span>
+                <?php foreach (['me' => 'Me', 'broadcast' => 'Broadcast'] as $tv => $tl): ?>
+                    <?php if ($filter_to === $tv): ?>
+                        <a href="<?= inbox_url([], ['to']) ?>" class="inbox-filter-active"><?= $tl ?> &times;</a>
+                    <?php else: ?>
+                        <a href="<?= inbox_url(['to' => $tv]) ?>"><?= $tl ?></a>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </div>
+            <div class="inbox-control-group">
+                <span class="inbox-control-label">From:</span>
+                <?php foreach ($inbox_actors as $a): ?>
+                    <?php if ($filter_from === (int)$a['aiu_id']): ?>
+                        <a href="<?= inbox_url([], ['from']) ?>" class="inbox-filter-active"><?= htmlspecialchars($a['name']) ?> &times;</a>
+                    <?php else: ?>
+                        <a href="<?= inbox_url(['from' => $a['aiu_id']]) ?>"><?= htmlspecialchars($a['name']) ?></a>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </div>
         </div>
         <?php if (!empty($messages)): ?>
         <div class="inbox-list">
@@ -211,6 +263,14 @@
                     <div class="inbox-meta">
                         <span class="inbox-id">#<?= $msg['message_id'] ?></span>
                         <span class="inbox-priority inbox-priority-<?= $msg['priority'] ?>"><?= $msg['priority'] ?></span>
+                        <?php if ($msg['sender_name']): ?>
+                            <span class="inbox-sender">from <?= htmlspecialchars($msg['sender_name']) ?></span>
+                        <?php endif; ?>
+                        <?php if ($msg['recipient_name']): ?>
+                            <span class="inbox-recipient">to <?= htmlspecialchars($msg['recipient_name']) ?></span>
+                        <?php else: ?>
+                            <span class="inbox-recipient inbox-broadcast">broadcast</span>
+                        <?php endif; ?>
                         <span class="inbox-status">
                             <?php if ($msg['archived_at']): ?>
                                 Archived <span class="utc-time" data-utc="<?= $msg['archived_at'] ?>"></span>
@@ -247,7 +307,11 @@
                         </form>
                     </div>
                     <div class="inbox-reply-form" id="reply-<?= $msg['message_id'] ?>" style="display:none;">
+                        <?php $reply_to_name = $msg['sender_name'] ?? 'everyone'; $reply_to_aiu = $msg['sender_aiu'] ?? ''; ?>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">Replying to <strong><?= htmlspecialchars($reply_to_name) ?></strong></div>
+                        <input type="hidden" id="reply-recipient-<?= $msg['message_id'] ?>" value="<?= (int)$reply_to_aiu ?>">
                         <textarea class="form-control inbox-reply-textarea" id="reply-text-<?= $msg['message_id'] ?>" rows="6" placeholder="Type your reply...">re: #<?= $msg['message_id'] ?> </textarea>
+                        <div class="byte-counter" id="reply-counter-<?= $msg['message_id'] ?>">0 / 10,240 bytes</div>
                         <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; align-items: center;">
                             <button type="button" class="btn-sm btn-save" onclick="sendReply(<?= $msg['message_id'] ?>)">Send</button>
                             <button type="button" class="btn-sm btn-archive" onclick="toggleReply(<?= $msg['message_id'] ?>)">Cancel</button>
@@ -256,11 +320,18 @@
                     </div>
                     <div class="inbox-edit-form" id="edit-<?= $msg['message_id'] ?>" style="display:none;">
                         <textarea class="form-control inbox-edit-textarea" id="edit-text-<?= $msg['message_id'] ?>" rows="10"><?= htmlspecialchars($msg['message']) ?></textarea>
+                        <div class="byte-counter" id="edit-counter-<?= $msg['message_id'] ?>">0 / 10,240 bytes</div>
                         <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
                             <select class="form-control" id="edit-priority-<?= $msg['message_id'] ?>" style="width: auto;">
                                 <option value="high" <?= $msg['priority'] === 'high' ? 'selected' : '' ?>>High</option>
                                 <option value="normal" <?= $msg['priority'] === 'normal' ? 'selected' : '' ?>>Normal</option>
                                 <option value="low" <?= $msg['priority'] === 'low' ? 'selected' : '' ?>>Low</option>
+                            </select>
+                            <select class="form-control" id="edit-recipient-<?= $msg['message_id'] ?>" style="width: auto;">
+                                <option value="" <?= empty($msg['recipient_aiu']) ? 'selected' : '' ?>>Broadcast (all)</option>
+                                <?php foreach ($inbox_actors as $a): ?>
+                                <option value="<?= (int)$a['aiu_id'] ?>" <?= (int)$msg['recipient_aiu'] === (int)$a['aiu_id'] ? 'selected' : '' ?>><?= htmlspecialchars($a['name']) ?></option>
+                                <?php endforeach; ?>
                             </select>
                             <label style="font-size: 0.8rem; color: var(--text-muted);">Show after:
                                 <input type="date" id="edit-showdate-<?= $msg['message_id'] ?>" class="form-control" style="width: auto; display: inline-block;" value="<?= $msg['show_date'] ? htmlspecialchars(substr($msg['show_date'], 0, 10)) : '' ?>">
@@ -339,6 +410,9 @@
     .inbox-priority-high { background: #fdd; color: #c00; }
     .inbox-priority-normal { background: #eee; color: #555; }
     .inbox-priority-low { background: #eef; color: #66a; }
+    .inbox-sender { font-size: 0.75rem; color: var(--info, #2196F3); }
+    .inbox-recipient { font-size: 0.75rem; color: var(--success, #4CAF50); }
+    .inbox-broadcast { font-style: italic; color: var(--text-muted); }
     .inbox-show-date { font-style: italic; color: var(--info, #2196F3); }
 
     .inbox-message { white-space: pre-wrap; line-height: 1.5; }
@@ -362,6 +436,10 @@
     .inbox-edit-textarea { width: 100%; min-height: 10rem; resize: vertical; }
     .inbox-reply-status { font-size: 0.8rem; color: var(--success, #4CAF50); }
     .inbox-edit-form { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color); }
+
+    .byte-counter { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; }
+    .byte-counter-warn { color: #e67e22; font-weight: 600; }
+    .byte-counter-over { color: #c00; font-weight: 700; }
     .inbox-edit-status { font-size: 0.8rem; }
 
     .inbox-pagination { display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color); font-size: 0.85rem; }
@@ -391,21 +469,26 @@ function toggleReply(id) {
 function sendReply(parentId) {
     var textarea = document.getElementById('reply-text-' + parentId);
     var status = document.getElementById('reply-status-' + parentId);
+    var recipientEl = document.getElementById('reply-recipient-' + parentId);
     var message = textarea.value.trim();
+    var recipientAiu = recipientEl ? recipientEl.value : '';
 
     if (!message) { status.textContent = 'Message cannot be empty.'; status.style.color = '#c00'; return; }
 
     status.textContent = 'Sending...';
     status.style.color = 'var(--text-muted)';
 
-    fetch('/inbox/', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: 'csrf_token=' + encodeURIComponent('<?= htmlspecialchars($csrf_token) ?>') +
+    var body = 'csrf_token=' + encodeURIComponent('<?= htmlspecialchars($csrf_token) ?>') +
               '&inbox_action=send&ajax=1' +
               '&message=' + encodeURIComponent(message) +
               '&priority=normal' +
-              '&sender_timezone=' + encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone)
+              '&sender_timezone=' + encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone);
+    if (recipientAiu) { body += '&recipient_aiu=' + encodeURIComponent(recipientAiu); }
+
+    fetch('/inbox/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: body
     }).then(function(res) { return res.json(); })
     .then(function(data) {
         if (data.success) {
@@ -425,6 +508,7 @@ function sendReply(parentId) {
 function saveEdit(id) {
     var textarea = document.getElementById('edit-text-' + id);
     var priority = document.getElementById('edit-priority-' + id);
+    var recipient = document.getElementById('edit-recipient-' + id);
     var showDate = document.getElementById('edit-showdate-' + id);
     var status = document.getElementById('edit-status-' + id);
     var message = textarea.value.trim();
@@ -442,6 +526,7 @@ function saveEdit(id) {
               '&message_id=' + id +
               '&message=' + encodeURIComponent(message) +
               '&priority=' + encodeURIComponent(priority.value) +
+              '&recipient_aiu=' + encodeURIComponent(recipient.value) +
               '&show_date=' + encodeURIComponent(showDate.value)
     }).then(function(res) { return res.json(); })
     .then(function(data) {
@@ -454,6 +539,17 @@ function saveEdit(id) {
             if (prioEl) {
                 prioEl.textContent = priority.value;
                 prioEl.className = 'inbox-priority inbox-priority-' + priority.value;
+            }
+            var recipEl = item.querySelector('.inbox-recipient');
+            if (recipEl) {
+                var selOpt = recipient.options[recipient.selectedIndex];
+                if (recipient.value) {
+                    recipEl.textContent = 'to ' + selOpt.textContent;
+                    recipEl.className = 'inbox-recipient';
+                } else {
+                    recipEl.textContent = 'broadcast';
+                    recipEl.className = 'inbox-recipient inbox-broadcast';
+                }
             }
             status.style.color = 'var(--success, #4CAF50)';
             status.textContent = 'Saved';
@@ -491,6 +587,24 @@ function archiveMessage(messageId) {
         alert('Network error. Please try again.');
     });
 }
+
+// Attach byte counters to reply and edit textareas
+document.querySelectorAll('.inbox-reply-textarea').forEach(function(ta) {
+    var id = ta.id.replace('reply-text-', '');
+    var counter = document.getElementById('reply-counter-' + id);
+    if (counter) {
+        ta.addEventListener('input', function() { updateByteCounter(ta, counter); });
+        updateByteCounter(ta, counter);
+    }
+});
+document.querySelectorAll('.inbox-edit-textarea').forEach(function(ta) {
+    var id = ta.id.replace('edit-text-', '');
+    var counter = document.getElementById('edit-counter-' + id);
+    if (counter) {
+        ta.addEventListener('input', function() { updateByteCounter(ta, counter); });
+        updateByteCounter(ta, counter);
+    }
+});
 
 document.querySelectorAll('.utc-time').forEach(function(el) {
     var utc = el.dataset.utc;
