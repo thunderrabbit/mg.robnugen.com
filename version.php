@@ -1,6 +1,6 @@
 <?php
 
-const SENTIMENTAL_VERSION = "BEGIN #98 Fix list_inbox default ordering: newest-first, add order param";
-const SEMVER = "0.14.11";
+const SENTIMENTAL_VERSION = "BEGIN #115 Render markdown in issue descriptions and comments on view.php";
+const SEMVER = "0.14.12";
 
 const EMOTIONAL_SESSION_GAP_MINUTES = 30;
