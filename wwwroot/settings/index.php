@@ -9,14 +9,6 @@ if (!$is_logged_in->isLoggedIn()) {
     exit;
 }
 
-// Agent sessions cannot manage API keys or create new agents — those are
-// owner-of-the-team actions and would be a privilege-escalation path
-// (issue #122).
-if ($is_logged_in->loggedInAIU() !== null) {
-    header('Location: /?msg=agent_cannot_manage_settings');
-    exit;
-}
-
 $user_id      = $is_logged_in->loggedInID();
 $error_message   = '';
 $success_message = '';

@@ -12,14 +12,6 @@ if (!$is_logged_in->isLoggedIn()) {
     exit;
 }
 
-// Agent sessions must NOT manage the parent human account here — they share
-// loggedInID() with the human, so without this gate an agent could change
-// the human's password or rewrite their site settings (issue #122).
-if ($is_logged_in->loggedInAIU() !== null) {
-    header("Location: /?msg=agent_cannot_manage_profile");
-    exit;
-}
-
 $error_message = '';
 $success_message = '';
 

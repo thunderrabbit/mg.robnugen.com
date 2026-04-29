@@ -9,10 +9,7 @@ namespace Auth;
 
 class IsLoggedIn
 {
-    public const AIU_MIN_PASSWORD_LENGTH = 100;
-
     private int $who_is_logged_in = 0;
-    private ?int $logged_in_aiu = null;
 
     private string $loggedInUsername = 'YUNOset?'; // default value, should be overwritten if user is logged in
     private string $log_file_path;
@@ -48,7 +45,6 @@ class IsLoggedIn
                 $this->logAuth("user_id: N/A, IP: {$current_ip} - Cookie validation FAILED");
                 $this->killCookie();
                 $this->who_is_logged_in = 0;
-                $this->logged_in_aiu = null;
             } else {
                 // $this->logAuth("user_id: {$found_user_id}, IP: {$current_ip} - Cookie validation SUCCESS");
                 $this->who_is_logged_in = $found_user_id;
@@ -104,20 +100,6 @@ class IsLoggedIn
             $this->siteTitle = $result[0]['site_title'] ?? '';
             $this->siteSubtitle = $result[0]['site_subtitle'] ?? '';
         }
-
-        // For agent sessions, override the displayed username with the aiu's
-        // own name so nav bars / profile read "mgClaude" rather than the
-        // parent human's username.
-        if ($this->logged_in_aiu !== null) {
-            $aiu_stmt = $this->di_pdo->prepare(
-                "SELECT name FROM agent_inbox_user WHERE aiu_id = ? LIMIT 1"
-            );
-            $aiu_stmt->execute([$this->logged_in_aiu]);
-            $aiu_row = $aiu_stmt->fetch();
-            if ($aiu_row && !empty($aiu_row['name'])) {
-                $this->loggedInUsername = $aiu_row['name'];
-            }
-        }
     }
 
     public function getLoggedInUsername(): string
@@ -157,38 +139,27 @@ class IsLoggedIn
 
     public function isAdmin(): bool
     {
-        // Agent sessions never inherit the parent user's elevated role.
-        if ($this->logged_in_aiu !== null) {
-            return false;
-        }
         return $this->getUserRole() === 'admin';
     }
 
     public function isPaid(): bool
     {
-        $role = $this->getUserRole();
-        if ($this->logged_in_aiu !== null) {
-            // Agents inherit their team's paid-feature access. An admin team
-            // is also entitled to paid features, so accept either tier.
-            return $role === 'paid' || $role === 'admin';
-        }
-        return $role === 'paid';
+        return $this->getUserRole() === 'paid';
     }
 
-    private function setAutoLoginCookie(int $user_id, ?int $aiu_id = null):void
+    private function setAutoLoginCookie(int $user_id):void
     {
         $cookie = \Utilities::randomString(32);
 
         $record = [
             'user_id' => $user_id,
-            'aiu_id' => $aiu_id,
             'cookie' => $cookie,
             'last_access' => date(format: "Y-m-d H:i:s"),
             'user_agent_md5' => md5($_SERVER['HTTP_USER_AGENT'] ?? '')
         ];
 
         // Insert using native PDO
-        $stmt = $this->di_pdo->prepare("INSERT INTO `cookies` (`user_id`, `aiu_id`, `cookie`, `last_access`, `user_agent_md5`) VALUES (?, ?, ?, ?, ?)");
+        $stmt = $this->di_pdo->prepare("INSERT INTO `cookies` (`user_id`, `cookie`, `last_access`, `user_agent_md5`) VALUES (?, ?, ?, ?)");
         $stmt->execute(array_values($record));
 
         $cookie_options = [
@@ -250,13 +221,12 @@ class IsLoggedIn
     ): int
     {
         // Validate cookie and user agent match
-        $stmt = $this->di_pdo->prepare("SELECT `user_id`, `aiu_id` FROM `cookies` WHERE `cookie` = ? AND `user_agent_md5` = ? LIMIT 1");
+        $stmt = $this->di_pdo->prepare("SELECT `user_id` FROM `cookies` WHERE `cookie` = ? AND `user_agent_md5` = ? LIMIT 1");
         $stmt->execute([$cookie, md5($user_agent)]);
         $result = $stmt->fetchAll();
 
         if(count($result) > 0)
         {
-            $this->logged_in_aiu = isset($result[0]['aiu_id']) ? (int)$result[0]['aiu_id'] : null;
             return $result[0]['user_id'];
         }
         else
@@ -289,47 +259,6 @@ class IsLoggedIn
         return $this->who_is_logged_in;
     }
 
-    public function loggedInAIU(): ?int
-    {
-        return $this->logged_in_aiu;
-    }
-
-    /**
-     * Authenticate an agent via the (user_id, aiu_id, password) tuple used by
-     * /login/agent/. On success, sets the login cookie scoped to the aiu and
-     * returns true. The agent's parent user_id is taken from the matched
-     * agent_inbox_user row, NOT from the form input (the form's user_id is
-     * just identity-proof so the caller has to know which team the aiu is on).
-     */
-    public function attemptAIULogin(int $user_id, int $aiu_id, string $password): bool
-    {
-        $current_ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-
-        $stmt = $this->di_pdo->prepare(
-            "SELECT `user_id`, `password_hash` FROM `agent_inbox_user`
-             WHERE `aiu_id` = ? AND `user_id` = ? AND `password_hash` IS NOT NULL
-             LIMIT 1"
-        );
-        $stmt->execute([$aiu_id, $user_id]);
-        $row = $stmt->fetch();
-
-        if (!$row || !password_verify($password, $row['password_hash'])) {
-            $this->logAuth("aiu: {$aiu_id}, IP: {$current_ip} - Agent login FAILED");
-            $this->who_is_logged_in = 0;
-            $this->logged_in_aiu = null;
-            return false;
-        }
-
-        $matched_user_id = (int)$row['user_id'];
-        $this->logAuth("user_id: {$matched_user_id}, aiu: {$aiu_id}, IP: {$current_ip} - Agent login SUCCESS");
-        session_regenerate_id(true);
-        $this->setAutoLoginCookie($matched_user_id, $aiu_id);
-        $this->who_is_logged_in = $matched_user_id;
-        $this->logged_in_aiu = $aiu_id;
-        $this->setUsernameOfLoggedInID($matched_user_id);
-        return true;
-    }
-
 
     public function logout(): void
     {
@@ -352,7 +281,6 @@ class IsLoggedIn
         ];
         setcookie($this->di_config->cookie_name, '', $cookie_options);
         $this->who_is_logged_in = 0;
-        $this->logged_in_aiu = null;
     }
 
 }
