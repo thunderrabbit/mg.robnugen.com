@@ -10,6 +10,7 @@ namespace Auth;
 class IsLoggedIn
 {
     private int $who_is_logged_in = 0;
+    private ?int $logged_in_aiu = null;
 
     private string $loggedInUsername = 'YUNOset?'; // default value, should be overwritten if user is logged in
     private string $log_file_path;
@@ -45,6 +46,7 @@ class IsLoggedIn
                 $this->logAuth("user_id: N/A, IP: {$current_ip} - Cookie validation FAILED");
                 $this->killCookie();
                 $this->who_is_logged_in = 0;
+                $this->logged_in_aiu = null;
             } else {
                 // $this->logAuth("user_id: {$found_user_id}, IP: {$current_ip} - Cookie validation SUCCESS");
                 $this->who_is_logged_in = $found_user_id;
@@ -221,12 +223,13 @@ class IsLoggedIn
     ): int
     {
         // Validate cookie and user agent match
-        $stmt = $this->di_pdo->prepare("SELECT `user_id` FROM `cookies` WHERE `cookie` = ? AND `user_agent_md5` = ? LIMIT 1");
+        $stmt = $this->di_pdo->prepare("SELECT `user_id`, `aiu_id` FROM `cookies` WHERE `cookie` = ? AND `user_agent_md5` = ? LIMIT 1");
         $stmt->execute([$cookie, md5($user_agent)]);
         $result = $stmt->fetchAll();
 
         if(count($result) > 0)
         {
+            $this->logged_in_aiu = isset($result[0]['aiu_id']) ? (int)$result[0]['aiu_id'] : null;
             return $result[0]['user_id'];
         }
         else
@@ -259,6 +262,11 @@ class IsLoggedIn
         return $this->who_is_logged_in;
     }
 
+    public function loggedInAIU(): ?int
+    {
+        return $this->logged_in_aiu;
+    }
+
 
     public function logout(): void
     {
@@ -281,6 +289,7 @@ class IsLoggedIn
         ];
         setcookie($this->di_config->cookie_name, '', $cookie_options);
         $this->who_is_logged_in = 0;
+        $this->logged_in_aiu = null;
     }
 
 }
