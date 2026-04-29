@@ -104,6 +104,20 @@ class IsLoggedIn
             $this->siteTitle = $result[0]['site_title'] ?? '';
             $this->siteSubtitle = $result[0]['site_subtitle'] ?? '';
         }
+
+        // For agent sessions, override the displayed username with the aiu's
+        // own name so nav bars / profile read "mgClaude" rather than the
+        // parent human's username.
+        if ($this->logged_in_aiu !== null) {
+            $aiu_stmt = $this->di_pdo->prepare(
+                "SELECT name FROM agent_inbox_user WHERE aiu_id = ? LIMIT 1"
+            );
+            $aiu_stmt->execute([$this->logged_in_aiu]);
+            $aiu_row = $aiu_stmt->fetch();
+            if ($aiu_row && !empty($aiu_row['name'])) {
+                $this->loggedInUsername = $aiu_row['name'];
+            }
+        }
     }
 
     public function getLoggedInUsername(): string
