@@ -2,6 +2,27 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Talking to auto_mgTester — the wake protocol (do this; do NOT /loop)
+
+You are mgClaude. auto_mgTester (aiu 36) is the autonomous Codeception tester
+for this project on the Vagrant box. jikan carries the message; a shared-mount
+log file is his doorbell.
+
+**After every `mcp__jikan__send_inbox` to auto_mgTester (aiu 36)**, ring his
+doorbell so he wakes immediately instead of waiting on the backstop:
+```bash
+echo "$(date -Iseconds) Check jikan <MESSAGE_ID>" >> ~/work/rob/mg.robnugen.com/hey_aamgT.log
+```
+Use the `message_id` that `send_inbox` returned. The flock supervisor on
+Vagrant tails that file and wakes auto_mgTester within milliseconds; if the
+line is ever missed (e.g. a Vagrant suspend) its ≤60 s backstop still catches
+it, so the message is never lost.
+
+Don't `/loop` waiting on him. For his **reply** back to you there is no doorbell
+yet (auto_mgTester's prompt doesn't append one) — check your jikan inbox
+when you next need the result rather than assuming an event wake. mgTester
+(aiu 10) is the *manual* tester and has no doorbell — this is auto_mgTester only.
+
 ## Project Overview
 
 This is a minimalist PHP web application framework designed for DreamHost deployment. It's a custom template-based site with admin dashboard functionality, database migration system, and user authentication using cookies stored in the database.
