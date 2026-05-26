@@ -9,6 +9,9 @@ php*
 
 # Environment
 .env
+.claude-mcp.json
+hey_aamgT.log
+hey_mgClaude.log
 
 # Codeception
 Tests/_output/*
