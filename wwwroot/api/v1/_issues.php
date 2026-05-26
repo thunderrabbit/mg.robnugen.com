@@ -329,11 +329,6 @@ if ($method === 'POST' && $sub === '/create') {
             echo json_encode(['error' => 'parent_issue_id must be an issue in the same project']);
             return;
         }
-        if ($parent_row['parent_issue_id'] !== null) {
-            http_response_code(400);
-            echo json_encode(['error' => 'parent issue is itself a child; only 2 levels are allowed']);
-            return;
-        }
     }
 
     // Resolve status_id: explicit or default
@@ -499,19 +494,6 @@ if ($method === 'PATCH' && $sub === '/update') {
             if (!$parent_row || (int)$parent_row['project_id'] !== $project_id) {
                 http_response_code(400);
                 echo json_encode(['error' => 'parent_issue_id must be an issue in the same project']);
-                return;
-            }
-            if ($parent_row['parent_issue_id'] !== null) {
-                http_response_code(400);
-                echo json_encode(['error' => 'parent issue is itself a child; only 2 levels are allowed']);
-                return;
-            }
-            // Also prevent making a parent-of-children into a child (would make existing children grand-children).
-            $kids = $pdo->prepare("SELECT 1 FROM issues WHERE parent_issue_id = ? LIMIT 1");
-            $kids->execute([$issue_id]);
-            if ($kids->fetch()) {
-                http_response_code(400);
-                echo json_encode(['error' => 'this issue already has children; it cannot itself become a child']);
                 return;
             }
             $sets[] = 'i.parent_issue_id = ?';
