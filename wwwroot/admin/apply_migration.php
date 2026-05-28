@@ -24,6 +24,7 @@ try {
     $dbExistaroo->applyMigration($input['migration']);
     echo json_encode(["status" => "success", "applied" => $input['migration']]);
 } catch (\Exception $e) {
+    error_log("applyMigration failed: " . $e->getMessage());
     http_response_code(500);
-    echo json_encode(["error" => $e->getMessage()]);
+    echo json_encode(["error" => "Migration failed"]);
 }

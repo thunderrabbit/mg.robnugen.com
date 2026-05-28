@@ -19,7 +19,8 @@ $config = new \Config();
 try {
     $config = new \Config();
 } catch (\Exception $e) {
-    echo "Couldn't create Config cause " . $e->getMessage();
+    error_log("Config init failed: " . $e->getMessage());
+    echo "Configuration error. Please contact the administrator.";
     exit;
 }
 
