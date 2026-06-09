@@ -199,7 +199,29 @@ if ($todos_path === '/list') {
     }
 
     $now = new \DateTime('now', $tz);
-    $date_logged = $now->format('Y-m-d H:i:s');
+
+    // Optional backdated completion: when date_logged is supplied, log the
+    // completion "as of" that date so do_every_n_days recurrence recomputes
+    // from the real date (next_due reads MAX(DATE(date_logged))). Absent =>
+    // now, so existing callers are unaffected.
+    $raw_date = trim($body['date_logged'] ?? '');
+    if ($raw_date !== '') {
+        try {
+            $dt = new \DateTime($raw_date, $tz);
+        } catch (\Exception $e) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Invalid date_logged format: ' . $e->getMessage()]);
+            return;
+        }
+        if ($dt > $now) {
+            http_response_code(400);
+            echo json_encode(['error' => 'date_logged cannot be in the future']);
+            return;
+        }
+        $date_logged = $dt->format('Y-m-d H:i:s');
+    } else {
+        $date_logged = $now->format('Y-m-d H:i:s');
+    }
 
     $log_id = $todoHelper->logCompletion(
         $todo_id,
@@ -526,8 +548,29 @@ if ($todos_path === '/list') {
     }
 
     $now = new \DateTime('now', $tz);
-    $today = $now->format('Y-m-d');
-    $date_logged = $now->format('Y-m-d H:i:s');
+
+    // Optional backdated completion (mirrors /complete). When supplied, the
+    // explicit date_logged overrides the session-derived "now", and nth is
+    // counted against that date's completions.
+    $raw_date = trim($body['date_logged'] ?? '');
+    if ($raw_date !== '') {
+        try {
+            $dt = new \DateTime($raw_date, $tz);
+        } catch (\Exception $e) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Invalid date_logged format: ' . $e->getMessage()]);
+            return;
+        }
+        if ($dt > $now) {
+            http_response_code(400);
+            echo json_encode(['error' => 'date_logged cannot be in the future']);
+            return;
+        }
+    } else {
+        $dt = $now;
+    }
+    $today = $dt->format('Y-m-d');
+    $date_logged = $dt->format('Y-m-d H:i:s');
 
     $completionCount = $todoHelper->getCompletionCount($todo_id, $today);
     $nth = $completionCount + 1;
