@@ -482,6 +482,31 @@ if ($todos_path === '/list') {
         echo json_encode(['error' => 'Todo not found or access denied']);
     }
 
+} elseif ($todos_path === '/restore') {
+
+    if ($method !== 'POST') {
+        http_response_code(405);
+        echo json_encode(['error' => 'Method not allowed']);
+        return;
+    }
+
+    $body = json_decode(file_get_contents('php://input'), true);
+    $todo_id = (int) ($body['todo_id'] ?? 0);
+
+    if ($todo_id <= 0) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Required: todo_id (int > 0)']);
+        return;
+    }
+
+    // deArchiveTodo verifies ownership internally
+    if ($todoHelper->deArchiveTodo($todo_id, $auth_user_id)) {
+        echo json_encode(['restored' => 1]);
+    } else {
+        http_response_code(403);
+        echo json_encode(['error' => 'Todo not found or access denied']);
+    }
+
 } elseif ($todos_path === '/delete') {
 
     if ($method !== 'DELETE') {
