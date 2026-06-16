@@ -1,11 +1,12 @@
 <?php
 /**
- * Exterminal (ET) — REST sub-dispatcher for per-project context docs and tasks.
+ * Exterminal (ET) — REST sub-dispatcher for per-project on-the-go notes.
  *
- * User story: agents file context and tasks against a project so all
- * collaborators share state without re-posting into every inbox thread.
+ * User story: capture an idea as a plain note filed against a project; read it
+ * back later from another device. Concrete task state lives in jikan ISSUES,
+ * not here (see classes/Issues/Issues.php).
  *
- * Inaugurated: 2026-06-15
+ * Inaugurated: 2026-06-15. Simplified to plain notes: 2026-06-16.
  *
  * Loaded by wwwroot/api/v1/index.php when path matches /exterm/*.
  * Delegates all SQL to \Exterm\Items (classes/Exterm/Items.php).
@@ -13,13 +14,11 @@
  *       project_members row on the target project.
  *
  * Routes:
- *   GET    /exterm/list     free — ?project_id (required); kind, status, assignee_aiu, since, limit, offset
+ *   GET    /exterm/list     free — ?project_id (optional; omit = recent across projects); since, limit, offset
  *   GET    /exterm/get      free — ?exterm_item_id
- *   POST   /exterm/create   1    — {project_id, kind, title, body?, risk?, assignee_aiu?}
- *   PATCH  /exterm/update   1    — {exterm_item_id, title?, body?, status?, risk?, assignee_aiu?}
+ *   POST   /exterm/create   1    — {project_id, title, body?}
+ *   PATCH  /exterm/update   1    — {exterm_item_id, title?, body?, project_id?}  (project_id re-files / promotes)
  *   DELETE /exterm/delete   1    — {exterm_item_id}
- *   POST   /exterm/approve  1    — {exterm_item_id}  needs_approval → approved
- *   POST   /exterm/reject   1    — {exterm_item_id}  needs_approval → rejected
  *   GET    /exterm/search   free — ?query (required); project_id?, limit?
  *
  * Variables from index.php: $pdo, $auth_user_id, $auth_key_id, $auth_actor, $method, $path
@@ -57,7 +56,7 @@ if ($sub === '/get' && $method === 'GET') {
     $id = isset($_GET['exterm_item_id']) ? (int)$_GET['exterm_item_id'] : 0;
     if (!$id) exterm_error(400, "exterm_item_id is required");
     try {
-        echo json_encode($exterm->getItem($pdo, $id, $auth_user_id, $caller_aiu));
+        echo json_encode($exterm->getItem($id, $auth_user_id, $caller_aiu));
     } catch (\Exterm\AccessException|\Exterm\NotFoundException|\Exterm\ValidationException $e) {
         exterm_dispatch_exception($e);
     }
@@ -114,32 +113,6 @@ if ($sub === '/delete' && $method === 'DELETE') {
     require_credit($auth_user_id, $auth_key_id, '/exterm/delete');
     try {
         echo json_encode($exterm->deleteItem($auth_user_id, $caller_aiu, $id));
-    } catch (\Exterm\AccessException|\Exterm\NotFoundException|\Exterm\ValidationException $e) {
-        exterm_dispatch_exception($e);
-    }
-    exit;
-}
-
-// ── POST /exterm/approve ──────────────────────────────────────────────────────
-if ($sub === '/approve' && $method === 'POST') {
-    $id = isset($body['exterm_item_id']) ? (int)$body['exterm_item_id'] : 0;
-    if (!$id) exterm_error(400, "exterm_item_id is required");
-    require_credit($auth_user_id, $auth_key_id, '/exterm/approve');
-    try {
-        echo json_encode($exterm->approveTask($auth_user_id, $caller_aiu, $id));
-    } catch (\Exterm\AccessException|\Exterm\NotFoundException|\Exterm\ValidationException $e) {
-        exterm_dispatch_exception($e);
-    }
-    exit;
-}
-
-// ── POST /exterm/reject ───────────────────────────────────────────────────────
-if ($sub === '/reject' && $method === 'POST') {
-    $id = isset($body['exterm_item_id']) ? (int)$body['exterm_item_id'] : 0;
-    if (!$id) exterm_error(400, "exterm_item_id is required");
-    require_credit($auth_user_id, $auth_key_id, '/exterm/reject');
-    try {
-        echo json_encode($exterm->rejectTask($auth_user_id, $caller_aiu, $id));
     } catch (\Exterm\AccessException|\Exterm\NotFoundException|\Exterm\ValidationException $e) {
         exterm_dispatch_exception($e);
     }
