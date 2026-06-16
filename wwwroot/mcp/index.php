@@ -185,6 +185,9 @@ switch ($method) {
 function exterm_dispatch(\Exterm\Items $exterm, int $user_id, int $caller_aiu, string $tool, array $a): mixed
 {
     switch ($tool) {
+        case 'exterm_list_projects':
+            return $exterm->listProjects($user_id, $caller_aiu);
+
         case 'exterm_list_items':
             return $exterm->listItems($user_id, $caller_aiu, $a);
 
@@ -237,6 +240,11 @@ function exterm_tool_defs(): array
     $item_id_prop = ['type' => 'integer', 'description' => 'exterm_item_id of the item'];
 
     return [
+        [
+            'name'        => 'exterm_list_projects',
+            'description' => 'List all projects the caller has read access to. Returns project_id, name, and description. Use project_id with exterm_list_items.',
+            'inputSchema' => ['type' => 'object', 'properties' => new stdClass()],
+        ],
         [
             'name'        => 'exterm_list_items',
             'description' => 'List Exterminal items for a project. Returns metadata (no body). Filterable by kind, status, assignee, and since datetime.',

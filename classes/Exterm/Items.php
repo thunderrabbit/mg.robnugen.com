@@ -98,6 +98,22 @@ class Items
         }
     }
 
+    // ── Projects ─────────────────────────────────────────────────────────────
+
+    public function listProjects(int $user_id, int $caller_aiu): array
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT DISTINCT p.project_id, p.name, p.description, p.is_archived
+             FROM projects p
+             LEFT JOIN project_members pm ON pm.project_id = p.project_id AND pm.member_aiu = ?
+             WHERE (p.user_id = ? OR (pm.member_aiu IS NOT NULL AND pm.can_read = 1))
+               AND p.is_archived = 0
+             ORDER BY p.name ASC"
+        );
+        $stmt->execute([$caller_aiu, $user_id]);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
     // ── CRUD ─────────────────────────────────────────────────────────────────
 
     public function listItems(int $user_id, int $caller_aiu, array $filters): array
