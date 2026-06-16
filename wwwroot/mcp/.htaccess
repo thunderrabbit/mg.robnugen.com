@@ -1,0 +1,6 @@
+# DreamHost FastCGI strips the Authorization header by default.
+# SetEnvIf re-exposes it so PHP sees it in $_SERVER['HTTP_AUTHORIZATION'].
+SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+
+RewriteEngine On
+RewriteRule ^ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
