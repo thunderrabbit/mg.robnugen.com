@@ -7,6 +7,13 @@
 -- Drops the assignee FK + the two status-bearing indexes, then the now-unused columns,
 -- and adds a recency index for "what was I thinking about?" listing across a project.
 
+-- Add the recency index FIRST so fk_exterm_project keeps a covering index on
+-- project_id once idx_exterm_project_status is dropped (otherwise MySQL errors
+-- 1553: "Cannot drop index … needed in a foreign key constraint").
+ALTER TABLE exterm_items
+    ADD INDEX idx_exterm_project_updated (project_id, updated_at_utc);
+
+-- Drop the assignee FK before its covering index (idx_exterm_assignee_status).
 ALTER TABLE exterm_items
     DROP FOREIGN KEY fk_exterm_assignee;
 
@@ -20,6 +27,3 @@ ALTER TABLE exterm_items
     DROP COLUMN status,
     DROP COLUMN risk,
     DROP COLUMN done_at_utc;
-
-ALTER TABLE exterm_items
-    ADD INDEX idx_exterm_project_updated (project_id, updated_at_utc);
