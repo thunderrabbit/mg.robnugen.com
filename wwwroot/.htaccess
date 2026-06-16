@@ -1,7 +1,6 @@
-DirectorySlash Off
 RewriteEngine On
 
-# Preserve POST method when adding trailing slash to /mcp.
-# Default DirectorySlash sends 301 (converts POST→GET, drops body and auth header).
-# 307 keeps method, body, and Authorization intact.
-RewriteRule ^mcp$ /mcp/ [R=307,L]
+# Internally rewrite /mcp (no trailing slash) to mcp/index.php.
+# Apache's default 301 redirect converts POST→GET, dropping body and Authorization.
+# An internal rewrite serves the file directly — no redirect, no method change.
+RewriteRule ^mcp$ mcp/index.php [L,QSA]
