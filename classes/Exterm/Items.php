@@ -2,10 +2,6 @@
 
 namespace Exterm;
 
-class AccessException     extends \RuntimeException {}
-class NotFoundException   extends \RuntimeException {}
-class ValidationException extends \RuntimeException {}
-
 class Items
 {
     // ── Access helpers ────────────────────────────────────────────────────────
