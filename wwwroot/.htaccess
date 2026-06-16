@@ -1,6 +1,3 @@
-RewriteEngine On
-
-# Internally rewrite /mcp (no trailing slash) to mcp/index.php.
-# Apache's default 301 redirect converts POST→GET, dropping body and Authorization.
-# An internal rewrite serves the file directly — no redirect, no method change.
-RewriteRule ^mcp$ mcp/index.php [L,QSA]
+# mod_alias fires in translate_name phase, before mod_dir's fixup-phase 301.
+# RedirectMatch 307 preserves POST method and body (unlike mod_dir's 301).
+RedirectMatch 307 ^/mcp$ /mcp/
