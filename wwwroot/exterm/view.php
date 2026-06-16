@@ -9,9 +9,7 @@
  * Back link:   /exterm/?project_id=N
  * Links to:    /exterm/edit.php?exterm_item_id=N  (can_write only)
  *
- * Handles POST actions inline: approve, reject, delete.
- * Approve/reject buttons only appear when status = needs_approval and
- * can_write = 1 — the human sign-off gate for irreversible tasks.
+ * Handles the delete POST action inline (can_write only).
  */
 
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
@@ -35,13 +33,11 @@ $item_stmt = $pdo->prepare(
     "SELECT ei.*,
             p.name AS project_name, p.project_id,
             pm.can_write,
-            aiu_a.name AS author_name,
-            aiu_e.name AS assignee_name
+            aiu_a.name AS author_name
      FROM exterm_items ei
      JOIN projects p         ON p.project_id    = ei.project_id
      JOIN project_members pm ON pm.project_id   = ei.project_id AND pm.member_aiu = ?
      JOIN agent_inbox_user aiu_a ON aiu_a.aiu_id = ei.author_aiu
-     LEFT JOIN agent_inbox_user aiu_e ON aiu_e.aiu_id = ei.assignee_aiu
      WHERE ei.exterm_item_id = ? AND p.user_id = ?
      LIMIT 1"
 );
@@ -50,21 +46,11 @@ $item = $item_stmt->fetch(\PDO::FETCH_ASSOC);
 
 if (!$item) { header("Location: /exterm/?msg=not_found"); exit; }
 
-// Handle approve/reject POST actions
+// Handle delete POST action
 $error = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $item['can_write']) {
     $action = $_POST['action'] ?? '';
-    if ($action === 'approve' && $item['status'] === 'needs_approval') {
-        $pdo->prepare("UPDATE exterm_items SET status='approved', done_at_utc=NOW(6) WHERE exterm_item_id=?")
-            ->execute([$exterm_item_id]);
-        header("Location: /exterm/view.php?exterm_item_id={$exterm_item_id}&msg=approved");
-        exit;
-    } elseif ($action === 'reject' && $item['status'] === 'needs_approval') {
-        $pdo->prepare("UPDATE exterm_items SET status='rejected', done_at_utc=NOW(6) WHERE exterm_item_id=?")
-            ->execute([$exterm_item_id]);
-        header("Location: /exterm/view.php?exterm_item_id={$exterm_item_id}&msg=rejected");
-        exit;
-    } elseif ($action === 'delete') {
+    if ($action === 'delete') {
         $pdo->prepare("DELETE FROM exterm_items WHERE exterm_item_id=?")->execute([$exterm_item_id]);
         header("Location: /exterm/?project_id={$item['project_id']}&msg=deleted");
         exit;

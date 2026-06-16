@@ -47,36 +47,19 @@ if (!$mem)              { header("Location: /exterm/?msg=not_found");    exit; }
 if (!$mem['can_write']) { header("Location: /exterm/?msg=no_write");     exit; }
 $project_name = $mem['name'];
 
-// Assignee choices = project members
-$assignee_stmt = $pdo->prepare(
-    "SELECT a.aiu_id, a.name, a.actor_type
-     FROM project_members pm
-     JOIN agent_inbox_user a ON a.aiu_id = pm.member_aiu
-     WHERE pm.project_id = ?
-     ORDER BY a.actor_type DESC, a.name ASC"
-);
-$assignee_stmt->execute([$project_id]);
-$assignee_choices = $assignee_stmt->fetchAll(\PDO::FETCH_ASSOC);
-
 $error = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $kind         = trim($_POST['kind']         ?? 'task');
-    $title        = trim($_POST['title']        ?? '');
-    $body         = trim($_POST['body']         ?? '') ?: null;
-    $risk         = trim($_POST['risk']         ?? 'reversible');
-    $assignee_raw = $_POST['assignee_aiu']      ?? '';
-    $assignee_aiu = $assignee_raw === '' ? null : (int)$assignee_raw;
+    $title = trim($_POST['title'] ?? '');
+    $body  = trim($_POST['body']  ?? '') ?: null;
 
-    if (!$title)                                        $error = "Title is required.";
-    elseif (!in_array($kind, ['context','task']))        $error = "Invalid kind.";
-    elseif (!in_array($risk, ['reversible','irreversible'])) $error = "Invalid risk.";
+    if (!$title) $error = "Title is required.";
 
     if (!$error) {
         $pdo->prepare(
-            "INSERT INTO exterm_items (project_id, author_aiu, assignee_aiu, kind, risk, title, body)
-             VALUES (?, ?, ?, ?, ?, ?, ?)"
-        )->execute([$project_id, $human_aiu, $assignee_aiu, $kind, $risk, $title, $body]);
+            "INSERT INTO exterm_items (project_id, author_aiu, title, body)
+             VALUES (?, ?, ?, ?)"
+        )->execute([$project_id, $human_aiu, $title, $body]);
         $new_id = (int)$pdo->lastInsertId();
         header("Location: /exterm/view.php?exterm_item_id={$new_id}");
         exit;
@@ -85,15 +68,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $page = new \Template($config, $is_logged_in);
 $page->setTemplate("layout/base.tpl.php");
-$page->set("page_title", "New ET Item — Meiso Gambare");
+$page->set("page_title", "New ET Note — Meiso Gambare");
 
 $inner = new \Template($config, $is_logged_in);
 $inner->setTemplate("exterm/create.tpl.php");
 $inner->set("project_id",       $project_id);
 $inner->set("project_name",     $project_name);
-$inner->set("assignee_choices", $assignee_choices);
 if ($error !== null) $inner->set("error", $error);
-foreach (['kind','title','body','risk','assignee_aiu'] as $f) {
+foreach (['title','body'] as $f) {
     if (isset($_POST[$f])) $inner->set("form_{$f}", $_POST[$f]);
 }
 
