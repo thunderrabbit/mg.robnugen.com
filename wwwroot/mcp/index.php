@@ -56,6 +56,7 @@ $actor_stmt = $pdo->prepare(
 $actor_stmt->execute([$auth_key_id]);
 $auth_actor  = $actor_stmt->fetch(\PDO::FETCH_ASSOC);
 $caller_aiu  = (int) $auth_actor['aiu_id'];
+$exterm      = new \Exterm\Items($pdo);
 
 // ── Request parsing ───────────────────────────────────────────────────────────
 
@@ -112,7 +113,7 @@ switch ($method) {
         $args = $params['arguments'] ?? [];
 
         try {
-            $result = exterm_dispatch($pdo, $auth_user_id, $caller_aiu, $tool, $args);
+            $result = exterm_dispatch($exterm, $auth_user_id, $caller_aiu, $tool, $args);
             echo json_encode(mcp_tool_result($id, $result));
         } catch (\Exterm\ValidationException $e) {
             echo json_encode(mcp_error($id, -32602, $e->getMessage()));
@@ -131,45 +132,45 @@ switch ($method) {
 
 // ── Tool dispatch ─────────────────────────────────────────────────────────────
 
-function exterm_dispatch(\PDO $pdo, int $user_id, int $caller_aiu, string $tool, array $a): mixed
+function exterm_dispatch(\Exterm\Items $exterm, int $user_id, int $caller_aiu, string $tool, array $a): mixed
 {
     switch ($tool) {
         case 'exterm_list_items':
-            return \Exterm\Items::listItems($pdo, $user_id, $caller_aiu, $a);
+            return $exterm->listItems($user_id, $caller_aiu, $a);
 
         case 'exterm_get_item':
             $id = isset($a['exterm_item_id']) ? (int)$a['exterm_item_id'] : 0;
             if (!$id) throw new \Exterm\ValidationException("exterm_item_id is required");
-            return \Exterm\Items::getItem($pdo, $id, $user_id, $caller_aiu);
+            return $exterm->getItem($id, $user_id, $caller_aiu);
 
         case 'exterm_create_item':
-            return \Exterm\Items::createItem($pdo, $user_id, $caller_aiu, $a);
+            return $exterm->createItem($user_id, $caller_aiu, $a);
 
         case 'exterm_update_item':
             $id = isset($a['exterm_item_id']) ? (int)$a['exterm_item_id'] : 0;
             if (!$id) throw new \Exterm\ValidationException("exterm_item_id is required");
-            return \Exterm\Items::updateItem($pdo, $user_id, $caller_aiu, $id, $a);
+            return $exterm->updateItem($user_id, $caller_aiu, $id, $a);
 
         case 'exterm_delete_item':
             $id = isset($a['exterm_item_id']) ? (int)$a['exterm_item_id'] : 0;
             if (!$id) throw new \Exterm\ValidationException("exterm_item_id is required");
-            return \Exterm\Items::deleteItem($pdo, $user_id, $caller_aiu, $id);
+            return $exterm->deleteItem($user_id, $caller_aiu, $id);
 
         case 'exterm_approve_task':
             $id = isset($a['exterm_item_id']) ? (int)$a['exterm_item_id'] : 0;
             if (!$id) throw new \Exterm\ValidationException("exterm_item_id is required");
-            return \Exterm\Items::approveTask($pdo, $user_id, $caller_aiu, $id);
+            return $exterm->approveTask($user_id, $caller_aiu, $id);
 
         case 'exterm_reject_task':
             $id = isset($a['exterm_item_id']) ? (int)$a['exterm_item_id'] : 0;
             if (!$id) throw new \Exterm\ValidationException("exterm_item_id is required");
-            return \Exterm\Items::rejectTask($pdo, $user_id, $caller_aiu, $id);
+            return $exterm->rejectTask($user_id, $caller_aiu, $id);
 
         case 'exterm_search_items':
             $query      = $a['query']      ?? '';
             $project_id = isset($a['project_id']) ? (int)$a['project_id'] : null;
             $limit      = isset($a['limit'])      ? (int)$a['limit']      : 20;
-            return \Exterm\Items::searchItems($pdo, $user_id, $caller_aiu, $query, $project_id, $limit);
+            return $exterm->searchItems($user_id, $caller_aiu, $query, $project_id, $limit);
 
         default:
             throw new \RuntimeException("Unknown tool: {$tool}");

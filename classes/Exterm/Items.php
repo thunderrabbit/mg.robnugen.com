@@ -4,12 +4,14 @@ namespace Exterm;
 
 class Items
 {
+    public function __construct(private \PDO $pdo) {}
+
     // ── Access helpers ────────────────────────────────────────────────────────
 
     /** Load item + caller's project membership, or throw. */
-    static function itemWithAccess(\PDO $pdo, int $exterm_item_id, int $user_id, int $caller_aiu): array
+    private function itemWithAccess(int $exterm_item_id, int $user_id, int $caller_aiu): array
     {
-        $stmt = $pdo->prepare(
+        $stmt = $this->pdo->prepare(
             "SELECT ei.*, pm.can_read, pm.can_write
              FROM exterm_items ei
              JOIN projects p         ON p.project_id  = ei.project_id
@@ -24,9 +26,9 @@ class Items
     }
 
     /** Check project membership or throw. Returns ['can_read','can_write']. */
-    static function projectAccess(\PDO $pdo, int $project_id, int $user_id, int $caller_aiu): array
+    private function projectAccess(int $project_id, int $user_id, int $caller_aiu): array
     {
-        $stmt = $pdo->prepare(
+        $stmt = $this->pdo->prepare(
             "SELECT pm.can_read, pm.can_write
              FROM project_members pm
              JOIN projects p ON p.project_id = pm.project_id
@@ -40,7 +42,7 @@ class Items
     }
 
     /** Irreversible tasks must reach approved/rejected via needs_approval — never jump to done. */
-    static function validateStatusTransition(array $item, string $new_status): void
+    private function validateStatusTransition(array $item, string $new_status): void
     {
         if ($item['kind'] === 'context') return;
         if ($item['risk'] === 'irreversible' && $new_status === 'done') {
@@ -52,12 +54,12 @@ class Items
 
     // ── CRUD ─────────────────────────────────────────────────────────────────
 
-    static function listItems(\PDO $pdo, int $user_id, int $caller_aiu, array $filters): array
+    public function listItems(int $user_id, int $caller_aiu, array $filters): array
     {
-        $project_id   = isset($filters['project_id']) ? (int)$filters['project_id'] : null;
+        $project_id = isset($filters['project_id']) ? (int)$filters['project_id'] : null;
         if (!$project_id) throw new ValidationException("project_id is required");
 
-        self::projectAccess($pdo, $project_id, $user_id, $caller_aiu);
+        $this->projectAccess($project_id, $user_id, $caller_aiu);
 
         $where  = ["ei.project_id = ?", "p.user_id = ?"];
         $params = [$project_id, $user_id];
@@ -87,24 +89,24 @@ class Items
                        ei.author_aiu, ei.assignee_aiu, ei.created_at_utc, ei.updated_at_utc,
                        aiu_a.name AS author_name, aiu_e.name AS assignee_name
                 FROM exterm_items ei
-                JOIN projects p           ON p.project_id    = ei.project_id
-                JOIN agent_inbox_user aiu_a ON aiu_a.aiu_id = ei.author_aiu
+                JOIN projects p             ON p.project_id    = ei.project_id
+                JOIN agent_inbox_user aiu_a ON aiu_a.aiu_id   = ei.author_aiu
                 LEFT JOIN agent_inbox_user aiu_e ON aiu_e.aiu_id = ei.assignee_aiu
                 WHERE " . implode(' AND ', $where) . "
                 ORDER BY ei.updated_at_utc DESC
                 LIMIT ? OFFSET ?";
 
-        $stmt = $pdo->prepare($sql);
+        $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
-    static function getItem(\PDO $pdo, int $exterm_item_id, int $user_id, int $caller_aiu): array
+    public function getItem(int $exterm_item_id, int $user_id, int $caller_aiu): array
     {
-        $row = self::itemWithAccess($pdo, $exterm_item_id, $user_id, $caller_aiu);
+        $row = $this->itemWithAccess($exterm_item_id, $user_id, $caller_aiu);
         if (!(int)$row['can_read']) throw new AccessException("No read access to item {$exterm_item_id}");
 
-        $stmt = $pdo->prepare(
+        $stmt = $this->pdo->prepare(
             "SELECT ei.*,
                     aiu_a.name AS author_name, aiu_e.name AS assignee_name
              FROM exterm_items ei
@@ -117,13 +119,13 @@ class Items
         return $stmt->fetch(\PDO::FETCH_ASSOC);
     }
 
-    static function createItem(\PDO $pdo, int $user_id, int $caller_aiu, array $data): array
+    public function createItem(int $user_id, int $caller_aiu, array $data): array
     {
         $project_id   = isset($data['project_id']) ? (int)$data['project_id'] : null;
-        $kind         = $data['kind']   ?? 'task';
+        $kind         = $data['kind']  ?? 'task';
         $title        = trim($data['title'] ?? '');
-        $body         = $data['body']   ?? null;
-        $risk         = $data['risk']   ?? 'reversible';
+        $body         = $data['body']  ?? null;
+        $risk         = $data['risk']  ?? 'reversible';
         $assignee_aiu = !empty($data['assignee_aiu']) ? (int)$data['assignee_aiu'] : null;
 
         if (!$project_id) throw new ValidationException("project_id is required");
@@ -131,20 +133,20 @@ class Items
         if (!in_array($kind, ['context','task']))            throw new ValidationException("kind must be context or task");
         if (!in_array($risk, ['reversible','irreversible'])) throw new ValidationException("risk must be reversible or irreversible");
 
-        $role = self::projectAccess($pdo, $project_id, $user_id, $caller_aiu);
+        $role = $this->projectAccess($project_id, $user_id, $caller_aiu);
         if (!(int)$role['can_write']) throw new AccessException("No write access to project {$project_id}");
 
-        $pdo->prepare(
+        $this->pdo->prepare(
             "INSERT INTO exterm_items (project_id, author_aiu, assignee_aiu, kind, risk, title, body)
              VALUES (?, ?, ?, ?, ?, ?, ?)"
         )->execute([$project_id, $caller_aiu, $assignee_aiu, $kind, $risk, $title, $body]);
 
-        return self::getItem($pdo, (int)$pdo->lastInsertId(), $user_id, $caller_aiu);
+        return $this->getItem((int)$this->pdo->lastInsertId(), $user_id, $caller_aiu);
     }
 
-    static function updateItem(\PDO $pdo, int $user_id, int $caller_aiu, int $exterm_item_id, array $data): array
+    public function updateItem(int $user_id, int $caller_aiu, int $exterm_item_id, array $data): array
     {
-        $row = self::itemWithAccess($pdo, $exterm_item_id, $user_id, $caller_aiu);
+        $row = $this->itemWithAccess($exterm_item_id, $user_id, $caller_aiu);
         if (!(int)$row['can_write']) throw new AccessException("No write access to item {$exterm_item_id}");
 
         $sets   = [];
@@ -169,7 +171,7 @@ class Items
         if (array_key_exists('status', $data) && $data['status'] !== null) {
             $valid = ['open','in_progress','needs_approval','approved','rejected','done'];
             if (!in_array($data['status'], $valid)) throw new ValidationException("Invalid status value");
-            self::validateStatusTransition($row, $data['status']);
+            $this->validateStatusTransition($row, $data['status']);
             $sets[] = "status = ?"; $params[] = $data['status'];
             if (in_array($data['status'], ['done','approved','rejected'])) {
                 $sets[] = "done_at_utc = NOW(6)";
@@ -179,41 +181,41 @@ class Items
         if (empty($sets)) throw new ValidationException("Nothing to update");
 
         $params[] = $exterm_item_id;
-        $pdo->prepare("UPDATE exterm_items SET " . implode(', ', $sets) . " WHERE exterm_item_id = ?")
+        $this->pdo->prepare("UPDATE exterm_items SET " . implode(', ', $sets) . " WHERE exterm_item_id = ?")
             ->execute($params);
 
-        return self::getItem($pdo, $exterm_item_id, $user_id, $caller_aiu);
+        return $this->getItem($exterm_item_id, $user_id, $caller_aiu);
     }
 
-    static function deleteItem(\PDO $pdo, int $user_id, int $caller_aiu, int $exterm_item_id): array
+    public function deleteItem(int $user_id, int $caller_aiu, int $exterm_item_id): array
     {
-        $row = self::itemWithAccess($pdo, $exterm_item_id, $user_id, $caller_aiu);
+        $row = $this->itemWithAccess($exterm_item_id, $user_id, $caller_aiu);
         if (!(int)$row['can_write']) throw new AccessException("No write access to delete item {$exterm_item_id}");
-        $pdo->prepare("DELETE FROM exterm_items WHERE exterm_item_id = ?")->execute([$exterm_item_id]);
+        $this->pdo->prepare("DELETE FROM exterm_items WHERE exterm_item_id = ?")->execute([$exterm_item_id]);
         return ['exterm_item_id' => $exterm_item_id, 'deleted' => true];
     }
 
-    static function approveTask(\PDO $pdo, int $user_id, int $caller_aiu, int $exterm_item_id): array
+    public function approveTask(int $user_id, int $caller_aiu, int $exterm_item_id): array
     {
-        $row = self::itemWithAccess($pdo, $exterm_item_id, $user_id, $caller_aiu);
+        $row = $this->itemWithAccess($exterm_item_id, $user_id, $caller_aiu);
         if (!(int)$row['can_write']) throw new AccessException("No write access");
         if ($row['status'] !== 'needs_approval') throw new ValidationException("Item is not awaiting approval (status: {$row['status']})");
-        $pdo->prepare("UPDATE exterm_items SET status='approved', done_at_utc=NOW(6) WHERE exterm_item_id=?")
+        $this->pdo->prepare("UPDATE exterm_items SET status='approved', done_at_utc=NOW(6) WHERE exterm_item_id=?")
             ->execute([$exterm_item_id]);
-        return self::getItem($pdo, $exterm_item_id, $user_id, $caller_aiu);
+        return $this->getItem($exterm_item_id, $user_id, $caller_aiu);
     }
 
-    static function rejectTask(\PDO $pdo, int $user_id, int $caller_aiu, int $exterm_item_id): array
+    public function rejectTask(int $user_id, int $caller_aiu, int $exterm_item_id): array
     {
-        $row = self::itemWithAccess($pdo, $exterm_item_id, $user_id, $caller_aiu);
+        $row = $this->itemWithAccess($exterm_item_id, $user_id, $caller_aiu);
         if (!(int)$row['can_write']) throw new AccessException("No write access");
         if ($row['status'] !== 'needs_approval') throw new ValidationException("Item is not awaiting approval (status: {$row['status']})");
-        $pdo->prepare("UPDATE exterm_items SET status='rejected', done_at_utc=NOW(6) WHERE exterm_item_id=?")
+        $this->pdo->prepare("UPDATE exterm_items SET status='rejected', done_at_utc=NOW(6) WHERE exterm_item_id=?")
             ->execute([$exterm_item_id]);
-        return self::getItem($pdo, $exterm_item_id, $user_id, $caller_aiu);
+        return $this->getItem($exterm_item_id, $user_id, $caller_aiu);
     }
 
-    static function searchItems(\PDO $pdo, int $user_id, int $caller_aiu, string $query, ?int $project_id = null, int $limit = 20): array
+    public function searchItems(int $user_id, int $caller_aiu, string $query, ?int $project_id = null, int $limit = 20): array
     {
         if (!trim($query)) throw new ValidationException("query is required");
         $limit = min($limit, 100);
@@ -223,7 +225,7 @@ class Items
         $params = [$user_id, $like, $like];
 
         if ($project_id) {
-            self::projectAccess($pdo, $project_id, $user_id, $caller_aiu);
+            $this->projectAccess($project_id, $user_id, $caller_aiu);
             $where[] = "ei.project_id = ?"; $params[] = $project_id;
             $member_join = "";
         } else {
@@ -233,7 +235,7 @@ class Items
 
         $params[] = $limit;
 
-        $stmt = $pdo->prepare(
+        $stmt = $this->pdo->prepare(
             "SELECT ei.exterm_item_id, ei.project_id, ei.kind, ei.status, ei.title,
                     SUBSTRING(ei.body, 1, 200) AS snippet
              FROM exterm_items ei
