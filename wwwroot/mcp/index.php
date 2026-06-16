@@ -13,7 +13,8 @@
  * Laptop agents                → use jikan exterm_* tools (stdio, no HTTP).
  *
  * Connector URL:  https://mg.robnugen.com/mcp/
- * Auth:           Authorization: Bearer <api-key>
+ * Auth:           OAuth 2.0 Client Credentials (token_endpoint: /mcp/token.php)
+ *                 Falls back to direct Bearer API key for curl/testing.
  * Protocol:       JSON-RPC 2.0, POST only, no streaming
  *
  * Exposes 8 tools: exterm_list_items, exterm_get_item, exterm_create_item,
@@ -41,36 +42,57 @@ preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
+// Accepts OAuth access tokens (issued by mcp/token.php) or direct API keys.
 
 $auth_header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-$raw_key     = '';
+$raw_token   = '';
 if (preg_match('/^Bearer\s+(\S+)$/i', $auth_header, $m)) {
-    $raw_key = $m[1];
+    $raw_token = $m[1];
 }
 
-if (!$raw_key) {
+if (!$raw_token) {
     http_response_code(401);
-    echo json_encode(mcp_error(null, -32600, 'Missing Bearer token in Authorization header'));
+    echo json_encode(mcp_error(null, -32600, 'Missing Bearer token'));
     exit;
 }
 
-$pdo         = \Database\Base::getPDO($config);
-$apiKeyAuth  = new \Auth\ApiKey($pdo);
-$auth_user_id = $apiKeyAuth->validateKey($raw_key);
-$auth_key_id  = $apiKeyAuth->getLastKeyId();
+$pdo = \Database\Base::getPDO($config);
+
+// Try OAuth access token first (mcp_tokens table)
+$token_hash   = hash('sha256', $raw_token);
+$auth_user_id = null;
+$auth_aiu_id  = null;
+
+$tok_stmt = $pdo->prepare(
+    "SELECT user_id, aiu_id FROM mcp_tokens
+     WHERE token_hash = ? AND expires_at_utc > NOW()
+     LIMIT 1"
+);
+$tok_stmt->execute([$token_hash]);
+$tok_row = $tok_stmt->fetch(\PDO::FETCH_ASSOC);
+
+if ($tok_row) {
+    $auth_user_id = (int) $tok_row['user_id'];
+    $auth_aiu_id  = (int) $tok_row['aiu_id'];
+} else {
+    // Fall back to direct API key (for non-OAuth clients, e.g. curl testing)
+    $apiKeyAuth   = new \Auth\ApiKey($pdo);
+    $auth_user_id = $apiKeyAuth->validateKey($raw_token);
+    if ($auth_user_id) {
+        $k_stmt = $pdo->prepare("SELECT aiu_id FROM api_keys WHERE key_id = ? LIMIT 1");
+        $k_stmt->execute([$apiKeyAuth->getLastKeyId()]);
+        $auth_aiu_id = (int) $k_stmt->fetchColumn();
+    }
+}
 
 if (!$auth_user_id) {
     http_response_code(401);
-    echo json_encode(mcp_error(null, -32600, 'Invalid or revoked API key'));
+    echo json_encode(mcp_error(null, -32600, 'Invalid or expired token'));
     exit;
 }
 
-$actor_stmt = $pdo->prepare(
-    "SELECT a.* FROM agent_inbox_user a
-     JOIN api_keys k ON k.aiu_id = a.aiu_id
-     WHERE k.key_id = ?"
-);
-$actor_stmt->execute([$auth_key_id]);
+$actor_stmt = $pdo->prepare("SELECT * FROM agent_inbox_user WHERE aiu_id = ? LIMIT 1");
+$actor_stmt->execute([$auth_aiu_id]);
 $auth_actor  = $actor_stmt->fetch(\PDO::FETCH_ASSOC);
 $caller_aiu  = (int) $auth_actor['aiu_id'];
 $exterm      = new \Exterm\Items($pdo);
