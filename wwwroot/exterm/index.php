@@ -1,7 +1,16 @@
 <?php
 /**
- * Exterminal item list — shows items for a selected project.
- * Filterable by kind and status.
+ * Exterminal (ET) item list — browse a project's context docs and tasks.
+ *
+ * Inaugurated: 2026-06-15
+ * Part of the Exterminal feature — see classes/Exterm/Items.php.
+ *
+ * Entry point: /exterm/  (paid/admin users only)
+ * Optional query params: project_id, kind, status — auto-submitted on change.
+ * Links to: /exterm/view.php (per item), /exterm/create.php (new item button).
+ *
+ * Note: uses direct SQL rather than \Exterm\Items for flexible multi-filter
+ * queries without the overhead of membership-check scaffolding.
  */
 
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);

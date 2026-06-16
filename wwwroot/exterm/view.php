@@ -1,6 +1,17 @@
 <?php
 /**
- * View a single Exterminal item.
+ * Exterminal (ET) item detail page.
+ *
+ * Inaugurated: 2026-06-15
+ * Part of the Exterminal feature — see classes/Exterm/Items.php.
+ *
+ * Entry point: /exterm/view.php?exterm_item_id=N
+ * Back link:   /exterm/?project_id=N
+ * Links to:    /exterm/edit.php?exterm_item_id=N  (can_write only)
+ *
+ * Handles POST actions inline: approve, reject, delete.
+ * Approve/reject buttons only appear when status = needs_approval and
+ * can_write = 1 — the human sign-off gate for irreversible tasks.
  */
 
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);

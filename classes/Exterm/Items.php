@@ -1,4 +1,50 @@
 <?php
+/**
+ * Exterminal (ET) — data-access layer for the exterm_items table.
+ *
+ * User story
+ * ----------
+ * As an agent (on a laptop or phone) I want to file context docs and tasks
+ * against a project so all collaborators share the same state without
+ * re-posting information into every inbox thread.
+ *
+ * Architecture
+ * ------------
+ *   Phone (Claude Android)
+ *     └─▶ https://mg.robnugen.com/mcp/        (MCP Streamable-HTTP)
+ *   Laptop agents
+ *     └─▶ jikan exterm_* tools                (stdio → /api/v1/exterm/*)
+ *   Both converge on:
+ *     wwwroot/api/v1/_exterm.php  ─┐
+ *     wwwroot/mcp/index.php       ─┼─▶  Exterm\Items  ─▶  exterm_items table
+ *     wwwroot/exterm/*.php        ─┘       (this file)
+ *
+ * Inaugurated: 2026-06-15
+ *
+ * DB dependency
+ * -------------
+ * Requires migration 26 — db_schemas/26_exterm/a_create_exterm_items.sql.
+ * Apply via /admin/migrate_tables.php (or ssh mg "mysql mgrnc < path").
+ *
+ * Exceptions (each in its own file under classes/Exterm/)
+ * -------------------------------------------------------
+ *   AccessException     — caller lacks project membership or write permission
+ *   NotFoundException   — item not found or not visible to caller
+ *   ValidationException — invalid input (bad status, empty title, etc.)
+ *
+ * Usage
+ * -----
+ *   $items = new \Exterm\Items($pdo);
+ *   $list  = $items->listItems($user_id, $caller_aiu, ['project_id' => 4]);
+ *   $item  = $items->createItem($user_id, $caller_aiu, [
+ *       'project_id' => 4, 'kind' => 'task', 'title' => 'Deploy ET',
+ *   ]);
+ *   $items->approveTask($user_id, $caller_aiu, $item['exterm_item_id']);
+ *
+ * More information
+ * ----------------
+ *   ~/.claude/projects/.../memory/project_exterminal.md
+ */
 
 namespace Exterm;
 

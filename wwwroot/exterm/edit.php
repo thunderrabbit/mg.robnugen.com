@@ -1,6 +1,16 @@
 <?php
 /**
- * Edit an Exterminal item — title, body, status, risk, assignee.
+ * Exterminal (ET) item editor — title, body, status, risk, assignee.
+ *
+ * Inaugurated: 2026-06-15
+ * Part of the Exterminal feature — see classes/Exterm/Items.php.
+ *
+ * Entry point: /exterm/edit.php?exterm_item_id=N  (can_write required)
+ * On success:  redirects to /exterm/view.php?exterm_item_id=N
+ * On failure:  re-renders form with $error message.
+ *
+ * Status transition guard: irreversible tasks cannot jump directly to 'done';
+ * they must pass through needs_approval → approved first.
  */
 
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);

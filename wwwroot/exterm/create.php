@@ -1,6 +1,16 @@
 <?php
 /**
- * Create Exterminal item. Requires ?project_id=N.
+ * Exterminal (ET) item creation form.
+ *
+ * Inaugurated: 2026-06-15
+ * Part of the Exterminal feature — see classes/Exterm/Items.php.
+ *
+ * Entry point: /exterm/create.php?project_id=N  (paid/admin, can_write required)
+ * On success:  redirects to /exterm/view.php?exterm_item_id=N
+ * On failure:  re-renders form with $error message.
+ *
+ * author_aiu is derived from the logged-in human's agent_inbox_user row (not
+ * the form) so provenance matches the REST API's server-side derivation pattern.
  */
 
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);

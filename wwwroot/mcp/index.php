@@ -2,12 +2,29 @@
 /**
  * Exterminal MCP server — MCP Streamable-HTTP transport (2025-03-26 spec).
  *
- * Claude Android connector URL: https://mg.robnugen.com/mcp/
- * Auth: Authorization: Bearer <api-key>
+ * User story: Rob's phone (Claude Android) connects here to read and write
+ * Exterminal items without a laptop intermediary.
+ *
+ * Inaugurated: 2026-06-15
+ *
+ * When to use
+ * -----------
+ * Phone / remote Claude client → use this endpoint (Authorization: Bearer).
+ * Laptop agents                → use jikan exterm_* tools (stdio, no HTTP).
+ *
+ * Connector URL:  https://mg.robnugen.com/mcp/
+ * Auth:           Authorization: Bearer <api-key>
+ * Protocol:       JSON-RPC 2.0, POST only, no streaming
  *
  * Exposes 8 tools: exterm_list_items, exterm_get_item, exterm_create_item,
- * exterm_update_item, exterm_delete_item, exterm_approve_task,
- * exterm_reject_task, exterm_search_items.
+ *   exterm_update_item, exterm_delete_item, exterm_approve_task,
+ *   exterm_reject_task, exterm_search_items.
+ *
+ * All SQL delegated to \Exterm\Items (classes/Exterm/Items.php).
+ *
+ * Phone connector setup
+ * ---------------------
+ * See ~/.claude/projects/.../memory/project_exterminal.md § Phone connector setup.
  */
 
 header('Content-Type: application/json');

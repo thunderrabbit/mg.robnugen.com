@@ -1,6 +1,16 @@
 <?php
 /**
- * Exterminal (ET) — per-project context docs and task queue.
+ * Exterminal (ET) — REST sub-dispatcher for per-project context docs and tasks.
+ *
+ * User story: agents file context and tasks against a project so all
+ * collaborators share state without re-posting into every inbox thread.
+ *
+ * Inaugurated: 2026-06-15
+ *
+ * Loaded by wwwroot/api/v1/index.php when path matches /exterm/*.
+ * Delegates all SQL to \Exterm\Items (classes/Exterm/Items.php).
+ * Auth: caller must have can_read_project or can_write_project AND a
+ *       project_members row on the target project.
  *
  * Routes:
  *   GET    /exterm/list     free — ?project_id (required); kind, status, assignee_aiu, since, limit, offset
