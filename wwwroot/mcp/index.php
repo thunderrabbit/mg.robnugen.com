@@ -30,8 +30,9 @@
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Headers: Authorization, Content-Type');
+header('Access-Control-Allow-Headers: Authorization, Content-Type, Mcp-Session-Id');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
+header('Access-Control-Expose-Headers: Mcp-Session-Id');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
@@ -134,8 +135,13 @@ function mcp_tool_result($id, $data): array {
 switch ($method) {
 
     case 'initialize':
+        // Negotiate protocol version — accept any 2025-x spec, respond with highest we support
+        $client_version = $params['protocolVersion'] ?? '2025-03-26';
+        $proto = version_compare($client_version, '2025-06-18', '>=') ? '2025-06-18' : '2025-03-26';
+        // Mcp-Session-Id is required by the Streamable-HTTP spec; we use the token hash as stable ID
+        header('Mcp-Session-Id: ' . hash('sha256', $raw_token));
         echo json_encode(mcp_ok($id, [
-            'protocolVersion' => '2025-03-26',
+            'protocolVersion' => $proto,
             'capabilities'    => ['tools' => new stdClass()],
             'serverInfo'      => ['name' => 'Exterminal', 'version' => '1.0.0'],
         ]));
