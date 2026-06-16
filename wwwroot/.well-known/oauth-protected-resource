@@ -1,0 +1,6 @@
+{
+  "resource": "https://mg.robnugen.com/mcp/",
+  "authorization_servers": ["https://mg.robnugen.com"],
+  "bearer_methods_supported": ["header"],
+  "scopes_supported": []
+}

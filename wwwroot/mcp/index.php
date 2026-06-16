@@ -56,6 +56,7 @@ if (preg_match('/^Bearer\s+(\S+)$/i', $auth_header, $m)) {
 
 if (!$raw_token) {
     http_response_code(401);
+    header('WWW-Authenticate: Bearer realm="Exterminal", resource_metadata="https://mg.robnugen.com/.well-known/oauth-protected-resource"');
     echo json_encode(mcp_error(null, -32600, 'Missing Bearer token'));
     exit;
 }
@@ -91,6 +92,7 @@ if ($tok_row) {
 
 if (!$auth_user_id) {
     http_response_code(401);
+    header('WWW-Authenticate: Bearer realm="Exterminal", error="invalid_token", resource_metadata="https://mg.robnugen.com/.well-known/oauth-protected-resource"');
     echo json_encode(mcp_error(null, -32600, 'Invalid or expired token'));
     exit;
 }

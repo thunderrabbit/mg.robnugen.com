@@ -1,0 +1,6 @@
+RewriteEngine On
+
+# Preserve POST method when adding trailing slash to /mcp
+# Apache's default DirectorySlash sends 301 (converts POST→GET, drops body/auth).
+# 307 keeps the method, body, and headers intact.
+RewriteRule ^mcp$ /mcp/ [R=307,L]
