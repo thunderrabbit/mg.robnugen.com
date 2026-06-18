@@ -82,7 +82,7 @@ $body     = json_decode($body_raw, true) ?? [];
 
 // ── POST /exterm/create ───────────────────────────────────────────────────────
 if ($sub === '/create' && $method === 'POST') {
-    require_credit($auth_user_id, $auth_key_id, '/exterm/create');
+    require_credit($pdo, $auth_user_id, $auth_key_id, '/exterm/create');
     try {
         $item = $exterm->createItem($auth_user_id, $caller_aiu, $body);
         http_response_code(201);
@@ -97,7 +97,7 @@ if ($sub === '/create' && $method === 'POST') {
 if ($sub === '/update' && $method === 'PATCH') {
     $id = isset($body['exterm_item_id']) ? (int)$body['exterm_item_id'] : 0;
     if (!$id) exterm_error(400, "exterm_item_id is required");
-    require_credit($auth_user_id, $auth_key_id, '/exterm/update');
+    require_credit($pdo, $auth_user_id, $auth_key_id, '/exterm/update');
     try {
         echo json_encode($exterm->updateItem($auth_user_id, $caller_aiu, $id, $body));
     } catch (\Exterm\AccessException|\Exterm\NotFoundException|\Exterm\ValidationException $e) {
@@ -110,7 +110,7 @@ if ($sub === '/update' && $method === 'PATCH') {
 if ($sub === '/delete' && $method === 'DELETE') {
     $id = isset($body['exterm_item_id']) ? (int)$body['exterm_item_id'] : 0;
     if (!$id) exterm_error(400, "exterm_item_id is required");
-    require_credit($auth_user_id, $auth_key_id, '/exterm/delete');
+    require_credit($pdo, $auth_user_id, $auth_key_id, '/exterm/delete');
     try {
         echo json_encode($exterm->deleteItem($auth_user_id, $caller_aiu, $id));
     } catch (\Exterm\AccessException|\Exterm\NotFoundException|\Exterm\ValidationException $e) {
