@@ -117,6 +117,143 @@ class Issues
     }
 
     /**
+     * Update an issue's title, description, and/or priority. Status changes are
+     * intentionally excluded from the phone MCP path — laptop agents own status
+     * transitions. Returns the updated issue row.
+     */
+    public function updateIssue(int $issue_id, int $user_id, int $caller_aiu, array $data): array
+    {
+        $title_in       = array_key_exists('title', $data) ? trim((string)$data['title']) : null;
+        $description_in = array_key_exists('description', $data) ? (string)$data['description'] : 'NOT_SET';
+        $priority_in    = array_key_exists('priority', $data) ? trim((string)$data['priority']) : null;
+
+        if ($title_in === null && $description_in === 'NOT_SET' && $priority_in === null) {
+            throw new ValidationException("provide at least one field to update: title, description, or priority");
+        }
+        if ($priority_in !== null && !in_array($priority_in, ['low','normal','high'], true)) {
+            throw new ValidationException("priority must be 'low', 'normal', or 'high'");
+        }
+        if ($title_in !== null && ($title_in === '' || mb_strlen($title_in) > 255)) {
+            throw new ValidationException("title must be 1-255 characters");
+        }
+
+        $stmt = $this->pdo->prepare(
+            "SELECT i.issue_id, i.project_id, pm.can_write
+             FROM issues i
+             JOIN projects p        ON p.project_id = i.project_id
+             JOIN project_members pm ON pm.project_id = i.project_id AND pm.member_aiu = ?
+             WHERE i.issue_id = ? AND p.user_id = ?
+             LIMIT 1"
+        );
+        $stmt->execute([$caller_aiu, $issue_id, $user_id]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        if (!$row)             throw new NotFoundException("Issue {$issue_id} not found or no access");
+        if (!(int)$row['can_write']) throw new AccessException("No write access to project");
+
+        $sets   = [];
+        $params = [];
+
+        if ($title_in !== null) {
+            $sets[]   = 'i.title = ?';
+            $params[] = $title_in;
+        }
+        if ($description_in !== 'NOT_SET') {
+            $sets[]   = 'i.description = ?';
+            $params[] = ($description_in === '') ? null : $description_in;
+        }
+        if ($priority_in !== null) {
+            $sets[]   = 'i.priority = ?';
+            $params[] = $priority_in;
+        }
+
+        $params[] = $issue_id;
+        $params[] = $user_id;
+        $this->pdo->prepare(
+            "UPDATE issues i
+             JOIN projects p ON p.project_id = i.project_id
+             SET " . implode(', ', $sets) . "
+             WHERE i.issue_id = ? AND p.user_id = ?"
+        )->execute($params);
+
+        return $this->getIssue($issue_id, $user_id, $caller_aiu);
+    }
+
+    /** Append a comment to an issue the caller can write. Returns the new comment row. */
+    public function addComment(int $issue_id, int $user_id, int $caller_aiu, string $body): array
+    {
+        $body = trim($body);
+        if ($body === '')          throw new ValidationException("body is required");
+        if (strlen($body) > 65535) throw new ValidationException("body exceeds 65535 byte limit");
+
+        $stmt = $this->pdo->prepare(
+            "SELECT pm.can_write
+             FROM issues i
+             JOIN projects p        ON p.project_id = i.project_id
+             JOIN project_members pm ON pm.project_id = i.project_id AND pm.member_aiu = ?
+             WHERE i.issue_id = ? AND p.user_id = ?
+             LIMIT 1"
+        );
+        $stmt->execute([$caller_aiu, $issue_id, $user_id]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        if (!$row)             throw new NotFoundException("Issue {$issue_id} not found or no access");
+        if (!(int)$row['can_write']) throw new AccessException("No write access to project");
+
+        $this->pdo->prepare(
+            "INSERT INTO issue_comments (issue_id, author_aiu, body) VALUES (?, ?, ?)"
+        )->execute([$issue_id, $caller_aiu, $body]);
+        $comment_id = (int) $this->pdo->lastInsertId();
+
+        return [
+            'issue_comment_id' => $comment_id,
+            'issue_id'         => $issue_id,
+            'author_aiu'       => $caller_aiu,
+            'body'             => $body,
+        ];
+    }
+
+    /** List comments on an issue the caller can read, oldest first. */
+    public function listComments(int $issue_id, int $user_id, int $caller_aiu, array $filters = []): array
+    {
+        $limit  = max(1, min(200, (int)($filters['limit']  ?? 100)));
+        $offset = max(0, (int)($filters['offset'] ?? 0));
+
+        $stmt = $this->pdo->prepare(
+            "SELECT pm.can_read
+             FROM issues i
+             JOIN projects p        ON p.project_id = i.project_id
+             JOIN project_members pm ON pm.project_id = i.project_id AND pm.member_aiu = ?
+             WHERE i.issue_id = ? AND p.user_id = ?
+             LIMIT 1"
+        );
+        $stmt->execute([$caller_aiu, $issue_id, $user_id]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        if (!$row)           throw new NotFoundException("Issue {$issue_id} not found or no access");
+        if (!(int)$row['can_read']) throw new AccessException("No read access to project");
+
+        $rows = $this->pdo->prepare(
+            "SELECT c.issue_comment_id, c.issue_id, c.author_aiu, c.body,
+                    c.created_at_utc, c.updated_at_utc,
+                    a.name AS author_name
+             FROM issue_comments c
+             JOIN agent_inbox_user a ON a.aiu_id = c.author_aiu
+             WHERE c.issue_id = ?
+             ORDER BY c.created_at_utc ASC
+             LIMIT ? OFFSET ?"
+        );
+        $rows->execute([$issue_id, $limit, $offset]);
+
+        $count = $this->pdo->prepare("SELECT COUNT(*) FROM issue_comments WHERE issue_id = ?");
+        $count->execute([$issue_id]);
+
+        return [
+            'comments' => $rows->fetchAll(\PDO::FETCH_ASSOC),
+            'total'    => (int) $count->fetchColumn(),
+            'limit'    => $limit,
+            'offset'   => $offset,
+        ];
+    }
+
+    /**
      * Create an issue in a project the caller can write. Accepts title (required),
      * description, and priority (low|normal|high, default normal). Status defaults
      * to the issue_statuses row flagged is_default. author_aiu = caller (never

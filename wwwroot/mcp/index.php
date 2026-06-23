@@ -20,8 +20,9 @@
  * Note tools (Exterm\Items): exterm_list_projects, exterm_list_items,
  *   exterm_get_item, exterm_create_item, exterm_update_item, exterm_delete_item,
  *   exterm_search_items.
- * Issue tools (Issues\Issues): issue_list, issue_get, issue_create — concrete
- *   task state for a project; ET notes are the loose capture layer.
+ * Issue tools (Issues\Issues): issue_list, issue_get, issue_create, issue_update,
+ *   issue_comment_add, issue_comment_list — concrete task state; ET notes are the
+ *   loose capture layer. Status changes stay on the laptop path.
  *
  * SQL delegated to \Exterm\Items and \Issues\Issues.
  *
@@ -225,6 +226,22 @@ function exterm_dispatch(\Exterm\Items $exterm, \Issues\Issues $issues, int $use
         case 'issue_create':
             return $issues->createIssue($user_id, $caller_aiu, $a);
 
+        case 'issue_update':
+            $iid = isset($a['issue_id']) ? (int)$a['issue_id'] : 0;
+            if (!$iid) throw new \Issues\ValidationException("issue_id is required");
+            return $issues->updateIssue($iid, $user_id, $caller_aiu, $a);
+
+        case 'issue_comment_add':
+            $iid  = isset($a['issue_id']) ? (int)$a['issue_id'] : 0;
+            $body = $a['body'] ?? '';
+            if (!$iid) throw new \Issues\ValidationException("issue_id is required");
+            return $issues->addComment($iid, $user_id, $caller_aiu, $body);
+
+        case 'issue_comment_list':
+            $iid = isset($a['issue_id']) ? (int)$a['issue_id'] : 0;
+            if (!$iid) throw new \Issues\ValidationException("issue_id is required");
+            return $issues->listComments($iid, $user_id, $caller_aiu, $a);
+
         case 'exterm_search_items':
             $query      = $a['query']      ?? '';
             $project_id = isset($a['project_id']) ? (int)$a['project_id'] : null;
@@ -357,6 +374,45 @@ function exterm_tool_defs(): array
                     'priority'    => ['type' => 'string', 'enum' => ['low','normal','high'], 'default' => 'normal'],
                 ],
                 'required' => ['project_id','title'],
+            ],
+        ],
+        [
+            'name'        => 'issue_update',
+            'description' => 'Edit an issue\'s title, description, or priority. Status changes are handled by laptop agents — not available from the phone.',
+            'inputSchema' => [
+                'type'       => 'object',
+                'properties' => [
+                    'issue_id'    => ['type' => 'integer'],
+                    'title'       => ['type' => 'string', 'description' => '1-255 characters'],
+                    'description' => ['type' => 'string', 'description' => 'Markdown body; pass empty string to clear'],
+                    'priority'    => ['type' => 'string', 'enum' => ['low','normal','high']],
+                ],
+                'required' => ['issue_id'],
+            ],
+        ],
+        [
+            'name'        => 'issue_comment_add',
+            'description' => 'Append a timestamped note or update to an issue without changing the issue fields. Good for logging progress, blockers, or context mid-task.',
+            'inputSchema' => [
+                'type'       => 'object',
+                'properties' => [
+                    'issue_id' => ['type' => 'integer'],
+                    'body'     => ['type' => 'string', 'description' => 'Markdown comment body'],
+                ],
+                'required' => ['issue_id','body'],
+            ],
+        ],
+        [
+            'name'        => 'issue_comment_list',
+            'description' => 'List comments on an issue, oldest first. Use after issue_get to read the full discussion thread.',
+            'inputSchema' => [
+                'type'       => 'object',
+                'properties' => [
+                    'issue_id' => ['type' => 'integer'],
+                    'limit'    => ['type' => 'integer', 'default' => 100],
+                    'offset'   => ['type' => 'integer', 'default' => 0],
+                ],
+                'required' => ['issue_id'],
             ],
         ],
     ];
