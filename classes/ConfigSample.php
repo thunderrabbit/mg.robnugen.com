@@ -21,4 +21,10 @@ class Config {
     public $stripe_webhook_endpoint = '/webhooks/stripe';
     public $stripe_price_developer = '';   // price_... for $5/mo Developer plan
     public $stripe_price_growth    = '';   // price_... for $15/mo Growth plan
+
+    // Telegram bot notifications — copy these into Config.php and fill in real values
+    // Create a bot via @BotFather in Telegram (/newbot), then get your chat_id by
+    // messaging the bot and visiting https://api.telegram.org/bot<TOKEN>/getUpdates
+    public $telegram_bot_token = '';  // 123456789:ABC-DEF...
+    public $telegram_chat_id   = '';  // numeric chat.id from getUpdates response
 }
