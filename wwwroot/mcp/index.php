@@ -17,11 +17,14 @@
  *                 Falls back to direct Bearer API key for curl/testing.
  * Protocol:       JSON-RPC 2.0, POST only, no streaming
  *
- * Exposes 8 tools: exterm_list_items, exterm_get_item, exterm_create_item,
- *   exterm_update_item, exterm_delete_item, exterm_approve_task,
- *   exterm_reject_task, exterm_search_items.
+ * Note tools (Exterm\Items): exterm_list_projects, exterm_list_items,
+ *   exterm_get_item, exterm_create_item, exterm_update_item, exterm_delete_item,
+ *   exterm_search_items.
+ * Issue tools (Issues\Issues): issue_list, issue_get, issue_create, issue_update,
+ *   issue_comment_add, issue_comment_list — concrete task state; ET notes are the
+ *   loose capture layer. Status changes stay on the laptop path.
  *
- * All SQL delegated to \Exterm\Items (classes/Exterm/Items.php).
+ * SQL delegated to \Exterm\Items and \Issues\Issues.
  *
  * Phone connector setup
  * ---------------------
@@ -102,6 +105,7 @@ $actor_stmt->execute([$auth_aiu_id]);
 $auth_actor  = $actor_stmt->fetch(\PDO::FETCH_ASSOC);
 $caller_aiu  = (int) $auth_actor['aiu_id'];
 $exterm      = new \Exterm\Items($pdo);
+$issues      = new \Issues\Issues($pdo);
 
 // ── Request parsing ───────────────────────────────────────────────────────────
 
@@ -145,7 +149,7 @@ switch ($method) {
         echo json_encode(mcp_ok($id, [
             'protocolVersion' => $proto,
             'capabilities'    => ['tools' => new stdClass()],
-            'serverInfo'      => ['name' => 'Exterminal', 'version' => '1.0.0'],
+            'serverInfo'      => ['name' => 'Exterminal', 'version' => '2.0.0'],
         ]));
         break;
 
@@ -163,13 +167,13 @@ switch ($method) {
         $args = $params['arguments'] ?? [];
 
         try {
-            $result = exterm_dispatch($exterm, $auth_user_id, $caller_aiu, $tool, $args);
+            $result = exterm_dispatch($exterm, $issues, $auth_user_id, $caller_aiu, $tool, $args);
             echo json_encode(mcp_tool_result($id, $result));
-        } catch (\Exterm\ValidationException $e) {
+        } catch (\Exterm\ValidationException | \Issues\ValidationException $e) {
             echo json_encode(mcp_error($id, -32602, $e->getMessage()));
-        } catch (\Exterm\NotFoundException $e) {
+        } catch (\Exterm\NotFoundException | \Issues\NotFoundException $e) {
             echo json_encode(mcp_error($id, -32603, $e->getMessage()));
-        } catch (\Exterm\AccessException $e) {
+        } catch (\Exterm\AccessException | \Issues\AccessException $e) {
             echo json_encode(mcp_error($id, -32603, $e->getMessage()));
         } catch (\Exception $e) {
             echo json_encode(mcp_error($id, -32603, 'Internal error'));
@@ -182,7 +186,7 @@ switch ($method) {
 
 // ── Tool dispatch ─────────────────────────────────────────────────────────────
 
-function exterm_dispatch(\Exterm\Items $exterm, int $user_id, int $caller_aiu, string $tool, array $a): mixed
+function exterm_dispatch(\Exterm\Items $exterm, \Issues\Issues $issues, int $user_id, int $caller_aiu, string $tool, array $a): mixed
 {
     switch ($tool) {
         case 'exterm_list_projects':
@@ -209,15 +213,34 @@ function exterm_dispatch(\Exterm\Items $exterm, int $user_id, int $caller_aiu, s
             if (!$id) throw new \Exterm\ValidationException("exterm_item_id is required");
             return $exterm->deleteItem($user_id, $caller_aiu, $id);
 
-        case 'exterm_approve_task':
-            $id = isset($a['exterm_item_id']) ? (int)$a['exterm_item_id'] : 0;
-            if (!$id) throw new \Exterm\ValidationException("exterm_item_id is required");
-            return $exterm->approveTask($user_id, $caller_aiu, $id);
+        // ── Jikan issues (concrete task state) ────────────────────────────────
+        case 'issue_list':
+            $project_id = isset($a['project_id']) ? (int)$a['project_id'] : 0;
+            return $issues->listIssues($user_id, $caller_aiu, $project_id, $a);
 
-        case 'exterm_reject_task':
-            $id = isset($a['exterm_item_id']) ? (int)$a['exterm_item_id'] : 0;
-            if (!$id) throw new \Exterm\ValidationException("exterm_item_id is required");
-            return $exterm->rejectTask($user_id, $caller_aiu, $id);
+        case 'issue_get':
+            $iid = isset($a['issue_id']) ? (int)$a['issue_id'] : 0;
+            if (!$iid) throw new \Issues\ValidationException("issue_id is required");
+            return $issues->getIssue($iid, $user_id, $caller_aiu);
+
+        case 'issue_create':
+            return $issues->createIssue($user_id, $caller_aiu, $a);
+
+        case 'issue_update':
+            $iid = isset($a['issue_id']) ? (int)$a['issue_id'] : 0;
+            if (!$iid) throw new \Issues\ValidationException("issue_id is required");
+            return $issues->updateIssue($iid, $user_id, $caller_aiu, $a);
+
+        case 'issue_comment_add':
+            $iid  = isset($a['issue_id']) ? (int)$a['issue_id'] : 0;
+            $body = $a['body'] ?? '';
+            if (!$iid) throw new \Issues\ValidationException("issue_id is required");
+            return $issues->addComment($iid, $user_id, $caller_aiu, $body);
+
+        case 'issue_comment_list':
+            $iid = isset($a['issue_id']) ? (int)$a['issue_id'] : 0;
+            if (!$iid) throw new \Issues\ValidationException("issue_id is required");
+            return $issues->listComments($iid, $user_id, $caller_aiu, $a);
 
         case 'exterm_search_items':
             $query      = $a['query']      ?? '';
@@ -234,37 +257,30 @@ function exterm_dispatch(\Exterm\Items $exterm, int $user_id, int $caller_aiu, s
 
 function exterm_tool_defs(): array
 {
-    $status_enum  = ['open','in_progress','needs_approval','approved','rejected','done'];
-    $risk_enum    = ['reversible','irreversible'];
-    $kind_enum    = ['context','task'];
-    $item_id_prop = ['type' => 'integer', 'description' => 'exterm_item_id of the item'];
+    $item_id_prop = ['type' => 'integer', 'description' => 'exterm_item_id of the note'];
 
     return [
         [
             'name'        => 'exterm_list_projects',
-            'description' => 'List all projects the caller has read access to. Returns project_id, name, and description. Use project_id with exterm_list_items.',
+            'description' => 'List all projects the caller can access. Returns project_id, name, description. Loose/greenfield ideas go in "Greenfield Harebrain Ideas" (project_id 27).',
             'inputSchema' => ['type' => 'object', 'properties' => new stdClass()],
         ],
         [
             'name'        => 'exterm_list_items',
-            'description' => 'List Exterminal items for a project. Returns metadata (no body). Filterable by kind, status, assignee, and since datetime.',
+            'description' => 'List on-the-go notes. Omit project_id to get the most recently touched notes across ALL accessible projects (use this to recall "what was I thinking about?"). Pass project_id to list one project. Returns metadata, not full body.',
             'inputSchema' => [
                 'type'       => 'object',
                 'properties' => [
-                    'project_id'   => ['type' => 'integer', 'description' => 'Project to list (required)'],
-                    'kind'         => ['type' => 'string',  'enum' => $kind_enum],
-                    'status'       => ['type' => 'string',  'enum' => $status_enum],
-                    'assignee_aiu' => ['type' => 'integer', 'description' => 'Filter by assignee aiu_id'],
-                    'since'        => ['type' => 'string',  'description' => 'ISO datetime — items updated after this'],
-                    'limit'        => ['type' => 'integer', 'default' => 20],
-                    'offset'       => ['type' => 'integer', 'default' => 0],
+                    'project_id' => ['type' => 'integer', 'description' => 'Optional. Omit = recent across all projects.'],
+                    'since'      => ['type' => 'string',  'description' => 'ISO datetime — notes updated after this'],
+                    'limit'      => ['type' => 'integer', 'default' => 20],
+                    'offset'     => ['type' => 'integer', 'default' => 0],
                 ],
-                'required' => ['project_id'],
             ],
         ],
         [
             'name'        => 'exterm_get_item',
-            'description' => 'Fetch one Exterminal item in full, including markdown body.',
+            'description' => 'Fetch one note in full, including the markdown body.',
             'inputSchema' => [
                 'type'       => 'object',
                 'properties' => ['exterm_item_id' => $item_id_prop],
@@ -273,57 +289,34 @@ function exterm_tool_defs(): array
         ],
         [
             'name'        => 'exterm_create_item',
-            'description' => 'Create a new Exterminal context doc or task. author_aiu is set automatically from the API key — callers cannot forge provenance.',
+            'description' => 'Save a new on-the-go note against a project. For a loose/greenfield idea with no home yet, use project_id 27 (Greenfield Harebrain Ideas). author is set from the connection — provenance cannot be forged. For a concrete task, use issue_create instead.',
             'inputSchema' => [
                 'type'       => 'object',
                 'properties' => [
-                    'project_id'   => ['type' => 'integer'],
-                    'kind'         => ['type' => 'string', 'enum' => $kind_enum],
-                    'title'        => ['type' => 'string'],
-                    'body'         => ['type' => 'string', 'description' => 'Markdown body (optional)'],
-                    'risk'         => ['type' => 'string', 'enum' => $risk_enum, 'default' => 'reversible'],
-                    'assignee_aiu' => ['type' => 'integer', 'description' => 'aiu_id of the intended agent; null = unassigned'],
+                    'project_id' => ['type' => 'integer', 'description' => 'Project to file under (27 for loose ideas)'],
+                    'title'      => ['type' => 'string'],
+                    'body'       => ['type' => 'string', 'description' => 'Markdown body (optional)'],
                 ],
-                'required' => ['project_id','kind','title'],
+                'required' => ['project_id','title'],
             ],
         ],
         [
             'name'        => 'exterm_update_item',
-            'description' => 'Update an Exterminal item. Status transitions are enforced: irreversible tasks cannot jump directly to done.',
+            'description' => 'Update a note. Set project_id to re-file the note into another project (e.g. promoting an idea out of Greenfield Harebrain into its own project).',
             'inputSchema' => [
                 'type'       => 'object',
                 'properties' => [
                     'exterm_item_id' => $item_id_prop,
                     'title'          => ['type' => 'string'],
                     'body'           => ['type' => 'string'],
-                    'status'         => ['type' => 'string', 'enum' => $status_enum],
-                    'risk'           => ['type' => 'string', 'enum' => $risk_enum],
-                    'assignee_aiu'   => ['type' => ['integer','null']],
+                    'project_id'     => ['type' => 'integer', 'description' => 'Move the note to this project'],
                 ],
                 'required' => ['exterm_item_id'],
             ],
         ],
         [
             'name'        => 'exterm_delete_item',
-            'description' => 'Permanently delete an Exterminal item.',
-            'inputSchema' => [
-                'type'       => 'object',
-                'properties' => ['exterm_item_id' => $item_id_prop],
-                'required'   => ['exterm_item_id'],
-            ],
-        ],
-        [
-            'name'        => 'exterm_approve_task',
-            'description' => 'Approve an irreversible task. Moves status from needs_approval → approved. This is the human gate — only Rob should call this.',
-            'inputSchema' => [
-                'type'       => 'object',
-                'properties' => ['exterm_item_id' => $item_id_prop],
-                'required'   => ['exterm_item_id'],
-            ],
-        ],
-        [
-            'name'        => 'exterm_reject_task',
-            'description' => 'Reject an irreversible task. Moves status from needs_approval → rejected.',
+            'description' => 'Permanently delete a note.',
             'inputSchema' => [
                 'type'       => 'object',
                 'properties' => ['exterm_item_id' => $item_id_prop],
@@ -332,7 +325,7 @@ function exterm_tool_defs(): array
         ],
         [
             'name'        => 'exterm_search_items',
-            'description' => 'Full-text search over Exterminal item titles and bodies. Optionally scoped to one project.',
+            'description' => 'Full-text search over note titles and bodies. Optionally scoped to one project.',
             'inputSchema' => [
                 'type'       => 'object',
                 'properties' => [
@@ -341,6 +334,85 @@ function exterm_tool_defs(): array
                     'limit'      => ['type' => 'integer', 'default' => 20],
                 ],
                 'required' => ['query'],
+            ],
+        ],
+
+        // ── Jikan issues — concrete task state for a project ──────────────────
+        [
+            'name'        => 'issue_list',
+            'description' => 'List a project\'s issues (concrete tasks) for context. Excludes done issues unless include_terminal=1 or a status slug is given. Read this to understand current project state before capturing a new idea.',
+            'inputSchema' => [
+                'type'       => 'object',
+                'properties' => [
+                    'project_id'       => ['type' => 'integer', 'description' => 'Project whose issues to list (required)'],
+                    'status'           => ['type' => 'string',  'description' => 'Filter by status slug: open, in_progress, blocked, done'],
+                    'include_terminal' => ['type' => 'integer', 'description' => '1 to include done/terminal issues'],
+                    'limit'            => ['type' => 'integer', 'default' => 100],
+                    'offset'           => ['type' => 'integer', 'default' => 0],
+                ],
+                'required' => ['project_id'],
+            ],
+        ],
+        [
+            'name'        => 'issue_get',
+            'description' => 'Fetch one issue in full, including description and status.',
+            'inputSchema' => [
+                'type'       => 'object',
+                'properties' => ['issue_id' => ['type' => 'integer', 'description' => 'issue_id of the issue']],
+                'required'   => ['issue_id'],
+            ],
+        ],
+        [
+            'name'        => 'issue_create',
+            'description' => 'Create a jikan issue when an idea is a concrete, focused task for an existing project. author is set from the connection. Status defaults to the project\'s default (open).',
+            'inputSchema' => [
+                'type'       => 'object',
+                'properties' => [
+                    'project_id'  => ['type' => 'integer'],
+                    'title'       => ['type' => 'string'],
+                    'description' => ['type' => 'string', 'description' => 'Markdown body (optional)'],
+                    'priority'    => ['type' => 'string', 'enum' => ['low','normal','high'], 'default' => 'normal'],
+                ],
+                'required' => ['project_id','title'],
+            ],
+        ],
+        [
+            'name'        => 'issue_update',
+            'description' => 'Edit an issue\'s title, description, or priority. Status changes are handled by laptop agents — not available from the phone.',
+            'inputSchema' => [
+                'type'       => 'object',
+                'properties' => [
+                    'issue_id'    => ['type' => 'integer'],
+                    'title'       => ['type' => 'string', 'description' => '1-255 characters'],
+                    'description' => ['type' => 'string', 'description' => 'Markdown body; pass empty string to clear'],
+                    'priority'    => ['type' => 'string', 'enum' => ['low','normal','high']],
+                ],
+                'required' => ['issue_id'],
+            ],
+        ],
+        [
+            'name'        => 'issue_comment_add',
+            'description' => 'Append a timestamped note or update to an issue without changing the issue fields. Good for logging progress, blockers, or context mid-task.',
+            'inputSchema' => [
+                'type'       => 'object',
+                'properties' => [
+                    'issue_id' => ['type' => 'integer'],
+                    'body'     => ['type' => 'string', 'description' => 'Markdown comment body'],
+                ],
+                'required' => ['issue_id','body'],
+            ],
+        ],
+        [
+            'name'        => 'issue_comment_list',
+            'description' => 'List comments on an issue, oldest first. Use after issue_get to read the full discussion thread.',
+            'inputSchema' => [
+                'type'       => 'object',
+                'properties' => [
+                    'issue_id' => ['type' => 'integer'],
+                    'limit'    => ['type' => 'integer', 'default' => 100],
+                    'offset'   => ['type' => 'integer', 'default' => 0],
+                ],
+                'required' => ['issue_id'],
             ],
         ],
     ];

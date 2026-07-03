@@ -4,42 +4,55 @@
  *
  * User story
  * ----------
- * As an agent (on a laptop or phone) I want to file context docs and tasks
- * against a project so all collaborators share the same state without
- * re-posting information into every inbox thread.
+ * As Rob, away from my desk, I have an idea on the train. I talk to Claude on
+ * my phone; Claude has context, saves the idea as a note, and when I get home
+ * my laptop Claude reads the note back so I can keep working. An ET note is a
+ * plain on-the-go memo — title + body — filed against a project.
+ *
+ * What ET is NOT
+ * --------------
+ * ET is the capture/notebook layer, not a task tracker. Concrete, focused task
+ * state lives in jikan ISSUES (see classes/Issues/Issues.php). When a note
+ * describes a real task, create an issue for it instead of overloading the note.
+ *
+ * Loose / greenfield ideas
+ * ------------------------
+ * Ideas with no home yet are filed into a real catch-all project
+ * ("Greenfield Harebrain Ideas", project_id=27). If one graduates into its own
+ * project, re-file the note by updating its project_id (and move the issues).
  *
  * Architecture
  * ------------
  *   Phone (Claude Android)
- *     └─▶ https://mg.robnugen.com/mcp/        (MCP Streamable-HTTP)
+ *     └─▶ https://mg.robnugen.com/mcp/        (MCP Streamable-HTTP)  — WRITES
  *   Laptop agents
- *     └─▶ jikan exterm_* tools                (stdio → /api/v1/exterm/*)
+ *     └─▶ jikan exterm_* tools                (stdio → /api/v1/exterm/*) — READS
  *   Both converge on:
  *     wwwroot/api/v1/_exterm.php  ─┐
  *     wwwroot/mcp/index.php       ─┼─▶  Exterm\Items  ─▶  exterm_items table
  *     wwwroot/exterm/*.php        ─┘       (this file)
  *
- * Inaugurated: 2026-06-15
+ * Inaugurated: 2026-06-15. Simplified to plain notes: 2026-06-16 (migration 29).
  *
  * DB dependency
  * -------------
- * Requires migration 26 — db_schemas/26_exterm/a_create_exterm_items.sql.
+ * Requires migrations 26 + 29 — db_schemas/26_exterm/ and 29_exterm_simplify/.
  * Apply via /admin/migrate_tables.php (or ssh mg "mysql mgrnc < path").
  *
  * Exceptions (each in its own file under classes/Exterm/)
  * -------------------------------------------------------
  *   AccessException     — caller lacks project membership or write permission
  *   NotFoundException   — item not found or not visible to caller
- *   ValidationException — invalid input (bad status, empty title, etc.)
+ *   ValidationException — invalid input (empty title, missing project_id, etc.)
  *
  * Usage
  * -----
  *   $items = new \Exterm\Items($pdo);
- *   $list  = $items->listItems($user_id, $caller_aiu, ['project_id' => 4]);
- *   $item  = $items->createItem($user_id, $caller_aiu, [
- *       'project_id' => 4, 'kind' => 'task', 'title' => 'Deploy ET',
+ *   $note  = $items->createItem($user_id, $caller_aiu, [
+ *       'project_id' => 27, 'title' => 'Train idea: tap-to-log', 'body' => '…',
  *   ]);
- *   $items->approveTask($user_id, $caller_aiu, $item['exterm_item_id']);
+ *   $recent = $items->listItems($user_id, $caller_aiu, []);          // across projects
+ *   $items->updateItem($user_id, $caller_aiu, $id, ['project_id' => 4]); // re-file
  *
  * More information
  * ----------------
@@ -87,17 +100,6 @@ class Items
         return $row;
     }
 
-    /** Irreversible tasks must reach approved/rejected via needs_approval — never jump to done. */
-    private function validateStatusTransition(array $item, string $new_status): void
-    {
-        if ($item['kind'] === 'context') return;
-        if ($item['risk'] === 'irreversible' && $new_status === 'done') {
-            throw new ValidationException(
-                "Irreversible tasks must reach 'done' via needs_approval → approved, not directly"
-            );
-        }
-    }
-
     // ── Projects ─────────────────────────────────────────────────────────────
 
     public function listProjects(int $user_id, int $caller_aiu): array
@@ -116,44 +118,46 @@ class Items
 
     // ── CRUD ─────────────────────────────────────────────────────────────────
 
+    /**
+     * List notes. With project_id → that project's notes. Without project_id →
+     * the caller's most-recently-touched notes across every project they can
+     * read (powers "what was I thinking about?" recall on the phone).
+     */
     public function listItems(int $user_id, int $caller_aiu, array $filters): array
     {
         $project_id = isset($filters['project_id']) ? (int)$filters['project_id'] : null;
-        if (!$project_id) throw new ValidationException("project_id is required");
+        $limit  = min((int)($filters['limit'] ?? 20), 100);
+        $offset = max((int)($filters['offset'] ?? 0), 0);
 
-        $this->projectAccess($project_id, $user_id, $caller_aiu);
+        $where  = ["p.user_id = ?"];
+        $params = [$user_id];
 
-        $where  = ["ei.project_id = ?", "p.user_id = ?"];
-        $params = [$project_id, $user_id];
-
-        $valid_kinds    = ['context','task'];
-        $valid_statuses = ['open','in_progress','needs_approval','approved','rejected','done'];
-
-        if (isset($filters['kind']) && in_array($filters['kind'], $valid_kinds)) {
-            $where[] = "ei.kind = ?"; $params[] = $filters['kind'];
+        if ($project_id) {
+            $this->projectAccess($project_id, $user_id, $caller_aiu);
+            $where[]     = "ei.project_id = ?";
+            $params[]    = $project_id;
+            $member_join = "";
+        } else {
+            // Scope to projects the caller is a reading member of.
+            $member_join = "JOIN project_members pm ON pm.project_id = ei.project_id
+                            AND pm.member_aiu = ? AND pm.can_read = 1";
+            array_unshift($params, $caller_aiu);
         }
-        if (isset($filters['status']) && in_array($filters['status'], $valid_statuses)) {
-            $where[] = "ei.status = ?"; $params[] = $filters['status'];
-        }
-        if (!empty($filters['assignee_aiu'])) {
-            $where[] = "ei.assignee_aiu = ?"; $params[] = (int)$filters['assignee_aiu'];
-        }
+
         if (!empty($filters['since'])) {
             $where[] = "ei.updated_at_utc >= ?"; $params[] = $filters['since'];
         }
 
-        $limit  = min((int)($filters['limit'] ?? 20), 100);
-        $offset = max((int)($filters['offset'] ?? 0), 0);
         $params[] = $limit;
         $params[] = $offset;
 
-        $sql = "SELECT ei.exterm_item_id, ei.kind, ei.status, ei.risk, ei.title,
-                       ei.author_aiu, ei.assignee_aiu, ei.created_at_utc, ei.updated_at_utc,
-                       aiu_a.name AS author_name, aiu_e.name AS assignee_name
+        $sql = "SELECT ei.exterm_item_id, ei.project_id, p.name AS project_name, ei.title,
+                       ei.author_aiu, ei.created_at_utc, ei.updated_at_utc,
+                       aiu_a.name AS author_name
                 FROM exterm_items ei
-                JOIN projects p             ON p.project_id    = ei.project_id
-                JOIN agent_inbox_user aiu_a ON aiu_a.aiu_id   = ei.author_aiu
-                LEFT JOIN agent_inbox_user aiu_e ON aiu_e.aiu_id = ei.assignee_aiu
+                JOIN projects p             ON p.project_id = ei.project_id
+                {$member_join}
+                JOIN agent_inbox_user aiu_a ON aiu_a.aiu_id = ei.author_aiu
                 WHERE " . implode(' AND ', $where) . "
                 ORDER BY ei.updated_at_utc DESC
                 LIMIT ? OFFSET ?";
@@ -169,11 +173,10 @@ class Items
         if (!(int)$row['can_read']) throw new AccessException("No read access to item {$exterm_item_id}");
 
         $stmt = $this->pdo->prepare(
-            "SELECT ei.*,
-                    aiu_a.name AS author_name, aiu_e.name AS assignee_name
+            "SELECT ei.*, p.name AS project_name, aiu_a.name AS author_name
              FROM exterm_items ei
+             JOIN projects p            ON p.project_id = ei.project_id
              JOIN agent_inbox_user aiu_a ON aiu_a.aiu_id = ei.author_aiu
-             LEFT JOIN agent_inbox_user aiu_e ON aiu_e.aiu_id = ei.assignee_aiu
              WHERE ei.exterm_item_id = ?
              LIMIT 1"
         );
@@ -183,29 +186,29 @@ class Items
 
     public function createItem(int $user_id, int $caller_aiu, array $data): array
     {
-        $project_id   = isset($data['project_id']) ? (int)$data['project_id'] : null;
-        $kind         = $data['kind']  ?? 'task';
-        $title        = trim($data['title'] ?? '');
-        $body         = $data['body']  ?? null;
-        $risk         = $data['risk']  ?? 'reversible';
-        $assignee_aiu = !empty($data['assignee_aiu']) ? (int)$data['assignee_aiu'] : null;
+        $project_id = isset($data['project_id']) ? (int)$data['project_id'] : null;
+        $title      = trim($data['title'] ?? '');
+        $body       = $data['body'] ?? null;
 
         if (!$project_id) throw new ValidationException("project_id is required");
         if (!$title)      throw new ValidationException("title is required");
-        if (!in_array($kind, ['context','task']))            throw new ValidationException("kind must be context or task");
-        if (!in_array($risk, ['reversible','irreversible'])) throw new ValidationException("risk must be reversible or irreversible");
 
         $role = $this->projectAccess($project_id, $user_id, $caller_aiu);
         if (!(int)$role['can_write']) throw new AccessException("No write access to project {$project_id}");
 
         $this->pdo->prepare(
-            "INSERT INTO exterm_items (project_id, author_aiu, assignee_aiu, kind, risk, title, body)
-             VALUES (?, ?, ?, ?, ?, ?, ?)"
-        )->execute([$project_id, $caller_aiu, $assignee_aiu, $kind, $risk, $title, $body]);
+            "INSERT INTO exterm_items (project_id, author_aiu, title, body)
+             VALUES (?, ?, ?, ?)"
+        )->execute([$project_id, $caller_aiu, $title, $body]);
 
         return $this->getItem((int)$this->pdo->lastInsertId(), $user_id, $caller_aiu);
     }
 
+    /**
+     * Update a note. Accepts title, body, and project_id (re-filing a note into
+     * another project — e.g. promoting a greenfield idea). Re-filing requires
+     * write access on the destination project.
+     */
     public function updateItem(int $user_id, int $caller_aiu, int $exterm_item_id, array $data): array
     {
         $row = $this->itemWithAccess($exterm_item_id, $user_id, $caller_aiu);
@@ -222,22 +225,11 @@ class Items
         if (array_key_exists('body', $data)) {
             $sets[] = "body = ?"; $params[] = $data['body'];
         }
-        if (array_key_exists('risk', $data) && $data['risk'] !== null) {
-            if (!in_array($data['risk'], ['reversible','irreversible'])) throw new ValidationException("Invalid risk value");
-            $sets[] = "risk = ?"; $params[] = $data['risk'];
-        }
-        if (array_key_exists('assignee_aiu', $data)) {
-            $sets[] = "assignee_aiu = ?";
-            $params[] = !empty($data['assignee_aiu']) ? (int)$data['assignee_aiu'] : null;
-        }
-        if (array_key_exists('status', $data) && $data['status'] !== null) {
-            $valid = ['open','in_progress','needs_approval','approved','rejected','done'];
-            if (!in_array($data['status'], $valid)) throw new ValidationException("Invalid status value");
-            $this->validateStatusTransition($row, $data['status']);
-            $sets[] = "status = ?"; $params[] = $data['status'];
-            if (in_array($data['status'], ['done','approved','rejected'])) {
-                $sets[] = "done_at_utc = NOW(6)";
-            }
+        if (array_key_exists('project_id', $data) && $data['project_id'] !== null) {
+            $dest = (int)$data['project_id'];
+            $role = $this->projectAccess($dest, $user_id, $caller_aiu);
+            if (!(int)$role['can_write']) throw new AccessException("No write access to project {$dest}");
+            $sets[] = "project_id = ?"; $params[] = $dest;
         }
 
         if (empty($sets)) throw new ValidationException("Nothing to update");
@@ -255,26 +247,6 @@ class Items
         if (!(int)$row['can_write']) throw new AccessException("No write access to delete item {$exterm_item_id}");
         $this->pdo->prepare("DELETE FROM exterm_items WHERE exterm_item_id = ?")->execute([$exterm_item_id]);
         return ['exterm_item_id' => $exterm_item_id, 'deleted' => true];
-    }
-
-    public function approveTask(int $user_id, int $caller_aiu, int $exterm_item_id): array
-    {
-        $row = $this->itemWithAccess($exterm_item_id, $user_id, $caller_aiu);
-        if (!(int)$row['can_write']) throw new AccessException("No write access");
-        if ($row['status'] !== 'needs_approval') throw new ValidationException("Item is not awaiting approval (status: {$row['status']})");
-        $this->pdo->prepare("UPDATE exterm_items SET status='approved', done_at_utc=NOW(6) WHERE exterm_item_id=?")
-            ->execute([$exterm_item_id]);
-        return $this->getItem($exterm_item_id, $user_id, $caller_aiu);
-    }
-
-    public function rejectTask(int $user_id, int $caller_aiu, int $exterm_item_id): array
-    {
-        $row = $this->itemWithAccess($exterm_item_id, $user_id, $caller_aiu);
-        if (!(int)$row['can_write']) throw new AccessException("No write access");
-        if ($row['status'] !== 'needs_approval') throw new ValidationException("Item is not awaiting approval (status: {$row['status']})");
-        $this->pdo->prepare("UPDATE exterm_items SET status='rejected', done_at_utc=NOW(6) WHERE exterm_item_id=?")
-            ->execute([$exterm_item_id]);
-        return $this->getItem($exterm_item_id, $user_id, $caller_aiu);
     }
 
     public function searchItems(int $user_id, int $caller_aiu, string $query, ?int $project_id = null, int $limit = 20): array
@@ -298,7 +270,7 @@ class Items
         $params[] = $limit;
 
         $stmt = $this->pdo->prepare(
-            "SELECT ei.exterm_item_id, ei.project_id, ei.kind, ei.status, ei.title,
+            "SELECT ei.exterm_item_id, ei.project_id, p.name AS project_name, ei.title,
                     SUBSTRING(ei.body, 1, 200) AS snippet
              FROM exterm_items ei
              JOIN projects p ON p.project_id = ei.project_id
