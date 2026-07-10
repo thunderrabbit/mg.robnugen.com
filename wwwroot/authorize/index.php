@@ -11,10 +11,12 @@
  *
  * GET  /authorize/?response_type=code&client_id=...&redirect_uri=...
  *                  &code_challenge=...&code_challenge_method=S256&state=...
- *      → show approval form
+ *      → if this (user, client_id, redirect_uri) was approved before
+ *        (oauth_client_consents), silently reissue a code for the same
+ *        agent. Otherwise show the approval form.
  *
  * POST /authorize/ (form submit with hidden params + chosen aiu_id)
- *      → generate code → redirect to redirect_uri?code=...&state=...
+ *      → generate code, remember consent → redirect to redirect_uri?code=...&state=...
  *
  * @see wwwroot/mcp/token.php  — exchanges the code for an access token
  * @see wwwroot/.well-known/oauth-authorization-server  — discovery metadata
@@ -66,7 +68,41 @@ $aiu_stmt = $pdo->prepare(
 $aiu_stmt->execute([$user_id]);
 $agent_choices = $aiu_stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-// ── POST: issue code and redirect ─────────────────────────────────────────────
+// ── Issue an auth code and redirect back to the client ────────────────────────
+
+function issue_auth_code_and_redirect(\PDO $pdo, int $aiu_id, int $user_id, string $code_challenge, string $redirect_uri, string $state): void
+{
+    $raw_code  = bin2hex(random_bytes(32));
+    $code_hash = hash('sha256', $raw_code);
+
+    $pdo->prepare(
+        "INSERT INTO oauth_auth_codes
+             (aiu_id, user_id, code_hash, code_challenge, redirect_uri, state, expires_at_utc)
+         VALUES (?, ?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 10 MINUTE))"
+    )->execute([$aiu_id, $user_id, $code_hash, $code_challenge, $redirect_uri, $state]);
+
+    $sep = str_contains($redirect_uri, '?') ? '&' : '?';
+    header("Location: {$redirect_uri}{$sep}code={$raw_code}&state=" . urlencode($state));
+    exit;
+}
+
+// ── GET: skip the form if this client+redirect was already approved ──────────
+
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && $client_id !== '') {
+    $consent_stmt = $pdo->prepare(
+        "SELECT aiu_id FROM oauth_client_consents
+         WHERE user_id = ? AND client_id = ? AND redirect_uri = ?
+         LIMIT 1"
+    );
+    $consent_stmt->execute([$user_id, $client_id, $redirect_uri]);
+    $remembered_aiu = $consent_stmt->fetchColumn();
+
+    if ($remembered_aiu !== false) {
+        issue_auth_code_and_redirect($pdo, (int)$remembered_aiu, $user_id, $code_challenge, $redirect_uri, $state);
+    }
+}
+
+// ── POST: issue code, remember consent, and redirect ──────────────────────────
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $chosen_aiu = (int)($_POST['aiu_id'] ?? 0);
@@ -82,18 +118,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $raw_code  = bin2hex(random_bytes(32));
-    $code_hash = hash('sha256', $raw_code);
+    if ($client_id !== '') {
+        $pdo->prepare(
+            "INSERT INTO oauth_client_consents (user_id, aiu_id, client_id, redirect_uri)
+             VALUES (?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE aiu_id = VALUES(aiu_id), created_at_utc = NOW()"
+        )->execute([$user_id, $chosen_aiu, $client_id, $redirect_uri]);
+    }
 
-    $pdo->prepare(
-        "INSERT INTO oauth_auth_codes
-             (aiu_id, user_id, code_hash, code_challenge, redirect_uri, state, expires_at_utc)
-         VALUES (?, ?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 10 MINUTE))"
-    )->execute([$chosen_aiu, $user_id, $code_hash, $code_challenge, $redirect_uri, $state]);
-
-    $sep = str_contains($redirect_uri, '?') ? '&' : '?';
-    header("Location: {$redirect_uri}{$sep}code={$raw_code}&state=" . urlencode($state));
-    exit;
+    issue_auth_code_and_redirect($pdo, $chosen_aiu, $user_id, $code_challenge, $redirect_uri, $state);
 }
 
 // ── GET: show approval form ───────────────────────────────────────────────────
