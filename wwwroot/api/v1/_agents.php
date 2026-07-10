@@ -45,6 +45,7 @@ if ($method === 'GET' && $sub === '') {
                 can_read_sessions, can_write_sessions,
                 can_read_emotions, can_write_emotions,
                 can_read_project, can_write_project,
+                can_ping_phone,
                 created_at_utc
          FROM agent_inbox_user WHERE user_id = ? ORDER BY aiu_id"
     );
@@ -86,7 +87,7 @@ if ($method === 'POST' && $sub === '') {
     // Permission bits default to inbox-only for agents
     $perm_fields = ['can_read_inbox','can_write_inbox','can_read_todos','can_write_todos',
                     'can_read_sessions','can_write_sessions','can_read_emotions','can_write_emotions',
-                    'can_read_project','can_write_project'];
+                    'can_read_project','can_write_project','can_ping_phone'];
     $perms = [];
     foreach ($perm_fields as $p) {
         $perms[$p] = isset($input[$p]) ? ($input[$p] ? 1 : 0) : ($p === 'can_read_inbox' ? 1 : 0);
@@ -98,8 +99,8 @@ if ($method === 'POST' && $sub === '') {
         "INSERT INTO agent_inbox_user (user_id, name, description, actor_type,
          can_read_inbox, can_write_inbox, can_read_todos, can_write_todos,
          can_read_sessions, can_write_sessions, can_read_emotions, can_write_emotions,
-         can_read_project, can_write_project)
-         VALUES (?, ?, ?, 'agent', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+         can_read_project, can_write_project, can_ping_phone)
+         VALUES (?, ?, ?, 'agent', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     );
     $stmt->execute([
         $auth_user_id, $name, $desc,
@@ -108,6 +109,7 @@ if ($method === 'POST' && $sub === '') {
         $perms['can_read_sessions'], $perms['can_write_sessions'],
         $perms['can_read_emotions'], $perms['can_write_emotions'],
         $perms['can_read_project'], $perms['can_write_project'],
+        $perms['can_ping_phone'],
     ]);
     $new_aiu_id = (int) $pdo->lastInsertId();
 

@@ -148,6 +148,8 @@ if ($path === '/sessions' || preg_match('#^/sessions(/|$)#', $path)) {
 } elseif ($path === '/exterm' || preg_match('#^/exterm(/|$)#', $path)) {
     require_project_perm($auth_actor, $method);
     include __DIR__ . '/_exterm.php';
+} elseif ($path === '/notify' || preg_match('#^/notify(/|$)#', $path)) {
+    include __DIR__ . '/_notify.php';
 } else {
     http_response_code(404);
     echo json_encode(['error' => 'Not found']);
