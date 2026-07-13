@@ -10,11 +10,14 @@ use Codeception\Test\Unit;
  *
  * Actors (all under user_id 30 / Dr_Hilbert_Space_mgTester):
  *
- *   FULL  (aiu 11) — supervisor (NULL peer), sees all, can send anywhere
+ *   FULL  (aiu 11) — supervisor (NULL peer), sees all, can send anywhere,
+ *                     can_broadcast_inbox=1 (required — setup message #1
+ *                     below is a Full-sent broadcast)
  *   ALPHA (aiu 13) — can_read_inbox=1, can_write_inbox=0,
  *                     scoped visibility, can send to Beta(14) and Full(11)
  *   BETA  (aiu 14) — can_read_inbox=0, can_write_inbox=1,
- *                     scoped visibility, can send to Alpha(13) and Full(11)
+ *                     scoped visibility, can send to Alpha(13) and Full(11),
+ *                     can_broadcast_inbox=0
  *   NONE  (aiu 12) — no permissions, no visibility rows
  *
  * Setup sends 4 messages:
@@ -341,13 +344,18 @@ class VisibilityAndRoutingTest extends Unit
     }
 
     /**
-     * Test 8: Beta sends broadcast (no recipient_aiu) — allowed.
+     * Test 8: Beta sends broadcast (no recipient_aiu) — denied, Beta lacks
+     *         can_broadcast_inbox. Directed sends (Test 7) still work fine;
+     *         only the broadcast path requires the extra permission.
      */
-    public function testBetaCanSendBroadcast()
+    public function testBetaCannotSendBroadcastWithoutFlag()
     {
         $result = self::send(self::$keyBeta, self::$runTag . ' routing_test_8');
-        $this->assertEquals(201, $result['status'], 'Beta broadcast should be allowed');
-        $this->assertArrayHasKey('message_id', $result['body']);
+        $this->assertEquals(403, $result['status'], 'Beta lacks can_broadcast_inbox');
+        $this->assertEquals(
+            'This API key does not have permission to broadcast',
+            $result['body']['error'] ?? ''
+        );
     }
 
     /**
