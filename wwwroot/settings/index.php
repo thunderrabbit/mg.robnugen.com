@@ -38,14 +38,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_key_action'])) {
             $errors[] = 'Agent name is required.';
         } else {
             $perms = [];
-            foreach (['can_read_inbox','can_write_inbox','can_read_todos','can_write_todos','can_read_sessions','can_write_sessions','can_read_emotions','can_write_emotions'] as $p) {
+            foreach (['can_read_inbox','can_write_inbox','can_read_todos','can_write_todos','can_read_sessions','can_write_sessions','can_read_emotions','can_write_emotions','can_ping_phone'] as $p) {
                 $perms[$p] = isset($_POST[$p]) ? 1 : 0;
             }
             $stmt = $mla_database->prepare(
                 "INSERT INTO agent_inbox_user (user_id, name, description, actor_type,
                  can_read_inbox, can_write_inbox, can_read_todos, can_write_todos,
-                 can_read_sessions, can_write_sessions, can_read_emotions, can_write_emotions)
-                 VALUES (?, ?, ?, 'agent', ?, ?, ?, ?, ?, ?, ?, ?)"
+                 can_read_sessions, can_write_sessions, can_read_emotions, can_write_emotions,
+                 can_ping_phone)
+                 VALUES (?, ?, ?, 'agent', ?, ?, ?, ?, ?, ?, ?, ?, ?)"
             );
             $stmt->execute([
                 $user_id, $name, $description ?: null,
@@ -53,6 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_key_action'])) {
                 $perms['can_read_todos'], $perms['can_write_todos'],
                 $perms['can_read_sessions'], $perms['can_write_sessions'],
                 $perms['can_read_emotions'], $perms['can_write_emotions'],
+                $perms['can_ping_phone'],
             ]);
             $new_aiu_id = (int) $mla_database->lastInsertId();
 
