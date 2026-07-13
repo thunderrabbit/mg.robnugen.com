@@ -36,7 +36,9 @@
                 <div class="form-group" style="flex: 0 0 auto;">
                     <label for="recipient_aiu">To</label>
                     <select id="recipient_aiu" name="recipient_aiu" class="form-control">
+                        <?php if ($can_broadcast_inbox): ?>
                         <option value="">Broadcast (all)</option>
+                        <?php endif; ?>
                         <?php foreach ($inbox_actors as $a): ?>
                         <option value="<?= (int)$a['aiu_id'] ?>"><?= htmlspecialchars($a['name']) ?></option>
                         <?php endforeach; ?>
@@ -328,7 +330,9 @@
                                 <option value="low" <?= $msg['priority'] === 'low' ? 'selected' : '' ?>>Low</option>
                             </select>
                             <select class="form-control" id="edit-recipient-<?= $msg['message_id'] ?>" style="width: auto;">
+                                <?php if ($can_broadcast_inbox || empty($msg['recipient_aiu'])): ?>
                                 <option value="" <?= empty($msg['recipient_aiu']) ? 'selected' : '' ?>>Broadcast (all)</option>
+                                <?php endif; ?>
                                 <?php foreach ($inbox_actors as $a): ?>
                                 <option value="<?= (int)$a['aiu_id'] ?>" <?= (int)$msg['recipient_aiu'] === (int)$a['aiu_id'] ? 'selected' : '' ?>><?= htmlspecialchars($a['name']) ?></option>
                                 <?php endforeach; ?>

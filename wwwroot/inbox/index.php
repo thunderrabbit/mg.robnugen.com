@@ -105,6 +105,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
         $show_date  = $show_date !== '' ? $show_date : null;
         $is_ajax = !empty($_POST['ajax']);
 
+        // Only messages actually switching TO broadcast need can_broadcast_inbox —
+        // re-saving an already-broadcast message (editing text/priority/etc. while
+        // the dropdown still shows its existing "Broadcast (all)" state) is not a
+        // new broadcast decision.
+        $is_broadcast_change = false;
+        if ($recipient_aiu === null) {
+            $current_recipient_stmt = $mla_database->prepare(
+                "SELECT recipient_aiu FROM agent_inbox WHERE message_id = ? AND user_id = ?"
+            );
+            $current_recipient_stmt->execute([$message_id, $user_id]);
+            $current_recipient = $current_recipient_stmt->fetchColumn();
+            $is_broadcast_change = ($current_recipient !== null && $current_recipient !== false);
+        }
+
         if ($message_id <= 0 || $message === '') {
             if ($is_ajax) {
                 header('Content-Type: application/json');
@@ -112,7 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
                 exit;
             }
             $error_message = 'Message ID and message text are required.';
-        } elseif ($recipient_aiu === null && !$web_can_broadcast) {
+        } elseif ($is_broadcast_change && !$web_can_broadcast) {
             if ($is_ajax) {
                 header('Content-Type: application/json');
                 echo json_encode(['success' => false, 'error' => 'You do not have permission to broadcast.']);
