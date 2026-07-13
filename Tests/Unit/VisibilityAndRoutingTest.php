@@ -14,14 +14,19 @@ use Codeception\Test\Unit;
  *   ALPHA (aiu 13) — can_read_inbox=1, can_write_inbox=0,
  *                     scoped visibility, can send to Beta(14) and Full(11)
  *   BETA  (aiu 14) — can_read_inbox=0, can_write_inbox=1,
- *                     scoped visibility, can send to Alpha(13) and Full(11)
+ *                     scoped visibility, can send to Alpha(13) and Full(11),
+ *                     can_broadcast_inbox=0
  *   NONE  (aiu 12) — no permissions, no visibility rows
  *
- * Setup sends 4 messages:
- *   #1 Full → broadcast (no recipient_aiu)
+ * Setup sends 3 messages:
  *   #2 Full → Alpha (recipient_aiu=13)
  *   #3 Full → Beta  (recipient_aiu=14)
  *   #4 Beta → Alpha (recipient_aiu=13)
+ * (numbered #2-#4 to match message content tags left over from when this
+ * suite also seeded a broadcast fixture as #1 — broadcast-visibility
+ * coverage was dropped since there's no staging system: seeding it would've
+ * meant either granting a production account can_broadcast_inbox, or adding
+ * DB credentials to this HTTP-only test suite just for one row.)
  *
  * IMPORTANT: These tests will FAIL until Session F is deployed.
  *
@@ -43,7 +48,6 @@ class VisibilityAndRoutingTest extends Unit
     private static string $baseUrl = 'https://mg.robnugen.com/api/v1';
 
     /** Message IDs created during setup, for assertions and cleanup */
-    private static int $msgBroadcast;      // #1 Full → broadcast
     private static int $msgToAlpha;         // #2 Full → Alpha
     private static int $msgToBeta;          // #3 Full → Beta
     private static int $msgBetaToAlpha;     // #4 Beta → Alpha
@@ -98,12 +102,7 @@ class VisibilityAndRoutingTest extends Unit
 
         self::$runTag = 'vrt_' . bin2hex(random_bytes(4));
 
-        // ── Send 4 setup messages ────────────────────────────────────
-
-        // #1 Full → broadcast (no recipient_aiu)
-        $r = self::send(self::$keyFull, self::$runTag . ' broadcast');
-        self::assertSetupOk($r, '#1 broadcast');
-        self::$msgBroadcast = $r['body']['message_id'];
+        // ── Send 3 setup messages ────────────────────────────────────
 
         // #2 Full → Alpha
         $r = self::send(self::$keyFull, self::$runTag . ' to_alpha', self::$aiuAlpha);
@@ -232,7 +231,7 @@ class VisibilityAndRoutingTest extends Unit
     // ═══════════════════════════════════════════════════════════════════════
 
     /**
-     * Test 1: Full (supervisor) sees all 4 messages.
+     * Test 1: Full (supervisor) sees all 3 messages.
      */
     public function testFullSeesAllMessages()
     {
@@ -240,7 +239,7 @@ class VisibilityAndRoutingTest extends Unit
         $this->assertEquals(200, $result['status']);
 
         $ids = $this->extractIds($result);
-        $expected = [self::$msgBroadcast, self::$msgToAlpha, self::$msgToBeta, self::$msgBetaToAlpha];
+        $expected = [self::$msgToAlpha, self::$msgToBeta, self::$msgBetaToAlpha];
 
         foreach ($expected as $msgId) {
             $this->assertContains($msgId, $ids, "Supervisor should see message $msgId");
@@ -248,17 +247,16 @@ class VisibilityAndRoutingTest extends Unit
     }
 
     /**
-     * Test 2: Alpha sees broadcast (#1) + messages addressed to Alpha (#2, #4),
+     * Test 2: Alpha sees messages addressed to Alpha (#2, #4),
      *         but NOT #3 (addressed to Beta).
      */
-    public function testAlphaSeesOwnAndBroadcastOnly()
+    public function testAlphaSeesOwnMessagesOnly()
     {
         $result = $this->listInbox(self::$keyAlpha);
         $this->assertEquals(200, $result['status']);
 
         $ids = $this->extractIds($result);
 
-        $this->assertContains(self::$msgBroadcast, $ids, 'Alpha should see broadcast');
         $this->assertContains(self::$msgToAlpha, $ids, 'Alpha should see message addressed to Alpha');
         $this->assertContains(self::$msgBetaToAlpha, $ids, 'Alpha should see Beta→Alpha message');
         $this->assertNotContains(self::$msgToBeta, $ids, 'Alpha should NOT see message addressed to Beta');
@@ -288,13 +286,12 @@ class VisibilityAndRoutingTest extends Unit
         $ids = $this->extractIds($result);
 
         $this->assertContains(self::$msgBetaToAlpha, $ids, 'Should include Beta-sent message');
-        $this->assertNotContains(self::$msgBroadcast, $ids, 'Should exclude Full-sent broadcast');
         $this->assertNotContains(self::$msgToAlpha, $ids, 'Should exclude Full-sent to Alpha');
         $this->assertNotContains(self::$msgToBeta, $ids, 'Should exclude Full-sent to Beta');
     }
 
     /**
-     * Test 5: Full with include_sent=1 still sees all 4 (supervisor sees all anyway).
+     * Test 5: Full with include_sent=1 still sees all 3 (supervisor sees all anyway).
      */
     public function testFullWithIncludeSentSeesAll()
     {
@@ -302,7 +299,7 @@ class VisibilityAndRoutingTest extends Unit
         $this->assertEquals(200, $result['status']);
 
         $ids = $this->extractIds($result);
-        $expected = [self::$msgBroadcast, self::$msgToAlpha, self::$msgToBeta, self::$msgBetaToAlpha];
+        $expected = [self::$msgToAlpha, self::$msgToBeta, self::$msgBetaToAlpha];
 
         foreach ($expected as $msgId) {
             $this->assertContains($msgId, $ids, "Supervisor with include_sent should see message $msgId");
@@ -310,7 +307,7 @@ class VisibilityAndRoutingTest extends Unit
     }
 
     /**
-     * Test 6: Alpha with include_sent=1 still sees #1, #2, #4 —
+     * Test 6: Alpha with include_sent=1 still sees #2, #4 —
      *         Alpha hasn't sent anything, no change.
      */
     public function testAlphaWithIncludeSentNoChange()
@@ -320,7 +317,6 @@ class VisibilityAndRoutingTest extends Unit
 
         $ids = $this->extractIds($result);
 
-        $this->assertContains(self::$msgBroadcast, $ids, 'Alpha should see broadcast');
         $this->assertContains(self::$msgToAlpha, $ids, 'Alpha should see message to Alpha');
         $this->assertContains(self::$msgBetaToAlpha, $ids, 'Alpha should see Beta→Alpha');
         $this->assertNotContains(self::$msgToBeta, $ids, 'Alpha should NOT see message to Beta');
@@ -341,13 +337,18 @@ class VisibilityAndRoutingTest extends Unit
     }
 
     /**
-     * Test 8: Beta sends broadcast (no recipient_aiu) — allowed.
+     * Test 8: Beta sends broadcast (no recipient_aiu) — denied, Beta lacks
+     *         can_broadcast_inbox. Directed sends (Test 7) still work fine;
+     *         only the broadcast path requires the extra permission.
      */
-    public function testBetaCanSendBroadcast()
+    public function testBetaCannotSendBroadcastWithoutFlag()
     {
         $result = self::send(self::$keyBeta, self::$runTag . ' routing_test_8');
-        $this->assertEquals(201, $result['status'], 'Beta broadcast should be allowed');
-        $this->assertArrayHasKey('message_id', $result['body']);
+        $this->assertEquals(403, $result['status'], 'Beta lacks can_broadcast_inbox');
+        $this->assertEquals(
+            'This API key does not have permission to broadcast',
+            $result['body']['error'] ?? ''
+        );
     }
 
     /**

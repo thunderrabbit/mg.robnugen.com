@@ -28,10 +28,12 @@ if (empty($api_keys)) {
 
 // Get the human actor for this user (for sender_aiu on web form sends)
 $aiu_stmt = $mla_database->prepare(
-    "SELECT aiu_id FROM agent_inbox_user WHERE user_id = ? AND actor_type = 'human' LIMIT 1"
+    "SELECT aiu_id, can_broadcast_inbox FROM agent_inbox_user WHERE user_id = ? AND actor_type = 'human' LIMIT 1"
 );
 $aiu_stmt->execute([$user_id]);
-$web_sender_aiu = (int) $aiu_stmt->fetchColumn() ?: null;
+$aiu_row = $aiu_stmt->fetch(\PDO::FETCH_ASSOC);
+$web_sender_aiu = (int) ($aiu_row['aiu_id'] ?? 0) ?: null;
+$web_can_broadcast = !empty($aiu_row['can_broadcast_inbox']);
 
 $error_message   = '';
 $success_message = '';
@@ -72,18 +74,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
             $error_message = 'Message exceeds 10,240 byte limit (' . strlen($message) . ' bytes).';
         } else {
             $recipient_aiu = (int)($_POST['recipient_aiu'] ?? 0) ?: null;
-            $stmt = $mla_database->prepare(
-                "INSERT INTO agent_inbox (user_id, message, priority, show_date, sender_timezone, sender_aiu, recipient_aiu) VALUES (?, ?, ?, ?, ?, ?, ?)"
-            );
-            $stmt->execute([$user_id, $message, $priority, $show_date, $sender_timezone ?: null, $web_sender_aiu, $recipient_aiu]);
-            $new_message_id = $mla_database->lastInsertId();
+            if ($recipient_aiu === null && !$web_can_broadcast) {
+                if ($is_ajax) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['error' => 'You do not have permission to broadcast.']);
+                    exit;
+                }
+                $error_message = 'You do not have permission to broadcast.';
+            } else {
+                $stmt = $mla_database->prepare(
+                    "INSERT INTO agent_inbox (user_id, message, priority, show_date, sender_timezone, sender_aiu, recipient_aiu) VALUES (?, ?, ?, ?, ?, ?, ?)"
+                );
+                $stmt->execute([$user_id, $message, $priority, $show_date, $sender_timezone ?: null, $web_sender_aiu, $recipient_aiu]);
+                $new_message_id = $mla_database->lastInsertId();
 
-            if ($is_ajax) {
-                header('Content-Type: application/json');
-                echo json_encode(['success' => true, 'message_id' => (int)$new_message_id]);
-                exit;
+                if ($is_ajax) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => true, 'message_id' => (int)$new_message_id]);
+                    exit;
+                }
+                $success_message = 'Message sent to agent inbox.';
             }
-            $success_message = 'Message sent to agent inbox.';
         }
     } elseif ($_POST['inbox_action'] === 'edit') {
         $message_id = (int)($_POST['message_id'] ?? 0);
@@ -94,6 +105,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
         $show_date  = $show_date !== '' ? $show_date : null;
         $is_ajax = !empty($_POST['ajax']);
 
+        // Only messages actually switching TO broadcast need can_broadcast_inbox —
+        // re-saving an already-broadcast message (editing text/priority/etc. while
+        // the dropdown still shows its existing "Broadcast (all)" state) is not a
+        // new broadcast decision.
+        $is_broadcast_change = false;
+        if ($recipient_aiu === null) {
+            $current_recipient_stmt = $mla_database->prepare(
+                "SELECT recipient_aiu FROM agent_inbox WHERE message_id = ? AND user_id = ?"
+            );
+            $current_recipient_stmt->execute([$message_id, $user_id]);
+            $current_recipient = $current_recipient_stmt->fetchColumn();
+            $is_broadcast_change = ($current_recipient !== null && $current_recipient !== false);
+        }
+
         if ($message_id <= 0 || $message === '') {
             if ($is_ajax) {
                 header('Content-Type: application/json');
@@ -101,6 +126,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
                 exit;
             }
             $error_message = 'Message ID and message text are required.';
+        } elseif ($is_broadcast_change && !$web_can_broadcast) {
+            if ($is_ajax) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'error' => 'You do not have permission to broadcast.']);
+                exit;
+            }
+            $error_message = 'You do not have permission to broadcast.';
         } else {
             $stmt = $mla_database->prepare(
                 "UPDATE agent_inbox SET message = ?, priority = ?, recipient_aiu = ?, show_date = ? WHERE message_id = ? AND user_id = ?"
@@ -239,6 +271,7 @@ $page->set('error_message',   $error_message);
 $page->set('success_message', $success_message);
 $page->set('messages',        $messages);
 $page->set('inbox_actors',   $inbox_actors);
+$page->set('can_broadcast_inbox', $web_can_broadcast);
 $page->set('csrf_token',      $_SESSION['csrf_token']);
 $page->set('show_archived',    $show_archived);
 $page->set('show_future',      $show_future);

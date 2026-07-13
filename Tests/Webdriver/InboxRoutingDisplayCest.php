@@ -7,8 +7,14 @@ use Tests\Support\AcceptanceTester;
 /**
  * Webdriver test for inbox sender/recipient display (task J5).
  *
- * Verifies that sent messages show correct "from" and "to" badges,
- * and that broadcast messages show a "broadcast" label.
+ * Verifies that sent messages show correct "from" and "to" badges.
+ *
+ * Used to also cover the "broadcast" label on broadcast messages, but that
+ * coverage was dropped along with can_broadcast_inbox gating: there's no
+ * staging system, so this suite runs against production, and the broadcast
+ * option no longer appears in the UI for accounts without the (now
+ * default-off) permission — see VisibilityAndRoutingTest for the
+ * broadcast-denial coverage that replaced it.
  *
  * No cleanup — this is test data under our own account.
  */
@@ -43,26 +49,5 @@ class InboxRoutingDisplayCest
         // Find the message containing our tag and check its badges
         $I->see($tag, '.inbox-message');
         $I->see('to', '.inbox-recipient');
-    }
-
-    public function canSeeBroadcastLabelOnBroadcastMessage(AcceptanceTester $I)
-    {
-        $tag = 'routing_broadcast_' . bin2hex(random_bytes(4));
-
-        $I->amOnPage('/inbox/');
-        $I->seeInTitle('Agent Inbox');
-        $I->waitForElementVisible('#send-form', 5);
-
-        // Leave recipient as broadcast (default empty value)
-        $I->selectOption('#recipient_aiu', '');
-
-        $I->fillField('#message', "Test broadcast message $tag");
-        $I->click('#send-btn');
-
-        // Page reloads after send
-        $I->waitForText($tag, 10);
-
-        // Verify broadcast label appears instead of a recipient name
-        $I->see('broadcast', '.inbox-broadcast');
     }
 }

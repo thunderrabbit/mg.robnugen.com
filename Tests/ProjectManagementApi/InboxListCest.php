@@ -7,12 +7,22 @@ use Tests\Support\AcceptanceTester;
 /**
  * Verifies /api/v1/inbox/list ordering per issue #98.
  *
- * Strategy: POST N broadcast messages with a shared unique marker in the body,
- * then GET /inbox/list with each `order` value. Because `message_id` is
- * monotonically increasing and included as a tiebreaker in every order_clause,
- * back-to-back POSTs give deterministic ordering without needing
- * distinct-second timestamps. Tests filter the response to messages containing
- * the marker and assert the `message_id` sequence matches expectations.
+ * Strategy: POST N messages (directed to ALPHA — see note below) with a
+ * shared unique marker in the body, then GET /inbox/list with each `order`
+ * value. Because `message_id` is monotonically increasing and included as a
+ * tiebreaker in every order_clause, back-to-back POSTs give deterministic
+ * ordering without needing distinct-second timestamps. Tests filter the
+ * response to messages containing the marker and assert the `message_id`
+ * sequence matches expectations.
+ *
+ * Directed to ALPHA, not broadcast: BETA (the writer key here) intentionally
+ * lacks can_broadcast_inbox in VisibilityAndRoutingTest's fixture — that
+ * absence is what proves the broadcast permission gate works. Sending
+ * broadcasts from BETA here would either fail (403) or require weakening
+ * that fixture. BETA already has a can_send grant straight to ALPHA, and
+ * ALPHA already reads messages addressed to itself (see
+ * VisibilityAndRoutingTest Test 2/7), so a directed send exercises the same
+ * ordering behavior without touching broadcast at all.
  *
  * ── Three-key dance (intentional, read before "simplifying") ────────────────
  *
@@ -30,11 +40,12 @@ use Tests\Support\AcceptanceTester;
  *     refuses to DELETE any row we didn't send. Server-side safety net.
  *
  *   - ALPHA as reader means GET /inbox/list runs without supervisor bypass.
- *     ALPHA sees broadcasts (recipient_aiu IS NULL) plus explicit peer-read
- *     grants. BETA's broadcasts pass the first filter, so the test data shows
- *     up. Both actors live on user_id=30 (the Dr-Hilbert test sandbox), so
- *     the whole thing stays inside an account separate from Rob's primary
- *     user_id=1 — additional isolation at the account level.
+ *     ALPHA reads messages addressed to itself via its own peer-read grant
+ *     (recipient_aiu = ALPHA passes the visibility filter), which is all
+ *     directed BETA→ALPHA sends need — no broadcast involved. Both actors
+ *     live on user_id=30 (the Dr-Hilbert test sandbox), so the whole thing
+ *     stays inside an account separate from Rob's primary user_id=1 —
+ *     additional isolation at the account level.
  *
  * MG_TEST_KEY_FULL (Dr_Hilbert_Space_mgTester, aiu 11) is NOT used here even
  * though it's more convenient, because it has a NULL-peer supervisor row on
@@ -74,17 +85,17 @@ class InboxListCest
     }
 
     /**
-     * POSTs a broadcast message (no recipient_aiu) as BETA, records the
-     * resulting message_id. Broadcast means ALPHA's GET can see it on the
-     * read side without a per-peer grant.
+     * POSTs a message from BETA directed to ALPHA, records the resulting
+     * message_id. Directed (not broadcast) — see class docblock for why.
      */
     private function postMarked(AcceptanceTester $I, string $suffix, string $priority = 'normal'): int
     {
         $I->haveHttpHeader('X-API-Key', getenv('MG_TEST_KEY_BETA'));
         $I->haveHttpHeader('Content-Type', 'application/json');
         $I->sendPOST('/api/v1/inbox/send', json_encode([
-            'message'  => $this->marker . ' ' . $suffix,
-            'priority' => $priority,
+            'message'       => $this->marker . ' ' . $suffix,
+            'priority'      => $priority,
+            'recipient_aiu' => (int) getenv('MG_TEST_AIU_ALPHA'),
         ]));
         $I->seeResponseCodeIs(201);
         $raw = $I->grabResponse();

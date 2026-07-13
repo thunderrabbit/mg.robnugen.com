@@ -188,6 +188,10 @@ if ($method === 'GET' && $sub === '/list') {
             echo json_encode(['error' => 'Not authorized to send to this recipient']);
             return;
         }
+    } elseif (empty($auth_actor['can_broadcast_inbox'])) {
+        http_response_code(403);
+        echo json_encode(['error' => 'This API key does not have permission to broadcast']);
+        return;
     }
 
     if ($message === '') {
@@ -392,22 +396,27 @@ if ($method === 'GET' && $sub === '/list') {
         }
     }
     if ($recipient_aiu !== null) {
-        $sender_aiu = (int) $auth_actor['aiu_id'];
-        $send_stmt = $pdo->prepare(
-            "SELECT can_send FROM inbox_visibility
-             WHERE inbox_user_aiu_id = ?
-             AND (inbox_peer_aiu_id = ? OR inbox_peer_aiu_id IS NULL)"
-        );
-        $send_stmt->execute([$sender_aiu, $recipient_aiu]);
-        $send_row = $send_stmt->fetch(\PDO::FETCH_ASSOC);
-        if (!$send_row || !$send_row['can_send']) {
-            http_response_code(403);
-            echo json_encode(['error' => 'Not authorized to send to this recipient']);
-            return;
-        }
         if ($recipient_aiu === 0) {
+            if (empty($auth_actor['can_broadcast_inbox'])) {
+                http_response_code(403);
+                echo json_encode(['error' => 'This API key does not have permission to broadcast']);
+                return;
+            }
             $sets[] = 'recipient_aiu = NULL';
         } else {
+            $sender_aiu = (int) $auth_actor['aiu_id'];
+            $send_stmt = $pdo->prepare(
+                "SELECT can_send FROM inbox_visibility
+                 WHERE inbox_user_aiu_id = ?
+                 AND (inbox_peer_aiu_id = ? OR inbox_peer_aiu_id IS NULL)"
+            );
+            $send_stmt->execute([$sender_aiu, $recipient_aiu]);
+            $send_row = $send_stmt->fetch(\PDO::FETCH_ASSOC);
+            if (!$send_row || !$send_row['can_send']) {
+                http_response_code(403);
+                echo json_encode(['error' => 'Not authorized to send to this recipient']);
+                return;
+            }
             $sets[] = 'recipient_aiu = ?';
             $params[] = $recipient_aiu;
         }
