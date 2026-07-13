@@ -10,6 +10,11 @@ use Tests\Support\AcceptanceTester;
  * Verifies that sent messages show correct "from" and "to" badges,
  * and that broadcast messages show a "broadcast" label.
  *
+ * loginAsTester logs in as Dr_Hilbert_Space_mgTester (aiu 11 — same actor as
+ * VisibilityAndRoutingTest's FULL), which requires can_broadcast_inbox=1 for
+ * canSeeBroadcastLabelOnBroadcastMessage() to have a "Broadcast (all)"
+ * option to select in the first place.
+ *
  * No cleanup — this is test data under our own account.
  */
 class InboxRoutingDisplayCest
