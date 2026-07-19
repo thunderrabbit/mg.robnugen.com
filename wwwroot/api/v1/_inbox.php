@@ -29,17 +29,17 @@ $sub = preg_replace('#^/inbox#', '', $path) ?: '/';
 // Covers: GET /list, PATCH /mark-seen, /mark-seen-bulk, /mark-done, /archive
 $is_read_op = ($method === 'GET') ||
               ($method === 'PATCH' && in_array($sub, ['/mark-seen', '/mark-seen-bulk', '/mark-done', '/mark-unseen', '/archive']));
-if ($is_read_op && !$auth_actor['can_read_inbox']) {
-    http_response_code(403);
-    echo json_encode(['error' => 'This API key does not have permission to read inbox']);
+if ($is_read_op && ($guard = \Auth\Guards::permission($auth_actor, 'can_read_inbox', 'read inbox'))) {
+    http_response_code($guard['code']);
+    echo json_encode(['error' => $guard['error']]);
     exit;
 }
 // Permission: agent_inbox_user.can_write_inbox
 // Covers: POST /send, PATCH /edit, DELETE /delete
 $is_write_op = ($method === 'POST') || ($method === 'DELETE') || ($method === 'PATCH' && $sub === '/edit');
-if ($is_write_op && !$auth_actor['can_write_inbox']) {
-    http_response_code(403);
-    echo json_encode(['error' => 'This API key does not have permission to write inbox']);
+if ($is_write_op && ($guard = \Auth\Guards::permission($auth_actor, 'can_write_inbox', 'write inbox'))) {
+    http_response_code($guard['code']);
+    echo json_encode(['error' => $guard['error']]);
     exit;
 }
 
@@ -188,9 +188,9 @@ if ($method === 'GET' && $sub === '/list') {
             echo json_encode(['error' => 'Not authorized to send to this recipient']);
             return;
         }
-    } elseif (empty($auth_actor['can_broadcast_inbox'])) {
-        http_response_code(403);
-        echo json_encode(['error' => 'This API key does not have permission to broadcast']);
+    } elseif ($guard = \Auth\Guards::permission($auth_actor, 'can_broadcast_inbox', 'broadcast')) {
+        http_response_code($guard['code']);
+        echo json_encode(['error' => $guard['error']]);
         return;
     }
 
@@ -199,9 +199,9 @@ if ($method === 'GET' && $sub === '/list') {
         echo json_encode(['error' => 'message is required']);
         return;
     }
-    if (strlen($message) > 10240) {
-        http_response_code(400);
-        echo json_encode(['error' => 'message exceeds 10240 byte limit (' . strlen($message) . ' bytes)']);
+    if ($guard = \Auth\Guards::byteLimit('message', $message)) {
+        http_response_code($guard['code']);
+        echo json_encode(['error' => $guard['error']]);
         return;
     }
     if (!in_array($priority, ['low', 'normal', 'high'], true)) {
@@ -272,9 +272,9 @@ if ($method === 'GET' && $sub === '/list') {
         echo json_encode(['error' => 'message_id is required']);
         return;
     }
-    if (strlen($response) > 10240) {
-        http_response_code(400);
-        echo json_encode(['error' => 'response exceeds 10240 byte limit (' . strlen($response) . ' bytes)']);
+    if ($guard = \Auth\Guards::byteLimit('response', $response)) {
+        http_response_code($guard['code']);
+        echo json_encode(['error' => $guard['error']]);
         return;
     }
 
@@ -363,9 +363,9 @@ if ($method === 'GET' && $sub === '/list') {
             echo json_encode(['error' => 'message cannot be empty']);
             return;
         }
-        if (strlen($message) > 10240) {
-            http_response_code(400);
-            echo json_encode(['error' => 'message exceeds 10240 byte limit (' . strlen($message) . ' bytes)']);
+        if ($guard = \Auth\Guards::byteLimit('message', $message)) {
+            http_response_code($guard['code']);
+            echo json_encode(['error' => $guard['error']]);
             return;
         }
         $sets[] = 'message = ?';
@@ -397,9 +397,9 @@ if ($method === 'GET' && $sub === '/list') {
     }
     if ($recipient_aiu !== null) {
         if ($recipient_aiu === 0) {
-            if (empty($auth_actor['can_broadcast_inbox'])) {
-                http_response_code(403);
-                echo json_encode(['error' => 'This API key does not have permission to broadcast']);
+            if ($guard = \Auth\Guards::permission($auth_actor, 'can_broadcast_inbox', 'broadcast')) {
+                http_response_code($guard['code']);
+                echo json_encode(['error' => $guard['error']]);
                 return;
             }
             $sets[] = 'recipient_aiu = NULL';
@@ -482,9 +482,9 @@ if ($method === 'GET' && $sub === '/list') {
 } elseif ($method === 'GET' && $sub === '/actors') {
     // ── List actors in this account ───────────────────────────────────────
     // Requires can_write_inbox (you only need this if deciding who to send to)
-    if (!$auth_actor['can_write_inbox']) {
-        http_response_code(403);
-        echo json_encode(['error' => 'This API key does not have permission to list actors']);
+    if ($guard = \Auth\Guards::permission($auth_actor, 'can_write_inbox', 'list actors')) {
+        http_response_code($guard['code']);
+        echo json_encode(['error' => $guard['error']]);
         exit;
     }
 
