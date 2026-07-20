@@ -52,15 +52,15 @@ class Template{
 
     protected function loadTemplate(): string {
         $charEncode = "UTF-8";
-        extract($this->vars);          	// Extract the vars to local namespace
+        extract($this->vars);              // Extract the vars to local namespace
 
-        ob_start();                    	// Start output buffering
+        ob_start();                        // Start output buffering
 
         if(!isset($this->template_location)) {
             echo "No template file provided";
         }
 
-        include($this->template_location);	// Include the file
+        include($this->template_location);    // Include the file
 
         $ob_result = ob_get_clean();
 
