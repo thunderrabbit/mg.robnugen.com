@@ -16,26 +16,24 @@
                 <input type="hidden" name="project_id" value="<?= (int)$project['project_id'] ?>">
 
                 <div class="form-field">
-                    <label for="member_aiu">Actor</label>
-                    <select id="member_aiu" name="member_aiu" required>
-                        <option value="">— select —</option>
+                    <label>Actors <span class="hint">(check all you want to add)</span></label>
+                    <div class="member-pick-list">
                         <?php foreach ($available as $a): ?>
-                            <option value="<?= (int)$a['aiu_id'] ?>">
+                            <label class="member-pick">
+                                <input type="checkbox" name="member_aiu[]" value="<?= (int)$a['aiu_id'] ?>">
                                 <?= htmlspecialchars($a['name']) ?> (<?= htmlspecialchars($a['actor_type']) ?>)
-                            </option>
+                            </label>
                         <?php endforeach; ?>
-                    </select>
+                    </div>
                 </div>
 
                 <div class="form-field">
+                    <label>Permissions for all checked actors</label>
                     <label>
                         <input type="checkbox" name="can_read" value="1" checked> Can read
                     </label>
-                </div>
-
-                <div class="form-field">
                     <label>
-                        <input type="checkbox" name="can_write" value="1"> Can write
+                        <input type="checkbox" name="can_write" value="1" checked> Can write
                     </label>
                 </div>
 
