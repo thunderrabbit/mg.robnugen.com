@@ -39,36 +39,44 @@ if (!$project) {
 $error = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $member_aiu = (int)($_POST['member_aiu'] ?? 0);
-    $can_read   = !empty($_POST['can_read'])  ? 1 : 0;
-    $can_write  = !empty($_POST['can_write']) ? 1 : 0;
+    $submitted = array_map('intval', (array)($_POST['member_aiu'] ?? []));
+    $submitted = array_values(array_unique(array_filter($submitted, fn($id) => $id > 0)));
+    $can_read  = !empty($_POST['can_read'])  ? 1 : 0;
+    $can_write = !empty($_POST['can_write']) ? 1 : 0;
 
-    if ($member_aiu <= 0) {
-        $error = "Select an actor to add.";
+    if (empty($submitted)) {
+        $error = "Select at least one actor to add.";
     } else {
         $own_stmt = $pdo->prepare(
             "SELECT 1 FROM agent_inbox_user WHERE aiu_id = ? AND user_id = ?"
         );
-        $own_stmt->execute([$member_aiu, $user_id]);
-        if (!$own_stmt->fetch()) {
-            $error = "That actor does not belong to your account.";
-        } else {
-            $dup_stmt = $pdo->prepare(
-                "SELECT 1 FROM project_members WHERE project_id = ? AND member_aiu = ?"
-            );
+        $dup_stmt = $pdo->prepare(
+            "SELECT 1 FROM project_members WHERE project_id = ? AND member_aiu = ?"
+        );
+        $ins = $pdo->prepare(
+            "INSERT INTO project_members (project_id, member_aiu, can_read, can_write)
+             VALUES (?, ?, ?, ?)"
+        );
+
+        $added = 0;
+        foreach ($submitted as $member_aiu) {
+            $own_stmt->execute([$member_aiu, $user_id]);
+            if (!$own_stmt->fetch()) {
+                continue; // not this account's actor — skip
+            }
             $dup_stmt->execute([$project_id, $member_aiu]);
             if ($dup_stmt->fetch()) {
-                $error = "That actor is already a member of this project.";
-            } else {
-                $ins = $pdo->prepare(
-                    "INSERT INTO project_members (project_id, member_aiu, can_read, can_write)
-                     VALUES (?, ?, ?, ?)"
-                );
-                $ins->execute([$project_id, $member_aiu, $can_read, $can_write]);
-                header("Location: /projects/view.php?project_id={$project_id}");
-                exit;
+                continue; // already a member (concurrency guard) — skip
             }
+            $ins->execute([$project_id, $member_aiu, $can_read, $can_write]);
+            $added++;
         }
+
+        if ($added > 0) {
+            header("Location: /projects/view.php?project_id={$project_id}&msg=members_added");
+            exit;
+        }
+        $error = "No actors were added — they may already be members.";
     }
 }
 
@@ -77,7 +85,7 @@ $avail_stmt = $pdo->prepare(
      FROM agent_inbox_user
      WHERE user_id = ?
        AND aiu_id NOT IN (SELECT member_aiu FROM project_members WHERE project_id = ?)
-     ORDER BY actor_type DESC, name ASC"
+     ORDER BY name ASC"
 );
 $avail_stmt->execute([$user_id, $project_id]);
 $available = $avail_stmt->fetchAll(\PDO::FETCH_ASSOC);
