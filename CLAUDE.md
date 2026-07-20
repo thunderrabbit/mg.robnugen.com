@@ -35,6 +35,26 @@ auto_mgTester only.
 
 **Claude cannot commit on master.** Create a feature branch first; Rob integrates via merge bubble.
 
+## Standards gate (commit-tier) — run before you report a change as done
+
+The `standards` MCP server runs mg's Unit suite deterministically. Before
+reporting any code change as done, call:
+
+    check_tests(repo="mg")
+
+It runs the Unit suite in a keyless, networkless container (no creds, no
+network, source read-only) and returns {status, pass, checks[], ...}. Act on
+status:
+- pass    → hermetic Unit suite green; safe to claim.
+- fail    → tests failed; fix first (see checks[].violations).
+- error   → a "unit" test needs creds or the network, so it aborted — it's
+            misfiled. Move it to the Integration suite (see ADD_CODECEPTION.md);
+            never add credentials to make it pass.
+- skipped → no unit suite found.
+
+Only the commit tier exists today. Integration/webdriver suites need a running
+target and are NOT part of this gate — ask your automated test agent, auto_mgTester, to run them.
+
 ## Project Overview
 
 This is a minimalist PHP web application framework designed for DreamHost deployment. It's a custom template-based site with admin dashboard functionality, database migration system, and user authentication using cookies stored in the database.
