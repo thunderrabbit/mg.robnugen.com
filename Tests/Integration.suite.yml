@@ -1,0 +1,12 @@
+# Integration suite — tests that hit the LIVE /api/v1 over HTTP.
+#
+# These require network + credentials (MG_API_KEY / MG_TEST_KEY_* / MG_TEST_AIU_*)
+# and some mutate production (spend credits, create/delete rows). They are NOT
+# hermetic and must NOT run in the keyless, networkless commit tier — the
+# Standards MCP runs the Unit suite there. Run this suite deliberately, with
+# the env vars exported, when you want live end-to-end coverage.
+actor: IntegrationTester
+suite_namespace: Tests\Integration
+modules:
+    enabled:
+        - Asserts

@@ -173,19 +173,29 @@ To run a single test (faster for debugging):
 
 ## Unit Tests
 
-Unit tests for code that doesn't require a database connection.
+Unit tests are **hermetic**: pure in-process logic with **no database, no
+network, and no credentials**. This is the contract the Standards MCP relies on
+— its commit-tier gate runs `Unit` in a disposable, keyless, `--network none`
+container, so anything that reaches the outside world does not belong here.
+Tests that hit the live `/api/v1` over HTTP live in the **Integration** suite
+(below), not `Unit`.
 
 ### Structure
 
 ```
 Tests/
-├── Unit.suite.yml              # Unit suite config
+├── Unit.suite.yml              # Unit suite config (Asserts module only)
 ├── Unit/
 │   ├── _bootstrap.php          # Custom autoloader for project classes
-│   ├── IPBinTest.php           # IP address to binary conversion (10 tests)
-│   ├── UtilitiesTest.php       # randomString and getSchemaFilePath (8 tests)
-│   ├── TimezoneTest.php        # isValidIanaName validation (7 tests)
-│   └── SessionKeyTest.php      # generateSessionKey (4 tests)
+│   ├── UtilitiesTest.php       # randomString, getSchemaFilePath, renderMarkdown
+│   ├── TimezoneTest.php        # isValidIanaName validation (mock PDO)
+│   ├── SessionKeyTest.php      # generateSessionKey (mock PDO)
+│   └── GuardsTest.php          # Auth\Guards permission + byte-limit decisions
+├── Integration.suite.yml       # Integration suite config (Asserts module only)
+├── Integration/                # LIVE /api/v1 tests — network + credentials
+│   ├── InboxMessageLimitTest.php
+│   ├── PermissionGuardsTest.php
+│   └── VisibilityAndRoutingTest.php
 └── Support/
     └── UnitTester.php          # Unit test actor
 ```
@@ -196,14 +206,27 @@ Tests/
 vendor/bin/codecept run Unit
 ```
 
+Hermetic — needs no env vars and runs offline. The Standards MCP runs exactly
+this suite in its commit-tier container.
+
+### Running Integration Tests
+
+The Integration suite hits the live API and **some tests mutate production**
+(spend credits, create/delete rows). Export the required env vars first
+(`MG_API_KEY`, `MG_TEST_KEY_*`, `MG_TEST_AIU_*`) and run deliberately:
+
+```bash
+export $(grep -v '^#' .env | xargs)
+vendor/bin/codecept run Integration
+```
+
 ### Test Results
 
-**Run date:** 2026-01-31
-**Result:** ✅ **All 32 tests pass**
+| Suite | Class | Tests | Description |
+|-------|-------|-------|-------------|
+| Unit | UtilitiesTest | 16 | Random string, schema-path validation, markdown rendering |
+| Unit | TimezoneTest | 7 | IANA timezone name validation |
+| Unit | SessionKeyTest | 4 | Session key generation (base64url format) |
+| Unit | GuardsTest | 7 | Permission + byte-limit guard decisions |
 
-| Class | Tests | Description |
-|-------|-------|-------------|
-| IPBinTest | 10 | IPv4/IPv6 to binary conversion and back |
-| UtilitiesTest | 8 | Random string generation, schema path validation |
-| TimezoneTest | 7 | IANA timezone name validation |
-| SessionKeyTest | 4 | Session key generation (base64url format) |
+Unit total: **34 tests, hermetic** (keyless, networkless, no DB).
