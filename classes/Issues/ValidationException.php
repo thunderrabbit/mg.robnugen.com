@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Thrown by Issues\Issues for invalid input (empty title, bad priority, etc.).
  *
@@ -7,6 +8,9 @@
  *
  * @see \Issues\Issues
  */
+
 namespace Issues;
 
-class ValidationException extends \Exception {}
+class ValidationException extends \Exception
+{
+}

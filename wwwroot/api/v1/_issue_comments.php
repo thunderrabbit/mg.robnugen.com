@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Issue comments — included from _issues.php.
  *
@@ -140,7 +141,9 @@ if ($method === 'PATCH' && $csub === '/edit') {
          WHERE c.issue_comment_id = ? AND p.user_id = ?" . $where_auth;
 
     $params = [$body, $comment_id, $auth_user_id];
-    if (!$is_human) $params[] = $caller_aiu;
+    if (!$is_human) {
+        $params[] = $caller_aiu;
+    }
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
@@ -171,7 +174,9 @@ if ($method === 'DELETE' && $csub === '/delete') {
          WHERE c.issue_comment_id = ? AND p.user_id = ?" . $where_auth;
 
     $params = [$comment_id, $auth_user_id];
-    if (!$is_human) $params[] = $caller_aiu;
+    if (!$is_human) {
+        $params[] = $caller_aiu;
+    }
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * API Endpoint: Stop Activity
  * Updates an activity session with actual and bonus duration
@@ -99,7 +100,6 @@ try {
             'error' => 'Activity session not found or already stopped'
         ]);
     }
-
 } catch (\Exception $e) {
     http_response_code(500);
     echo json_encode([

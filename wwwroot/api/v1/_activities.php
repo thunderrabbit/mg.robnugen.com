@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Activity endpoints — included by index.php, not directly accessible.
  *

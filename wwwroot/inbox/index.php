@@ -182,8 +182,12 @@ $current_page = max(1, (int)($_GET['page'] ?? 1));
 $filters = [];
 $params = [$user_id];
 
-if (!$show_archived) $filters[] = 'AND archived_at IS NULL';
-if (!$show_future) $filters[] = 'AND (show_date IS NULL OR show_date <= NOW())';
+if (!$show_archived) {
+    $filters[] = 'AND archived_at IS NULL';
+}
+if (!$show_future) {
+    $filters[] = 'AND (show_date IS NULL OR show_date <= NOW())';
+}
 
 if (in_array($filter_priority, ['high', 'normal', 'low'])) {
     $filters[] = 'AND priority = ?';
@@ -220,7 +224,7 @@ if ($filter_from > 0) {
 
 $filter_sql = implode(' ', $filters);
 
-$order_clauses = match($sort_by) {
+$order_clauses = match ($sort_by) {
     'id' => "message_id $sort_dir",
     'priority' => ($sort_dir === 'ASC'
         ? "FIELD(priority, 'low', 'normal', 'high'), created_at_utc DESC"
@@ -267,23 +271,23 @@ if (empty($_SESSION['csrf_token'])) {
 
 $page = new \Template(config: $config, is_logged_in: $is_logged_in);
 $page->setTemplate('inbox/index.tpl.php');
-$page->set('error_message',   $error_message);
+$page->set('error_message', $error_message);
 $page->set('success_message', $success_message);
-$page->set('messages',        $messages);
-$page->set('inbox_actors',   $inbox_actors);
+$page->set('messages', $messages);
+$page->set('inbox_actors', $inbox_actors);
 $page->set('can_broadcast_inbox', $web_can_broadcast);
-$page->set('csrf_token',      $_SESSION['csrf_token']);
-$page->set('show_archived',    $show_archived);
-$page->set('show_future',      $show_future);
-$page->set('filter_priority',  $filter_priority);
-$page->set('filter_status',    $filter_status);
-$page->set('sort_by',          $sort_by);
-$page->set('sort_dir',         strtolower($sort_dir));
-$page->set('filter_to',        $filter_to);
-$page->set('filter_from',      $filter_from);
-$page->set('current_page',    $current_page);
-$page->set('total_pages',     $total_pages);
-$page->set('total_messages',  $total_messages);
+$page->set('csrf_token', $_SESSION['csrf_token']);
+$page->set('show_archived', $show_archived);
+$page->set('show_future', $show_future);
+$page->set('filter_priority', $filter_priority);
+$page->set('filter_status', $filter_status);
+$page->set('sort_by', $sort_by);
+$page->set('sort_dir', strtolower($sort_dir));
+$page->set('filter_to', $filter_to);
+$page->set('filter_from', $filter_from);
+$page->set('current_page', $current_page);
+$page->set('total_pages', $total_pages);
+$page->set('total_messages', $total_messages);
 $inner = $page->grabTheGoods();
 
 $layout = new \Template(config: $config, is_logged_in: $is_logged_in);

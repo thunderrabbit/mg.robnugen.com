@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Creates a Stripe Checkout Session and redirects the user to Stripe.
  * POST only — called by the pricing page form.

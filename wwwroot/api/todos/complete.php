@@ -1,4 +1,5 @@
 <?php
+
 /**
  * API Endpoint: Complete a Todo
  * Logs a completion for a todo item
@@ -66,7 +67,6 @@ try {
         'log_id' => $log_id,
         'date_logged' => $date_logged
     ]);
-
 } catch (\Exception $e) {
     http_response_code(500);
     echo json_encode([

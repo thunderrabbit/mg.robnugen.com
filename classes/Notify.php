@@ -14,7 +14,8 @@ class Notify
 {
     public function __construct(
         private \Config $di_config,
-    ) {}
+    ) {
+    }
 
     /**
      * Send a phone ping.

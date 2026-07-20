@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Project Detail Page
  * Shows a single project the logged-in user owns and is a member of.

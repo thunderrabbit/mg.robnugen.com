@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Projects + project members + dashboard.
  *
@@ -376,8 +377,14 @@ if ($method === 'PATCH' && $sub === '/update-member') {
 
     $sets = [];
     $params = [];
-    if ($can_read !== null)  { $sets[] = 'can_read = ?';  $params[] = $can_read; }
-    if ($can_write !== null) { $sets[] = 'can_write = ?'; $params[] = $can_write; }
+    if ($can_read !== null) {
+        $sets[] = 'can_read = ?';
+        $params[] = $can_read;
+    }
+    if ($can_write !== null) {
+        $sets[] = 'can_write = ?';
+        $params[] = $can_write;
+    }
 
     require_credit($pdo, $auth_user_id, $auth_key_id, 'projects/update-member');
 

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * /notify — brokered phone pings to Rob (Telegram), gated by can_ping_phone.
  *

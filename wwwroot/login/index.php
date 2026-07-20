@@ -23,7 +23,7 @@ if ($is_logged_in->isLoggedIn()) {
     header(header: "Location: $return_url");
     exit;
 } else {
-    if(!$is_logged_in->isLoggedIn()){
+    if (!$is_logged_in->isLoggedIn()) {
         $page = new \Template(config: $config, is_logged_in: $is_logged_in);
         $page->setTemplate("layout/welcome_base.tpl.php");
         $page->set("page_title", "Log In - Meiso Gambare");

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Thrown by Issues\Issues when the caller lacks project membership or write access.
  *
@@ -7,6 +8,9 @@
  *
  * @see \Issues\Issues
  */
+
 namespace Issues;
 
-class AccessException extends \Exception {}
+class AccessException extends \Exception
+{
+}

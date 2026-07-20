@@ -1,11 +1,12 @@
 <?php
+
 /**
  * This file tries to simplify knowing if user is logged in.
  *
  *
  */
-namespace Auth;
 
+namespace Auth;
 
 class IsLoggedIn
 {
@@ -34,14 +35,12 @@ class IsLoggedIn
         $found_user_id = 0;
         $current_ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
 
-        if(!empty($mla_request->cookie[$this->di_config->cookie_name]))
-        {
+        if (!empty($mla_request->cookie[$this->di_config->cookie_name])) {
             $found_user_id = $this->getUserIdForCookieInDatabase(
                 cookie: $mla_request->cookie[$this->di_config->cookie_name],
                 user_agent: $_SERVER['HTTP_USER_AGENT'] ?? ''
             );
-            if(empty($found_user_id))
-            {
+            if (empty($found_user_id)) {
                 $this->logAuth("user_id: N/A, IP: {$current_ip} - Cookie validation FAILED");
                 $this->killCookie();
                 $this->who_is_logged_in = 0;
@@ -49,7 +48,7 @@ class IsLoggedIn
                 // $this->logAuth("user_id: {$found_user_id}, IP: {$current_ip} - Cookie validation SUCCESS");
                 $this->who_is_logged_in = $found_user_id;
             }
-        } elseif(!empty($mla_request->post['username']) && !empty($mla_request->post['pass'])) {
+        } elseif (!empty($mla_request->post['username']) && !empty($mla_request->post['pass'])) {
             $post_token    = $mla_request->post['csrf_token'] ?? '';
             $session_token = $_SESSION['csrf_token'] ?? '';
             if (!hash_equals($session_token, $post_token)) {
@@ -57,8 +56,7 @@ class IsLoggedIn
                 return;
             }
             $found_user_id = $this->checkPHPHashedPassword($mla_request->post['username'], $mla_request->post['pass']);
-            if(empty($found_user_id))
-            {
+            if (empty($found_user_id)) {
                 $this->logAuth("user_id: N/A, IP: {$current_ip} - Password login FAILED (username: {$mla_request->post['username']})");
                 $this->killCookie();        // bad login, so kill any cookie
                 $this->who_is_logged_in = 0;
@@ -147,7 +145,7 @@ class IsLoggedIn
         return $this->getUserRole() === 'paid';
     }
 
-    private function setAutoLoginCookie(int $user_id):void
+    private function setAutoLoginCookie(int $user_id): void
     {
         $cookie = \Utilities::randomString(32);
 
@@ -218,25 +216,21 @@ class IsLoggedIn
     private function getUserIdForCookieInDatabase(
         string $cookie,
         string $user_agent
-    ): int
-    {
+    ): int {
         // Validate cookie and user agent match
         $stmt = $this->di_pdo->prepare("SELECT `user_id` FROM `cookies` WHERE `cookie` = ? AND `user_agent_md5` = ? LIMIT 1");
         $stmt->execute([$cookie, md5($user_agent)]);
         $result = $stmt->fetchAll();
 
-        if(count($result) > 0)
-        {
+        if (count($result) > 0) {
             return $result[0]['user_id'];
-        }
-        else
-        {
+        } else {
             // Log why authentication failed
             $stmt2 = $this->di_pdo->prepare("SELECT `user_id` FROM `cookies` WHERE `cookie` = ? LIMIT 1");
             $stmt2->execute([$cookie]);
             $result2 = $stmt2->fetchAll();
 
-            if(count($result2) > 0) {
+            if (count($result2) > 0) {
                 // Cookie exists but user agent doesn't match
                 $user_id = $result2[0]['user_id'];
                 $current_ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
@@ -282,5 +276,4 @@ class IsLoggedIn
         setcookie($this->di_config->cookie_name, '', $cookie_options);
         $this->who_is_logged_in = 0;
     }
-
 }

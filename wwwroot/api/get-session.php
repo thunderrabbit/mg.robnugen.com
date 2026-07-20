@@ -1,4 +1,5 @@
 <?php
+
 /**
  * API Endpoint: Get Session by Key
  * Returns session details for a given session key
@@ -57,7 +58,6 @@ try {
         'success' => false,
         'error' => 'Session not found or not accessible'
     ]);
-
 } catch (\Exception $e) {
     http_response_code(500);
     echo json_encode([

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Delete Todo Endpoint
  * Permanently deletes a todo and all its history with ownership verification

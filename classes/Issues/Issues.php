@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Jikan issues — read + create data-access layer (Exterminal MCP companion).
  *
@@ -30,7 +31,9 @@ namespace Issues;
 
 class Issues
 {
-    public function __construct(private \PDO $pdo) {}
+    public function __construct(private \PDO $pdo)
+    {
+    }
 
     /** Check project membership or throw. Returns ['can_read','can_write']. */
     private function projectAccess(int $project_id, int $user_id, int $caller_aiu): array
@@ -44,7 +47,9 @@ class Issues
         );
         $stmt->execute([$project_id, $caller_aiu, $user_id]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-        if (!$row) throw new AccessException("Not a member of project {$project_id}");
+        if (!$row) {
+            throw new AccessException("Not a member of project {$project_id}");
+        }
         return $row;
     }
 
@@ -55,10 +60,14 @@ class Issues
      */
     public function listIssues(int $user_id, int $caller_aiu, int $project_id, array $filters = []): array
     {
-        if ($project_id <= 0) throw new ValidationException("project_id is required");
+        if ($project_id <= 0) {
+            throw new ValidationException("project_id is required");
+        }
 
         $role = $this->projectAccess($project_id, $user_id, $caller_aiu);
-        if (!(int)$role['can_read']) throw new AccessException("No read access to project {$project_id}");
+        if (!(int)$role['can_read']) {
+            throw new AccessException("No read access to project {$project_id}");
+        }
 
         $status_slug      = trim($filters['status'] ?? '');
         $include_terminal = (int)($filters['include_terminal'] ?? 0);
@@ -147,8 +156,12 @@ class Issues
         );
         $stmt->execute([$caller_aiu, $issue_id, $user_id]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-        if (!$row)             throw new NotFoundException("Issue {$issue_id} not found or no access");
-        if (!(int)$row['can_write']) throw new AccessException("No write access to project");
+        if (!$row) {
+            throw new NotFoundException("Issue {$issue_id} not found or no access");
+        }
+        if (!(int)$row['can_write']) {
+            throw new AccessException("No write access to project");
+        }
 
         $sets   = [];
         $params = [];
@@ -182,8 +195,12 @@ class Issues
     public function addComment(int $issue_id, int $user_id, int $caller_aiu, string $body): array
     {
         $body = trim($body);
-        if ($body === '')          throw new ValidationException("body is required");
-        if (strlen($body) > 65535) throw new ValidationException("body exceeds 65535 byte limit");
+        if ($body === '') {
+            throw new ValidationException("body is required");
+        }
+        if (strlen($body) > 65535) {
+            throw new ValidationException("body exceeds 65535 byte limit");
+        }
 
         $stmt = $this->pdo->prepare(
             "SELECT pm.can_write
@@ -195,8 +212,12 @@ class Issues
         );
         $stmt->execute([$caller_aiu, $issue_id, $user_id]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-        if (!$row)             throw new NotFoundException("Issue {$issue_id} not found or no access");
-        if (!(int)$row['can_write']) throw new AccessException("No write access to project");
+        if (!$row) {
+            throw new NotFoundException("Issue {$issue_id} not found or no access");
+        }
+        if (!(int)$row['can_write']) {
+            throw new AccessException("No write access to project");
+        }
 
         $this->pdo->prepare(
             "INSERT INTO issue_comments (issue_id, author_aiu, body) VALUES (?, ?, ?)"
@@ -227,8 +248,12 @@ class Issues
         );
         $stmt->execute([$caller_aiu, $issue_id, $user_id]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-        if (!$row)           throw new NotFoundException("Issue {$issue_id} not found or no access");
-        if (!(int)$row['can_read']) throw new AccessException("No read access to project");
+        if (!$row) {
+            throw new NotFoundException("Issue {$issue_id} not found or no access");
+        }
+        if (!(int)$row['can_read']) {
+            throw new AccessException("No read access to project");
+        }
 
         $rows = $this->pdo->prepare(
             "SELECT c.issue_comment_id, c.issue_id, c.author_aiu, c.body,
@@ -266,21 +291,31 @@ class Issues
         $description = array_key_exists('description', $data) ? (string)$data['description'] : null;
         $priority    = trim((string)($data['priority'] ?? 'normal'));
 
-        if ($project_id <= 0) throw new ValidationException("project_id is required");
-        if ($title === '')    throw new ValidationException("title is required");
-        if (mb_strlen($title) > 255) throw new ValidationException("title must be 255 characters or fewer");
+        if ($project_id <= 0) {
+            throw new ValidationException("project_id is required");
+        }
+        if ($title === '') {
+            throw new ValidationException("title is required");
+        }
+        if (mb_strlen($title) > 255) {
+            throw new ValidationException("title must be 255 characters or fewer");
+        }
         if (!in_array($priority, ['low','normal','high'], true)) {
             throw new ValidationException("priority must be 'low', 'normal', or 'high'");
         }
 
         $role = $this->projectAccess($project_id, $user_id, $caller_aiu);
-        if (!(int)$role['can_write']) throw new AccessException("No write access to project {$project_id}");
+        if (!(int)$role['can_write']) {
+            throw new AccessException("No write access to project {$project_id}");
+        }
 
         $d = $this->pdo->query(
             "SELECT status_id, is_terminal FROM issue_statuses WHERE is_default = 1 LIMIT 1"
         );
         $default = $d->fetch(\PDO::FETCH_ASSOC);
-        if (!$default) throw new \RuntimeException("no default issue status configured");
+        if (!$default) {
+            throw new \RuntimeException("no default issue status configured");
+        }
         $status_id   = (int)$default['status_id'];
         $is_terminal = (int)$default['is_terminal'];
 

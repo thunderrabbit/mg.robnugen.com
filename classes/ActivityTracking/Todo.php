@@ -2,10 +2,12 @@
 
 namespace ActivityTracking;
 
-class Todo {
+class Todo
+{
     private $pdo;
 
-    public function __construct(\PDO $pdo) {
+    public function __construct(\PDO $pdo)
+    {
         $this->pdo = $pdo;
     }
 
@@ -25,7 +27,8 @@ class Todo {
      * @param string $todayDate Full date (Y-m-d)
      * @return array Array of todos with completion status
      */
-    public function getTodaysTodos(int $user_id, string $dayOfWeek, int $dayOfMonth, string $todayDate): array {
+    public function getTodaysTodos(int $user_id, string $dayOfWeek, int $dayOfMonth, string $todayDate): array
+    {
         $stmt = $this->pdo->prepare("
             SELECT
                 t.todo_id,
@@ -87,7 +90,8 @@ class Todo {
      * @param string $date Date in Y-m-d format
      * @return int Number of completions today
      */
-    public function getCompletionCount(int $todo_id, string $date): int {
+    public function getCompletionCount(int $todo_id, string $date): int
+    {
         $stmt = $this->pdo->prepare("
             SELECT COUNT(*) as count
             FROM todo_logs
@@ -107,7 +111,8 @@ class Todo {
      * @param string $date Date in Y-m-d format
      * @return array Array of completion records
      */
-    public function getCompletionsForDate(int $todo_id, string $date): array {
+    public function getCompletionsForDate(int $todo_id, string $date): array
+    {
         $stmt = $this->pdo->prepare("
             SELECT log_id, nth, date_logged, duration_seconds, ak_id
             FROM todo_logs
@@ -126,7 +131,8 @@ class Todo {
      * @param int $todo_id
      * @return array [count => int, last_logged => string|null]
      */
-    public function getCompletionStatus(int $todo_id): array {
+    public function getCompletionStatus(int $todo_id): array
+    {
         $stmt = $this->pdo->prepare("
             SELECT
                 COUNT(*) as count,
@@ -212,7 +218,8 @@ class Todo {
      * @param string $date Date in Y-m-d format
      * @return bool Success
      */
-    public function removeCompletion(int $todo_id, int $user_id, int $nth, string $date): bool {
+    public function removeCompletion(int $todo_id, int $user_id, int $nth, string $date): bool
+    {
         $stmt = $this->pdo->prepare("
             DELETE FROM todo_logs
             WHERE todo_id = ?
@@ -232,7 +239,8 @@ class Todo {
      * @param int $user_id
      * @return bool
      */
-    public function verifyOwnership(int $todo_id, int $user_id): bool {
+    public function verifyOwnership(int $todo_id, int $user_id): bool
+    {
         $stmt = $this->pdo->prepare("
             SELECT COUNT(*) as count
             FROM todos
@@ -251,7 +259,8 @@ class Todo {
      * @param int $todo_id
      * @return array|null
      */
-    public function getTodo(int $todo_id): ?array {
+    public function getTodo(int $todo_id): ?array
+    {
         $stmt = $this->pdo->prepare("
             SELECT
                 t.*,
@@ -273,7 +282,8 @@ class Todo {
      * @param int $user_id
      * @return array
      */
-    public function getAllTodos(int $user_id): array {
+    public function getAllTodos(int $user_id): array
+    {
         $stmt = $this->pdo->prepare("
             SELECT
                 t.*,
@@ -296,7 +306,8 @@ class Todo {
      * @param array $data Todo data
      * @return int|false New todo ID or false on failure
      */
-    public function createTodo(array $data) {
+    public function createTodo(array $data)
+    {
         // Basic validation
         if (empty($data['user_id']) || empty($data['title'])) {
             return false;
@@ -355,7 +366,8 @@ class Todo {
      * @param array $data Update data
      * @return bool Success
      */
-    public function updateTodo(int $todo_id, array $data): bool {
+    public function updateTodo(int $todo_id, array $data): bool
+    {
         if (empty($data)) {
             return false;
         }
@@ -405,7 +417,8 @@ class Todo {
      * @param int $user_id User ID for ownership verification
      * @return bool Success
      */
-    public function deleteTodo(int $todo_id, int $user_id): bool {
+    public function deleteTodo(int $todo_id, int $user_id): bool
+    {
         // Verify ownership before deleting
         if (!$this->verifyOwnership($todo_id, $user_id)) {
             return false;
@@ -420,7 +433,8 @@ class Todo {
         return $stmt->execute([$todo_id]);
     }
 
-    public function hardDeleteTodo(int $todo_id, int $user_id): bool {
+    public function hardDeleteTodo(int $todo_id, int $user_id): bool
+    {
         if (!$this->verifyOwnership($todo_id, $user_id)) {
             return false;
         }
@@ -440,7 +454,8 @@ class Todo {
      * @param int $user_id
      * @return array
      */
-    public function getArchivedTodos(int $user_id): array {
+    public function getArchivedTodos(int $user_id): array
+    {
         $stmt = $this->pdo->prepare("
             SELECT
                 t.*,
@@ -463,7 +478,8 @@ class Todo {
      * @param int $user_id User ID for ownership verification
      * @return bool Success
      */
-    public function deArchiveTodo(int $todo_id, int $user_id): bool {
+    public function deArchiveTodo(int $todo_id, int $user_id): bool
+    {
         if (!$this->verifyOwnership($todo_id, $user_id)) {
             return false;
         }
@@ -485,7 +501,8 @@ class Todo {
      * @param int $offset
      * @return array
      */
-    public function getCompletedHistory(int $user_id, int $limit = 50, int $offset = 0): array {
+    public function getCompletedHistory(int $user_id, int $limit = 50, int $offset = 0): array
+    {
         $stmt = $this->pdo->prepare("
             SELECT
                 tl.*,
@@ -513,7 +530,8 @@ class Todo {
      * @param int $offset
      * @return array
      */
-    public function getUpcomingTodos(int $user_id, string $todayDate, int $limit = 50, int $offset = 0): array {
+    public function getUpcomingTodos(int $user_id, string $todayDate, int $limit = 50, int $offset = 0): array
+    {
         $stmt = $this->pdo->prepare("
             SELECT
                 t.*,
@@ -542,7 +560,8 @@ class Todo {
      * @param string $todayDate Y-m-d
      * @return array Todos with next_due_date computed from last completion
      */
-    public function getDaysBetweenTodos(int $user_id, string $todayDate): array {
+    public function getDaysBetweenTodos(int $user_id, string $todayDate): array
+    {
         $stmt = $this->pdo->prepare("
             SELECT
                 t.*,
@@ -586,7 +605,8 @@ class Todo {
      * @param int $offset
      * @return array
      */
-    public function getFullyCompletedHistory(int $user_id, int $limit = 50, int $offset = 0): array {
+    public function getFullyCompletedHistory(int $user_id, int $limit = 50, int $offset = 0): array
+    {
         $stmt = $this->pdo->prepare("
             SELECT
                 tl.log_id,

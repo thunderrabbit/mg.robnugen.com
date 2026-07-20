@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Thrown by Exterm\Items when the requested item does not exist or is not
  * visible to the caller (wrong project owner, not a project member, etc.).
@@ -11,4 +12,6 @@
 
 namespace Exterm;
 
-class NotFoundException extends \RuntimeException {}
+class NotFoundException extends \RuntimeException
+{
+}

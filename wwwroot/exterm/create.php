@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Exterminal (ET) item creation form.
  *
@@ -16,9 +17,13 @@
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
 
-if (!$is_logged_in->isLoggedIn()) { header("Location: /login/"); exit; }
+if (!$is_logged_in->isLoggedIn()) {
+    header("Location: /login/");
+    exit;
+}
 if (!$is_logged_in->isAdmin() && !$is_logged_in->isPaid()) {
-    header("Location: /?msg=upgrade_required"); exit;
+    header("Location: /?msg=upgrade_required");
+    exit;
 }
 
 $user_id = $is_logged_in->loggedInID();
@@ -31,7 +36,10 @@ $aiu_stmt->execute([$user_id]);
 $human_aiu = (int) $aiu_stmt->fetchColumn();
 
 $project_id = (int)($_REQUEST['project_id'] ?? 0);
-if ($project_id <= 0) { header("Location: /exterm/"); exit; }
+if ($project_id <= 0) {
+    header("Location: /exterm/");
+    exit;
+}
 
 // Check ownership + can_write
 $mem_stmt = $pdo->prepare(
@@ -43,8 +51,14 @@ $mem_stmt = $pdo->prepare(
 $mem_stmt->execute([$project_id, $human_aiu, $user_id]);
 $mem = $mem_stmt->fetch(\PDO::FETCH_ASSOC);
 
-if (!$mem)              { header("Location: /exterm/?msg=not_found");    exit; }
-if (!$mem['can_write']) { header("Location: /exterm/?msg=no_write");     exit; }
+if (!$mem) {
+    header("Location: /exterm/?msg=not_found");
+    exit;
+}
+if (!$mem['can_write']) {
+    header("Location: /exterm/?msg=no_write");
+    exit;
+}
 $project_name = $mem['name'];
 
 $error = null;
@@ -53,7 +67,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title = trim($_POST['title'] ?? '');
     $body  = trim($_POST['body']  ?? '') ?: null;
 
-    if (!$title) $error = "Title is required.";
+    if (!$title) {
+        $error = "Title is required.";
+    }
 
     if (!$error) {
         $pdo->prepare(
@@ -72,11 +88,15 @@ $page->set("page_title", "New ET Note — Meiso Gambare");
 
 $inner = new \Template($config, $is_logged_in);
 $inner->setTemplate("exterm/create.tpl.php");
-$inner->set("project_id",       $project_id);
-$inner->set("project_name",     $project_name);
-if ($error !== null) $inner->set("error", $error);
+$inner->set("project_id", $project_id);
+$inner->set("project_name", $project_name);
+if ($error !== null) {
+    $inner->set("error", $error);
+}
 foreach (['title','body'] as $f) {
-    if (isset($_POST[$f])) $inner->set("form_{$f}", $_POST[$f]);
+    if (isset($_POST[$f])) {
+        $inner->set("form_{$f}", $_POST[$f]);
+    }
 }
 
 $page->set("page_content", $inner->grabTheGoods());

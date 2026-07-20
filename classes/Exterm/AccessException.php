@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Thrown by Exterm\Items when the caller lacks project membership or write
  * permission.
@@ -11,4 +12,6 @@
 
 namespace Exterm;
 
-class AccessException extends \RuntimeException {}
+class AccessException extends \RuntimeException
+{
+}

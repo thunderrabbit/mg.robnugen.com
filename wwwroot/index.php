@@ -6,7 +6,7 @@ preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
 
 $debugLevel = intval(value: $_GET['debug']) ?? 0;
-if($debugLevel > 0) {
+if ($debugLevel > 0) {
     echo "<pre>Debug Level: $debugLevel</pre>";
 }
 
@@ -14,7 +14,7 @@ $uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 
 // Check if we're at the root
 if ($uri === '/' || $uri === '' || $uri === '/index.php') {
-    if($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()){
+    if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
         // Admin users - show admin dashboard
         $page = new \Template(config: $config, is_logged_in: $is_logged_in);
         $page->setTemplate("layout/base.tpl.php");
@@ -31,7 +31,7 @@ if ($uri === '/' || $uri === '' || $uri === '/index.php') {
 
         $page->echoToScreen();
         exit;
-    } else if($is_logged_in->isLoggedIn() && $is_logged_in->isPaid()){
+    } elseif ($is_logged_in->isLoggedIn() && $is_logged_in->isPaid()) {
         // Paid users - show user dashboard (no admin link)
         $page = new \Template(config: $config, is_logged_in: $is_logged_in);
         $page->setTemplate("layout/base.tpl.php");

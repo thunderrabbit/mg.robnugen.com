@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Add a member to a project.
  * GET with ?project_id=N shows a form listing aiu_ids in the account not yet members.
@@ -98,7 +99,9 @@ $inner = new \Template($config, $is_logged_in);
 $inner->setTemplate("projects/add-member.tpl.php");
 $inner->set("project", $project);
 $inner->set("available", $available);
-if ($error !== null) $inner->set("error", $error);
+if ($error !== null) {
+    $inner->set("error", $error);
+}
 
 $page->set("page_content", $inner->grabTheGoods());
 $page->echoToScreen();

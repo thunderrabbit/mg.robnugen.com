@@ -1,4 +1,5 @@
 <?php
+
 /**
  * OAuth 2.0 token endpoint for the Exterminal MCP server.
  *
@@ -76,7 +77,6 @@ $pdo        = \Database\Base::getPDO($config);
 // ── Authorization Code + PKCE ─────────────────────────────────────────────────
 
 if ($grant_type === 'authorization_code') {
-
     $raw_code     = $body['code']          ?? '';
     $code_verifier = $body['code_verifier'] ?? '';
     $redirect_uri  = $body['redirect_uri']  ?? '';
@@ -127,9 +127,7 @@ if ($grant_type === 'authorization_code') {
     $existing_token_id = null;
 
     // ── Refresh Token (silent renewal) ───────────────────────────────────────────
-
 } elseif ($grant_type === 'refresh_token') {
-
     $raw_refresh = $body['refresh_token'] ?? '';
 
     if (!$raw_refresh) {
@@ -159,9 +157,7 @@ if ($grant_type === 'authorization_code') {
     $existing_token_id = (int) $refresh_row['token_id'];
 
     // ── Client Credentials (fallback) ────────────────────────────────────────────
-
 } elseif ($grant_type === 'client_credentials') {
-
     $client_secret = $body['client_secret'] ?? '';
 
     // Also accept Basic auth header
@@ -192,7 +188,6 @@ if ($grant_type === 'authorization_code') {
     $k_stmt->execute([$apiKeyAuth->getLastKeyId()]);
     $aiu_id = (int) $k_stmt->fetchColumn();
     $existing_token_id = null;
-
 } else {
     http_response_code(400);
     echo json_encode(['error' => 'unsupported_grant_type']);

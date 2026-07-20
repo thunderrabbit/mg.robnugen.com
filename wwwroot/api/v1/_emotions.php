@@ -1,4 +1,5 @@
 <?php
+
 // Emotional Interaction Ledger sub-dispatcher
 //
 // Variables in scope from index.php:
@@ -25,7 +26,6 @@ if ($method !== 'GET' && !$auth_actor['can_write_emotions']) {
 }
 
 if ($emotions_path === '/vocab' || $emotions_path === '/') {
-
     if ($method === 'POST') {
         $body = json_decode(file_get_contents('php://input'), true);
         if (empty($body['state']) || !is_string($body['state'])) {
@@ -86,7 +86,6 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
                 throw $e; // Non-collision PDOException — rethrow
             }
         }
-
     } elseif ($method === 'GET') {
         $ledger = new \Emotional\Ledger($pdo, $raw_key, $auth_key_id, $auth_user_id);
         $stmt = $pdo->prepare(
@@ -107,7 +106,6 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
             $vocab[] = ['my_id' => (int) $row['my_id'], 'state' => $decrypted];
         }
         echo json_encode($vocab);
-
     } elseif ($method === 'PATCH') {
         $body = json_decode(file_get_contents('php://input'), true);
         $my_id = $body['my_id'] ?? null;
@@ -132,7 +130,6 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
             return;
         }
         echo json_encode(['my_id' => (int) $my_id, 'state' => $new_state]);
-
     } elseif ($method === 'DELETE') {
         $body = json_decode(file_get_contents('php://input'), true);
         $my_id = $body['my_id'] ?? null;
@@ -165,13 +162,11 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         $stmt->execute([$mifmus_id]);
 
         echo json_encode(['deleted' => 1, 'events_untagged' => $events_untagged]);
-
     } else {
         http_response_code(405);
         echo json_encode(['error' => 'Method not allowed']);
     }
 } elseif ($emotions_path === '/events') {
-
     if ($method === 'POST') {
         $body = json_decode(file_get_contents('php://input'), true);
         $event_type = $body['event_type'] ?? '';
@@ -240,7 +235,6 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
             http_response_code(500);
             echo json_encode(['error' => 'Failed to log event']);
         }
-
     } elseif ($method === 'GET') {
         $q_my_id      = $_GET['my_id'] ?? null;
         $q_session_id = $_GET['session_id'] ?? null;
@@ -248,7 +242,9 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         $q_to         = $_GET['to'] ?? null;
         $q_event_type = $_GET['event_type'] ?? null;
         $q_limit      = min((int) ($_GET['limit'] ?? 50), 200);
-        if ($q_limit < 1) $q_limit = 50;
+        if ($q_limit < 1) {
+            $q_limit = 50;
+        }
 
         if ($q_my_id === null && $q_session_id === null && $q_from === null) {
             http_response_code(400);
@@ -317,7 +313,6 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
             ];
         }
         echo json_encode($events);
-
     } elseif ($method === 'DELETE') {
         $body = json_decode(file_get_contents('php://input'), true);
         $event_id = $body['event_id'] ?? null;
@@ -332,7 +327,6 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         );
         $stmt->execute([(int) $event_id, $auth_key_id]);
         echo json_encode(['deleted' => $stmt->rowCount()]);
-
     } elseif ($method === 'PATCH') {
         $body = json_decode(file_get_contents('php://input'), true);
         $event_id = $body['event_id'] ?? null;
@@ -392,13 +386,11 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
             return;
         }
         echo json_encode(['event_id' => (int) $event_id, 'my_id' => isset($my_id) ? ($my_id !== null ? (int) $my_id : null) : 'unchanged']);
-
     } else {
         http_response_code(405);
         echo json_encode(['error' => 'Method not allowed']);
     }
 } elseif ($emotions_path === '/sessions') {
-
     if ($method !== 'GET') {
         http_response_code(405);
         echo json_encode(['error' => 'Method not allowed']);
@@ -408,7 +400,9 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
     $q_from  = $_GET['from'] ?? null;
     $q_to    = $_GET['to'] ?? null;
     $q_limit = min((int) ($_GET['limit'] ?? 20), 100);
-    if ($q_limit < 1) $q_limit = 20;
+    if ($q_limit < 1) {
+        $q_limit = 20;
+    }
 
     $where = ['s.api_key_id = ?'];
     $params = [$auth_key_id];
@@ -451,7 +445,6 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
     }
     echo json_encode($sessions);
 } elseif ($emotions_path === '/everything') {
-
     if ($method !== 'DELETE') {
         http_response_code(405);
         echo json_encode(['error' => 'Method not allowed']);

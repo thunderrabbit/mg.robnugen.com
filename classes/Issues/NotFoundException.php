@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Thrown by Issues\Issues when an issue does not exist or is not visible to the caller.
  *
@@ -7,6 +8,9 @@
  *
  * @see \Issues\Issues
  */
+
 namespace Issues;
 
-class NotFoundException extends \Exception {}
+class NotFoundException extends \Exception
+{
+}

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * API Endpoint: Uncomplete a Todo
  * Removes a completion log for a todo item
@@ -66,7 +67,6 @@ try {
             'error' => 'No completion found to remove'
         ]);
     }
-
 } catch (\Exception $e) {
     http_response_code(500);
     echo json_encode([

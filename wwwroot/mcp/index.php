@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Exterminal MCP server — MCP Streamable-HTTP transport (2025-03-26 spec).
  *
@@ -124,22 +125,24 @@ $params = $msg['params'] ?? [];
 
 // ── JSON-RPC helpers ──────────────────────────────────────────────────────────
 
-function mcp_ok($id, array $result): array {
+function mcp_ok($id, array $result): array
+{
     return ['jsonrpc' => '2.0', 'id' => $id, 'result' => $result];
 }
 
-function mcp_error($id, int $code, string $message): array {
+function mcp_error($id, int $code, string $message): array
+{
     return ['jsonrpc' => '2.0', 'id' => $id, 'error' => ['code' => $code, 'message' => $message]];
 }
 
-function mcp_tool_result($id, $data): array {
+function mcp_tool_result($id, $data): array
+{
     return mcp_ok($id, ['content' => [['type' => 'text', 'text' => json_encode($data)]]]);
 }
 
 // ── Dispatch ──────────────────────────────────────────────────────────────────
 
 switch ($method) {
-
     case 'initialize':
         // Negotiate protocol version — accept any 2025-x spec, respond with highest we support
         $client_version = $params['protocolVersion'] ?? '2025-03-26';
@@ -197,7 +200,9 @@ function exterm_dispatch(\Exterm\Items $exterm, \Issues\Issues $issues, int $use
 
         case 'exterm_get_item':
             $id = isset($a['exterm_item_id']) ? (int)$a['exterm_item_id'] : 0;
-            if (!$id) throw new \Exterm\ValidationException("exterm_item_id is required");
+            if (!$id) {
+                throw new \Exterm\ValidationException("exterm_item_id is required");
+            }
             return $exterm->getItem($id, $user_id, $caller_aiu);
 
         case 'exterm_create_item':
@@ -205,12 +210,16 @@ function exterm_dispatch(\Exterm\Items $exterm, \Issues\Issues $issues, int $use
 
         case 'exterm_update_item':
             $id = isset($a['exterm_item_id']) ? (int)$a['exterm_item_id'] : 0;
-            if (!$id) throw new \Exterm\ValidationException("exterm_item_id is required");
+            if (!$id) {
+                throw new \Exterm\ValidationException("exterm_item_id is required");
+            }
             return $exterm->updateItem($user_id, $caller_aiu, $id, $a);
 
         case 'exterm_delete_item':
             $id = isset($a['exterm_item_id']) ? (int)$a['exterm_item_id'] : 0;
-            if (!$id) throw new \Exterm\ValidationException("exterm_item_id is required");
+            if (!$id) {
+                throw new \Exterm\ValidationException("exterm_item_id is required");
+            }
             return $exterm->deleteItem($user_id, $caller_aiu, $id);
 
         // ── Jikan issues (concrete task state) ────────────────────────────────
@@ -220,7 +229,9 @@ function exterm_dispatch(\Exterm\Items $exterm, \Issues\Issues $issues, int $use
 
         case 'issue_get':
             $iid = isset($a['issue_id']) ? (int)$a['issue_id'] : 0;
-            if (!$iid) throw new \Issues\ValidationException("issue_id is required");
+            if (!$iid) {
+                throw new \Issues\ValidationException("issue_id is required");
+            }
             return $issues->getIssue($iid, $user_id, $caller_aiu);
 
         case 'issue_create':
@@ -228,18 +239,24 @@ function exterm_dispatch(\Exterm\Items $exterm, \Issues\Issues $issues, int $use
 
         case 'issue_update':
             $iid = isset($a['issue_id']) ? (int)$a['issue_id'] : 0;
-            if (!$iid) throw new \Issues\ValidationException("issue_id is required");
+            if (!$iid) {
+                throw new \Issues\ValidationException("issue_id is required");
+            }
             return $issues->updateIssue($iid, $user_id, $caller_aiu, $a);
 
         case 'issue_comment_add':
             $iid  = isset($a['issue_id']) ? (int)$a['issue_id'] : 0;
             $body = $a['body'] ?? '';
-            if (!$iid) throw new \Issues\ValidationException("issue_id is required");
+            if (!$iid) {
+                throw new \Issues\ValidationException("issue_id is required");
+            }
             return $issues->addComment($iid, $user_id, $caller_aiu, $body);
 
         case 'issue_comment_list':
             $iid = isset($a['issue_id']) ? (int)$a['issue_id'] : 0;
-            if (!$iid) throw new \Issues\ValidationException("issue_id is required");
+            if (!$iid) {
+                throw new \Issues\ValidationException("issue_id is required");
+            }
             return $issues->listComments($iid, $user_id, $caller_aiu, $a);
 
         case 'exterm_search_items':

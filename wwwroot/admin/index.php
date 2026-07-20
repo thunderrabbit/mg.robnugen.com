@@ -6,7 +6,6 @@ preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
 
 if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
-
     // Handle alert dismiss POST actions
     if (
         $_SERVER['REQUEST_METHOD'] === 'POST'

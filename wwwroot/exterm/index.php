@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Exterminal (ET) item list — browse a project's context docs and tasks.
  *
@@ -16,9 +17,13 @@
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
 
-if (!$is_logged_in->isLoggedIn()) { header("Location: /login/"); exit; }
+if (!$is_logged_in->isLoggedIn()) {
+    header("Location: /login/");
+    exit;
+}
 if (!$is_logged_in->isAdmin() && !$is_logged_in->isPaid()) {
-    header("Location: /?msg=upgrade_required"); exit;
+    header("Location: /?msg=upgrade_required");
+    exit;
 }
 
 $user_id = $is_logged_in->loggedInID();
@@ -63,11 +68,13 @@ $page->set("page_title", "Exterminal — Meiso Gambare");
 
 $inner = new \Template($config, $is_logged_in);
 $inner->setTemplate("exterm/index.tpl.php");
-$inner->set("projects",      $projects);
-$inner->set("project_id",    $project_id);
-$inner->set("project_name",  $project_name);
-$inner->set("items",         $items);
-if (isset($_GET['msg'])) $inner->set("msg", $_GET['msg']);
+$inner->set("projects", $projects);
+$inner->set("project_id", $project_id);
+$inner->set("project_name", $project_name);
+$inner->set("items", $items);
+if (isset($_GET['msg'])) {
+    $inner->set("msg", $_GET['msg']);
+}
 
 $page->set("page_content", $inner->grabTheGoods());
 $page->echoToScreen();

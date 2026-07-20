@@ -1,8 +1,10 @@
 <?php
+
 /**
  * Manages API key authentication for external agent access.
  * Follows the same constructor pattern as Auth\IsLoggedIn.
  */
+
 namespace Auth;
 
 class ApiKey
@@ -11,7 +13,8 @@ class ApiKey
 
     public function __construct(
         private \PDO $di_pdo,
-    ) {}
+    ) {
+    }
 
     /**
      * Validates an API key and returns the associated user_id, or null if invalid/inactive.

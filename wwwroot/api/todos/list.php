@@ -1,4 +1,5 @@
 <?php
+
 /**
  * API Endpoint: List Today's Todos
  * Returns todos for the current day with completion status
@@ -178,7 +179,7 @@ try {
     }
 
     // Sort todos by adjusted time to keep chronological order
-    usort($filteredTodos, function($a, $b) {
+    usort($filteredTodos, function ($a, $b) {
         $timeA = $a['do_time'] ?? null;
         $timeB = $b['do_time'] ?? null;
 
@@ -192,8 +193,12 @@ try {
         }
 
         // If one is null, it comes first (MySQL behavior)
-        if ($timeA === null) return -1;
-        if ($timeB === null) return 1;
+        if ($timeA === null) {
+            return -1;
+        }
+        if ($timeB === null) {
+            return 1;
+        }
 
         return strcmp($timeA, $timeB);
     });
@@ -204,7 +209,6 @@ try {
         'today' => $today,
         'day_of_week' => $dayOfWeek
     ]);
-
 } catch (\Exception $e) {
     http_response_code(500);
     echo json_encode([

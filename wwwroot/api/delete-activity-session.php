@@ -1,4 +1,5 @@
 <?php
+
 /**
  * API Endpoint: Delete Activity Session
  * Deletes an activity_kai record (and its session_key via CASCADE)
@@ -73,7 +74,6 @@ try {
             'error' => 'Activity session not found'
         ]);
     }
-
 } catch (\Exception $e) {
     http_response_code(500);
     echo json_encode([

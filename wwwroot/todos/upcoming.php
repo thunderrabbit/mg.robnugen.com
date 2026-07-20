@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Upcoming Todos Page
  * Lists future todos with pagination

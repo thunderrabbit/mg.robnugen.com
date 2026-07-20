@@ -1,36 +1,25 @@
 <?xml version="1.0"?>
-<ruleset name="mg-starter">
+<ruleset name="mg">
     <description>
-        Starter style gate for mg. Intentionally MINIMAL so it passes today and
-        tightens over time (toward PSR-12). The Standards MCP check_style gate
-        runs this; add rules gradually and run phpcbf to auto-fix each step.
+        mg style gate: PSR-12, reached incrementally (see git history) and kept
+        green via phpcbf. The excludes below are PSR-12 sniffs mg does not yet
+        satisfy AND phpcbf cannot auto-fix (they need manual code changes).
+        Remove an exclude once its violations are cleaned up.
     </description>
 
     <file>classes</file>
     <file>wwwroot</file>
     <exclude-pattern>*/vendor/*</exclude-pattern>
 
-    <!-- Low-controversy sniffs mg already satisfies. Grow this list over time. -->
-    <rule ref="Generic.PHP.DisallowShortOpenTag"/>
-    <rule ref="Generic.PHP.DisallowAlternativePHPTags"/>
-    <rule ref="Generic.Files.ByteOrderMark"/>
-    <rule ref="Generic.PHP.LowerCaseKeyword"/>
-    <rule ref="Generic.PHP.LowerCaseConstant"/>
-
-    <!-- Increment 1: whitespace hygiene (all phpcbf-fixable). -->
-    <rule ref="Generic.WhiteSpace.DisallowTabIndent"/>
-    <rule ref="Squiz.WhiteSpace.SuperfluousWhitespace"/>
-    <rule ref="Generic.Files.LineEndings">
-        <properties>
-            <property name="eolChar" value="\n"/>
-        </properties>
-    </rule>
-
-    <!-- Increment 2: 4-space scope indentation (phpcbf-fixable). -->
-    <rule ref="Generic.WhiteSpace.ScopeIndent">
-        <properties>
-            <property name="indent" value="4"/>
-            <property name="tabIndent" value="false"/>
-        </properties>
+    <rule ref="PSR12">
+        <!-- Pending manual cleanup (violation counts at adoption, 2026-07-20): -->
+        <exclude name="Generic.Files.LineLength"/>                        <!-- 83: long lines (SQL, etc.) -->
+        <exclude name="PSR1.Classes.ClassDeclaration"/>                   <!-- 9: missing namespace / multiple classes per file -->
+        <exclude name="Squiz.Scope.MethodScope"/>                         <!-- 7: methods missing visibility -->
+        <exclude name="PSR1.Files.SideEffects"/>                          <!-- 6: declaration + side effects in one file -->
+        <exclude name="PSR12.Classes.ClosingBrace"/>                      <!-- 5 -->
+        <exclude name="Squiz.ControlStructures.ControlSignature"/>        <!-- 2 -->
+        <exclude name="PSR12.Properties.ConstantVisibility"/>             <!-- 1: constant missing visibility -->
+        <exclude name="Generic.NamingConventions.UpperCaseConstantName"/> <!-- 1 -->
     </rule>
 </ruleset>

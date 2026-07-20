@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Thrown by Exterm\Items when caller-supplied input is invalid — empty title,
  * unknown status value, attempted direct jump to 'done' on an irreversible
@@ -12,4 +13,6 @@
 
 namespace Exterm;
 
-class ValidationException extends \RuntimeException {}
+class ValidationException extends \RuntimeException
+{
+}

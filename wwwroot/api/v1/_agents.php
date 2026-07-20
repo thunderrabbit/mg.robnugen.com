@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Agent management endpoints — included by index.php, not directly accessible.
  *
@@ -195,7 +196,9 @@ if ($method === 'POST' && $sub === '/visibility') {
         ($peer_aiu === null ? "IS NULL" : "= ?")
     );
     $ex_params = [$reader_aiu];
-    if ($peer_aiu !== null) $ex_params[] = $peer_aiu;
+    if ($peer_aiu !== null) {
+        $ex_params[] = $peer_aiu;
+    }
     $existing->execute($ex_params);
 
     if ($existing->fetch()) {
@@ -205,7 +208,9 @@ if ($method === 'POST' && $sub === '/visibility') {
             ($peer_aiu === null ? "IS NULL" : "= ?")
         );
         $upd_params = [$can_read, $can_send, $reader_aiu];
-        if ($peer_aiu !== null) $upd_params[] = $peer_aiu;
+        if ($peer_aiu !== null) {
+            $upd_params[] = $peer_aiu;
+        }
         $upd->execute($upd_params);
     } else {
         $ins = $pdo->prepare(
