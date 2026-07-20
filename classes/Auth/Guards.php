@@ -26,7 +26,7 @@ class Guards
      * @param string $label      Phrase for the message, e.g. 'read inbox'.
      * @return array|null null if permitted, else ['code'=>403,'error'=>...].
      */
-    public static function permission(array $auth_actor, string $flag, string $label): ?array
+    public function permission(array $auth_actor, string $flag, string $label): ?array
     {
         if (empty($auth_actor[$flag])) {
             return ['code' => 403, 'error' => "This API key does not have permission to $label"];
@@ -44,7 +44,7 @@ class Guards
      * @param int    $max   Byte cap (default MAX_MESSAGE_BYTES).
      * @return array|null null if within limit, else ['code'=>400,'error'=>...].
      */
-    public static function byteLimit(string $field, string $value, int $max = self::MAX_MESSAGE_BYTES): ?array
+    public function byteLimit(string $field, string $value, int $max = self::MAX_MESSAGE_BYTES): ?array
     {
         $len = strlen($value);
         if ($len > $max) {

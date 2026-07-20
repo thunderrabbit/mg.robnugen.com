@@ -27,6 +27,7 @@ if (empty($raw_key)) {
 
 $pdo = \Database\Base::getPDO($config);
 $apiKeyAuth = new \Auth\ApiKey($pdo);
+$guards = new \Auth\Guards();   // shared by handler includes (e.g. _inbox.php)
 $auth_user_id = $apiKeyAuth->validateKey($raw_key);
 $auth_key_id  = $apiKeyAuth->getLastKeyId();
 

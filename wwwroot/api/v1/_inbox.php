@@ -29,7 +29,7 @@ $sub = preg_replace('#^/inbox#', '', $path) ?: '/';
 // Covers: GET /list, PATCH /mark-seen, /mark-seen-bulk, /mark-done, /archive
 $is_read_op = ($method === 'GET') ||
               ($method === 'PATCH' && in_array($sub, ['/mark-seen', '/mark-seen-bulk', '/mark-done', '/mark-unseen', '/archive']));
-if ($is_read_op && ($guard = \Auth\Guards::permission($auth_actor, 'can_read_inbox', 'read inbox'))) {
+if ($is_read_op && ($guard = $guards->permission($auth_actor, 'can_read_inbox', 'read inbox'))) {
     http_response_code($guard['code']);
     echo json_encode(['error' => $guard['error']]);
     exit;
@@ -37,7 +37,7 @@ if ($is_read_op && ($guard = \Auth\Guards::permission($auth_actor, 'can_read_inb
 // Permission: agent_inbox_user.can_write_inbox
 // Covers: POST /send, PATCH /edit, DELETE /delete
 $is_write_op = ($method === 'POST') || ($method === 'DELETE') || ($method === 'PATCH' && $sub === '/edit');
-if ($is_write_op && ($guard = \Auth\Guards::permission($auth_actor, 'can_write_inbox', 'write inbox'))) {
+if ($is_write_op && ($guard = $guards->permission($auth_actor, 'can_write_inbox', 'write inbox'))) {
     http_response_code($guard['code']);
     echo json_encode(['error' => $guard['error']]);
     exit;
@@ -188,7 +188,7 @@ if ($method === 'GET' && $sub === '/list') {
             echo json_encode(['error' => 'Not authorized to send to this recipient']);
             return;
         }
-    } elseif ($guard = \Auth\Guards::permission($auth_actor, 'can_broadcast_inbox', 'broadcast')) {
+    } elseif ($guard = $guards->permission($auth_actor, 'can_broadcast_inbox', 'broadcast')) {
         http_response_code($guard['code']);
         echo json_encode(['error' => $guard['error']]);
         return;
@@ -199,7 +199,7 @@ if ($method === 'GET' && $sub === '/list') {
         echo json_encode(['error' => 'message is required']);
         return;
     }
-    if ($guard = \Auth\Guards::byteLimit('message', $message)) {
+    if ($guard = $guards->byteLimit('message', $message)) {
         http_response_code($guard['code']);
         echo json_encode(['error' => $guard['error']]);
         return;
@@ -272,7 +272,7 @@ if ($method === 'GET' && $sub === '/list') {
         echo json_encode(['error' => 'message_id is required']);
         return;
     }
-    if ($guard = \Auth\Guards::byteLimit('response', $response)) {
+    if ($guard = $guards->byteLimit('response', $response)) {
         http_response_code($guard['code']);
         echo json_encode(['error' => $guard['error']]);
         return;
@@ -363,7 +363,7 @@ if ($method === 'GET' && $sub === '/list') {
             echo json_encode(['error' => 'message cannot be empty']);
             return;
         }
-        if ($guard = \Auth\Guards::byteLimit('message', $message)) {
+        if ($guard = $guards->byteLimit('message', $message)) {
             http_response_code($guard['code']);
             echo json_encode(['error' => $guard['error']]);
             return;
@@ -397,7 +397,7 @@ if ($method === 'GET' && $sub === '/list') {
     }
     if ($recipient_aiu !== null) {
         if ($recipient_aiu === 0) {
-            if ($guard = \Auth\Guards::permission($auth_actor, 'can_broadcast_inbox', 'broadcast')) {
+            if ($guard = $guards->permission($auth_actor, 'can_broadcast_inbox', 'broadcast')) {
                 http_response_code($guard['code']);
                 echo json_encode(['error' => $guard['error']]);
                 return;
@@ -482,7 +482,7 @@ if ($method === 'GET' && $sub === '/list') {
 } elseif ($method === 'GET' && $sub === '/actors') {
     // ── List actors in this account ───────────────────────────────────────
     // Requires can_write_inbox (you only need this if deciding who to send to)
-    if ($guard = \Auth\Guards::permission($auth_actor, 'can_write_inbox', 'list actors')) {
+    if ($guard = $guards->permission($auth_actor, 'can_write_inbox', 'list actors')) {
         http_response_code($guard['code']);
         echo json_encode(['error' => $guard['error']]);
         exit;
