@@ -6,6 +6,8 @@ wwwroot/.dh-diag
 wwwroot/favicon.*
 *.code-workspace
 php*
+# committed style-gate config (php* would otherwise hide it)
+!phpcs.xml
 
 # Environment
 .env

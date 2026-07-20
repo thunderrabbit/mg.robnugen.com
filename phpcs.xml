@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<ruleset name="mg-starter">
+    <description>
+        Starter style gate for mg. Intentionally MINIMAL so it passes today and
+        tightens over time (toward PSR-12). The Standards MCP check_style gate
+        runs this; add rules gradually and run phpcbf to auto-fix each step.
+    </description>
+
+    <file>classes</file>
+    <file>wwwroot</file>
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+
+    <!-- Low-controversy sniffs mg already satisfies. Grow this list over time. -->
+    <rule ref="Generic.PHP.DisallowShortOpenTag"/>
+    <rule ref="Generic.PHP.DisallowAlternativePHPTags"/>
+    <rule ref="Generic.Files.ByteOrderMark"/>
+    <rule ref="Generic.PHP.LowerCaseKeyword"/>
+    <rule ref="Generic.PHP.LowerCaseConstant"/>
+</ruleset>
