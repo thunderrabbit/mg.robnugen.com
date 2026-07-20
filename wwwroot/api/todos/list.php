@@ -76,13 +76,13 @@ try {
                  $overallStatus = $todoHelper->getCompletionStatus($todo['todo_id']);
                  $totalCompleted = $overallStatus['count'];
 
-                 if ($totalCompleted >= $targetCount) {
-                     // It is fully completed overall.
-                     // And since it wasn't valid "today" (otherwise captured above),
-                     // it must have been completed in the past.
-                     // HIDE IT.
-                     continue;
-                 }
+                if ($totalCompleted >= $targetCount) {
+                    // It is fully completed overall.
+                    // And since it wasn't valid "today" (otherwise captured above),
+                    // it must have been completed in the past.
+                    // HIDE IT.
+                    continue;
+                }
                  // If incomplete overall, keep it (it's overdue).
             }
         }

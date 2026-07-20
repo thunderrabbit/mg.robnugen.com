@@ -126,7 +126,7 @@ if ($grant_type === 'authorization_code') {
     $auth_user_id     = (int) $code_row['user_id'];
     $existing_token_id = null;
 
-// ── Refresh Token (silent renewal) ───────────────────────────────────────────
+    // ── Refresh Token (silent renewal) ───────────────────────────────────────────
 
 } elseif ($grant_type === 'refresh_token') {
 
@@ -158,7 +158,7 @@ if ($grant_type === 'authorization_code') {
     $auth_user_id      = (int) $refresh_row['user_id'];
     $existing_token_id = (int) $refresh_row['token_id'];
 
-// ── Client Credentials (fallback) ────────────────────────────────────────────
+    // ── Client Credentials (fallback) ────────────────────────────────────────────
 
 } elseif ($grant_type === 'client_credentials') {
 

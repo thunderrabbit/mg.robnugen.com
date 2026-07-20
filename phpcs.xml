@@ -25,4 +25,12 @@
             <property name="eolChar" value="\n"/>
         </properties>
     </rule>
+
+    <!-- Increment 2: 4-space scope indentation (phpcbf-fixable). -->
+    <rule ref="Generic.WhiteSpace.ScopeIndent">
+        <properties>
+            <property name="indent" value="4"/>
+            <property name="tabIndent" value="false"/>
+        </properties>
+    </rule>
 </ruleset>
