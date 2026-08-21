@@ -2,10 +2,12 @@
 
 namespace ActivityTracking;
 
-class ActivityKai {
+class ActivityKai
+{
     private $pdo;
 
-    public function __construct(\PDO $pdo) {
+    public function __construct(\PDO $pdo)
+    {
         $this->pdo = $pdo;
     }
 
@@ -60,7 +62,8 @@ class ActivityKai {
      * @param int $user_id
      * @return int Number of todos auto-completed
      */
-    public function processExpiredTimers(int $user_id): int {
+    public function processExpiredTimers(int $user_id): int
+    {
         // Find active sessions that have passed their intended duration
         // We use a safe buffer of e.g. 5 seconds to avoid race conditions with frontend stop
         $stmt = $this->pdo->prepare("
@@ -173,7 +176,8 @@ class ActivityKai {
      * @param int $activity_id
      * @return array|null Session data or null if none active
      */
-    public function getActiveSession(int $user_id, int $activity_id): ?array {
+    public function getActiveSession(int $user_id, int $activity_id): ?array
+    {
         $stmt = $this->pdo->prepare("
             SELECT ak_id, start_local_dt, intended_sec, timezone_id
             FROM activity_kai
@@ -197,7 +201,8 @@ class ActivityKai {
      * @param int $limit Number of sessions to retrieve
      * @return array Array of session records
      */
-    public function getUserSessions(int $user_id, int $limit = 10): array {
+    public function getUserSessions(int $user_id, int $limit = 10): array
+    {
         $stmt = $this->pdo->prepare("
             SELECT
                 ak.ak_id,
@@ -228,7 +233,8 @@ class ActivityKai {
      * @param int $user_id
      * @return bool
      */
-    public function verifyOwnership(int $ak_id, int $user_id): bool {
+    public function verifyOwnership(int $ak_id, int $user_id): bool
+    {
         $stmt = $this->pdo->prepare("
             SELECT COUNT(*) as count
             FROM activity_kai
@@ -248,7 +254,8 @@ class ActivityKai {
      * @param int $user_id User ID (for security check)
      * @return bool Success
      */
-    public function deleteActivity(int $ak_id, int $user_id): bool {
+    public function deleteActivity(int $ak_id, int $user_id): bool
+    {
         $stmt = $this->pdo->prepare("
             DELETE FROM activity_kai
             WHERE ak_id = ? AND user_id = ?

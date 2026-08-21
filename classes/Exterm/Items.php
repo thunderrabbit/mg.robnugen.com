@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Exterminal (ET) — data-access layer for the exterm_items table.
  *
@@ -63,7 +64,9 @@ namespace Exterm;
 
 class Items
 {
-    public function __construct(private \PDO $pdo) {}
+    public function __construct(private \PDO $pdo)
+    {
+    }
 
     // ── Access helpers ────────────────────────────────────────────────────────
 
@@ -80,7 +83,9 @@ class Items
         );
         $stmt->execute([$caller_aiu, $exterm_item_id, $user_id]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-        if (!$row) throw new NotFoundException("Item {$exterm_item_id} not found or access denied");
+        if (!$row) {
+            throw new NotFoundException("Item {$exterm_item_id} not found or access denied");
+        }
         return $row;
     }
 
@@ -96,7 +101,9 @@ class Items
         );
         $stmt->execute([$project_id, $caller_aiu, $user_id]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-        if (!$row) throw new AccessException("Not a member of project {$project_id}");
+        if (!$row) {
+            throw new AccessException("Not a member of project {$project_id}");
+        }
         return $row;
     }
 
@@ -145,7 +152,8 @@ class Items
         }
 
         if (!empty($filters['since'])) {
-            $where[] = "ei.updated_at_utc >= ?"; $params[] = $filters['since'];
+            $where[] = "ei.updated_at_utc >= ?";
+            $params[] = $filters['since'];
         }
 
         $params[] = $limit;
@@ -170,7 +178,9 @@ class Items
     public function getItem(int $exterm_item_id, int $user_id, int $caller_aiu): array
     {
         $row = $this->itemWithAccess($exterm_item_id, $user_id, $caller_aiu);
-        if (!(int)$row['can_read']) throw new AccessException("No read access to item {$exterm_item_id}");
+        if (!(int)$row['can_read']) {
+            throw new AccessException("No read access to item {$exterm_item_id}");
+        }
 
         $stmt = $this->pdo->prepare(
             "SELECT ei.*, p.name AS project_name, aiu_a.name AS author_name
@@ -190,11 +200,17 @@ class Items
         $title      = trim($data['title'] ?? '');
         $body       = $data['body'] ?? null;
 
-        if (!$project_id) throw new ValidationException("project_id is required");
-        if (!$title)      throw new ValidationException("title is required");
+        if (!$project_id) {
+            throw new ValidationException("project_id is required");
+        }
+        if (!$title) {
+            throw new ValidationException("title is required");
+        }
 
         $role = $this->projectAccess($project_id, $user_id, $caller_aiu);
-        if (!(int)$role['can_write']) throw new AccessException("No write access to project {$project_id}");
+        if (!(int)$role['can_write']) {
+            throw new AccessException("No write access to project {$project_id}");
+        }
 
         $this->pdo->prepare(
             "INSERT INTO exterm_items (project_id, author_aiu, title, body)
@@ -212,27 +228,38 @@ class Items
     public function updateItem(int $user_id, int $caller_aiu, int $exterm_item_id, array $data): array
     {
         $row = $this->itemWithAccess($exterm_item_id, $user_id, $caller_aiu);
-        if (!(int)$row['can_write']) throw new AccessException("No write access to item {$exterm_item_id}");
+        if (!(int)$row['can_write']) {
+            throw new AccessException("No write access to item {$exterm_item_id}");
+        }
 
         $sets   = [];
         $params = [];
 
         if (array_key_exists('title', $data) && $data['title'] !== null) {
             $t = trim($data['title']);
-            if (!$t) throw new ValidationException("title cannot be empty");
-            $sets[] = "title = ?"; $params[] = $t;
+            if (!$t) {
+                throw new ValidationException("title cannot be empty");
+            }
+            $sets[] = "title = ?";
+            $params[] = $t;
         }
         if (array_key_exists('body', $data)) {
-            $sets[] = "body = ?"; $params[] = $data['body'];
+            $sets[] = "body = ?";
+            $params[] = $data['body'];
         }
         if (array_key_exists('project_id', $data) && $data['project_id'] !== null) {
             $dest = (int)$data['project_id'];
             $role = $this->projectAccess($dest, $user_id, $caller_aiu);
-            if (!(int)$role['can_write']) throw new AccessException("No write access to project {$dest}");
-            $sets[] = "project_id = ?"; $params[] = $dest;
+            if (!(int)$role['can_write']) {
+                throw new AccessException("No write access to project {$dest}");
+            }
+            $sets[] = "project_id = ?";
+            $params[] = $dest;
         }
 
-        if (empty($sets)) throw new ValidationException("Nothing to update");
+        if (empty($sets)) {
+            throw new ValidationException("Nothing to update");
+        }
 
         $params[] = $exterm_item_id;
         $this->pdo->prepare("UPDATE exterm_items SET " . implode(', ', $sets) . " WHERE exterm_item_id = ?")
@@ -244,14 +271,18 @@ class Items
     public function deleteItem(int $user_id, int $caller_aiu, int $exterm_item_id): array
     {
         $row = $this->itemWithAccess($exterm_item_id, $user_id, $caller_aiu);
-        if (!(int)$row['can_write']) throw new AccessException("No write access to delete item {$exterm_item_id}");
+        if (!(int)$row['can_write']) {
+            throw new AccessException("No write access to delete item {$exterm_item_id}");
+        }
         $this->pdo->prepare("DELETE FROM exterm_items WHERE exterm_item_id = ?")->execute([$exterm_item_id]);
         return ['exterm_item_id' => $exterm_item_id, 'deleted' => true];
     }
 
     public function searchItems(int $user_id, int $caller_aiu, string $query, ?int $project_id = null, int $limit = 20): array
     {
-        if (!trim($query)) throw new ValidationException("query is required");
+        if (!trim($query)) {
+            throw new ValidationException("query is required");
+        }
         $limit = min($limit, 100);
         $like  = '%' . str_replace(['%','_'], ['\\%','\\_'], $query) . '%';
 
@@ -260,7 +291,8 @@ class Items
 
         if ($project_id) {
             $this->projectAccess($project_id, $user_id, $caller_aiu);
-            $where[] = "ei.project_id = ?"; $params[] = $project_id;
+            $where[] = "ei.project_id = ?";
+            $params[] = $project_id;
             $member_join = "";
         } else {
             $member_join = "JOIN project_members pm ON pm.project_id = ei.project_id AND pm.member_aiu = ? AND pm.can_read = 1";

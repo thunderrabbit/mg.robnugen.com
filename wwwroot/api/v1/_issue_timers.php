@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Issue timers — count-up only, multiple concurrent per worker allowed.
  * Included from _issues.php.
@@ -147,7 +148,9 @@ if ($method === 'PATCH' && $tsub === '/stop') {
          WHERE t.issue_timer_id = ? AND t.stopped_at_utc IS NULL AND p.user_id = ?" . $where_auth;
 
     $params = [$timer_id, $auth_user_id];
-    if (!$is_human) $params[] = $caller_aiu;
+    if (!$is_human) {
+        $params[] = $caller_aiu;
+    }
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
@@ -185,7 +188,9 @@ if ($method === 'PATCH' && $tsub === '/edit-note') {
          WHERE t.issue_timer_id = ? AND p.user_id = ?" . $where_auth;
 
     $params = [($note === '' ? null : $note), $timer_id, $auth_user_id];
-    if (!$is_human) $params[] = $caller_aiu;
+    if (!$is_human) {
+        $params[] = $caller_aiu;
+    }
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
@@ -216,7 +221,9 @@ if ($method === 'DELETE' && $tsub === '/delete') {
          WHERE t.issue_timer_id = ? AND p.user_id = ?" . $where_auth;
 
     $params = [$timer_id, $auth_user_id];
-    if (!$is_human) $params[] = $caller_aiu;
+    if (!$is_human) {
+        $params[] = $caller_aiu;
+    }
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);

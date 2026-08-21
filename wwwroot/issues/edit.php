@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Edit Issue Page
  * Loads an issue's title + description, pre-fills a form on GET, updates on POST.
@@ -106,10 +107,18 @@ $inner = new \Template($config, $is_logged_in);
 $inner->setTemplate("issues/edit.tpl.php");
 $inner->set("issue", $issue);
 $inner->set("assignee_choices", $assignee_choices);
-if ($error !== null)               $inner->set("error", $error);
-if (isset($_POST['title']))        $inner->set("form_title", $_POST['title']);
-if (isset($_POST['description']))  $inner->set("form_description", $_POST['description']);
-if (isset($_POST['assignee_aiu'])) $inner->set("form_assignee_aiu", $_POST['assignee_aiu']);
+if ($error !== null) {
+    $inner->set("error", $error);
+}
+if (isset($_POST['title'])) {
+    $inner->set("form_title", $_POST['title']);
+}
+if (isset($_POST['description'])) {
+    $inner->set("form_description", $_POST['description']);
+}
+if (isset($_POST['assignee_aiu'])) {
+    $inner->set("form_assignee_aiu", $_POST['assignee_aiu']);
+}
 
 $page->set("page_content", $inner->grabTheGoods());
 $page->echoToScreen();

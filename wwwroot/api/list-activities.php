@@ -1,4 +1,5 @@
 <?php
+
 /**
  * API Endpoint: List Activities
  * Returns list of activities available to the logged-in user
@@ -69,7 +70,6 @@ try {
         'activities' => $activities,
         'can_create_activities' => ($is_admin || $is_paid)  // Only Paid/Admin can create activities
     ]);
-
 } catch (\Exception $e) {
     http_response_code(500);
     echo json_encode([

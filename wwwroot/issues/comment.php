@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Post an issue comment.
  * Accepts POST only. Validates issue membership + can_write. On success,

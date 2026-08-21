@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Session endpoints — included by index.php, not directly accessible.
  *
@@ -48,7 +49,7 @@ if ($method === 'GET' && $ak_id === null && !$is_backfill) {
     $activity_id = isset($_GET['activity_id']) ? (int)$_GET['activity_id'] : null;
     $is_active   = isset($_GET['is_active']) ? (int)$_GET['is_active'] : null;
     $limit       = min((int)($_GET['limit']  ?? 20), 50);
-    $offset      = max((int)($_GET['offset'] ?? 0),   0);
+    $offset      = max((int)($_GET['offset'] ?? 0), 0);
 
     $where  = ['ak.user_id = ?'];
     $params = [$auth_user_id];

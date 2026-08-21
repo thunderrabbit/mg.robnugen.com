@@ -1,4 +1,5 @@
 <?php
+
 /**
  * API Endpoint: List Active Sessions
  * Returns all active (not yet stopped) sessions for the logged-in user
@@ -49,7 +50,6 @@ try {
         'success' => true,
         'active_sessions' => $sessions
     ]);
-
 } catch (\Exception $e) {
     http_response_code(500);
     echo json_encode([

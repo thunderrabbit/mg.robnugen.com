@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Agent Inbox API sub-dispatcher
  *
@@ -153,7 +154,6 @@ if ($method === 'GET' && $sub === '/list') {
         'offset'   => $offset,
         'has_more' => ($offset + $limit) < $total,
     ]);
-
 } elseif ($method === 'POST' && $sub === '/send') {
     // ── Send a message to the inbox (costs 1 credit) ─────────────────────
     $input = json_decode(file_get_contents('php://input'), true);
@@ -236,7 +236,6 @@ if ($method === 'GET' && $sub === '/list') {
         'created'    => true,
         'success'    => true,
     ]);
-
 } elseif ($method === 'PATCH' && $sub === '/mark-seen') {
     // ── Mark message as seen ─────────────────────────────────────────────
     $input = json_decode(file_get_contents('php://input'), true);
@@ -260,7 +259,6 @@ if ($method === 'GET' && $sub === '/list') {
     $stmt->execute([$message_id, $auth_user_id, $caller_aiu, $caller_aiu, $caller_aiu]);
 
     echo json_encode(['updated' => $stmt->rowCount()]);
-
 } elseif ($method === 'PATCH' && $sub === '/mark-done') {
     // ── Mark message as done ─────────────────────────────────────────────
     $input = json_decode(file_get_contents('php://input'), true);
@@ -300,7 +298,6 @@ if ($method === 'GET' && $sub === '/list') {
     $stmt->execute($params);
 
     echo json_encode(['updated' => $stmt->rowCount()]);
-
 } elseif ($method === 'PATCH' && $sub === '/mark-seen-bulk') {
     // ── Bulk mark messages as seen ────────────────────────────────────────
     $input = json_decode(file_get_contents('php://input'), true);
@@ -334,7 +331,6 @@ if ($method === 'GET' && $sub === '/list') {
     $stmt->execute([...$message_ids, $auth_user_id, $caller_aiu, $caller_aiu, $caller_aiu]);
 
     echo json_encode(['updated' => $stmt->rowCount()]);
-
 } elseif ($method === 'PATCH' && $sub === '/edit') {
     // ── Edit a message ───────────────────────────────────────────────────
     $input = json_decode(file_get_contents('php://input'), true);
@@ -430,7 +426,6 @@ if ($method === 'GET' && $sub === '/list') {
     $stmt->execute($params);
 
     echo json_encode(['updated' => $stmt->rowCount()]);
-
 } elseif ($method === 'PATCH' && $sub === '/archive') {
     // ── Archive a message ────────────────────────────────────────────────
     $input = json_decode(file_get_contents('php://input'), true);
@@ -454,7 +449,6 @@ if ($method === 'GET' && $sub === '/list') {
     $stmt->execute([$message_id, $auth_user_id, $caller_aiu, $caller_aiu, $caller_aiu]);
 
     echo json_encode(['updated' => $stmt->rowCount()]);
-
 } elseif ($method === 'DELETE' && $sub === '/delete') {
     // ── Delete a message ─────────────────────────────────────────────────
     $input = json_decode(file_get_contents('php://input'), true);
@@ -478,7 +472,6 @@ if ($method === 'GET' && $sub === '/list') {
     $stmt->execute([$message_id, $auth_user_id, $caller_aiu, $caller_aiu, $caller_aiu]);
 
     echo json_encode(['deleted' => $stmt->rowCount()]);
-
 } elseif ($method === 'GET' && $sub === '/actors') {
     // ── List actors in this account ───────────────────────────────────────
     // Requires can_write_inbox (you only need this if deciding who to send to)
@@ -496,7 +489,6 @@ if ($method === 'GET' && $sub === '/list') {
     echo json_encode([
         'actors' => $stmt->fetchAll(\PDO::FETCH_ASSOC),
     ]);
-
 } elseif ($method === 'PATCH' && $sub === '/mark-unseen') {
     // ── Reset message to pending (clear seen_at) ────────────────────────
     // Use case: message was marked seen but not processed (e.g. budget ran
@@ -522,7 +514,6 @@ if ($method === 'GET' && $sub === '/list') {
     $stmt->execute([$message_id, $auth_user_id, $caller_aiu, $caller_aiu, $caller_aiu]);
 
     echo json_encode(['updated' => $stmt->rowCount()]);
-
 } else {
     http_response_code(404);
     echo json_encode(['error' => 'Not found', 'hint' => 'GET /list, GET /actors, POST /send, PATCH /mark-seen, PATCH /mark-seen-bulk, PATCH /mark-done, PATCH /mark-unseen, DELETE /delete']);

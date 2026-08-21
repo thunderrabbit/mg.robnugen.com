@@ -2,10 +2,12 @@
 
 namespace ActivityTracking;
 
-class SessionKey {
+class SessionKey
+{
     private $pdo;
 
-    public function __construct(\PDO $pdo) {
+    public function __construct(\PDO $pdo)
+    {
         $this->pdo = $pdo;
     }
 
@@ -15,7 +17,8 @@ class SessionKey {
      *
      * @return string 11-character session key
      */
-    public function generateSessionKey(): string {
+    public function generateSessionKey(): string
+    {
         // Base64url encoding: a-z, A-Z, 0-9, _, -
         $chars = '_-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         $key = '';
@@ -32,7 +35,8 @@ class SessionKey {
      * @param int $ak_id Activity session ID
      * @return string The generated session key
      */
-    public function createSessionKey(int $ak_id): string {
+    public function createSessionKey(int $ak_id): string
+    {
         $maxRetries = 10;
         for ($attempt = 0; $attempt < $maxRetries; $attempt++) {
             $sessionKey = $this->generateSessionKey();
@@ -63,7 +67,8 @@ class SessionKey {
      * @param int $user_id User ID for ownership verification
      * @return array|null Session data or null if not found/not owned
      */
-    public function getSessionByKey(string $session_key, int $user_id): ?array {
+    public function getSessionByKey(string $session_key, int $user_id): ?array
+    {
         $stmt = $this->pdo->prepare("
             SELECT ak.ak_id, ak.user_id, ak.activity_id, ak.start_local_dt,
                    ak.intended_sec, ak.actual_sec, ak.bonus_sec,
@@ -85,7 +90,8 @@ class SessionKey {
      * @param string $session_key Session key
      * @return array|null Session data or null if not found/not public
      */
-    public function getPublicSessionByKey(string $session_key): ?array {
+    public function getPublicSessionByKey(string $session_key): ?array
+    {
         $stmt = $this->pdo->prepare("
             SELECT ak.intended_sec, ak.actual_sec, ak.bonus_sec,
                    ak.start_local_dt, ak.is_public,
@@ -107,7 +113,8 @@ class SessionKey {
      * @param string $session_key Session key
      * @return int|null Activity session ID or null if not found
      */
-    public function getAkIdBySessionKey(string $session_key): ?int {
+    public function getAkIdBySessionKey(string $session_key): ?int
+    {
         $stmt = $this->pdo->prepare("
             SELECT ak_id
             FROM activity_session_keys
@@ -125,7 +132,8 @@ class SessionKey {
      * @param int $user_id User ID
      * @return bool True if user owns the session
      */
-    public function isOwner(string $session_key, int $user_id): bool {
+    public function isOwner(string $session_key, int $user_id): bool
+    {
         $stmt = $this->pdo->prepare("
             SELECT COUNT(*) as count
             FROM activity_session_keys ask

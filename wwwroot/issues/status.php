@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Change the status of an issue.
  * Accepts POST only. Gated on admin/paid + project_members.can_write.

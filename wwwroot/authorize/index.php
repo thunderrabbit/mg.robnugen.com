@@ -1,4 +1,5 @@
 <?php
+
 /**
  * OAuth 2.0 Authorization endpoint — Authorization Code + PKCE (RFC 6749 + RFC 7636).
  *
@@ -46,10 +47,15 @@ $state                  = $_REQUEST['state']                  ?? '';
 
 // Validate required params; show a plain error (don't redirect — redirect_uri may be bad)
 $oauth_error = null;
-if ($response_type !== 'code')                 $oauth_error = "unsupported_response_type";
-elseif (!$redirect_uri)                        $oauth_error = "invalid_request: missing redirect_uri";
-elseif (!$code_challenge)                      $oauth_error = "invalid_request: missing code_challenge";
-elseif ($code_challenge_method !== 'S256')     $oauth_error = "invalid_request: only S256 supported";
+if ($response_type !== 'code') {
+    $oauth_error = "unsupported_response_type";
+} elseif (!$redirect_uri) {
+    $oauth_error = "invalid_request: missing redirect_uri";
+} elseif (!$code_challenge) {
+    $oauth_error = "invalid_request: missing code_challenge";
+} elseif ($code_challenge_method !== 'S256') {
+    $oauth_error = "invalid_request: only S256 supported";
+}
 
 if ($oauth_error) {
     http_response_code(400);
@@ -110,7 +116,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Verify chosen aiu belongs to this user
     $valid = false;
     foreach ($agent_choices as $a) {
-        if ((int)$a['aiu_id'] === $chosen_aiu) { $valid = true; break; }
+        if ((int)$a['aiu_id'] === $chosen_aiu) {
+            $valid = true;
+            break;
+        }
     }
     if (!$valid) {
         http_response_code(400);
@@ -137,12 +146,12 @@ $page->set("page_title", "Authorize MCP Connection — Meiso Gambare");
 
 $inner = new \Template($config, $is_logged_in);
 $inner->setTemplate("authorize/index.tpl.php");
-$inner->set("client_id",             $client_id);
-$inner->set("redirect_uri",          $redirect_uri);
-$inner->set("code_challenge",        $code_challenge);
+$inner->set("client_id", $client_id);
+$inner->set("redirect_uri", $redirect_uri);
+$inner->set("code_challenge", $code_challenge);
 $inner->set("code_challenge_method", $code_challenge_method);
-$inner->set("state",                 $state);
-$inner->set("agent_choices",         $agent_choices);
+$inner->set("state", $state);
+$inner->set("agent_choices", $agent_choices);
 
 $page->set("page_content", $inner->grabTheGoods());
 $page->echoToScreen();

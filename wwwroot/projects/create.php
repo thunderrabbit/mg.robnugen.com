@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Create Project Page
  * Displays the form on GET; handles creation on POST.
@@ -79,9 +80,15 @@ $page->set("page_title", "Create Project - Meiso Gambare");
 
 $inner = new \Template($config, $is_logged_in);
 $inner->setTemplate("projects/create.tpl.php");
-if ($error !== null)              $inner->set("error", $error);
-if (isset($_POST['name']))        $inner->set("form_name", $_POST['name']);
-if (isset($_POST['description'])) $inner->set("form_description", $_POST['description']);
+if ($error !== null) {
+    $inner->set("error", $error);
+}
+if (isset($_POST['name'])) {
+    $inner->set("form_name", $_POST['name']);
+}
+if (isset($_POST['description'])) {
+    $inner->set("form_description", $_POST['description']);
+}
 
 $page->set("page_content", $inner->grabTheGoods());
 $page->echoToScreen();

@@ -1,12 +1,11 @@
 <?php
 
-class Utilities {
-
+class Utilities
+{
     public static function randomString(
         int $length,
         string $possible = ""
-    ): string
-    {
+    ): string {
         $randString = "";
         // define possible characters
         if (empty($possible)) {
@@ -30,7 +29,8 @@ class Utilities {
      * @throws \Exception
      * @return bool|string
      */
-    public static function getSchemaFilePath(string $appPath, string $versionWithFile): string {
+    public static function getSchemaFilePath(string $appPath, string $versionWithFile): string
+    {
         // Sanitize and validate relative path
         if (empty($versionWithFile)) {
             throw new \Exception("Migration version with file cannot be empty.");
@@ -59,7 +59,8 @@ class Utilities {
         return $realTarget;
     }
 
-    public static function renderMarkdown(string $text): string {
+    public static function renderMarkdown(string $text): string
+    {
         static $parsedown = null;
         if ($parsedown === null) {
             $parsedown = new \Parsedown();

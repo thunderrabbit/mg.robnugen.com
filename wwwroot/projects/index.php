@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Projects Index Page
  * Lists projects the logged-in user owns and is a member of.

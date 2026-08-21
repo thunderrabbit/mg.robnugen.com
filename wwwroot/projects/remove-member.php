@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Remove a member from a project.
  * POST only. Admin/paid + project must be in the user's account.

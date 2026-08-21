@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Pure permission / input guards for the /api/v1 endpoints.
  *
@@ -8,6 +9,7 @@
  * no side effects and is fully unit-testable without a DB, network, or
  * credentials — i.e. it belongs in the keyless, networkless commit tier.
  */
+
 namespace Auth;
 
 class Guards

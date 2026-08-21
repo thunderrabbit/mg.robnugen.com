@@ -2,10 +2,12 @@
 
 namespace ActivityTracking;
 
-class Timezone {
+class Timezone
+{
     private $pdo;
 
-    public function __construct(\PDO $pdo) {
+    public function __construct(\PDO $pdo)
+    {
         $this->pdo = $pdo;
     }
 
@@ -16,7 +18,8 @@ class Timezone {
      * @param string $iana_name IANA timezone name (e.g., "Asia/Tokyo")
      * @return int timezone_id
      */
-    public function getTimezoneId(string $iana_name): int {
+    public function getTimezoneId(string $iana_name): int
+    {
         // Try to find existing timezone
         $stmt = $this->pdo->prepare("
             SELECT timezone_id
@@ -45,7 +48,8 @@ class Timezone {
      *
      * @return array Array of timezones with id, iana_name, display_name
      */
-    public function getAllTimezones(): array {
+    public function getAllTimezones(): array
+    {
         $stmt = $this->pdo->query("
             SELECT timezone_id, iana_name, display_name
             FROM timezones
@@ -61,7 +65,8 @@ class Timezone {
      * @param string $iana_name
      * @return bool
      */
-    public function isValidIanaName(string $iana_name): bool {
+    public function isValidIanaName(string $iana_name): bool
+    {
         // Basic validation: should match pattern like "Continent/City"
         return preg_match('/^[A-Z][a-z]+\/[A-Z][a-z_]+$/', $iana_name) === 1;
     }

@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<ruleset name="mg">
+    <description>
+        mg style gate: PSR-12, reached incrementally (see git history) and kept
+        green via phpcbf. The excludes below are PSR-12 sniffs mg does not yet
+        satisfy AND phpcbf cannot auto-fix (they need manual code changes).
+        Remove an exclude once its violations are cleaned up.
+    </description>
+
+    <file>classes</file>
+    <file>wwwroot</file>
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+
+    <rule ref="PSR12">
+        <!-- Pending manual cleanup (violation counts at adoption, 2026-07-20): -->
+        <exclude name="Generic.Files.LineLength"/>                        <!-- 83: long lines (SQL, etc.) -->
+        <exclude name="PSR1.Classes.ClassDeclaration"/>                   <!-- 9: missing namespace / multiple classes per file -->
+        <exclude name="Squiz.Scope.MethodScope"/>                         <!-- 7: methods missing visibility -->
+        <exclude name="PSR1.Files.SideEffects"/>                          <!-- 6: declaration + side effects in one file -->
+        <exclude name="PSR12.Classes.ClosingBrace"/>                      <!-- 5 -->
+        <exclude name="Squiz.ControlStructures.ControlSignature"/>        <!-- 2 -->
+        <exclude name="PSR12.Properties.ConstantVisibility"/>             <!-- 1: constant missing visibility -->
+        <exclude name="Generic.NamingConventions.UpperCaseConstantName"/> <!-- 1 -->
+    </rule>
+</ruleset>

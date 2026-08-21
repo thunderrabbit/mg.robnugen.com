@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Handles incoming Stripe webhook events.
  *
@@ -10,6 +11,7 @@
  *   developer  $5/mo  → 5,000 credits
  *   growth     $15/mo → 25,000 credits
  */
+
 namespace Billing;
 
 class StripeWebhook
@@ -19,7 +21,9 @@ class StripeWebhook
         'growth'    => 25000,
     ];
 
-    public function __construct(private \PDO $pdo) {}
+    public function __construct(private \PDO $pdo)
+    {
+    }
 
     // ── Signature verification ────────────────────────────────────────────────
     // Must be called before parsing the payload.
@@ -156,9 +160,15 @@ class StripeWebhook
     //   1,001+:      every thousandth  (2,000, 3,000, …)
     private function isPayingClientMilestone(int $n): bool
     {
-        if ($n <= 10)   return true;
-        if ($n <= 100)  return $n % 10  === 0;
-        if ($n <= 1000) return $n % 100 === 0;
+        if ($n <= 10) {
+            return true;
+        }
+        if ($n <= 100) {
+            return $n % 10  === 0;
+        }
+        if ($n <= 1000) {
+            return $n % 100 === 0;
+        }
         return                 $n % 1000 === 0;
     }
 

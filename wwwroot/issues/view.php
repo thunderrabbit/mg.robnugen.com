@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Issue Detail Page
  * Shows a single issue. Gated on admin/paid + project membership.
@@ -83,7 +84,9 @@ $inner_page->setTemplate("issues/view.tpl.php");
 $inner_page->set("issue", $issue);
 $inner_page->set("comments", $comments);
 $inner_page->set("statuses", $statuses);
-if (isset($_GET['msg'])) $inner_page->set("msg", $_GET['msg']);
+if (isset($_GET['msg'])) {
+    $inner_page->set("msg", $_GET['msg']);
+}
 
 $page->set("page_content", $inner_page->grabTheGoods());
 $page->echoToScreen();

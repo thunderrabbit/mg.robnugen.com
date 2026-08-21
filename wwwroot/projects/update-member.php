@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Update a project member's can_read / can_write bits.
  * POST only. Admin/paid + project must be in the user's account.

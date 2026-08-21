@@ -1,4 +1,5 @@
 <?php
+
 /**
  * mg.robnugen.com Behavioral Session Ledger API v1
  *
@@ -117,7 +118,9 @@ function project_membership(\PDO $pdo, int $project_id, int $user_id, int $calle
     );
     $stmt->execute([$project_id, $caller_aiu, $user_id]);
     $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-    if (!$row) return null;
+    if (!$row) {
+        return null;
+    }
     return ['can_read' => (int)$row['can_read'], 'can_write' => (int)$row['can_write']];
 }
 

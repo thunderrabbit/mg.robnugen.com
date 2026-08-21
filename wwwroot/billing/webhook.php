@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Stripe webhook receiver.
  *

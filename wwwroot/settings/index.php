@@ -122,12 +122,12 @@ $credits_remaining = (int)($credits_stmt->fetchColumn() ?: 0);
 
 $page = new \Template(config: $config, is_logged_in: $is_logged_in);
 $page->setTemplate('settings/index.tpl.php');
-$page->set('error_message',   $error_message);
+$page->set('error_message', $error_message);
 $page->set('success_message', $success_message);
-$page->set('new_api_key',     $new_api_key);
-$page->set('api_keys',        $api_keys);
+$page->set('new_api_key', $new_api_key);
+$page->set('api_keys', $api_keys);
 $page->set('credits_remaining', $credits_remaining);
-$page->set('actors',           $actors);
+$page->set('actors', $actors);
 $inner = $page->grabTheGoods();
 
 $layout = new \Template(config: $config, is_logged_in: $is_logged_in);

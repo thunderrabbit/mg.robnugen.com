@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Stats endpoint — included by index.php, not directly accessible.
  *

@@ -1,4 +1,5 @@
 <?php
+
 // Todo sub-dispatcher
 //
 // Variables in scope from index.php:
@@ -26,7 +27,6 @@ if ($method !== 'GET' && !$auth_actor['can_write_todos']) {
 $todoHelper = new \ActivityTracking\Todo($pdo);
 
 if ($todos_path === '/list') {
-
     if ($method !== 'GET') {
         http_response_code(405);
         echo json_encode(['error' => 'Method not allowed']);
@@ -152,8 +152,12 @@ if ($todos_path === '/list') {
             return strcasecmp($a['title'], $b['title']);
         }
 
-        if ($timeA === null) return -1;
-        if ($timeB === null) return 1;
+        if ($timeA === null) {
+            return -1;
+        }
+        if ($timeB === null) {
+            return 1;
+        }
 
         return strcmp($timeA, $timeB);
     });
@@ -164,9 +168,7 @@ if ($todos_path === '/list') {
         'today' => $today,
         'day_of_week' => $dayOfWeek
     ]);
-
 } elseif ($todos_path === '/complete') {
-
     if ($method !== 'POST') {
         http_response_code(405);
         echo json_encode(['error' => 'Method not allowed']);
@@ -236,9 +238,7 @@ if ($todos_path === '/list') {
         'log_id' => $log_id,
         'date_logged' => $date_logged
     ]);
-
 } elseif ($todos_path === '/uncomplete') {
-
     if ($method !== 'POST') {
         http_response_code(405);
         echo json_encode(['error' => 'Method not allowed']);
@@ -280,9 +280,7 @@ if ($todos_path === '/list') {
         'success' => $removed,
         'message' => $removed ? 'Completion removed' : 'No completion found to remove'
     ]);
-
 } elseif ($todos_path === '/create') {
-
     if ($method !== 'POST') {
         http_response_code(405);
         echo json_encode(['error' => 'Method not allowed']);
@@ -331,9 +329,7 @@ if ($todos_path === '/list') {
         http_response_code(500);
         echo json_encode(['error' => 'Failed to create todo']);
     }
-
 } elseif ($todos_path === '/update') {
-
     if ($method !== 'PATCH') {
         http_response_code(405);
         echo json_encode(['error' => 'Method not allowed']);
@@ -456,9 +452,7 @@ if ($todos_path === '/list') {
         http_response_code(500);
         echo json_encode(['error' => 'Failed to update']);
     }
-
 } elseif ($todos_path === '/archive') {
-
     if ($method !== 'DELETE') {
         http_response_code(405);
         echo json_encode(['error' => 'Method not allowed']);
@@ -481,9 +475,7 @@ if ($todos_path === '/list') {
         http_response_code(403);
         echo json_encode(['error' => 'Todo not found or access denied']);
     }
-
 } elseif ($todos_path === '/restore') {
-
     if ($method !== 'POST') {
         http_response_code(405);
         echo json_encode(['error' => 'Method not allowed']);
@@ -506,9 +498,7 @@ if ($todos_path === '/list') {
         http_response_code(403);
         echo json_encode(['error' => 'Todo not found or access denied']);
     }
-
 } elseif ($todos_path === '/delete') {
-
     if ($method !== 'DELETE') {
         http_response_code(405);
         echo json_encode(['error' => 'Method not allowed']);
@@ -530,9 +520,7 @@ if ($todos_path === '/list') {
         http_response_code(403);
         echo json_encode(['error' => 'Todo not found or access denied']);
     }
-
 } elseif ($todos_path === '/complete-with-session') {
-
     if ($method !== 'POST') {
         http_response_code(405);
         echo json_encode(['error' => 'Method not allowed']);
@@ -620,9 +608,7 @@ if ($todos_path === '/list') {
         'date_logged' => $date_logged,
         'already_completed' => $already_existed
     ]);
-
 } elseif ($todos_path === '/history') {
-
     if ($method !== 'GET') {
         http_response_code(405);
         echo json_encode(['error' => 'Method not allowed']);
@@ -631,7 +617,9 @@ if ($todos_path === '/list') {
 
     $limit = min((int) ($_GET['limit'] ?? 20), 50);
     $offset = max((int) ($_GET['offset'] ?? 0), 0);
-    if ($limit < 1) $limit = 20;
+    if ($limit < 1) {
+        $limit = 20;
+    }
 
     $completed_todos = $todoHelper->getFullyCompletedHistory($auth_user_id, $limit, $offset);
 
@@ -653,7 +641,6 @@ if ($todos_path === '/list') {
         'offset' => $offset,
         'has_more' => ($offset + $limit) < $totalCount
     ]);
-
 } else {
     http_response_code(404);
     echo json_encode(['error' => 'Not found']);

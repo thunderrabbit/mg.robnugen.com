@@ -1,4 +1,5 @@
 <?php
+
 /**
  * API Endpoint: List Completed Sessions
  * Returns completed (stopped) sessions for the logged-in user with pagination
@@ -71,7 +72,6 @@ try {
         'offset' => $offset,
         'has_more' => ($offset + $limit) < $totalCount
     ]);
-
 } catch (\Exception $e) {
     http_response_code(500);
     echo json_encode([

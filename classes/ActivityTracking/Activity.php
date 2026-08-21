@@ -2,10 +2,12 @@
 
 namespace ActivityTracking;
 
-class Activity {
+class Activity
+{
     private $pdo;
 
-    public function __construct(\PDO $pdo) {
+    public function __construct(\PDO $pdo)
+    {
         $this->pdo = $pdo;
     }
 
@@ -17,7 +19,8 @@ class Activity {
      * @param bool $is_pro Whether the user is a Pro subscriber
      * @return array Array of activities with activity_id, activity_name, and user_id
      */
-    public function getActivitiesForUser(int $user_id, bool $is_admin, bool $is_pro = false): array {
+    public function getActivitiesForUser(int $user_id, bool $is_admin, bool $is_pro = false): array
+    {
         if ($is_admin || $is_pro) {
             // Admin and Pro users see FREE + PUBLIC activities + their own PRIVATE activities
             $stmt = $this->pdo->prepare("
@@ -51,7 +54,8 @@ class Activity {
      * @param string|null $description Optional description
      * @return int|false The new activity_id or false on failure
      */
-    public function createUserActivity(int $user_id, string $activity_name, ?string $description = null) {
+    public function createUserActivity(int $user_id, string $activity_name, ?string $description = null)
+    {
         $activity_name = trim($activity_name);
         if (empty($activity_name) || strlen($activity_name) > 64) {
             return false;

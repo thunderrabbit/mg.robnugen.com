@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Create Repository Page
  * Displays the form on GET; handles creation on POST.
@@ -70,10 +71,18 @@ $page->set("page_title", "Create Repository - Meiso Gambare");
 $inner = new \Template($config, $is_logged_in);
 $inner->setTemplate("repositories/create.tpl.php");
 $inner->set("has_human", $has_human);
-if ($error !== null)                 $inner->set("error", $error);
-if (isset($_POST['name']))           $inner->set("form_name", $_POST['name']);
-if (isset($_POST['url']))            $inner->set("form_url", $_POST['url']);
-if (isset($_POST['default_branch'])) $inner->set("form_default_branch", $_POST['default_branch']);
+if ($error !== null) {
+    $inner->set("error", $error);
+}
+if (isset($_POST['name'])) {
+    $inner->set("form_name", $_POST['name']);
+}
+if (isset($_POST['url'])) {
+    $inner->set("form_url", $_POST['url']);
+}
+if (isset($_POST['default_branch'])) {
+    $inner->set("form_default_branch", $_POST['default_branch']);
+}
 
 $page->set("page_content", $inner->grabTheGoods());
 $page->echoToScreen();

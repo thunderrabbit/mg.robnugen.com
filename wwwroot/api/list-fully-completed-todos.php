@@ -1,4 +1,5 @@
 <?php
+
 /**
  * API Endpoint: List Fully Completed Todos
  * Returns fully completed todos (nth >= target_count)
@@ -46,7 +47,6 @@ try {
         'offset' => $offset,
         'has_more' => ($offset + $limit) < $totalCount
     ]);
-
 } catch (\Exception $e) {
     http_response_code(500);
     echo json_encode([

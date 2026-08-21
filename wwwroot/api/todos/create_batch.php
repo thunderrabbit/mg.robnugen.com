@@ -1,4 +1,5 @@
 <?php
+
 /**
  * API Endpoint to create multiple todos
  * Expects JSON: { "todos": [ { "title": "...", "do_time": "...", ... }, ... ] }
@@ -98,7 +99,6 @@ try {
         http_response_code(500);
         echo json_encode(['success' => false, 'error' => 'No todos were created.', 'details' => $errors]);
     }
-
 } catch (Exception $e) {
     if ($pdo && $pdo->inTransaction()) {
         $pdo->rollBack();

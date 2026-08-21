@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Exterminal (ET) item detail page.
  *
@@ -15,7 +16,10 @@
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
 
-if (!$is_logged_in->isLoggedIn()) { header("Location: /login/"); exit; }
+if (!$is_logged_in->isLoggedIn()) {
+    header("Location: /login/");
+    exit;
+}
 
 $user_id = $is_logged_in->loggedInID();
 $pdo     = \Database\Base::getPDO($config);
@@ -27,7 +31,10 @@ $aiu_stmt->execute([$user_id]);
 $human_aiu = (int) $aiu_stmt->fetchColumn();
 
 $exterm_item_id = (int)($_GET['exterm_item_id'] ?? 0);
-if (!$exterm_item_id) { header("Location: /exterm/"); exit; }
+if (!$exterm_item_id) {
+    header("Location: /exterm/");
+    exit;
+}
 
 $item_stmt = $pdo->prepare(
     "SELECT ei.*,
@@ -44,7 +51,10 @@ $item_stmt = $pdo->prepare(
 $item_stmt->execute([$human_aiu, $exterm_item_id, $user_id]);
 $item = $item_stmt->fetch(\PDO::FETCH_ASSOC);
 
-if (!$item) { header("Location: /exterm/?msg=not_found"); exit; }
+if (!$item) {
+    header("Location: /exterm/?msg=not_found");
+    exit;
+}
 
 // Handle delete POST action
 $error = null;
@@ -63,8 +73,10 @@ $page->set("page_title", htmlspecialchars($item['title']) . " — Exterminal —
 
 $inner = new \Template($config, $is_logged_in);
 $inner->setTemplate("exterm/view.tpl.php");
-$inner->set("item",  $item);
-if (isset($_GET['msg'])) $inner->set("msg", $_GET['msg']);
+$inner->set("item", $item);
+if (isset($_GET['msg'])) {
+    $inner->set("msg", $_GET['msg']);
+}
 
 $page->set("page_content", $inner->grabTheGoods());
 $page->echoToScreen();

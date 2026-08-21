@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Account-scoped git repositories, referenced by issue_commits.
  *

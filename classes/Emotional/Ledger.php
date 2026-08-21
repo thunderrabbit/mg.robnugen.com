@@ -2,14 +2,15 @@
 
 namespace Emotional;
 
-class Ledger {
-
+class Ledger
+{
     private string $encKey;
     private \PDO $pdo;
     private int $api_key_id;
     private int $user_id;
 
-    public function __construct(\PDO $pdo, string $raw_key, int $api_key_id, int $user_id) {
+    public function __construct(\PDO $pdo, string $raw_key, int $api_key_id, int $user_id)
+    {
         $this->pdo = $pdo;
         $this->api_key_id = $api_key_id;
         $this->user_id = $user_id;
@@ -20,7 +21,8 @@ class Ledger {
      * Encrypt a plaintext string using XSalsa20-Poly1305 (sodium secretbox).
      * Each call uses a fresh random nonce — identical plaintext produces different ciphertext.
      */
-    public function encrypt(string $plaintext): string {
+    public function encrypt(string $plaintext): string
+    {
         $nonce  = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES); // 24 bytes
         $cipher = sodium_crypto_secretbox($plaintext, $nonce, $this->encKey);
         return base64_encode($nonce . $cipher);
@@ -29,7 +31,8 @@ class Ledger {
     /**
      * Decrypt a stored blob. Returns false on authentication failure (wrong key or tampered data).
      */
-    public function decrypt(string $stored): string|false {
+    public function decrypt(string $stored): string|false
+    {
         $decoded = base64_decode($stored);
         if ($decoded === false || strlen($decoded) < SODIUM_CRYPTO_SECRETBOX_NONCEBYTES) {
             return false;
@@ -44,7 +47,8 @@ class Ledger {
      * A session is "current" if its last_event_time is within EMOTIONAL_SESSION_GAP_MINUTES.
      * Must be called within a transaction (caller's responsibility).
      */
-    public function getOrCreateSession(): int {
+    public function getOrCreateSession(): int
+    {
         $gap = intval(EMOTIONAL_SESSION_GAP_MINUTES);
 
         $stmt = $this->pdo->prepare(

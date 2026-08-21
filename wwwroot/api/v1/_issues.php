@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Issues, comments, timers, commits — all nested under /issues/*.
  *
@@ -64,7 +65,9 @@ function issue_with_access(\PDO $pdo, int $issue_id, int $user_id, int $caller_a
     );
     $stmt->execute([$caller_aiu, $issue_id, $user_id]);
     $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-    if (!$row) return null;
+    if (!$row) {
+        return null;
+    }
     return [
         'issue' => $row,
         'role'  => ['can_read' => (int)$row['can_read'], 'can_write' => (int)$row['can_write']],
@@ -417,8 +420,10 @@ if ($method === 'PATCH' && $sub === '/update') {
         echo json_encode(['error' => 'issue_id is required']);
         return;
     }
-    if ($title_in === null && $description_in === 'NOT_SET' && $assignee_in === 'NOT_SET'
-        && $parent_in === 'NOT_SET' && $status_id_in === null && $priority_in === null) {
+    if (
+        $title_in === null && $description_in === 'NOT_SET' && $assignee_in === 'NOT_SET'
+        && $parent_in === 'NOT_SET' && $status_id_in === null && $priority_in === null
+    ) {
         http_response_code(400);
         echo json_encode(['error' => 'provide at least one field to update']);
         return;

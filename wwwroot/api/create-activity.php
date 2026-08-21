@@ -1,4 +1,5 @@
 <?php
+
 /**
  * API Endpoint: Create Custom Activity
  * Allows logged-in users to create their own custom activities
@@ -48,7 +49,6 @@ try {
         'activity_id' => $activity_id,
         'activity_name' => trim($input['activity_name'])
     ]);
-
 } catch (\Exception $e) {
     http_response_code(500);
     echo json_encode(['error' => 'Failed to create activity']);

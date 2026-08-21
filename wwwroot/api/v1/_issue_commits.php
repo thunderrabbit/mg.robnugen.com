@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Issue → commit links. Included from _issues.php.
  *
@@ -167,7 +168,9 @@ if ($method === 'DELETE' && $xsub === '/delete') {
          WHERE c.issue_commit_id = ? AND p.user_id = ?" . $where_auth;
 
     $params = [$issue_commit_id, $auth_user_id];
-    if (!$is_human) $params[] = $caller_aiu;
+    if (!$is_human) {
+        $params[] = $caller_aiu;
+    }
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);

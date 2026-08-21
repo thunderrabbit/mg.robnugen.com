@@ -1,4 +1,5 @@
 <?php
+
 /**
  * API Endpoint to update todo time
  * Expects JSON: { "todo_id": 123, "do_time": "14:30" }
@@ -62,7 +63,6 @@ try {
         http_response_code(500);
         echo json_encode(['success' => false, 'error' => 'Failed to update']);
     }
-
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'error' => 'An unexpected error occurred']);

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * API Endpoint: Complete Todo with Activity Session
  * Logs a completion for a timed todo, linking it to an activity_kai session
@@ -88,7 +89,6 @@ try {
         'date_logged' => $date_logged,
         'already_completed' => $already_existed
     ]);
-
 } catch (\Exception $e) {
     http_response_code(500);
     echo json_encode([

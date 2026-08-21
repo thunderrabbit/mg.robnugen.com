@@ -2,13 +2,14 @@
 
 namespace Admin;
 
-class OmgAlerts {
-
+class OmgAlerts
+{
     /**
      * Returns all unread alerts, newest first.
      * Returns empty array if the table does not exist yet (migration not yet applied).
      */
-    public static function getUnread(\PDO $pdo): array {
+    public static function getUnread(\PDO $pdo): array
+    {
         try {
             $stmt = $pdo->prepare(
                 "SELECT omg_id, context, message, created_at
@@ -28,7 +29,8 @@ class OmgAlerts {
      * Marks a single alert as acknowledged.
      * No-op if the table does not exist yet.
      */
-    public static function dismissOne(\PDO $pdo, int $omg_id): void {
+    public static function dismissOne(\PDO $pdo, int $omg_id): void
+    {
         try {
             $stmt = $pdo->prepare("UPDATE omg_rob_this_happened SET acknowledged_at = NOW() WHERE omg_id = ? AND acknowledged_at IS NULL");
             $stmt->execute([$omg_id]);
@@ -40,7 +42,8 @@ class OmgAlerts {
      * Marks all unread alerts as acknowledged.
      * No-op if the table does not exist yet.
      */
-    public static function dismissAll(\PDO $pdo): void {
+    public static function dismissAll(\PDO $pdo): void
+    {
         try {
             $pdo->exec("UPDATE omg_rob_this_happened SET acknowledged_at = NOW() WHERE acknowledged_at IS NULL");
         } catch (\PDOException $e) {

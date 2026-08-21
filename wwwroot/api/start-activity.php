@@ -1,4 +1,5 @@
 <?php
+
 /**
  * API Endpoint: Start Activity
  * Creates a new activity session (meditation, sleeping, etc.)
@@ -90,7 +91,6 @@ try {
 
     http_response_code(201);
     echo json_encode($response);
-
 } catch (\Exception $e) {
     http_response_code(500);
     echo json_encode([

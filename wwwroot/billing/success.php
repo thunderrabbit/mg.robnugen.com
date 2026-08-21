@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Post-payment success page.
  * Stripe redirects here after a successful checkout.

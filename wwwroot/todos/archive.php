@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Archive Todo Endpoint
  * Handles archiving of todos with ownership verification

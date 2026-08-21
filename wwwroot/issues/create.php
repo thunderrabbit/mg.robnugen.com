@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Create Issue Page
  * Requires ?project_id=N. Gated on admin/paid + project_members.can_write.
@@ -123,11 +124,21 @@ $inner->setTemplate("issues/create.tpl.php");
 $inner->set("project_id", $project_id);
 $inner->set("project_name", $project_name);
 $inner->set("assignee_choices", $assignee_choices);
-if ($error !== null)               $inner->set("error", $error);
-if (isset($_POST['title']))        $inner->set("form_title", $_POST['title']);
-if (isset($_POST['description']))  $inner->set("form_description", $_POST['description']);
-if (isset($_POST['priority']))     $inner->set("form_priority", $_POST['priority']);
-if (isset($_POST['assignee_aiu'])) $inner->set("form_assignee_aiu", $_POST['assignee_aiu']);
+if ($error !== null) {
+    $inner->set("error", $error);
+}
+if (isset($_POST['title'])) {
+    $inner->set("form_title", $_POST['title']);
+}
+if (isset($_POST['description'])) {
+    $inner->set("form_description", $_POST['description']);
+}
+if (isset($_POST['priority'])) {
+    $inner->set("form_priority", $_POST['priority']);
+}
+if (isset($_POST['assignee_aiu'])) {
+    $inner->set("form_assignee_aiu", $_POST['assignee_aiu']);
+}
 
 $page->set("page_content", $inner->grabTheGoods());
 $page->echoToScreen();

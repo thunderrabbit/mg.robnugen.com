@@ -1,4 +1,5 @@
 <?php
+
 # Must include here because DH runs FastCGI
 # Extract DreamHost project root: /home/username/domain.com
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
@@ -64,4 +65,3 @@ $inner_page->setTemplate("mg/timer.tpl.php");
 $page->set("page_content", $inner_page->grabTheGoods());
 
 $page->echoToScreen();
-
