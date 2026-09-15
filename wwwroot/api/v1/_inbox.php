@@ -169,7 +169,7 @@ if ($method === 'GET' && $sub === '/list') {
     ]);
 } elseif ($method === 'POST' && $sub === '/send') {
     // ── Send a message to the inbox (costs 1 credit) ─────────────────────
-    $input = json_decode(file_get_contents('php://input'), true);
+    $input = json_decode((string) file_get_contents('php://input'), true);
     $message   = trim($input['message'] ?? '');
     $priority  = trim($input['priority'] ?? 'normal');
     $show_date = isset($input['show_date']) ? trim($input['show_date']) : null;
@@ -251,7 +251,7 @@ if ($method === 'GET' && $sub === '/list') {
     ]);
 } elseif ($method === 'PATCH' && $sub === '/mark-seen') {
     // ── Mark message as seen ─────────────────────────────────────────────
-    $input = json_decode(file_get_contents('php://input'), true);
+    $input = json_decode((string) file_get_contents('php://input'), true);
     $message_id = (int)($input['message_id'] ?? 0);
 
     if ($message_id <= 0) {
@@ -274,7 +274,7 @@ if ($method === 'GET' && $sub === '/list') {
     echo json_encode(['updated' => $stmt->rowCount()]);
 } elseif ($method === 'PATCH' && $sub === '/mark-done') {
     // ── Mark message as done ─────────────────────────────────────────────
-    $input = json_decode(file_get_contents('php://input'), true);
+    $input = json_decode((string) file_get_contents('php://input'), true);
     $message_id = (int)($input['message_id'] ?? 0);
     $response   = trim($input['response'] ?? '');
 
@@ -313,7 +313,7 @@ if ($method === 'GET' && $sub === '/list') {
     echo json_encode(['updated' => $stmt->rowCount()]);
 } elseif ($method === 'PATCH' && $sub === '/mark-seen-bulk') {
     // ── Bulk mark messages as seen ────────────────────────────────────────
-    $input = json_decode(file_get_contents('php://input'), true);
+    $input = json_decode((string) file_get_contents('php://input'), true);
     $message_ids = $input['message_ids'] ?? [];
 
     if (!is_array($message_ids) || empty($message_ids)) {
@@ -346,7 +346,7 @@ if ($method === 'GET' && $sub === '/list') {
     echo json_encode(['updated' => $stmt->rowCount()]);
 } elseif ($method === 'PATCH' && $sub === '/edit') {
     // ── Edit a message ───────────────────────────────────────────────────
-    $input = json_decode(file_get_contents('php://input'), true);
+    $input = json_decode((string) file_get_contents('php://input'), true);
     $message_id = (int)($input['message_id'] ?? 0);
     $message       = isset($input['message']) ? trim($input['message']) : null;
     $priority      = isset($input['priority']) ? trim($input['priority']) : null;
@@ -441,7 +441,7 @@ if ($method === 'GET' && $sub === '/list') {
     echo json_encode(['updated' => $stmt->rowCount()]);
 } elseif ($method === 'PATCH' && $sub === '/archive') {
     // ── Archive a message ────────────────────────────────────────────────
-    $input = json_decode(file_get_contents('php://input'), true);
+    $input = json_decode((string) file_get_contents('php://input'), true);
     $message_id = (int)($input['message_id'] ?? 0);
 
     if ($message_id <= 0) {
@@ -464,7 +464,7 @@ if ($method === 'GET' && $sub === '/list') {
     echo json_encode(['updated' => $stmt->rowCount()]);
 } elseif ($method === 'DELETE' && $sub === '/delete') {
     // ── Delete a message ─────────────────────────────────────────────────
-    $input = json_decode(file_get_contents('php://input'), true);
+    $input = json_decode((string) file_get_contents('php://input'), true);
     $message_id = (int)($input['message_id'] ?? 0);
 
     if ($message_id <= 0) {
@@ -506,7 +506,7 @@ if ($method === 'GET' && $sub === '/list') {
     // ── Reset message to pending (clear seen_at) ────────────────────────
     // Use case: message was marked seen but not processed (e.g. budget ran
     // out mid-session). Resetting to unseen lets the next cron wake pick it up.
-    $input = json_decode(file_get_contents('php://input'), true);
+    $input = json_decode((string) file_get_contents('php://input'), true);
     $message_id = (int)($input['message_id'] ?? 0);
 
     if ($message_id <= 0) {

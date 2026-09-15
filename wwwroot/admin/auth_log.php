@@ -18,7 +18,7 @@ if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
     // Read the last 100 lines from the log file
     $log_lines = [];
     if (file_exists($log_file)) {
-        $file_content = file($log_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        $file_content = file($log_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
         $log_lines = array_slice($file_content, -100);
         $log_lines = array_reverse($log_lines); // Show newest first
     }

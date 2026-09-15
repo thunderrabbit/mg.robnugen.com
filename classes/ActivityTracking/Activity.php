@@ -17,7 +17,7 @@ class Activity
      * @param int $user_id User ID
      * @param bool $is_admin Whether the user is an admin
      * @param bool $is_pro Whether the user is a Pro subscriber
-     * @return list<array<string, mixed>> Array of activities with activity_id, activity_name, and user_id
+     * @return array<int, array<string, mixed>> Array of activities with activity_id, activity_name, and user_id
      */
     public function getActivitiesForUser(int $user_id, bool $is_admin, bool $is_pro = false): array
     {

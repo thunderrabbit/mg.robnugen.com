@@ -116,7 +116,7 @@ $issues      = new \Issues\Issues($pdo);
 
 // ── Request parsing ───────────────────────────────────────────────────────────
 
-$raw_body = file_get_contents('php://input');
+$raw_body = (string) file_get_contents('php://input');
 $msg      = json_decode($raw_body, true);
 
 if (!is_array($msg) || !isset($msg['method'])) {
@@ -292,7 +292,7 @@ function exterm_dispatch(\Exterm\Items $exterm, \Issues\Issues $issues, int $use
 // ── Tool definitions (JSON Schema) ────────────────────────────────────────────
 
 /**
- * @return list<array<string, mixed>>
+ * @return array<int, array<string, mixed>>
  */
 function exterm_tool_defs(): array
 {

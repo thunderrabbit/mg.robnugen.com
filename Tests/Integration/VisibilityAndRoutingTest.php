@@ -90,9 +90,9 @@ class VisibilityAndRoutingTest extends Unit
             exit(1);
         }
 
-        self::$keyFull  = getenv('MG_TEST_KEY_FULL');
-        self::$keyAlpha = getenv('MG_TEST_KEY_ALPHA');
-        self::$keyBeta  = getenv('MG_TEST_KEY_BETA');
+        self::$keyFull  = (string) getenv('MG_TEST_KEY_FULL');
+        self::$keyAlpha = (string) getenv('MG_TEST_KEY_ALPHA');
+        self::$keyBeta  = (string) getenv('MG_TEST_KEY_BETA');
 
         self::$aiuAlpha = (int) getenv('MG_TEST_AIU_ALPHA');
         self::$aiuBeta  = (int) getenv('MG_TEST_AIU_BETA');
@@ -140,6 +140,7 @@ class VisibilityAndRoutingTest extends Unit
     // ── HTTP helpers ─────────────────────────────────────────────────────
 
     /**
+     * @param non-empty-string $method
      * @param array<string, mixed> $payload
      * @return array{status: int, body: array<string, mixed>}
      */
@@ -164,7 +165,7 @@ class VisibilityAndRoutingTest extends Unit
         ]);
 
         if ($method !== 'GET' && $payload) {
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload, JSON_THROW_ON_ERROR));
         }
 
         $response = curl_exec($ch);
@@ -173,7 +174,7 @@ class VisibilityAndRoutingTest extends Unit
 
         return [
             'status' => $status,
-            'body'   => json_decode($response, true) ?? [],
+            'body'   => json_decode((string) $response, true) ?? [],
         ];
     }
 

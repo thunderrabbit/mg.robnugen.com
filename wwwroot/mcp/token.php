@@ -71,9 +71,9 @@ include_once $matches[1] . '/prepend.php';
 
 $content_type = $_SERVER['CONTENT_TYPE'] ?? '';
 if (str_contains($content_type, 'application/json')) {
-    $body = json_decode(file_get_contents('php://input'), true) ?? [];
+    $body = json_decode((string) file_get_contents('php://input'), true) ?? [];
 } else {
-    parse_str(file_get_contents('php://input'), $body);
+    parse_str((string) file_get_contents('php://input'), $body);
     $body = array_merge($body, $_POST);
 }
 

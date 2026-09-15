@@ -8,7 +8,7 @@ class OmgAlerts
      * Returns all unread alerts, newest first.
      * Returns empty array if the table does not exist yet (migration not yet applied).
      *
-     * @return list<array<string, mixed>>
+     * @return array<int, array<string, mixed>>
      */
     public static function getUnread(\PDO $pdo): array
     {

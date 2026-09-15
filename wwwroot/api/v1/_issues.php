@@ -91,7 +91,7 @@ function issue_with_access(\PDO $pdo, int $issue_id, int $user_id, int $caller_a
  * Return running timers on an issue (stopped_at_utc IS NULL).
  * Used to decide whether a status transition to is_terminal is allowed.
  *
- * @return list<array<string, mixed>>
+ * @return array<int, array<string, mixed>>
  */
 function running_timers(\PDO $pdo, int $issue_id): array
 {
@@ -131,10 +131,11 @@ if ($is_commits) {
 // ─── GET /issues/statuses ────────────────────────────────────────────────────
 
 if ($method === 'GET' && $sub === '/statuses') {
-    $stmt = $pdo->query(
+    $stmt = $pdo->prepare(
         "SELECT status_id, slug, label, sort_order, is_terminal, is_default
          FROM issue_statuses ORDER BY sort_order ASC"
     );
+    $stmt->execute();
     echo json_encode(['statuses' => $stmt->fetchAll(\PDO::FETCH_ASSOC)]);
     return;
 }
@@ -275,7 +276,7 @@ if ($method === 'GET' && $sub === '/get') {
 // ─── POST /issues/create ─────────────────────────────────────────────────────
 
 if ($method === 'POST' && $sub === '/create') {
-    $input           = json_decode(file_get_contents('php://input'), true) ?? [];
+    $input           = json_decode((string) file_get_contents('php://input'), true) ?? [];
     $project_id      = (int)($input['project_id'] ?? 0);
     $title           = trim($input['title'] ?? '');
     $description     = array_key_exists('description', $input) ? (string)$input['description'] : null;
@@ -361,9 +362,10 @@ if ($method === 'POST' && $sub === '/create') {
         }
         $is_terminal = (int)$status_row['is_terminal'];
     } else {
-        $d = $pdo->query(
+        $d = $pdo->prepare(
             "SELECT status_id, is_terminal FROM issue_statuses WHERE is_default = 1 LIMIT 1"
         );
+        $d->execute();
         $default_row = $d->fetch(\PDO::FETCH_ASSOC);
         if (!$default_row) {
             http_response_code(500);
@@ -408,7 +410,7 @@ if ($method === 'POST' && $sub === '/create') {
 // ─── PATCH /issues/update ────────────────────────────────────────────────────
 
 if ($method === 'PATCH' && $sub === '/update') {
-    $input    = json_decode(file_get_contents('php://input'), true) ?? [];
+    $input    = json_decode((string) file_get_contents('php://input'), true) ?? [];
     $issue_id = (int)($input['issue_id'] ?? 0);
 
     $title_in           = array_key_exists('title', $input)
@@ -587,7 +589,7 @@ if ($method === 'DELETE' && $sub === '/delete') {
         return;
     }
 
-    $input    = json_decode(file_get_contents('php://input'), true) ?? [];
+    $input    = json_decode((string) file_get_contents('php://input'), true) ?? [];
     $issue_id = (int)($input['issue_id'] ?? 0);
     if ($issue_id <= 0) {
         http_response_code(400);

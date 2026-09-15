@@ -55,7 +55,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Get verify blob
 $stmt = $pdo->prepare("SELECT passphrase_verify FROM dm_user_config WHERE user_id = ?");
 $stmt->execute([$user_id]);
-$verify_blob = base64_encode($stmt->fetchColumn());
+$verify = $stmt->fetchColumn();
+$verify_blob = base64_encode(is_string($verify) ? $verify : '');
 
 $page = new \Template($config, $is_logged_in);
 $page->setTemplate("layout/base.tpl.php");

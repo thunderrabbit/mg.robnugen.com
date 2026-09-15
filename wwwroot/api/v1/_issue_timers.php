@@ -88,7 +88,7 @@ if ($method === 'GET' && $tsub === '/list') {
 // ─── POST /issues/timers/start ──────────────────────────────────────────────
 
 if ($method === 'POST' && $tsub === '/start') {
-    $input    = json_decode(file_get_contents('php://input'), true) ?? [];
+    $input    = json_decode((string) file_get_contents('php://input'), true) ?? [];
     $issue_id = (int)($input['issue_id'] ?? 0);
     $note     = array_key_exists('note', $input) ? trim((string)$input['note']) : null;
 
@@ -139,7 +139,7 @@ if ($method === 'POST' && $tsub === '/start') {
 // ─── PATCH /issues/timers/stop ──────────────────────────────────────────────
 
 if ($method === 'PATCH' && $tsub === '/stop') {
-    $input    = json_decode(file_get_contents('php://input'), true) ?? [];
+    $input    = json_decode((string) file_get_contents('php://input'), true) ?? [];
     $timer_id = (int)($input['issue_timer_id'] ?? 0);
 
     if ($timer_id <= 0) {
@@ -174,7 +174,7 @@ if ($method === 'PATCH' && $tsub === '/stop') {
 // ─── PATCH /issues/timers/edit-note ─────────────────────────────────────────
 
 if ($method === 'PATCH' && $tsub === '/edit-note') {
-    $input    = json_decode(file_get_contents('php://input'), true) ?? [];
+    $input    = json_decode((string) file_get_contents('php://input'), true) ?? [];
     $timer_id = (int)($input['issue_timer_id'] ?? 0);
     $note     = array_key_exists('note', $input) ? trim((string)$input['note']) : null;
 
@@ -214,7 +214,7 @@ if ($method === 'PATCH' && $tsub === '/edit-note') {
 // ─── DELETE /issues/timers/delete ───────────────────────────────────────────
 
 if ($method === 'DELETE' && $tsub === '/delete') {
-    $input    = json_decode(file_get_contents('php://input'), true) ?? [];
+    $input    = json_decode((string) file_get_contents('php://input'), true) ?? [];
     $timer_id = (int)($input['issue_timer_id'] ?? 0);
 
     if ($timer_id <= 0) {

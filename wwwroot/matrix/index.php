@@ -64,7 +64,8 @@ if (!$has_config) {
     // Get passphrase verify blob
     $stmt = $pdo->prepare("SELECT passphrase_verify FROM dm_user_config WHERE user_id = ?");
     $stmt->execute([$user_id]);
-    $verify_blob = base64_encode($stmt->fetchColumn());
+    $verify = $stmt->fetchColumn();
+    $verify_blob = base64_encode(is_string($verify) ? $verify : '');
 
     $inner_page->setTemplate("matrix/view.tpl.php");
     $inner_page->set("problems_json", json_encode($problems));

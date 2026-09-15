@@ -75,10 +75,10 @@ class PermissionGuardsTest extends Unit
             exit(1);
         }
 
-        self::$keyFull  = getenv('MG_TEST_KEY_FULL');
-        self::$keyNone  = getenv('MG_TEST_KEY_NONE');
-        self::$keyAlpha = getenv('MG_TEST_KEY_ALPHA');
-        self::$keyBeta  = getenv('MG_TEST_KEY_BETA');
+        self::$keyFull  = (string) getenv('MG_TEST_KEY_FULL');
+        self::$keyNone  = (string) getenv('MG_TEST_KEY_NONE');
+        self::$keyAlpha = (string) getenv('MG_TEST_KEY_ALPHA');
+        self::$keyBeta  = (string) getenv('MG_TEST_KEY_BETA');
         self::$keysLoaded = true;
     }
 
@@ -112,6 +112,7 @@ class PermissionGuardsTest extends Unit
     // ── HTTP helper ──────────────────────────────────────────────────────
 
     /**
+     * @param non-empty-string $method
      * @param array<string, mixed> $payload
      * @return array{status: int, body: array<string, mixed>}
      */
@@ -137,7 +138,7 @@ class PermissionGuardsTest extends Unit
         ]);
 
         if ($method !== 'GET' && $payload) {
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload, JSON_THROW_ON_ERROR));
         }
 
         $response = curl_exec($ch);
@@ -146,7 +147,7 @@ class PermissionGuardsTest extends Unit
 
         return [
             'status' => $status,
-            'body'   => json_decode($response, true) ?? [],
+            'body'   => json_decode((string) $response, true) ?? [],
         ];
     }
 

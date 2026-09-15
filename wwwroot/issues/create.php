@@ -101,9 +101,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($error === null) {
-        $status_stmt = $pdo->query(
+        $status_stmt = $pdo->prepare(
             "SELECT status_id FROM issue_statuses WHERE is_default = 1 LIMIT 1"
         );
+        $status_stmt->execute();
         $default_status_id = (int) $status_stmt->fetchColumn();
 
         $ins = $pdo->prepare(

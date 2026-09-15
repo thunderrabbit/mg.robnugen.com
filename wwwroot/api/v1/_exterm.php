@@ -99,7 +99,7 @@ if ($sub === '/search' && $method === 'GET') {
 }
 
 // ── Writes (cost 1 credit) ────────────────────────────────────────────────────
-$body_raw = file_get_contents('php://input');
+$body_raw = (string) file_get_contents('php://input');
 $body     = json_decode($body_raw, true) ?? [];
 
 // ── POST /exterm/create ───────────────────────────────────────────────────────

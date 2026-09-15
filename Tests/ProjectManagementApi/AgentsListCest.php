@@ -8,7 +8,7 @@ class AgentsListCest
 {
     public function agentsListIncludesProjectPermBits(AcceptanceTester $I): void
     {
-        $I->haveHttpHeader('X-API-Key', getenv('MG_TEST_KEY_FULL'));
+        $I->haveHttpHeader('X-API-Key', (string) getenv('MG_TEST_KEY_FULL'));
         $I->sendGET('/api/v1/agents');
         $I->seeResponseCodeIs(200);
         $I->seeResponseContains('can_read_project');

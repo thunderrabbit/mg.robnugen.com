@@ -63,7 +63,7 @@ class Issues
      * specific status slug is requested.
      *
      * @param array<string, mixed> $filters
-     * @return list<array<string, mixed>>
+     * @return array<int, array<string, mixed>>
      */
     public function listIssues(int $user_id, int $caller_aiu, int $project_id, array $filters = []): array
     {
@@ -335,9 +335,10 @@ class Issues
             throw new AccessException("No write access to project {$project_id}");
         }
 
-        $d = $this->pdo->query(
+        $d = $this->pdo->prepare(
             "SELECT status_id, is_terminal FROM issue_statuses WHERE is_default = 1 LIMIT 1"
         );
+        $d->execute();
         $default = $d->fetch(\PDO::FETCH_ASSOC);
         if (!$default) {
             throw new \RuntimeException("no default issue status configured");

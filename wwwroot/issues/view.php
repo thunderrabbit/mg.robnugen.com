@@ -76,10 +76,11 @@ $comment_stmt = $pdo->prepare(
 $comment_stmt->execute([$issue_id]);
 $comments = $comment_stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-$statuses_stmt = $pdo->query(
+$statuses_stmt = $pdo->prepare(
     "SELECT status_id, slug, label, sort_order, is_terminal
      FROM issue_statuses ORDER BY sort_order ASC"
 );
+$statuses_stmt->execute();
 $statuses = $statuses_stmt->fetchAll(\PDO::FETCH_ASSOC);
 
 $page = new \Template($config, $is_logged_in);

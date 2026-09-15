@@ -55,7 +55,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Get verify blob
 $stmt = $pdo->prepare("SELECT passphrase_verify FROM dm_user_config WHERE user_id = ?");
 $stmt->execute([$user_id]);
-$verify_blob = base64_encode($stmt->fetchColumn());
+$verify = $stmt->fetchColumn();
+$verify_blob = base64_encode(is_string($verify) ? $verify : '');
 
 // Get existing evidence count
 $stmt = $pdo->prepare("SELECT COUNT(*) FROM dm_my_evidence WHERE dm_mo = ? AND user_id = ?");
