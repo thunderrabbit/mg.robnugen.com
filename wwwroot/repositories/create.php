@@ -41,9 +41,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$has_human) {
         $error = "Your account has no human actor configured; contact admin.";
     } else {
-        $name           = trim($_POST['name'] ?? '');
-        $url            = trim($_POST['url'] ?? '');
-        $default_branch = trim($_POST['default_branch'] ?? '') ?: 'main';
+        $name           = trim(\Field::string($_POST, 'name'));
+        $url            = trim(\Field::string($_POST, 'url'));
+        $default_branch = trim(\Field::string($_POST, 'default_branch')) ?: 'main';
 
         if ($name === '') {
             $error = "Name is required.";

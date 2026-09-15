@@ -28,7 +28,7 @@ if (!$is_logged_in->isLoggedIn()) {
 $user_id = $is_logged_in->loggedInID();
 
 // Get JSON input
-$input = json_decode((string) file_get_contents('php://input'), true);
+$input = \Field::jsonArray((string) file_get_contents('php://input'));
 
 if (empty($input['todo_id']) || empty($input['field'])) {
     http_response_code(400);
@@ -36,8 +36,8 @@ if (empty($input['todo_id']) || empty($input['field'])) {
     exit;
 }
 
-$todo_id = (int)$input['todo_id'];
-$field = $input['field'];
+$todo_id = \Field::int($input, 'todo_id');
+$field = \Field::string($input, 'field');
 $value = $input['value'] ?? null;
 
 // Allowlist of editable fields
@@ -51,7 +51,7 @@ if (!in_array($field, $allowed_fields)) {
 // Validation per field
 switch ($field) {
     case 'title':
-        $value = trim((string)$value);
+        $value = trim(\Field::toString($value));
         if ($value === '') {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Title cannot be empty']);
@@ -62,7 +62,7 @@ switch ($field) {
     case 'do_time':
         // Allow empty to clear time? For now, simplistic validation.
         if ($value !== null && $value !== '') {
-            if (!preg_match('/^([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/', $value)) {
+            if (!preg_match('/^([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/', \Field::toString($value))) {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Invalid time format']);
                 exit;
@@ -74,7 +74,7 @@ switch ($field) {
 
     case 'due_date':
         if ($value !== null && $value !== '') {
-            $d = DateTime::createFromFormat('Y-m-d', $value);
+            $d = DateTime::createFromFormat('Y-m-d', \Field::toString($value));
             if (!($d && $d->format('Y-m-d') === $value)) {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Invalid date format (YYYY-MM-DD required)']);
@@ -86,7 +86,7 @@ switch ($field) {
         break;
 
     case 'target_duration_seconds':
-        $value = (int)$value;
+        $value = \Field::toInt($value);
         if ($value < 0) {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Duration cannot be negative']);
@@ -96,7 +96,7 @@ switch ($field) {
 
     case 'do_every_n_days':
         if ($value !== null && $value !== '') {
-            $value = (int) $value;
+            $value = \Field::toInt($value);
             if ($value < 1) {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'do_every_n_days must be at least 1']);

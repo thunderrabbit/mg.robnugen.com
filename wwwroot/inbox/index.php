@@ -40,25 +40,25 @@ $aiu_stmt = $mla_database->prepare(
 );
 $aiu_stmt->execute([$user_id]);
 $aiu_row = $aiu_stmt->fetch(\PDO::FETCH_ASSOC);
-$web_sender_aiu = (int) ($aiu_row['aiu_id'] ?? 0) ?: null;
-$web_can_broadcast = !empty($aiu_row['can_broadcast_inbox']);
+$web_sender_aiu = \Field::int($aiu_row, 'aiu_id') ?: null;
+$web_can_broadcast = !empty(\Field::int($aiu_row, 'can_broadcast_inbox'));
 
 $error_message   = '';
 $success_message = '';
 
 // Handle form POST: send a new message
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
-    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
+    if (!isset($_POST['csrf_token']) || !hash_equals(\Field::string($_SESSION, 'csrf_token'), \Field::string($_POST, 'csrf_token'))) {
         http_response_code(403);
         die('Invalid CSRF token');
     }
 
     if ($_POST['inbox_action'] === 'send') {
-        $message   = trim($_POST['message'] ?? '');
-        $priority  = trim($_POST['priority'] ?? 'normal');
-        $show_date = trim($_POST['show_date'] ?? '');
+        $message   = trim(\Field::string($_POST, 'message'));
+        $priority  = trim(\Field::string($_POST, 'priority', 'normal'));
+        $show_date = trim(\Field::string($_POST, 'show_date'));
         $show_date = $show_date !== '' ? $show_date : null;
-        $sender_timezone = trim($_POST['sender_timezone'] ?? '');
+        $sender_timezone = trim(\Field::string($_POST, 'sender_timezone'));
         // Validate IANA timezone (see _inbox.php for rationale)
         if ($sender_timezone && !in_array($sender_timezone, \DateTimeZone::listIdentifiers())) {
             $sender_timezone = '';
@@ -81,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
             }
             $error_message = 'Message exceeds 10,240 byte limit (' . strlen($message) . ' bytes).';
         } else {
-            $recipient_aiu = (int)($_POST['recipient_aiu'] ?? 0) ?: null;
+            $recipient_aiu = \Field::int($_POST, 'recipient_aiu') ?: null;
             if ($recipient_aiu === null && !$web_can_broadcast) {
                 if ($is_ajax) {
                     header('Content-Type: application/json');
@@ -105,11 +105,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
             }
         }
     } elseif ($_POST['inbox_action'] === 'edit') {
-        $message_id = (int)($_POST['message_id'] ?? 0);
-        $message    = trim($_POST['message'] ?? '');
-        $priority   = trim($_POST['priority'] ?? '');
-        $recipient_aiu = (int)($_POST['recipient_aiu'] ?? 0) ?: null;
-        $show_date  = trim($_POST['show_date'] ?? '');
+        $message_id = \Field::int($_POST, 'message_id');
+        $message    = trim(\Field::string($_POST, 'message'));
+        $priority   = trim(\Field::string($_POST, 'priority'));
+        $recipient_aiu = \Field::int($_POST, 'recipient_aiu') ?: null;
+        $show_date  = trim(\Field::string($_POST, 'show_date'));
         $show_date  = $show_date !== '' ? $show_date : null;
         $is_ajax = !empty($_POST['ajax']);
 
@@ -155,7 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
             $success_message = 'Message updated.';
         }
     } elseif ($_POST['inbox_action'] === 'archive') {
-        $message_id = (int)($_POST['message_id'] ?? 0);
+        $message_id = \Field::int($_POST, 'message_id');
         if ($message_id > 0) {
             $stmt = $mla_database->prepare(
                 "UPDATE agent_inbox SET archived_at = NOW() WHERE message_id = ? AND user_id = ? AND archived_at IS NULL"
@@ -164,7 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
             $success_message = 'Message archived.';
         }
     } elseif ($_POST['inbox_action'] === 'delete') {
-        $message_id = (int)($_POST['message_id'] ?? 0);
+        $message_id = \Field::int($_POST, 'message_id');
         if ($message_id > 0) {
             $stmt = $mla_database->prepare(
                 "DELETE FROM agent_inbox WHERE message_id = ? AND user_id = ?"
@@ -183,9 +183,9 @@ $filter_status = $_GET['status'] ?? '';
 $sort_by = $_GET['sort'] ?? 'id';
 $sort_dir = ($_GET['dir'] ?? 'desc') === 'asc' ? 'ASC' : 'DESC';
 $filter_to = $_GET['to'] ?? '';      // 'me', 'broadcast', or '' (all)
-$filter_from = (int)($_GET['from'] ?? 0);  // sender aiu_id or 0 (all)
+$filter_from = \Field::int($_GET, 'from');  // sender aiu_id or 0 (all)
 $per_page = 50;
-$current_page = max(1, (int)($_GET['page'] ?? 1));
+$current_page = max(1, \Field::int($_GET, 'page', 1));
 
 $filters = [];
 $params = [$user_id];

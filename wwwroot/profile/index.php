@@ -25,14 +25,14 @@ $success_message = '';
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
+    if (!isset($_POST['csrf_token']) || !hash_equals(\Field::string($_SESSION, 'csrf_token'), \Field::string($_POST, 'csrf_token'))) {
         http_response_code(403);
         die('Invalid CSRF token');
     }
     // Password Change Logic
     if (isset($_POST['change_password_action'])) {
-        $current_password = $_POST['current_password'] ?? '';
-        $new_password = $_POST['new_password'] ?? '';
+        $current_password = \Field::string($_POST, 'current_password');
+        $new_password = \Field::string($_POST, 'new_password');
         $confirm_password = $_POST['confirm_password'] ?? '';
 
         // Validate input
@@ -73,8 +73,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Site Settings Logic
     if (isset($_POST['update_settings_action'])) {
-        $site_title = trim($_POST['site_title'] ?? '');
-        $site_subtitle = trim($_POST['site_subtitle'] ?? '');
+        $site_title = trim(\Field::string($_POST, 'site_title'));
+        $site_subtitle = trim(\Field::string($_POST, 'site_subtitle'));
         $user_id = $is_logged_in->loggedInID();
 
         // Check if settings exist for user

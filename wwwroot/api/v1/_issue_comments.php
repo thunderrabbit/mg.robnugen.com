@@ -22,9 +22,9 @@
 // ─── GET /issues/comments/list ──────────────────────────────────────────────
 
 if ($method === 'GET' && $csub === '/list') {
-    $issue_id = (int)($_GET['issue_id'] ?? 0);
-    $limit    = max(1, min(200, (int)($_GET['limit'] ?? 100)));
-    $offset   = max(0, (int)($_GET['offset'] ?? 0));
+    $issue_id = \Field::int($_GET, 'issue_id');
+    $limit    = max(1, min(200, \Field::int($_GET, 'limit', 100)));
+    $offset   = max(0, \Field::int($_GET, 'offset'));
 
     if ($issue_id <= 0) {
         http_response_code(400);
@@ -66,9 +66,9 @@ if ($method === 'GET' && $csub === '/list') {
 // ─── POST /issues/comments/add ──────────────────────────────────────────────
 
 if ($method === 'POST' && $csub === '/add') {
-    $input    = json_decode((string) file_get_contents('php://input'), true) ?? [];
-    $issue_id = (int)($input['issue_id'] ?? 0);
-    $body     = (string)($input['body'] ?? '');
+    $input    = \Field::jsonArray((string) file_get_contents('php://input'));
+    $issue_id = \Field::int($input, 'issue_id');
+    $body     = \Field::string($input, 'body');
 
     if ($issue_id <= 0) {
         http_response_code(400);
@@ -121,9 +121,9 @@ if ($method === 'POST' && $csub === '/add') {
 // ─── PATCH /issues/comments/edit ────────────────────────────────────────────
 
 if ($method === 'PATCH' && $csub === '/edit') {
-    $input      = json_decode((string) file_get_contents('php://input'), true) ?? [];
-    $comment_id = (int)($input['issue_comment_id'] ?? 0);
-    $body       = (string)($input['body'] ?? '');
+    $input      = \Field::jsonArray((string) file_get_contents('php://input'));
+    $comment_id = \Field::int($input, 'issue_comment_id');
+    $body       = \Field::string($input, 'body');
 
     if ($comment_id <= 0) {
         http_response_code(400);
@@ -167,8 +167,8 @@ if ($method === 'PATCH' && $csub === '/edit') {
 // ─── DELETE /issues/comments/delete ─────────────────────────────────────────
 
 if ($method === 'DELETE' && $csub === '/delete') {
-    $input      = json_decode((string) file_get_contents('php://input'), true) ?? [];
-    $comment_id = (int)($input['issue_comment_id'] ?? 0);
+    $input      = \Field::jsonArray((string) file_get_contents('php://input'));
+    $comment_id = \Field::int($input, 'issue_comment_id');
 
     if ($comment_id <= 0) {
         http_response_code(400);

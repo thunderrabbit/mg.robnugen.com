@@ -99,8 +99,8 @@ class InboxListCest
         ], JSON_THROW_ON_ERROR));
         $I->seeResponseCodeIs(201);
         $raw = $I->grabResponse();
-        $decoded = json_decode($raw, true);
-        $id = (int)($decoded['message_id'] ?? 0);
+        $decoded = \Field::jsonArray($raw);
+        $id = \Field::int($decoded, 'message_id');
         if ($id <= 0) {
             $I->fail('Expected message_id in POST /inbox/send response, got: ' . $raw);
         }
@@ -120,11 +120,11 @@ class InboxListCest
         $I->haveHttpHeader('X-API-Key', (string) getenv('MG_TEST_KEY_ALPHA'));
         $I->sendGET('/api/v1/inbox/list?' . $query);
         $I->seeResponseCodeIs(200);
-        $decoded = json_decode($I->grabResponse(), true);
+        $decoded = \Field::jsonArray($I->grabResponse());
         $ids = [];
-        foreach (($decoded['messages'] ?? []) as $m) {
-            if (isset($m['message']) && str_contains($m['message'], $this->marker)) {
-                $ids[] = (int)$m['message_id'];
+        foreach (\Field::array($decoded, 'messages') as $m) {
+            if (str_contains(\Field::string($m, 'message'), $this->marker)) {
+                $ids[] = \Field::int($m, 'message_id');
             }
         }
         return $ids;

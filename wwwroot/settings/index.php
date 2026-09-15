@@ -23,7 +23,7 @@ $success_message = '';
 $new_api_key     = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_key_action'])) {
-    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
+    if (!isset($_POST['csrf_token']) || !hash_equals(\Field::string($_SESSION, 'csrf_token'), \Field::string($_POST, 'csrf_token'))) {
         http_response_code(403);
         die('Invalid CSRF token');
     }
@@ -31,8 +31,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_key_action'])) {
     $errors = [];
 
     if ($_POST['api_key_action'] === 'generate') {
-        $label       = trim($_POST['api_key_label'] ?? '');
-        $aiu_id      = (int)($_POST['aiu_id'] ?? 0) ?: null;
+        $label       = trim(\Field::string($_POST, 'api_key_label'));
+        $aiu_id      = \Field::int($_POST, 'aiu_id') ?: null;
         try {
             $new_api_key = $apiKeyHelper->generateKey($user_id, $label, $aiu_id);
             $success_message = 'API key generated. Copy it now — it will not be shown again.';
@@ -40,8 +40,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_key_action'])) {
             $errors[] = $e->getMessage();
         }
     } elseif ($_POST['api_key_action'] === 'create_agent') {
-        $name = trim($_POST['agent_name'] ?? '');
-        $description = trim($_POST['agent_description'] ?? '');
+        $name = trim(\Field::string($_POST, 'agent_name'));
+        $description = trim(\Field::string($_POST, 'agent_description'));
         if ($name === '') {
             $errors[] = 'Agent name is required.';
         } else {
@@ -73,13 +73,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_key_action'])) {
             $vis_stmt->execute([$new_aiu_id, $new_aiu_id]);
 
             // Create send-to visibility rows for selected actors
-            $send_to = $_POST['can_send_to'] ?? [];
+            $send_to = \Field::array($_POST, 'can_send_to');
             if (!empty($send_to)) {
                 $send_stmt = $mla_database->prepare(
                     "INSERT INTO inbox_visibility (inbox_user_aiu_id, inbox_peer_aiu_id, can_read, can_send) VALUES (?, ?, 0, 1)"
                 );
                 foreach ($send_to as $peer_aiu_id) {
-                    $peer_aiu_id = (int) $peer_aiu_id;
+                    $peer_aiu_id = \Field::toInt($peer_aiu_id);
                     if ($peer_aiu_id > 0 && $peer_aiu_id !== $new_aiu_id) {
                         $send_stmt->execute([$new_aiu_id, $peer_aiu_id]);
                     }
@@ -89,8 +89,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_key_action'])) {
             $success_message = "Agent '$name' created (ID: $new_aiu_id).";
         }
     } elseif ($_POST['api_key_action'] === 'assign_actor') {
-        $key_id = (int)($_POST['key_id'] ?? 0);
-        $aiu_id = (int)($_POST['aiu_id'] ?? 0);
+        $key_id = \Field::int($_POST, 'key_id');
+        $aiu_id = \Field::int($_POST, 'aiu_id');
         if ($key_id > 0 && $aiu_id > 0) {
             $stmt = $mla_database->prepare(
                 "UPDATE api_keys SET aiu_id = ? WHERE key_id = ? AND user_id = ?"
@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_key_action'])) {
             $success_message = 'Actor assigned to key.';
         }
     } elseif ($_POST['api_key_action'] === 'revoke') {
-        $key_id = (int)($_POST['key_id'] ?? 0);
+        $key_id = \Field::int($_POST, 'key_id');
         if ($key_id > 0 && $apiKeyHelper->revokeKey($key_id, $user_id)) {
             $success_message = 'API key revoked.';
         } else {

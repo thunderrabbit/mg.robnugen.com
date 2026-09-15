@@ -30,7 +30,7 @@ class Timezone
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         if ($result) {
-            return (int)$result['timezone_id'];
+            return \Field::int($result, 'timezone_id');
         }
 
         // Timezone doesn't exist, insert it

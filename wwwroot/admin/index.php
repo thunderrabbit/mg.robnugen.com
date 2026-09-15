@@ -19,7 +19,7 @@ if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
     if (
         $_SERVER['REQUEST_METHOD'] === 'POST'
         && isset($_POST['csrf_token'])
-        && hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])
+        && hash_equals(\Field::string($_SESSION, 'csrf_token'), \Field::string($_POST, 'csrf_token'))
     ) {
         $action = $_POST['action'] ?? '';
         if ($action === 'dismiss_alerts') {
@@ -27,7 +27,7 @@ if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
             header('Location: /admin/');
             exit;
         } elseif ($action === 'dismiss_alert' && !empty($_POST['omg_id'])) {
-            \Admin\OmgAlerts::dismissOne($mla_database, (int) $_POST['omg_id']);
+            \Admin\OmgAlerts::dismissOne($mla_database, \Field::int($_POST, 'omg_id'));
             header('Location: /admin/');
             exit;
         }

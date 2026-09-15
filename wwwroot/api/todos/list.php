@@ -28,7 +28,7 @@ try {
     $user_id = $is_logged_in->loggedInID();
 
     // Get timezone from request or default to server timezone
-    $timezone = $_GET['timezone'] ?? date_default_timezone_get();
+    $timezone = \Field::string($_GET, 'timezone', date_default_timezone_get());
 
     // Create DateTime in user's timezone to get correct day of week
     $tz = new \DateTimeZone($timezone);
@@ -53,15 +53,15 @@ try {
         // For recurring items, we only care about completion TODAY
         // For one-time items, we care if it's completed AT ALL
 
-        $completions = $todoHelper->getCompletionsForDate($todo['todo_id'], $today);
+        $completions = $todoHelper->getCompletionsForDate(\Field::int($todo, 'todo_id'), $today);
         $todo['completed_count'] = count($completions);
         $todo['completions'] = $completions;
 
         // Calculate which nth values are completed (always relevant for today's view)
         $completed_nths = array_column($completions, 'nth');
-        $todo['completed_nths'] = array_map('intval', $completed_nths);
+        $todo['completed_nths'] = array_map(\Field::toInt(...), $completed_nths);
 
-        $targetCount = (int)($todo['target_count'] ?? 1);
+        $targetCount = \Field::int($todo, 'target_count', 1);
 
         if (!$isRecurring && !empty($todo['due_date'])) {
             // ONE-TIME TODO Logic
@@ -74,14 +74,14 @@ try {
                 // Optionally check the 1-minute rule if we want it to disappear fast,
                 // but user requested "keep them briefly visible"
                  $lastCompletion = end($completions);
-                 $lastCompletedAt = new \DateTime($lastCompletion['date_logged'], $tz);
+                 $lastCompletedAt = new \DateTime(\Field::string($lastCompletion, 'date_logged'), $tz);
 
                  // If completed very recently (e.g. today), we keep it.
                  // The existing code below handles the "1 minute ago" logic for 'fully completed' items,
                  // effectively hiding them. We might want to respect that logic here too.
             } else {
                  // Not completed *today*. But was it completed *yesterday*?
-                 $overallStatus = $todoHelper->getCompletionStatus($todo['todo_id']);
+                 $overallStatus = $todoHelper->getCompletionStatus(\Field::int($todo, 'todo_id'));
                  $totalCompleted = $overallStatus['count'];
 
                 if ($totalCompleted >= $targetCount) {
@@ -105,13 +105,13 @@ try {
 
             if (is_string($lastDone) && $lastDone !== '') {
                 $next = new \DateTime($lastDone, $tz);
-                $next->modify('+' . (int) $todo['do_every_n_days'] . ' days');
+                $next->modify('+' . \Field::int($todo, 'do_every_n_days') . ' days');
                 $todo['next_due_date'] = $next->format('Y-m-d');
                 $todo['days_until_due'] = (int) $now->diff($next)->format('%r%a');
             } else {
                 // Never completed: start recurring from due_date, not today
                 $start = (!empty($todo['due_date']))
-                    ? (new \DateTime($todo['due_date'], $tz))->format('Y-m-d')
+                    ? (new \DateTime(\Field::string($todo, 'due_date'), $tz))->format('Y-m-d')
                     : $today;
                 if ($start > $today) {
                     $todo['next_due_date'] = $start;
@@ -131,7 +131,7 @@ try {
         if ($isFullyCompletedForToday && !empty($completions)) {
             // Get the most recent completion timestamp
             $lastCompletion = end($completions);
-            $lastCompletedAt = new \DateTime($lastCompletion['date_logged'], $tz);
+            $lastCompletedAt = new \DateTime(\Field::string($lastCompletion, 'date_logged'), $tz);
 
             // Skip if completed more than 1 minute ago
             if ($lastCompletedAt < $oneMinuteAgo) {
@@ -152,7 +152,7 @@ try {
             $deadline = new \DateTime($deadlineStr, $tz);
 
             // Parse original start time
-            $originalTimeStr = $today . ' ' . $todo['do_time'];
+            $originalTimeStr = $today . ' ' . \Field::string($todo, 'do_time');
             $originalTime = new \DateTime($originalTimeStr, $tz);
 
             // Calculate total window in seconds
@@ -196,7 +196,7 @@ try {
         // MySQL ASC puts NULLs first. Let's stick to that.
         if ($timeA === $timeB) {
             // Secondary sort by title
-            return strcasecmp($a['title'], $b['title']);
+            return strcasecmp(\Field::string($a, 'title'), \Field::string($b, 'title'));
         }
 
         // If one is null, it comes first (MySQL behavior)
@@ -207,7 +207,7 @@ try {
             return 1;
         }
 
-        return strcmp($timeA, $timeB);
+        return strcmp(\Field::toString($timeA), \Field::toString($timeB));
     });
 
     echo json_encode([

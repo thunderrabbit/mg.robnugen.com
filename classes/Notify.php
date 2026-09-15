@@ -55,6 +55,6 @@ class Notify
             return ['ok' => false, 'error' => 'telegram unreachable'];
         }
 
-        return json_decode($resp, true) ?: ['ok' => false, 'error' => 'bad response'];
+        return \Field::jsonArray($resp) ?: ['ok' => false, 'error' => 'bad response'];
     }
 }

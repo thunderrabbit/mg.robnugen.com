@@ -37,7 +37,7 @@ $aiu_stmt = $pdo->prepare(
 $aiu_stmt->execute([$user_id]);
 $human_aiu = (int) $aiu_stmt->fetchColumn();
 
-$exterm_item_id = (int)($_GET['exterm_item_id'] ?? 0);
+$exterm_item_id = \Field::int($_GET, 'exterm_item_id');
 if (!$exterm_item_id) {
     header("Location: /exterm/");
     exit;
@@ -65,18 +65,18 @@ if (!$item) {
 
 // Handle delete POST action
 $error = null;
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $item['can_write']) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && \Field::int($item, 'can_write')) {
     $action = $_POST['action'] ?? '';
     if ($action === 'delete') {
         $pdo->prepare("DELETE FROM exterm_items WHERE exterm_item_id=?")->execute([$exterm_item_id]);
-        header("Location: /exterm/?project_id={$item['project_id']}&msg=deleted");
+        header("Location: /exterm/?project_id=" . \Field::int($item, 'project_id') . "&msg=deleted");
         exit;
     }
 }
 
 $page = new \Template($config, $is_logged_in);
 $page->setTemplate("layout/base.tpl.php");
-$page->set("page_title", htmlspecialchars($item['title']) . " — Exterminal — Meiso Gambare");
+$page->set("page_title", htmlspecialchars(\Field::string($item, 'title')) . " — Exterminal — Meiso Gambare");
 
 $inner = new \Template($config, $is_logged_in);
 $inner->setTemplate("exterm/view.tpl.php");

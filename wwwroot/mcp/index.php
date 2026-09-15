@@ -56,9 +56,7 @@ include_once $matches[1] . '/prepend.php';
 // Accepts OAuth access tokens (issued by mcp/token.php) or direct API keys.
 
 // DreamHost FastCGI may deliver this as REDIRECT_HTTP_AUTHORIZATION
-$auth_header = $_SERVER['HTTP_AUTHORIZATION']
-    ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION']
-    ?? '';
+$auth_header = \Field::string($_SERVER, 'HTTP_AUTHORIZATION', \Field::string($_SERVER, 'REDIRECT_HTTP_AUTHORIZATION'));
 $raw_token = '';
 if (preg_match('/^Bearer\s+(\S+)$/i', $auth_header, $m)) {
     $raw_token = $m[1];
@@ -87,8 +85,8 @@ $tok_stmt->execute([$token_hash]);
 $tok_row = $tok_stmt->fetch(\PDO::FETCH_ASSOC);
 
 if ($tok_row) {
-    $auth_user_id = (int) $tok_row['user_id'];
-    $auth_aiu_id  = (int) $tok_row['aiu_id'];
+    $auth_user_id = \Field::int($tok_row, 'user_id');
+    $auth_aiu_id  = \Field::int($tok_row, 'aiu_id');
 } else {
     // Fall back to direct API key (for non-OAuth clients, e.g. curl testing)
     $apiKeyAuth   = new \Auth\ApiKey($pdo);
@@ -110,24 +108,24 @@ if (!$auth_user_id) {
 $actor_stmt = $pdo->prepare("SELECT * FROM agent_inbox_user WHERE aiu_id = ? LIMIT 1");
 $actor_stmt->execute([$auth_aiu_id]);
 $auth_actor  = $actor_stmt->fetch(\PDO::FETCH_ASSOC);
-$caller_aiu  = (int) $auth_actor['aiu_id'];
+$caller_aiu  = \Field::int($auth_actor, 'aiu_id');
 $exterm      = new \Exterm\Items($pdo);
 $issues      = new \Issues\Issues($pdo);
 
 // ── Request parsing ───────────────────────────────────────────────────────────
 
 $raw_body = (string) file_get_contents('php://input');
-$msg      = json_decode($raw_body, true);
+$msg      = \Field::jsonArray($raw_body);
 
-if (!is_array($msg) || !isset($msg['method'])) {
+if (!isset($msg['method'])) {
     http_response_code(400);
     echo json_encode(mcp_error(null, -32700, 'Invalid JSON-RPC message'));
     exit;
 }
 
 $id     = $msg['id']     ?? null;
-$method = $msg['method'];
-$params = $msg['params'] ?? [];
+$method = \Field::string($msg, 'method');
+$params = \Field::array($msg, 'params');
 
 // ── JSON-RPC helpers ──────────────────────────────────────────────────────────
 
@@ -161,7 +159,7 @@ function mcp_tool_result(mixed $id, mixed $data): array
 switch ($method) {
     case 'initialize':
         // Negotiate protocol version — accept any 2025-x spec, respond with highest we support
-        $client_version = $params['protocolVersion'] ?? '2025-03-26';
+        $client_version = \Field::string($params, 'protocolVersion', '2025-03-26');
         $proto = version_compare($client_version, '2025-06-18', '>=') ? '2025-06-18' : '2025-03-26';
         // Mcp-Session-Id is required by the Streamable-HTTP spec; we use the token hash as stable ID
         header('Mcp-Session-Id: ' . hash('sha256', $raw_token));
@@ -182,8 +180,8 @@ switch ($method) {
         break;
 
     case 'tools/call':
-        $tool = $params['name']      ?? '';
-        $args = $params['arguments'] ?? [];
+        $tool = \Field::string($params, 'name');
+        $args = \Field::array($params, 'arguments');
 
         try {
             $result = exterm_dispatch($exterm, $issues, $auth_user_id, $caller_aiu, $tool, $args);
@@ -206,7 +204,7 @@ switch ($method) {
 // ── Tool dispatch ─────────────────────────────────────────────────────────────
 
 /**
- * @param array<string, mixed> $a
+ * @param array<mixed> $a
  */
 function exterm_dispatch(\Exterm\Items $exterm, \Issues\Issues $issues, int $user_id, int $caller_aiu, string $tool, array $a): mixed
 {
@@ -218,7 +216,7 @@ function exterm_dispatch(\Exterm\Items $exterm, \Issues\Issues $issues, int $use
             return $exterm->listItems($user_id, $caller_aiu, $a);
 
         case 'exterm_get_item':
-            $id = isset($a['exterm_item_id']) ? (int)$a['exterm_item_id'] : 0;
+            $id = \Field::int($a, 'exterm_item_id');
             if (!$id) {
                 throw new \Exterm\ValidationException("exterm_item_id is required");
             }
@@ -228,14 +226,14 @@ function exterm_dispatch(\Exterm\Items $exterm, \Issues\Issues $issues, int $use
             return $exterm->createItem($user_id, $caller_aiu, $a);
 
         case 'exterm_update_item':
-            $id = isset($a['exterm_item_id']) ? (int)$a['exterm_item_id'] : 0;
+            $id = \Field::int($a, 'exterm_item_id');
             if (!$id) {
                 throw new \Exterm\ValidationException("exterm_item_id is required");
             }
             return $exterm->updateItem($user_id, $caller_aiu, $id, $a);
 
         case 'exterm_delete_item':
-            $id = isset($a['exterm_item_id']) ? (int)$a['exterm_item_id'] : 0;
+            $id = \Field::int($a, 'exterm_item_id');
             if (!$id) {
                 throw new \Exterm\ValidationException("exterm_item_id is required");
             }
@@ -243,11 +241,11 @@ function exterm_dispatch(\Exterm\Items $exterm, \Issues\Issues $issues, int $use
 
         // ── Jikan issues (concrete task state) ────────────────────────────────
         case 'issue_list':
-            $project_id = isset($a['project_id']) ? (int)$a['project_id'] : 0;
+            $project_id = \Field::int($a, 'project_id');
             return $issues->listIssues($user_id, $caller_aiu, $project_id, $a);
 
         case 'issue_get':
-            $iid = isset($a['issue_id']) ? (int)$a['issue_id'] : 0;
+            $iid = \Field::int($a, 'issue_id');
             if (!$iid) {
                 throw new \Issues\ValidationException("issue_id is required");
             }
@@ -257,31 +255,31 @@ function exterm_dispatch(\Exterm\Items $exterm, \Issues\Issues $issues, int $use
             return $issues->createIssue($user_id, $caller_aiu, $a);
 
         case 'issue_update':
-            $iid = isset($a['issue_id']) ? (int)$a['issue_id'] : 0;
+            $iid = \Field::int($a, 'issue_id');
             if (!$iid) {
                 throw new \Issues\ValidationException("issue_id is required");
             }
             return $issues->updateIssue($iid, $user_id, $caller_aiu, $a);
 
         case 'issue_comment_add':
-            $iid  = isset($a['issue_id']) ? (int)$a['issue_id'] : 0;
-            $body = $a['body'] ?? '';
+            $iid  = \Field::int($a, 'issue_id');
+            $body = \Field::string($a, 'body');
             if (!$iid) {
                 throw new \Issues\ValidationException("issue_id is required");
             }
             return $issues->addComment($iid, $user_id, $caller_aiu, $body);
 
         case 'issue_comment_list':
-            $iid = isset($a['issue_id']) ? (int)$a['issue_id'] : 0;
+            $iid = \Field::int($a, 'issue_id');
             if (!$iid) {
                 throw new \Issues\ValidationException("issue_id is required");
             }
             return $issues->listComments($iid, $user_id, $caller_aiu, $a);
 
         case 'exterm_search_items':
-            $query      = $a['query']      ?? '';
-            $project_id = isset($a['project_id']) ? (int)$a['project_id'] : null;
-            $limit      = isset($a['limit'])      ? (int)$a['limit']      : 20;
+            $query      = \Field::string($a, 'query');
+            $project_id = \Field::intOrNull($a, 'project_id');
+            $limit      = \Field::int($a, 'limit', 20);
             return $exterm->searchItems($user_id, $caller_aiu, $query, $project_id, $limit);
 
         default:

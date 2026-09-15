@@ -24,7 +24,7 @@ if (!$is_logged_in->isLoggedIn()) {
 }
 
 // Get JSON input
-$input = json_decode((string) file_get_contents('php://input'), true);
+$input = \Field::jsonArray((string) file_get_contents('php://input'));
 
 if (!$input || !isset($input['todo_id']) || !isset($input['ak_id'])) {
     http_response_code(400);
@@ -32,10 +32,10 @@ if (!$input || !isset($input['todo_id']) || !isset($input['ak_id'])) {
     exit;
 }
 
-$todo_id = (int)$input['todo_id'];
-$ak_id = (int)$input['ak_id'];
-$duration_seconds = isset($input['duration_seconds']) ? (int)$input['duration_seconds'] : null;
-$timezone = $input['timezone'] ?? date_default_timezone_get();
+$todo_id = \Field::int($input, 'todo_id');
+$ak_id = \Field::int($input, 'ak_id');
+$duration_seconds = \Field::intOrNull($input, 'duration_seconds');
+$timezone = \Field::string($input, 'timezone', date_default_timezone_get());
 
 if ($todo_id <= 0 || $ak_id <= 0) {
     http_response_code(400);

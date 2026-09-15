@@ -28,7 +28,7 @@ if (!$is_logged_in->isLoggedIn()) {
 $user_id = $is_logged_in->loggedInID();
 
 // Get JSON input
-$input = json_decode((string) file_get_contents('php://input'), true);
+$input = \Field::jsonArray((string) file_get_contents('php://input'));
 
 if (empty($input['todos']) || !is_array($input['todos'])) {
     http_response_code(400);
@@ -49,6 +49,7 @@ try {
     $pdo->beginTransaction();
 
     foreach ($todosToCreate as $index => $todoData) {
+        $todoData = is_array($todoData) ? $todoData : [];
         // Basic validation
         if (empty($todoData['title'])) {
             $errors[] = "Row " . ($index + 1) . ": Title is required.";
@@ -57,7 +58,7 @@ try {
 
         // Prepare data for creation
         // Todo::createTodo signature: string $title, int $user_id, array $options = []
-        $title = trim($todoData['title']);
+        $title = trim(\Field::string($todoData, 'title'));
 
         $options = [];
 
@@ -76,7 +77,7 @@ try {
 
         // Duration
         if (!empty($todoData['target_duration_seconds'])) {
-            $options['target_duration_seconds'] = (int)$todoData['target_duration_seconds'];
+            $options['target_duration_seconds'] = \Field::int($todoData, 'target_duration_seconds');
             $options['is_timer'] = 1; // Assume generic timer if duration set
         }
 

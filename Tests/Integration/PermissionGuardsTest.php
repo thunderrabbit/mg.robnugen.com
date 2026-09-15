@@ -147,7 +147,7 @@ class PermissionGuardsTest extends Unit
 
         return [
             'status' => $status,
-            'body'   => json_decode((string) $response, true) ?? [],
+            'body'   => \Field::jsonArray((string) $response),
         ];
     }
 
@@ -171,7 +171,7 @@ class PermissionGuardsTest extends Unit
             'priority' => 'low',
         ]);
         if (isset($result['body']['message_id'])) {
-            self::$cleanup['inbox'][] = $result['body']['message_id'];
+            self::$cleanup['inbox'][] = \Field::int($result['body'], 'message_id');
         }
         return $result;
     }
@@ -193,7 +193,7 @@ class PermissionGuardsTest extends Unit
             'title' => 'Permission test ' . microtime(true),
         ]);
         if (isset($result['body']['todo_id'])) {
-            self::$cleanup['todos'][] = $result['body']['todo_id'];
+            self::$cleanup['todos'][] = \Field::int($result['body'], 'todo_id');
         }
         return $result;
     }
@@ -215,8 +215,8 @@ class PermissionGuardsTest extends Unit
             'activity_id' => 1,
             'timezone'    => 'UTC',
         ]);
-        if (isset($result['body']['session']['ak_id'])) {
-            self::$cleanup['sessions'][] = $result['body']['session']['ak_id'];
+        if (\Field::intOrNull($result['body']['session'] ?? null, 'ak_id') !== null) {
+            self::$cleanup['sessions'][] = \Field::int($result['body']['session'] ?? null, 'ak_id');
         }
         return $result;
     }
@@ -238,7 +238,7 @@ class PermissionGuardsTest extends Unit
             'state' => 'perm_test_' . bin2hex(random_bytes(4)),
         ]);
         if (isset($result['body']['my_id'])) {
-            self::$cleanup['emotions'][] = $result['body']['my_id'];
+            self::$cleanup['emotions'][] = \Field::int($result['body'], 'my_id');
         }
         return $result;
     }
@@ -532,6 +532,7 @@ class PermissionGuardsTest extends Unit
 
         // Each actor should have aiu_id, name, description
         $first = $result['body']['actors'][0];
+        $this->assertIsArray($first);
         $this->assertArrayHasKey('aiu_id', $first, 'Actor should have aiu_id');
         $this->assertArrayHasKey('name', $first, 'Actor should have name');
         $this->assertArrayHasKey('description', $first, 'Actor should have description');

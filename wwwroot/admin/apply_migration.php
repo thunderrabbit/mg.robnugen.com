@@ -19,7 +19,7 @@ if (!$is_logged_in->isLoggedIn() || !$is_logged_in->isAdmin()) {
     exit;
 }
 
-$input = json_decode((string) file_get_contents('php://input'), true);
+$input = \Field::jsonArray((string) file_get_contents('php://input'));
 
 if (empty($input['migration'])) {
     http_response_code(400);
@@ -28,7 +28,7 @@ if (empty($input['migration'])) {
 }
 
 try {
-    $dbExistaroo->applyMigration($input['migration']);
+    $dbExistaroo->applyMigration(\Field::string($input, 'migration'));
     echo json_encode(["status" => "success", "applied" => $input['migration']]);
 } catch (\Exception $e) {
     error_log("applyMigration failed: " . $e->getMessage());

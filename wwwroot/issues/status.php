@@ -30,8 +30,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$issue_id  = (int)($_POST['issue_id'] ?? 0);
-$status_id = (int)($_POST['status_id'] ?? 0);
+$issue_id  = \Field::int($_POST, 'issue_id');
+$status_id = \Field::int($_POST, 'status_id');
 
 if ($issue_id <= 0 || $status_id <= 0) {
     header("Location: /projects/?msg=issue_not_found");
@@ -67,7 +67,7 @@ if (!$perm) {
     header("Location: /projects/?msg=issue_not_found");
     exit;
 }
-if (!$perm['can_write']) {
+if (!\Field::int($perm, 'can_write')) {
     header("Location: /projects/?msg=no_write_access");
     exit;
 }
@@ -81,7 +81,7 @@ if (!$status) {
     header("Location: /issues/view.php?issue_id={$issue_id}");
     exit;
 }
-$is_terminal = (int)$status['is_terminal'];
+$is_terminal = \Field::int($status, 'is_terminal');
 
 if ($is_terminal) {
     $timer_stmt = $pdo->prepare(

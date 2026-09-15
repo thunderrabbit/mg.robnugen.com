@@ -70,7 +70,7 @@ class InboxMessageLimitTest extends Unit
 
         return [
             'status' => $status,
-            'body'   => json_decode((string) $response, true) ?? [],
+            'body'   => \Field::jsonArray((string) $response),
         ];
     }
 
@@ -87,7 +87,7 @@ class InboxMessageLimitTest extends Unit
         ]);
 
         if (isset($result['body']['message_id'])) {
-            $this->createdIds[] = $result['body']['message_id'];
+            $this->createdIds[] = \Field::int($result['body'], 'message_id');
         }
 
         return $result;
@@ -111,7 +111,7 @@ class InboxMessageLimitTest extends Unit
         $this->assertEquals(400, $result['status'], 'A 10,241-byte message should be rejected');
         $this->assertStringContainsString(
             'message exceeds 10240 byte limit (10241 bytes)',
-            $result['body']['error'] ?? ''
+            \Field::string($result['body'], 'error')
         );
     }
 
@@ -124,7 +124,7 @@ class InboxMessageLimitTest extends Unit
         $result = $this->sendMessage($message);
 
         $this->assertEquals(400, $result['status'], 'Multi-byte message over byte limit should be rejected');
-        $this->assertStringContainsString('10242 bytes', $result['body']['error'] ?? '');
+        $this->assertStringContainsString('10242 bytes', \Field::string($result['body'], 'error'));
     }
 
     public function testMultiByteJustUnderLimit(): void

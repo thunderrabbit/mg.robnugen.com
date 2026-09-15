@@ -25,7 +25,7 @@ if (!$is_logged_in->isAdmin() && !$is_logged_in->isPaid()) {
     exit;
 }
 
-$issue_id = (int)($_REQUEST['issue_id'] ?? 0);
+$issue_id = \Field::int($_REQUEST, 'issue_id');
 if ($issue_id <= 0) {
     header("Location: /projects/?msg=issue_not_found");
     exit;
@@ -61,7 +61,7 @@ if (!$issue) {
     header("Location: /projects/?msg=issue_not_found");
     exit;
 }
-if (empty($issue['can_write'])) {
+if (empty(\Field::int($issue, 'can_write'))) {
     header("Location: /projects/?msg=no_write_access");
     exit;
 }
@@ -74,16 +74,16 @@ $assignee_stmt = $pdo->prepare(
      WHERE pm.project_id = ?
      ORDER BY a.actor_type DESC, a.name ASC"
 );
-$assignee_stmt->execute([$issue['project_id']]);
+$assignee_stmt->execute([\Field::int($issue, 'project_id')]);
 $assignee_choices = $assignee_stmt->fetchAll(\PDO::FETCH_ASSOC);
 
 $error = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $title          = trim($_POST['title'] ?? '');
-    $description    = trim($_POST['description'] ?? '');
+    $title          = trim(\Field::string($_POST, 'title'));
+    $description    = trim(\Field::string($_POST, 'description'));
     $assignee_input = $_POST['assignee_aiu'] ?? '';
-    $assignee_aiu   = ($assignee_input === '') ? null : (int)$assignee_input;
+    $assignee_aiu   = ($assignee_input === '') ? null : \Field::toInt($assignee_input);
 
     if ($title === '') {
         $error = "Title is required.";
@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = "Title must be 255 characters or fewer.";
     } elseif ($assignee_aiu !== null) {
         $valid_ids = array_column($assignee_choices, 'aiu_id');
-        if (!in_array($assignee_aiu, array_map('intval', $valid_ids), true)) {
+        if (!in_array($assignee_aiu, array_map(\Field::toInt(...), $valid_ids), true)) {
             $error = "Assignee must be a member of this project.";
         }
     }

@@ -29,7 +29,7 @@ if (!$is_logged_in->isAdmin() && !$is_logged_in->isPaid()) {
 $user_id = $is_logged_in->loggedInID();
 $pdo = \Database\Base::getPDO($config);
 
-$project_id = (int)($_REQUEST['project_id'] ?? 0);
+$project_id = \Field::int($_REQUEST, 'project_id');
 if ($project_id <= 0) {
     header("Location: /projects/?msg=project_not_found");
     exit;
@@ -61,11 +61,11 @@ if (!$mem) {
     header("Location: /projects/?msg=project_not_found");
     exit;
 }
-if (!$mem['can_write']) {
+if (!\Field::int($mem, 'can_write')) {
     header("Location: /projects/?msg=no_write_access");
     exit;
 }
-$project_name = $mem['name'];
+$project_name = \Field::string($mem, 'name');
 
 // Candidate assignees: project members of this project.
 $assignee_stmt = $pdo->prepare(
@@ -81,11 +81,11 @@ $assignee_choices = $assignee_stmt->fetchAll(\PDO::FETCH_ASSOC);
 $error = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $title          = trim($_POST['title'] ?? '');
-    $description    = trim($_POST['description'] ?? '');
-    $priority       = trim($_POST['priority'] ?? 'normal');
+    $title          = trim(\Field::string($_POST, 'title'));
+    $description    = trim(\Field::string($_POST, 'description'));
+    $priority       = trim(\Field::string($_POST, 'priority', 'normal'));
     $assignee_input = $_POST['assignee_aiu'] ?? '';
-    $assignee_aiu   = ($assignee_input === '') ? null : (int)$assignee_input;
+    $assignee_aiu   = ($assignee_input === '') ? null : \Field::toInt($assignee_input);
 
     if ($title === '') {
         $error = "Title is required.";
@@ -94,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (!in_array($priority, ['low', 'normal', 'high'], true)) {
         $error = "Invalid priority.";
     } elseif ($assignee_aiu !== null) {
-        $valid_ids = array_map('intval', array_column($assignee_choices, 'aiu_id'));
+        $valid_ids = array_map(\Field::toInt(...), array_column($assignee_choices, 'aiu_id'));
         if (!in_array($assignee_aiu, $valid_ids, true)) {
             $error = "Assignee must be a member of this project.";
         }

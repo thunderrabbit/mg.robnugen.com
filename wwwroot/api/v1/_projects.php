@@ -37,13 +37,13 @@
  */
 
 $sub = preg_replace('#^/projects#', '', $path) ?: '/';
-$caller_aiu = (int) $auth_actor['aiu_id'];
+$caller_aiu = \Field::int($auth_actor, 'aiu_id');
 $is_human   = ($auth_actor['actor_type'] ?? '') === 'human';
 
 // ── GET /projects/list ───────────────────────────────────────────────────────
 
 if ($method === 'GET' && $sub === '/list') {
-    $include_archived = (int)($_GET['include_archived'] ?? 0);
+    $include_archived = \Field::int($_GET, 'include_archived');
 
     $where = ['p.user_id = ?', 'pm.member_aiu = ?'];
     $params = [$auth_user_id, $caller_aiu];
@@ -70,7 +70,7 @@ if ($method === 'GET' && $sub === '/list') {
 // ── GET /projects/get ────────────────────────────────────────────────────────
 
 if ($method === 'GET' && $sub === '/get') {
-    $project_id = (int)($_GET['project_id'] ?? 0);
+    $project_id = \Field::int($_GET, 'project_id');
     if ($project_id <= 0) {
         http_response_code(400);
         echo json_encode(['error' => 'project_id is required']);
@@ -90,7 +90,7 @@ if ($method === 'GET' && $sub === '/get') {
     );
     $stmt->execute([$project_id, $auth_user_id]);
     $project = $stmt->fetch(\PDO::FETCH_ASSOC);
-    if (!$project) {
+    if (!is_array($project)) {
         http_response_code(404);
         echo json_encode(['error' => 'Project not found']);
         return;
@@ -111,9 +111,9 @@ if ($method === 'POST' && $sub === '/create') {
         return;
     }
 
-    $input = json_decode((string) file_get_contents('php://input'), true) ?? [];
-    $name  = trim($input['name'] ?? '');
-    $desc  = trim($input['description'] ?? '') ?: null;
+    $input = \Field::jsonArray((string) file_get_contents('php://input'));
+    $name  = trim(\Field::string($input, 'name'));
+    $desc  = trim(\Field::string($input, 'description')) ?: null;
 
     if ($name === '') {
         http_response_code(400);
@@ -177,8 +177,8 @@ if ($method === 'PATCH' && $sub === '/update') {
         return;
     }
 
-    $input      = json_decode((string) file_get_contents('php://input'), true) ?? [];
-    $project_id = (int)($input['project_id'] ?? 0);
+    $input      = \Field::jsonArray((string) file_get_contents('php://input'));
+    $project_id = \Field::int($input, 'project_id');
     $name        = array_key_exists('name', $input) ? trim((string)$input['name']) : null;
     $description = array_key_exists('description', $input) ? trim((string)$input['description']) : 'NOT_SET';
     $is_archived = array_key_exists('is_archived', $input) ? (int)(bool)$input['is_archived'] : null;
@@ -240,8 +240,8 @@ if ($method === 'DELETE' && $sub === '/delete') {
         return;
     }
 
-    $input      = json_decode((string) file_get_contents('php://input'), true) ?? [];
-    $project_id = (int)($input['project_id'] ?? 0);
+    $input      = \Field::jsonArray((string) file_get_contents('php://input'));
+    $project_id = \Field::int($input, 'project_id');
 
     if ($project_id <= 0) {
         http_response_code(400);
@@ -261,7 +261,7 @@ if ($method === 'DELETE' && $sub === '/delete') {
 // ── GET /projects/members ────────────────────────────────────────────────────
 
 if ($method === 'GET' && $sub === '/members') {
-    $project_id = (int)($_GET['project_id'] ?? 0);
+    $project_id = \Field::int($_GET, 'project_id');
     if ($project_id <= 0) {
         http_response_code(400);
         echo json_encode(['error' => 'project_id is required']);
@@ -299,9 +299,9 @@ if ($method === 'POST' && $sub === '/add-member') {
         return;
     }
 
-    $input      = json_decode((string) file_get_contents('php://input'), true) ?? [];
-    $project_id = (int)($input['project_id'] ?? 0);
-    $member_aiu = (int)($input['member_aiu'] ?? 0);
+    $input      = \Field::jsonArray((string) file_get_contents('php://input'));
+    $project_id = \Field::int($input, 'project_id');
+    $member_aiu = \Field::int($input, 'member_aiu');
     $can_read   = isset($input['can_read'])  ? (int)(bool)$input['can_read']  : 1;
     $can_write  = isset($input['can_write']) ? (int)(bool)$input['can_write'] : 0;
 
@@ -369,9 +369,9 @@ if ($method === 'PATCH' && $sub === '/update-member') {
         return;
     }
 
-    $input      = json_decode((string) file_get_contents('php://input'), true) ?? [];
-    $project_id = (int)($input['project_id'] ?? 0);
-    $member_aiu = (int)($input['member_aiu'] ?? 0);
+    $input      = \Field::jsonArray((string) file_get_contents('php://input'));
+    $project_id = \Field::int($input, 'project_id');
+    $member_aiu = \Field::int($input, 'member_aiu');
     $can_read   = array_key_exists('can_read', $input)  ? (int)(bool)$input['can_read']  : null;
     $can_write  = array_key_exists('can_write', $input) ? (int)(bool)$input['can_write'] : null;
 
@@ -424,9 +424,9 @@ if ($method === 'DELETE' && $sub === '/remove-member') {
         return;
     }
 
-    $input      = json_decode((string) file_get_contents('php://input'), true) ?? [];
-    $project_id = (int)($input['project_id'] ?? 0);
-    $member_aiu = (int)($input['member_aiu'] ?? 0);
+    $input      = \Field::jsonArray((string) file_get_contents('php://input'));
+    $project_id = \Field::int($input, 'project_id');
+    $member_aiu = \Field::int($input, 'member_aiu');
 
     if ($project_id <= 0 || $member_aiu <= 0) {
         http_response_code(400);

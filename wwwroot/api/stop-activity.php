@@ -27,10 +27,10 @@ if (!$is_logged_in->isLoggedIn()) {
 }
 
 // Get JSON input
-$input = json_decode((string) file_get_contents('php://input'), true);
+$input = \Field::jsonArray((string) file_get_contents('php://input'));
 
 // Get ak_id from session_key, ak_id, or session
-$session_key = trim($input['session_key'] ?? '');
+$session_key = trim(\Field::string($input, 'session_key'));
 $ak_id = 0;
 
 if (!empty($session_key)) {
@@ -46,11 +46,11 @@ if (!empty($session_key)) {
     }
 } else {
     // Fall back to ak_id from input or session
-    $ak_id = (int)($input['ak_id'] ?? $_SESSION['active_ak_id'] ?? 0);
+    $ak_id = \Field::toInt($input['ak_id'] ?? $_SESSION['active_ak_id'] ?? 0);
 }
 
-$actual_sec = (int)($input['actual_sec'] ?? 0);
-$bonus_sec = (int)($input['bonus_sec'] ?? 0);
+$actual_sec = \Field::int($input, 'actual_sec');
+$bonus_sec = \Field::int($input, 'bonus_sec');
 
 if ($ak_id <= 0) {
     http_response_code(400);

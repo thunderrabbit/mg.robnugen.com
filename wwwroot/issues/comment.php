@@ -29,8 +29,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$issue_id = (int)($_POST['issue_id'] ?? 0);
-$body     = trim($_POST['body'] ?? '');
+$issue_id = \Field::int($_POST, 'issue_id');
+$body     = trim(\Field::string($_POST, 'body'));
 
 if ($issue_id <= 0) {
     header("Location: /projects/?msg=issue_not_found");
@@ -75,7 +75,7 @@ if (!$perm) {
     header("Location: /projects/?msg=issue_not_found");
     exit;
 }
-if (!$perm['can_write']) {
+if (!\Field::int($perm, 'can_write')) {
     header("Location: /projects/?msg=no_write_access");
     exit;
 }

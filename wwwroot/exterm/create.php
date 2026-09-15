@@ -42,7 +42,7 @@ $aiu_stmt = $pdo->prepare(
 $aiu_stmt->execute([$user_id]);
 $human_aiu = (int) $aiu_stmt->fetchColumn();
 
-$project_id = (int)($_REQUEST['project_id'] ?? 0);
+$project_id = \Field::int($_REQUEST, 'project_id');
 if ($project_id <= 0) {
     header("Location: /exterm/");
     exit;
@@ -62,17 +62,17 @@ if (!$mem) {
     header("Location: /exterm/?msg=not_found");
     exit;
 }
-if (!$mem['can_write']) {
+if (!\Field::int($mem, 'can_write')) {
     header("Location: /exterm/?msg=no_write");
     exit;
 }
-$project_name = $mem['name'];
+$project_name = \Field::string($mem, 'name');
 
 $error = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $title = trim($_POST['title'] ?? '');
-    $body  = trim($_POST['body']  ?? '') ?: null;
+    $title = trim(\Field::string($_POST, 'title'));
+    $body  = trim(\Field::string($_POST, 'body')) ?: null;
 
     if (!$title) {
         $error = "Title is required.";

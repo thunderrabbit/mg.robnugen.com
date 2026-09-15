@@ -69,9 +69,9 @@ include_once $matches[1] . '/prepend.php';
 
 // ── Parse request body ────────────────────────────────────────────────────────
 
-$content_type = $_SERVER['CONTENT_TYPE'] ?? '';
+$content_type = \Field::string($_SERVER, 'CONTENT_TYPE');
 if (str_contains($content_type, 'application/json')) {
-    $body = json_decode((string) file_get_contents('php://input'), true) ?? [];
+    $body = \Field::jsonArray((string) file_get_contents('php://input'));
 } else {
     parse_str((string) file_get_contents('php://input'), $body);
     $body = array_merge($body, $_POST);
@@ -83,9 +83,9 @@ $pdo        = \Database\Base::getPDO($config);
 // ── Authorization Code + PKCE ─────────────────────────────────────────────────
 
 if ($grant_type === 'authorization_code') {
-    $raw_code     = $body['code']          ?? '';
-    $code_verifier = $body['code_verifier'] ?? '';
-    $redirect_uri  = $body['redirect_uri']  ?? '';
+    $raw_code     = \Field::string($body, 'code');
+    $code_verifier = \Field::string($body, 'code_verifier');
+    $redirect_uri  = \Field::string($body, 'redirect_uri');
 
     if (!$raw_code || !$code_verifier || !$redirect_uri) {
         http_response_code(400);
@@ -110,7 +110,7 @@ if ($grant_type === 'authorization_code') {
     }
 
     // Verify redirect_uri matches
-    if ($code_row['redirect_uri'] !== $redirect_uri) {
+    if (\Field::string($code_row, 'redirect_uri') !== $redirect_uri) {
         http_response_code(400);
         echo json_encode(['error' => 'invalid_grant', 'error_description' => 'redirect_uri mismatch']);
         exit;
@@ -118,7 +118,7 @@ if ($grant_type === 'authorization_code') {
 
     // Verify PKCE S256: base64url(SHA-256(code_verifier)) == stored code_challenge
     $computed_challenge = rtrim(strtr(base64_encode(hash('sha256', $code_verifier, true)), '+/', '-_'), '=');
-    if (!hash_equals($code_row['code_challenge'], $computed_challenge)) {
+    if (!hash_equals(\Field::string($code_row, 'code_challenge'), $computed_challenge)) {
         http_response_code(400);
         echo json_encode(['error' => 'invalid_grant', 'error_description' => 'PKCE verification failed']);
         exit;
@@ -126,15 +126,15 @@ if ($grant_type === 'authorization_code') {
 
     // Mark code used (single-use)
     $pdo->prepare("UPDATE oauth_auth_codes SET used_at_utc = NOW() WHERE code_id = ?")
-        ->execute([$code_row['code_id']]);
+        ->execute([\Field::int($code_row, 'code_id')]);
 
-    $aiu_id           = (int) $code_row['aiu_id'];
-    $auth_user_id     = (int) $code_row['user_id'];
+    $aiu_id           = \Field::int($code_row, 'aiu_id');
+    $auth_user_id     = \Field::int($code_row, 'user_id');
     $existing_token_id = null;
 
     // ── Refresh Token (silent renewal) ───────────────────────────────────────────
 } elseif ($grant_type === 'refresh_token') {
-    $raw_refresh = $body['refresh_token'] ?? '';
+    $raw_refresh = \Field::string($body, 'refresh_token');
 
     if (!$raw_refresh) {
         http_response_code(400);
@@ -158,16 +158,16 @@ if ($grant_type === 'authorization_code') {
         exit;
     }
 
-    $aiu_id            = (int) $refresh_row['aiu_id'];
-    $auth_user_id      = (int) $refresh_row['user_id'];
-    $existing_token_id = (int) $refresh_row['token_id'];
+    $aiu_id            = \Field::int($refresh_row, 'aiu_id');
+    $auth_user_id      = \Field::int($refresh_row, 'user_id');
+    $existing_token_id = \Field::int($refresh_row, 'token_id');
 
     // ── Client Credentials (fallback) ────────────────────────────────────────────
 } elseif ($grant_type === 'client_credentials') {
-    $client_secret = $body['client_secret'] ?? '';
+    $client_secret = \Field::string($body, 'client_secret');
 
     // Also accept Basic auth header
-    $auth_header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+    $auth_header = \Field::string($_SERVER, 'HTTP_AUTHORIZATION');
     if (preg_match('/^Basic\s+(.+)$/i', $auth_header, $m)) {
         $decoded = base64_decode($m[1], true);
         if ($decoded !== false && str_contains($decoded, ':')) {

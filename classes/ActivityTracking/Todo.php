@@ -101,7 +101,7 @@ class Todo
 
         $stmt->execute([$todo_id, $date]);
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
-        return (int)$result['count'];
+        return \Field::int($result, 'count');
     }
 
     /**
@@ -145,8 +145,8 @@ class Todo
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         return [
-            'count' => (int)($result['count'] ?? 0),
-            'last_logged' => $result['last_logged'] ?? null
+            'count' => \Field::int($result, 'count'),
+            'last_logged' => is_array($result) ? ($result['last_logged'] ?? null) : null
         ];
     }
 
@@ -203,7 +203,7 @@ class Todo
             ");
             $existing->execute([$todo_id, $ak_id]);
             $row = $existing->fetch(\PDO::FETCH_ASSOC);
-            return $row ? (int)$row['log_id'] : 0;
+            return $row ? \Field::int($row, 'log_id') : 0;
         }
 
         return $log_id;
@@ -250,14 +250,14 @@ class Todo
         $stmt->execute([$todo_id, $user_id]);
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-        return $result['count'] > 0;
+        return \Field::int($result, 'count') > 0;
     }
 
     /**
      * Get a single todo by ID
      *
      * @param int $todo_id
-     * @return array<string, mixed>|null
+     * @return array<mixed>|null
      */
     public function getTodo(int $todo_id): ?array
     {
@@ -273,7 +273,7 @@ class Todo
         $stmt->execute([$todo_id]);
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-        return $result ?: null;
+        return is_array($result) ? $result : null;
     }
 
     /**

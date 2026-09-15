@@ -43,7 +43,7 @@ if (!$sup_stmt->fetch()) {
 }
 
 // ── Sub-route parsing ────────────────────────────────────────────────────────
-$sub = preg_replace('#^/agents#', '', preg_replace('#^/api/v1#', '', rtrim((string) parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/')) ?? '') ?: '';
+$sub = preg_replace('#^/agents#', '', preg_replace('#^/api/v1#', '', rtrim((string) parse_url(\Field::string($_SERVER, 'REQUEST_URI'), PHP_URL_PATH), '/')) ?? '') ?: '';
 
 // ── GET /agents ──────────────────────────────────────────────────────────────
 
@@ -68,9 +68,9 @@ if ($method === 'GET' && $sub === '') {
 // ── POST /agents ─────────────────────────────────────────────────────────────
 
 if ($method === 'POST' && $sub === '') {
-    $input = json_decode((string) file_get_contents('php://input'), true) ?? [];
-    $name  = trim($input['name'] ?? '');
-    $desc  = trim($input['description'] ?? '') ?: null;
+    $input = \Field::jsonArray((string) file_get_contents('php://input'));
+    $name  = trim(\Field::string($input, 'name'));
+    $desc  = trim(\Field::string($input, 'description')) ?: null;
 
     if (empty($name)) {
         http_response_code(400);
@@ -136,7 +136,7 @@ if ($method === 'POST' && $sub === '') {
             "INSERT INTO inbox_visibility (inbox_user_aiu_id, inbox_peer_aiu_id, can_read, can_send) VALUES (?, ?, 0, 1)"
         );
         foreach ($send_to as $peer_aiu_id) {
-            $peer_aiu_id = (int) $peer_aiu_id;
+            $peer_aiu_id = \Field::toInt($peer_aiu_id);
             if ($peer_aiu_id > 0 && $peer_aiu_id !== $new_aiu_id) {
                 $send_stmt->execute([$new_aiu_id, $peer_aiu_id]);
             }
@@ -160,12 +160,12 @@ if ($method === 'POST' && $sub === '') {
 // Add an inbox_visibility row: grant one agent read/send access to another's inbox.
 
 if ($method === 'POST' && $sub === '/visibility') {
-    $input = json_decode((string) file_get_contents('php://input'), true) ?? [];
+    $input = \Field::jsonArray((string) file_get_contents('php://input'));
 
-    $reader_aiu = (int)($input['reader_aiu_id'] ?? 0);
-    $peer_aiu   = isset($input['peer_aiu_id']) ? (int)$input['peer_aiu_id'] : null;
-    $can_read   = (int)($input['can_read'] ?? 0);
-    $can_send   = (int)($input['can_send'] ?? 0);
+    $reader_aiu = \Field::int($input, 'reader_aiu_id');
+    $peer_aiu   = \Field::intOrNull($input, 'peer_aiu_id');
+    $can_read   = \Field::int($input, 'can_read');
+    $can_send   = \Field::int($input, 'can_send');
 
     if ($reader_aiu <= 0) {
         http_response_code(400);
@@ -229,10 +229,10 @@ if ($method === 'POST' && $sub === '/visibility') {
 // Generate an API key for an agent. Returns the raw key ONCE — it cannot be retrieved again.
 
 if ($method === 'POST' && $sub === '/keys') {
-    $input = json_decode((string) file_get_contents('php://input'), true) ?? [];
+    $input = \Field::jsonArray((string) file_get_contents('php://input'));
 
-    $aiu_id = (int)($input['aiu_id'] ?? 0);
-    $label  = trim($input['label'] ?? '');
+    $aiu_id = \Field::int($input, 'aiu_id');
+    $label  = trim(\Field::string($input, 'label'));
 
     if ($aiu_id <= 0) {
         http_response_code(400);
@@ -254,7 +254,7 @@ if ($method === 'POST' && $sub === '/keys') {
 
     $apiKeyHelper = new \Auth\ApiKey($pdo);
     try {
-        $raw_key = $apiKeyHelper->generateKey($auth_user_id, $label ?: $agent['name'], $aiu_id);
+        $raw_key = $apiKeyHelper->generateKey($auth_user_id, $label ?: \Field::string($agent, 'name'), $aiu_id);
     } catch (\RuntimeException $e) {
         http_response_code(409);
         echo json_encode(['error' => $e->getMessage()]);
@@ -265,7 +265,7 @@ if ($method === 'POST' && $sub === '/keys') {
     echo json_encode([
         'api_key'  => $raw_key,
         'aiu_id'   => $aiu_id,
-        'label'    => $label ?: $agent['name'],
+        'label'    => $label ?: \Field::string($agent, 'name'),
         'warning'  => 'Store this key securely — it cannot be retrieved again',
     ]);
     exit;

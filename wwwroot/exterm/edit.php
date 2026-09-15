@@ -35,7 +35,7 @@ $aiu_stmt = $pdo->prepare(
 $aiu_stmt->execute([$user_id]);
 $human_aiu = (int) $aiu_stmt->fetchColumn();
 
-$exterm_item_id = (int)($_REQUEST['exterm_item_id'] ?? 0);
+$exterm_item_id = \Field::int($_REQUEST, 'exterm_item_id');
 if (!$exterm_item_id) {
     header("Location: /exterm/");
     exit;
@@ -56,7 +56,7 @@ if (!$item) {
     header("Location: /exterm/?msg=not_found");
     exit;
 }
-if (!$item['can_write']) {
+if (!\Field::int($item, 'can_write')) {
     header("Location: /exterm/view.php?exterm_item_id={$exterm_item_id}&msg=no_write");
     exit;
 }
@@ -64,8 +64,8 @@ if (!$item['can_write']) {
 $error = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $new_title = trim($_POST['title'] ?? '');
-    $new_body  = trim($_POST['body']  ?? '') ?: null;
+    $new_title = trim(\Field::string($_POST, 'title'));
+    $new_body  = trim(\Field::string($_POST, 'body')) ?: null;
 
     if (!$new_title) {
         $error = "Title is required.";

@@ -73,7 +73,7 @@ class Items
     /**
      * Load item + caller's project membership, or throw.
      *
-     * @return array<string, mixed>
+     * @return array<mixed>
      */
     private function itemWithAccess(int $exterm_item_id, int $user_id, int $caller_aiu): array
     {
@@ -87,7 +87,7 @@ class Items
         );
         $stmt->execute([$caller_aiu, $exterm_item_id, $user_id]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-        if (!$row) {
+        if (!is_array($row)) {
             throw new NotFoundException("Item {$exterm_item_id} not found or access denied");
         }
         return $row;
@@ -96,7 +96,7 @@ class Items
     /**
      * Check project membership or throw. Returns ['can_read','can_write'].
      *
-     * @return array<string, mixed>
+     * @return array<mixed>
      */
     private function projectAccess(int $project_id, int $user_id, int $caller_aiu): array
     {
@@ -109,7 +109,7 @@ class Items
         );
         $stmt->execute([$project_id, $caller_aiu, $user_id]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-        if (!$row) {
+        if (!is_array($row)) {
             throw new AccessException("Not a member of project {$project_id}");
         }
         return $row;
@@ -146,9 +146,9 @@ class Items
      */
     public function listItems(int $user_id, int $caller_aiu, array $filters): array
     {
-        $project_id = isset($filters['project_id']) ? (int)$filters['project_id'] : null;
-        $limit  = min((int)($filters['limit'] ?? 20), 100);
-        $offset = max((int)($filters['offset'] ?? 0), 0);
+        $project_id = \Field::intOrNull($filters, 'project_id');
+        $limit  = min(\Field::int($filters, 'limit', 20), 100);
+        $offset = max(\Field::int($filters, 'offset'), 0);
 
         $where  = ["p.user_id = ?"];
         $params = [$user_id];
@@ -190,12 +190,12 @@ class Items
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array<mixed>
      */
     public function getItem(int $exterm_item_id, int $user_id, int $caller_aiu): array
     {
         $row = $this->itemWithAccess($exterm_item_id, $user_id, $caller_aiu);
-        if (!(int)$row['can_read']) {
+        if (!\Field::int($row, 'can_read')) {
             throw new AccessException("No read access to item {$exterm_item_id}");
         }
 
@@ -208,17 +208,21 @@ class Items
              LIMIT 1"
         );
         $stmt->execute([$exterm_item_id]);
-        return $stmt->fetch(\PDO::FETCH_ASSOC);
+        $item = $stmt->fetch(\PDO::FETCH_ASSOC);
+        if (!is_array($item)) {
+            throw new NotFoundException("Item {$exterm_item_id} not found");
+        }
+        return $item;
     }
 
     /**
      * @param array<string, mixed> $data
-     * @return array<string, mixed>
+     * @return array<mixed>
      */
     public function createItem(int $user_id, int $caller_aiu, array $data): array
     {
-        $project_id = isset($data['project_id']) ? (int)$data['project_id'] : null;
-        $title      = trim($data['title'] ?? '');
+        $project_id = \Field::intOrNull($data, 'project_id');
+        $title      = trim(\Field::string($data, 'title'));
         $body       = $data['body'] ?? null;
 
         if (!$project_id) {
@@ -229,7 +233,7 @@ class Items
         }
 
         $role = $this->projectAccess($project_id, $user_id, $caller_aiu);
-        if (!(int)$role['can_write']) {
+        if (!\Field::int($role, 'can_write')) {
             throw new AccessException("No write access to project {$project_id}");
         }
 
@@ -247,12 +251,12 @@ class Items
      * write access on the destination project.
      *
      * @param array<string, mixed> $data
-     * @return array<string, mixed>
+     * @return array<mixed>
      */
     public function updateItem(int $user_id, int $caller_aiu, int $exterm_item_id, array $data): array
     {
         $row = $this->itemWithAccess($exterm_item_id, $user_id, $caller_aiu);
-        if (!(int)$row['can_write']) {
+        if (!\Field::int($row, 'can_write')) {
             throw new AccessException("No write access to item {$exterm_item_id}");
         }
 
@@ -260,7 +264,7 @@ class Items
         $params = [];
 
         if (array_key_exists('title', $data) && $data['title'] !== null) {
-            $t = trim($data['title']);
+            $t = trim(\Field::string($data, 'title'));
             if (!$t) {
                 throw new ValidationException("title cannot be empty");
             }
@@ -272,9 +276,9 @@ class Items
             $params[] = $data['body'];
         }
         if (array_key_exists('project_id', $data) && $data['project_id'] !== null) {
-            $dest = (int)$data['project_id'];
+            $dest = \Field::int($data, 'project_id');
             $role = $this->projectAccess($dest, $user_id, $caller_aiu);
-            if (!(int)$role['can_write']) {
+            if (!\Field::int($role, 'can_write')) {
                 throw new AccessException("No write access to project {$dest}");
             }
             $sets[] = "project_id = ?";
@@ -298,7 +302,7 @@ class Items
     public function deleteItem(int $user_id, int $caller_aiu, int $exterm_item_id): array
     {
         $row = $this->itemWithAccess($exterm_item_id, $user_id, $caller_aiu);
-        if (!(int)$row['can_write']) {
+        if (!\Field::int($row, 'can_write')) {
             throw new AccessException("No write access to delete item {$exterm_item_id}");
         }
         $this->pdo->prepare("DELETE FROM exterm_items WHERE exterm_item_id = ?")->execute([$exterm_item_id]);

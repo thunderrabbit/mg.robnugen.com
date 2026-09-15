@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
+if (!isset($_POST['csrf_token']) || !hash_equals(\Field::string($_SESSION, 'csrf_token'), \Field::string($_POST, 'csrf_token'))) {
     header('Location: /billing/');
     exit;
 }
@@ -64,14 +64,14 @@ $result    = curl_exec($ch);
 $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
-$session = json_decode((string) $result, true);
+$session = \Field::jsonArray((string) $result);
 
 if ($http_code !== 200 || empty($session['url'])) {
-    $stripe_error_msg = $session['error']['message'] ?? 'unknown error';
+    $stripe_error_msg = \Field::string(\Field::array($session, 'error'), 'message', 'unknown error');
     error_log("Stripe checkout error HTTP $http_code: $stripe_error_msg | price_id=$price_id | raw=" . $result);
     header('Location: /billing/?stripe_error=1');
     exit;
 }
 
-header('Location: ' . $session['url']);
+header('Location: ' . \Field::string($session, 'url'));
 exit;

@@ -13,7 +13,7 @@ include_once $matches[1] . '/prepend.php';
  */
 
 // Check URL for session key pattern: /mg/{session_key}
-$uri = $_SERVER['REQUEST_URI'] ?? '';
+$uri = \Field::string($_SERVER, 'REQUEST_URI');
 if (preg_match('#^/mg/([a-zA-Z0-9_-]{11})(?:\?.*)?$#', $uri, $matches)) {
     $session_key = $matches[1];
 
@@ -54,7 +54,7 @@ $todo_id = $_GET['todo_id'] ?? null;
 if ($todo_id && $is_logged_in->isLoggedIn()) {
     $pdo = \Database\Base::getPDO($config); // Ensure PDO is available
     $todoHelper = new \ActivityTracking\Todo($pdo);
-    if (!$todoHelper->verifyOwnership((int)$todo_id, $is_logged_in->loggedInID())) {
+    if (!$todoHelper->verifyOwnership(\Field::toInt($todo_id), $is_logged_in->loggedInID())) {
         header("Location: /mg/?yeah=nah");
         exit;
     }

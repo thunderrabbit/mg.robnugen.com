@@ -24,7 +24,7 @@ if (!$is_logged_in->isLoggedIn()) {
 }
 
 // Get JSON input
-$input = json_decode((string) file_get_contents('php://input'), true);
+$input = \Field::jsonArray((string) file_get_contents('php://input'));
 
 if (!$input || !isset($input['todo_id']) || !isset($input['nth'])) {
     http_response_code(400);
@@ -32,9 +32,9 @@ if (!$input || !isset($input['todo_id']) || !isset($input['nth'])) {
     exit;
 }
 
-$todo_id = (int)$input['todo_id'];
-$nth = (int)$input['nth'];
-$timezone = $input['timezone'] ?? date_default_timezone_get();
+$todo_id = \Field::int($input, 'todo_id');
+$nth = \Field::int($input, 'nth');
+$timezone = \Field::string($input, 'timezone', date_default_timezone_get());
 
 if ($todo_id <= 0 || $nth <= 0) {
     http_response_code(400);

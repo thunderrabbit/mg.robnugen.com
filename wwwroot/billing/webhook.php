@@ -28,7 +28,7 @@ $pdo    = \Database\Base::getPDO($config);
 // ── Verify signature before reading payload ───────────────────────────────────
 
 $payload    = (string) file_get_contents('php://input');
-$sig_header = $_SERVER['HTTP_STRIPE_SIGNATURE'] ?? '';
+$sig_header = \Field::string($_SERVER, 'HTTP_STRIPE_SIGNATURE');
 
 if (!\Billing\StripeWebhook::verifySignature($payload, $sig_header, $config->stripe_webhook_secret)) {
     http_response_code(400);
@@ -37,7 +37,7 @@ if (!\Billing\StripeWebhook::verifySignature($payload, $sig_header, $config->str
 
 // ── Parse and dispatch ────────────────────────────────────────────────────────
 
-$event = json_decode($payload, true);
+$event = \Field::jsonArray($payload);
 
 if (!$event || !isset($event['type'])) {
     http_response_code(400);

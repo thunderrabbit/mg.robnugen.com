@@ -26,7 +26,7 @@ if (!$is_logged_in->isAdmin() && !$is_logged_in->isPaid()) {
     exit;
 }
 
-$project_id = (int)($_GET['project_id'] ?? 0);
+$project_id = \Field::int($_GET, 'project_id');
 if ($project_id <= 0) {
     header("Location: /projects/?msg=project_not_found");
     exit;
@@ -66,11 +66,11 @@ $sort_map = [
     'title'    => 'i.title',
     'priority' => "FIELD(i.priority, 'low', 'normal', 'high')",
 ];
-$sort = $_GET['sort'] ?? 'updated';
+$sort = \Field::string($_GET, 'sort', 'updated');
 if (!isset($sort_map[$sort])) {
     $sort = 'updated';
 }
-$dir = strtolower($_GET['dir'] ?? 'desc');
+$dir = strtolower(\Field::string($_GET, 'dir', 'desc'));
 if ($dir !== 'asc') {
     $dir = 'desc';
 }
@@ -121,7 +121,7 @@ $members = $member_stmt->fetchAll(\PDO::FETCH_ASSOC);
 
 $page = new \Template($config, $is_logged_in);
 $page->setTemplate("layout/base.tpl.php");
-$page->set("page_title", $project['name'] . " - Meiso Gambare");
+$page->set("page_title", \Field::string($project, 'name') . " - Meiso Gambare");
 
 $inner_page = new \Template($config, $is_logged_in);
 $inner_page->setTemplate("projects/view.tpl.php");

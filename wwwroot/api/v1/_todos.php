@@ -43,7 +43,7 @@ if ($todos_path === '/list') {
         return;
     }
 
-    $timezone = $_GET['timezone'] ?? 'UTC';
+    $timezone = \Field::string($_GET, 'timezone', 'UTC');
 
     try {
         $tz = new \DateTimeZone($timezone);
@@ -69,20 +69,20 @@ if ($todos_path === '/list') {
     foreach ($todos as &$todo) {
         $isRecurring = !empty($todo['do_days']) || !empty($todo['do_dates']) || !empty($todo['do_every_n_days']);
 
-        $completions = $todoHelper->getCompletionsForDate($todo['todo_id'], $today);
+        $completions = $todoHelper->getCompletionsForDate(\Field::int($todo, 'todo_id'), $today);
         $todo['completed_count'] = count($completions);
         $todo['completions'] = $completions;
 
         $completed_nths = array_column($completions, 'nth');
-        $todo['completed_nths'] = array_map('intval', $completed_nths);
+        $todo['completed_nths'] = array_map(\Field::toInt(...), $completed_nths);
 
-        $targetCount = (int) ($todo['target_count'] ?? 1);
+        $targetCount = \Field::int($todo, 'target_count', 1);
 
         if (!$isRecurring && !empty($todo['due_date'])) {
             $completedToday = !empty($completions) && count($completions) >= $targetCount;
 
             if (!$completedToday) {
-                $overallStatus = $todoHelper->getCompletionStatus($todo['todo_id']);
+                $overallStatus = $todoHelper->getCompletionStatus(\Field::int($todo, 'todo_id'));
                 if ($overallStatus['count'] >= $targetCount) {
                     continue;
                 }
@@ -99,7 +99,7 @@ if ($todos_path === '/list') {
 
             if (is_string($lastDone) && $lastDone !== '') {
                 $next = new \DateTime($lastDone, $tz);
-                $next->modify('+' . (int) $todo['do_every_n_days'] . ' days');
+                $next->modify('+' . \Field::int($todo, 'do_every_n_days') . ' days');
                 $todo['next_due_date'] = $next->format('Y-m-d');
                 $todo['days_until_due'] = (int) $now->diff($next)->format('%r%a');
             } else {
@@ -113,7 +113,7 @@ if ($todos_path === '/list') {
 
         if ($isFullyCompletedForToday && !empty($completions)) {
             $lastCompletion = end($completions);
-            $lastCompletedAt = new \DateTime($lastCompletion['date_logged'], $tz);
+            $lastCompletedAt = new \DateTime(\Field::string($lastCompletion, 'date_logged'), $tz);
 
             if ($lastCompletedAt < $oneMinuteAgo) {
                 continue;
@@ -129,7 +129,7 @@ if ($todos_path === '/list') {
             $deadlineStr = $today . ' 22:00:00';
             $deadline = new \DateTime($deadlineStr, $tz);
 
-            $originalTimeStr = $today . ' ' . $todo['do_time'];
+            $originalTimeStr = $today . ' ' . \Field::string($todo, 'do_time');
             $originalTime = new \DateTime($originalTimeStr, $tz);
 
             $totalWindow = $deadline->getTimestamp() - $originalTime->getTimestamp();
@@ -159,7 +159,7 @@ if ($todos_path === '/list') {
         $timeB = $b['do_time'] ?? null;
 
         if ($timeA === $timeB) {
-            return strcasecmp($a['title'], $b['title']);
+            return strcasecmp(\Field::string($a, 'title'), \Field::string($b, 'title'));
         }
 
         if ($timeA === null) {
@@ -169,7 +169,7 @@ if ($todos_path === '/list') {
             return 1;
         }
 
-        return strcmp($timeA, $timeB);
+        return strcmp(\Field::toString($timeA), \Field::toString($timeB));
     });
 
     echo json_encode([
@@ -185,10 +185,10 @@ if ($todos_path === '/list') {
         return;
     }
 
-    $body = json_decode((string) file_get_contents('php://input'), true);
-    $todo_id = (int) ($body['todo_id'] ?? 0);
-    $nth = (int) ($body['nth'] ?? 0);
-    $timezone = $body['timezone'] ?? 'UTC';
+    $body = \Field::jsonArray((string) file_get_contents('php://input'));
+    $todo_id = \Field::int($body, 'todo_id');
+    $nth = \Field::int($body, 'nth');
+    $timezone = \Field::string($body, 'timezone', 'UTC');
 
     if ($todo_id <= 0 || $nth <= 0) {
         http_response_code(400);
@@ -216,7 +216,7 @@ if ($todos_path === '/list') {
     // completion "as of" that date so do_every_n_days recurrence recomputes
     // from the real date (next_due reads MAX(DATE(date_logged))). Absent =>
     // now, so existing callers are unaffected.
-    $raw_date = trim($body['date_logged'] ?? '');
+    $raw_date = trim(\Field::string($body, 'date_logged'));
     if ($raw_date !== '') {
         try {
             $dt = new \DateTime($raw_date, $tz);
@@ -255,10 +255,10 @@ if ($todos_path === '/list') {
         return;
     }
 
-    $body = json_decode((string) file_get_contents('php://input'), true);
-    $todo_id = (int) ($body['todo_id'] ?? 0);
-    $nth = (int) ($body['nth'] ?? 0);
-    $timezone = $body['timezone'] ?? 'UTC';
+    $body = \Field::jsonArray((string) file_get_contents('php://input'));
+    $todo_id = \Field::int($body, 'todo_id');
+    $nth = \Field::int($body, 'nth');
+    $timezone = \Field::string($body, 'timezone', 'UTC');
 
     if ($todo_id <= 0 || $nth <= 0) {
         http_response_code(400);
@@ -297,8 +297,8 @@ if ($todos_path === '/list') {
         return;
     }
 
-    $body = json_decode((string) file_get_contents('php://input'), true);
-    $title = trim($body['title'] ?? '');
+    $body = \Field::jsonArray((string) file_get_contents('php://input'));
+    $title = trim(\Field::string($body, 'title'));
 
     if ($title === '') {
         http_response_code(400);
@@ -346,8 +346,8 @@ if ($todos_path === '/list') {
         return;
     }
 
-    $body = json_decode((string) file_get_contents('php://input'), true);
-    $todo_id = (int) ($body['todo_id'] ?? 0);
+    $body = \Field::jsonArray((string) file_get_contents('php://input'));
+    $todo_id = \Field::int($body, 'todo_id');
     $field = $body['field'] ?? '';
     $value = $body['value'] ?? null;
 
@@ -373,7 +373,7 @@ if ($todos_path === '/list') {
     // Field-specific validation (same as cookie endpoint)
     switch ($field) {
         case 'title':
-            $value = trim((string) $value);
+            $value = trim(\Field::toString($value));
             if ($value === '') {
                 http_response_code(400);
                 echo json_encode(['error' => 'Title cannot be empty']);
@@ -383,7 +383,7 @@ if ($todos_path === '/list') {
 
         case 'do_time':
             if ($value !== null && $value !== '') {
-                if (!preg_match('/^([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/', $value)) {
+                if (!preg_match('/^([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/', \Field::toString($value))) {
                     http_response_code(400);
                     echo json_encode(['error' => 'Invalid time format (HH:MM or HH:MM:SS)']);
                     return;
@@ -395,7 +395,7 @@ if ($todos_path === '/list') {
 
         case 'due_date':
             if ($value !== null && $value !== '') {
-                $d = \DateTime::createFromFormat('Y-m-d', $value);
+                $d = \DateTime::createFromFormat('Y-m-d', \Field::toString($value));
                 if (!($d && $d->format('Y-m-d') === $value)) {
                     http_response_code(400);
                     echo json_encode(['error' => 'Invalid date format (YYYY-MM-DD)']);
@@ -407,7 +407,7 @@ if ($todos_path === '/list') {
             break;
 
         case 'target_duration_seconds':
-            $value = (int) $value;
+            $value = \Field::toInt($value);
             if ($value < 0) {
                 http_response_code(400);
                 echo json_encode(['error' => 'Duration cannot be negative']);
@@ -417,7 +417,7 @@ if ($todos_path === '/list') {
 
         case 'do_every_n_days':
             if ($value !== null && $value !== '') {
-                $value = (int) $value;
+                $value = \Field::toInt($value);
                 if ($value < 1 || $value > 65535) {
                     http_response_code(400);
                     echo json_encode(['error' => 'do_every_n_days must be 1-65535']);
@@ -430,7 +430,7 @@ if ($todos_path === '/list') {
 
         case 'is_timer':
         case 'is_counter':
-            $value = (int) $value;
+            $value = \Field::toInt($value);
             if ($value !== 0 && $value !== 1) {
                 http_response_code(400);
                 echo json_encode(['error' => $field . ' must be 0 or 1']);
@@ -440,7 +440,7 @@ if ($todos_path === '/list') {
 
         case 'activity_id':
             if ($value !== null && $value !== '') {
-                $value = (int) $value;
+                $value = \Field::toInt($value);
                 // Verify activity exists
                 $stmt = $pdo->prepare("SELECT activity_id FROM activities WHERE activity_id = ? AND (user_id IS NULL OR user_id = ?)");
                 $stmt->execute([$value, $auth_user_id]);
@@ -469,8 +469,8 @@ if ($todos_path === '/list') {
         return;
     }
 
-    $body = json_decode((string) file_get_contents('php://input'), true);
-    $todo_id = (int) ($body['todo_id'] ?? 0);
+    $body = \Field::jsonArray((string) file_get_contents('php://input'));
+    $todo_id = \Field::int($body, 'todo_id');
 
     if ($todo_id <= 0) {
         http_response_code(400);
@@ -492,8 +492,8 @@ if ($todos_path === '/list') {
         return;
     }
 
-    $body = json_decode((string) file_get_contents('php://input'), true);
-    $todo_id = (int) ($body['todo_id'] ?? 0);
+    $body = \Field::jsonArray((string) file_get_contents('php://input'));
+    $todo_id = \Field::int($body, 'todo_id');
 
     if ($todo_id <= 0) {
         http_response_code(400);
@@ -515,8 +515,8 @@ if ($todos_path === '/list') {
         return;
     }
 
-    $body = json_decode((string) file_get_contents('php://input'), true);
-    $todo_id = (int) ($body['todo_id'] ?? 0);
+    $body = \Field::jsonArray((string) file_get_contents('php://input'));
+    $todo_id = \Field::int($body, 'todo_id');
 
     if ($todo_id <= 0) {
         http_response_code(400);
@@ -537,11 +537,11 @@ if ($todos_path === '/list') {
         return;
     }
 
-    $body = json_decode((string) file_get_contents('php://input'), true);
-    $todo_id = (int) ($body['todo_id'] ?? 0);
-    $ak_id = (int) ($body['ak_id'] ?? 0);
-    $duration_seconds = isset($body['duration_seconds']) ? (int) $body['duration_seconds'] : null;
-    $timezone = $body['timezone'] ?? 'UTC';
+    $body = \Field::jsonArray((string) file_get_contents('php://input'));
+    $todo_id = \Field::int($body, 'todo_id');
+    $ak_id = \Field::int($body, 'ak_id');
+    $duration_seconds = \Field::intOrNull($body, 'duration_seconds');
+    $timezone = \Field::string($body, 'timezone', 'UTC');
 
     if ($todo_id <= 0 || $ak_id <= 0) {
         http_response_code(400);
@@ -575,7 +575,7 @@ if ($todos_path === '/list') {
     // Optional backdated completion (mirrors /complete). When supplied, the
     // explicit date_logged overrides the session-derived "now", and nth is
     // counted against that date's completions.
-    $raw_date = trim($body['date_logged'] ?? '');
+    $raw_date = trim(\Field::string($body, 'date_logged'));
     if ($raw_date !== '') {
         try {
             $dt = new \DateTime($raw_date, $tz);
@@ -625,8 +625,8 @@ if ($todos_path === '/list') {
         return;
     }
 
-    $limit = min((int) ($_GET['limit'] ?? 20), 50);
-    $offset = max((int) ($_GET['offset'] ?? 0), 0);
+    $limit = min(\Field::int($_GET, 'limit', 20), 50);
+    $offset = max(\Field::int($_GET, 'offset'), 0);
     if ($limit < 1) {
         $limit = 20;
     }
@@ -641,7 +641,7 @@ if ($todos_path === '/list') {
         AND tl.nth >= t.target_count
     ");
     $countStmt->execute([$auth_user_id]);
-    $totalCount = (int) $countStmt->fetch(\PDO::FETCH_ASSOC)['total'];
+    $totalCount = \Field::int($countStmt->fetch(\PDO::FETCH_ASSOC), 'total');
 
     echo json_encode([
         'success' => true,

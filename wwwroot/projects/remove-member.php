@@ -28,8 +28,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$project_id = (int)($_POST['project_id'] ?? 0);
-$member_aiu = (int)($_POST['member_aiu'] ?? 0);
+$project_id = \Field::int($_POST, 'project_id');
+$member_aiu = \Field::int($_POST, 'member_aiu');
 
 if ($project_id <= 0 || $member_aiu <= 0) {
     header("Location: /projects/?msg=project_not_found");

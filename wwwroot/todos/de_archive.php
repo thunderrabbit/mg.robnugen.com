@@ -31,7 +31,7 @@ $pdo = \Database\Base::getPDO($config);
 $todoHelper = new \ActivityTracking\Todo($pdo);
 
 // Get todo_id from query string
-$todo_id = isset($_GET['todo_id']) ? (int)$_GET['todo_id'] : null;
+$todo_id = \Field::intOrNull($_GET, 'todo_id');
 
 if (!$todo_id) {
     header("Location: /todos/?msg=invalid_todo");
@@ -42,7 +42,7 @@ if (!$todo_id) {
 $success = $todoHelper->deArchiveTodo($todo_id, $user_id);
 
 // Check if this is an AJAX request
-$isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest');
+$isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower(\Field::string($_SERVER, 'HTTP_X_REQUESTED_WITH')) == 'xmlhttprequest');
 
 if ($isAjax) {
     header('Content-Type: application/json');

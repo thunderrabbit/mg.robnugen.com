@@ -18,7 +18,7 @@ if (!$is_logged_in->isLoggedIn()) {
 $user_id = $is_logged_in->loggedInID();
 $pdo = \Database\Base::getPDO($config);
 
-$dm_mo = intval($_GET['dm_mo'] ?? 0);
+$dm_mo = \Field::int($_GET, 'dm_mo');
 if (!$dm_mo) {
     header("Location: /matrix/");
     exit;
@@ -37,7 +37,7 @@ if (!$row) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $encrypted_evidence = $_POST['encrypted_evidence'] ?? '';
+    $encrypted_evidence = \Field::string($_POST, 'encrypted_evidence');
     if ($encrypted_evidence) {
         $stmt = $pdo->prepare("INSERT INTO dm_my_evidence (dm_mo, user_id, evidence) VALUES (?, ?, ?)");
         $stmt->execute([$dm_mo, $user_id, base64_decode($encrypted_evidence)]);
@@ -70,8 +70,8 @@ $page->set("page_title", "Find Evidence - Decision Matrix");
 $inner_page = new \Template($config, $is_logged_in);
 $inner_page->setTemplate("matrix/add_evidence.tpl.php");
 $inner_page->set("verify_blob", $verify_blob);
-$inner_page->set("problem_blob", base64_encode($row['problem']));
-$inner_page->set("opposite_blob", base64_encode($row['opposite']));
+$inner_page->set("problem_blob", base64_encode(\Field::string($row, 'problem')));
+$inner_page->set("opposite_blob", base64_encode(\Field::string($row, 'opposite')));
 $inner_page->set("dm_mo", $dm_mo);
 $inner_page->set("evidence_count", $evidence_count);
 

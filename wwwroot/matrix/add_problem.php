@@ -28,7 +28,7 @@ if (!$verify_row) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $encrypted_problem = $_POST['encrypted_problem'] ?? '';
+    $encrypted_problem = \Field::string($_POST, 'encrypted_problem');
     if ($encrypted_problem) {
         $stmt = $pdo->prepare("INSERT INTO dm_my_problems (user_id, problem) VALUES (?, ?)");
         $stmt->execute([$user_id, base64_decode($encrypted_problem)]);
@@ -44,7 +44,7 @@ $page->set("page_title", "Add a Problem - Decision Matrix");
 
 $inner_page = new \Template($config, $is_logged_in);
 $inner_page->setTemplate("matrix/add_problem.tpl.php");
-$inner_page->set("verify_blob", base64_encode($verify_row['passphrase_verify']));
+$inner_page->set("verify_blob", base64_encode(\Field::string($verify_row, 'passphrase_verify')));
 
 $page->set("page_content", $inner_page->grabTheGoods());
 $page->echoToScreen();

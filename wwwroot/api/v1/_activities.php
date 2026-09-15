@@ -35,9 +35,9 @@ if ($method === 'GET') {
 // ── POST /activities ──────────────────────────────────────────────────────────
 
 if ($method === 'POST') {
-    $input = json_decode((string) file_get_contents('php://input'), true) ?? [];
-    $name  = trim($input['activity_name'] ?? '');
-    $desc  = trim($input['description']   ?? '') ?: null;
+    $input = \Field::jsonArray((string) file_get_contents('php://input'));
+    $name  = trim(\Field::string($input, 'activity_name'));
+    $desc  = trim(\Field::string($input, 'description')) ?: null;
 
     if (empty($name)) {
         http_response_code(400);

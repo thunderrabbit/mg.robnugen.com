@@ -1,7 +1,7 @@
 # Static analysis, run in Docker by ~/work/rob/standards-mcp/run-phpstan.sh
 # and by .githooks/pre-commit. Raised a rung at a time toward level 10 (mg #505).
 parameters:
-    level: 8
+    level: 9
     paths:
         - classes
         - wwwroot

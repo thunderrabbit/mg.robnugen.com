@@ -26,7 +26,7 @@ if (!$is_logged_in->isAdmin() && !$is_logged_in->isPaid()) {
     exit;
 }
 
-$issue_id = (int)($_GET['issue_id'] ?? 0);
+$issue_id = \Field::int($_GET, 'issue_id');
 if ($issue_id <= 0) {
     header("Location: /projects/?msg=issue_not_found");
     exit;
@@ -85,7 +85,7 @@ $statuses = $statuses_stmt->fetchAll(\PDO::FETCH_ASSOC);
 
 $page = new \Template($config, $is_logged_in);
 $page->setTemplate("layout/base.tpl.php");
-$page->set("page_title", $issue['title'] . " - Meiso Gambare");
+$page->set("page_title", \Field::string($issue, 'title') . " - Meiso Gambare");
 
 $inner_page = new \Template($config, $is_logged_in);
 $inner_page->setTemplate("issues/view.tpl.php");

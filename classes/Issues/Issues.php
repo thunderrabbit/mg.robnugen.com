@@ -38,7 +38,7 @@ class Issues
     /**
      * Check project membership or throw. Returns ['can_read','can_write'].
      *
-     * @return array<string, mixed>
+     * @return array<mixed>
      */
     private function projectAccess(int $project_id, int $user_id, int $caller_aiu): array
     {
@@ -51,7 +51,7 @@ class Issues
         );
         $stmt->execute([$project_id, $caller_aiu, $user_id]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-        if (!$row) {
+        if (!is_array($row)) {
             throw new AccessException("Not a member of project {$project_id}");
         }
         return $row;
@@ -72,14 +72,14 @@ class Issues
         }
 
         $role = $this->projectAccess($project_id, $user_id, $caller_aiu);
-        if (!(int)$role['can_read']) {
+        if (!\Field::int($role, 'can_read')) {
             throw new AccessException("No read access to project {$project_id}");
         }
 
-        $status_slug      = trim($filters['status'] ?? '');
-        $include_terminal = (int)($filters['include_terminal'] ?? 0);
-        $limit            = max(1, min(200, (int)($filters['limit'] ?? 100)));
-        $offset           = max(0, (int)($filters['offset'] ?? 0));
+        $status_slug      = trim(\Field::string($filters, 'status'));
+        $include_terminal = \Field::int($filters, 'include_terminal');
+        $limit            = max(1, min(200, \Field::int($filters, 'limit', 100)));
+        $offset           = max(0, \Field::int($filters, 'offset'));
 
         $where  = ['i.project_id = ?', 'p.user_id = ?'];
         $params = [$project_id, $user_id];
@@ -113,7 +113,7 @@ class Issues
     /**
      * Fetch one issue (with status detail) the caller can read, or throw.
      *
-     * @return array<string, mixed>
+     * @return array<mixed>
      */
     public function getIssue(int $issue_id, int $user_id, int $caller_aiu): array
     {
@@ -129,7 +129,7 @@ class Issues
         );
         $stmt->execute([$caller_aiu, $issue_id, $user_id]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-        if (!$row || !(int)$row['can_read']) {
+        if (!is_array($row) || !\Field::int($row, 'can_read')) {
             throw new NotFoundException("Issue {$issue_id} not found or no access");
         }
         unset($row['can_read'], $row['can_write']);
@@ -142,13 +142,13 @@ class Issues
      * transitions. Returns the updated issue row.
      *
      * @param array<string, mixed> $data
-     * @return array<string, mixed>
+     * @return array<mixed>
      */
     public function updateIssue(int $issue_id, int $user_id, int $caller_aiu, array $data): array
     {
-        $title_in       = array_key_exists('title', $data) ? trim((string)$data['title']) : null;
-        $description_in = array_key_exists('description', $data) ? (string)$data['description'] : 'NOT_SET';
-        $priority_in    = array_key_exists('priority', $data) ? trim((string)$data['priority']) : null;
+        $title_in       = array_key_exists('title', $data) ? trim(\Field::string($data, 'title')) : null;
+        $description_in = array_key_exists('description', $data) ? \Field::string($data, 'description') : 'NOT_SET';
+        $priority_in    = array_key_exists('priority', $data) ? trim(\Field::string($data, 'priority')) : null;
 
         if ($title_in === null && $description_in === 'NOT_SET' && $priority_in === null) {
             throw new ValidationException("provide at least one field to update: title, description, or priority");
@@ -173,7 +173,7 @@ class Issues
         if (!$row) {
             throw new NotFoundException("Issue {$issue_id} not found or no access");
         }
-        if (!(int)$row['can_write']) {
+        if (!\Field::int($row, 'can_write')) {
             throw new AccessException("No write access to project");
         }
 
@@ -233,7 +233,7 @@ class Issues
         if (!$row) {
             throw new NotFoundException("Issue {$issue_id} not found or no access");
         }
-        if (!(int)$row['can_write']) {
+        if (!\Field::int($row, 'can_write')) {
             throw new AccessException("No write access to project");
         }
 
@@ -258,8 +258,8 @@ class Issues
      */
     public function listComments(int $issue_id, int $user_id, int $caller_aiu, array $filters = []): array
     {
-        $limit  = max(1, min(200, (int)($filters['limit']  ?? 100)));
-        $offset = max(0, (int)($filters['offset'] ?? 0));
+        $limit  = max(1, min(200, \Field::int($filters, 'limit', 100)));
+        $offset = max(0, \Field::int($filters, 'offset'));
 
         $stmt = $this->pdo->prepare(
             "SELECT pm.can_read
@@ -274,7 +274,7 @@ class Issues
         if (!$row) {
             throw new NotFoundException("Issue {$issue_id} not found or no access");
         }
-        if (!(int)$row['can_read']) {
+        if (!\Field::int($row, 'can_read')) {
             throw new AccessException("No read access to project");
         }
 
@@ -308,14 +308,14 @@ class Issues
      * trusted from input).
      *
      * @param array<string, mixed> $data
-     * @return array<string, mixed>
+     * @return array<mixed>
      */
     public function createIssue(int $user_id, int $caller_aiu, array $data): array
     {
-        $project_id  = isset($data['project_id']) ? (int)$data['project_id'] : 0;
-        $title       = trim($data['title'] ?? '');
-        $description = array_key_exists('description', $data) ? (string)$data['description'] : null;
-        $priority    = trim((string)($data['priority'] ?? 'normal'));
+        $project_id  = \Field::int($data, 'project_id');
+        $title       = trim(\Field::string($data, 'title'));
+        $description = array_key_exists('description', $data) ? \Field::string($data, 'description') : null;
+        $priority    = trim(\Field::string($data, 'priority', 'normal'));
 
         if ($project_id <= 0) {
             throw new ValidationException("project_id is required");
@@ -331,7 +331,7 @@ class Issues
         }
 
         $role = $this->projectAccess($project_id, $user_id, $caller_aiu);
-        if (!(int)$role['can_write']) {
+        if (!\Field::int($role, 'can_write')) {
             throw new AccessException("No write access to project {$project_id}");
         }
 
@@ -343,8 +343,8 @@ class Issues
         if (!$default) {
             throw new \RuntimeException("no default issue status configured");
         }
-        $status_id   = (int)$default['status_id'];
-        $is_terminal = (int)$default['is_terminal'];
+        $status_id   = \Field::int($default, 'status_id');
+        $is_terminal = \Field::int($default, 'is_terminal');
 
         // $is_terminal is server-local, not user-controlled → safe to interpolate
         $done_clause = $is_terminal ? 'NOW(6)' : 'NULL';

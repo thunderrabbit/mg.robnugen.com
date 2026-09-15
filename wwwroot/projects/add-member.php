@@ -25,7 +25,7 @@ if (!$is_logged_in->isAdmin() && !$is_logged_in->isPaid()) {
     exit;
 }
 
-$project_id = (int)($_REQUEST['project_id'] ?? 0);
+$project_id = \Field::int($_REQUEST, 'project_id');
 if ($project_id <= 0) {
     header("Location: /projects/?msg=project_not_found");
     exit;
@@ -47,7 +47,7 @@ if (!$project) {
 $error = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $submitted = array_map('intval', (array)($_POST['member_aiu'] ?? []));
+    $submitted = array_map(\Field::toInt(...), (array)($_POST['member_aiu'] ?? []));
     $submitted = array_values(array_unique(array_filter($submitted, fn($id) => $id > 0)));
     $can_read  = !empty($_POST['can_read'])  ? 1 : 0;
     $can_write = !empty($_POST['can_write']) ? 1 : 0;
@@ -100,7 +100,7 @@ $available = $avail_stmt->fetchAll(\PDO::FETCH_ASSOC);
 
 $page = new \Template($config, $is_logged_in);
 $page->setTemplate("layout/base.tpl.php");
-$page->set("page_title", "Add Member to " . $project['name'] . " - Meiso Gambare");
+$page->set("page_title", "Add Member to " . \Field::string($project, 'name') . " - Meiso Gambare");
 
 $inner = new \Template($config, $is_logged_in);
 $inner->setTemplate("projects/add-member.tpl.php");

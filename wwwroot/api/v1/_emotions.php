@@ -39,7 +39,7 @@ if ($method !== 'GET' && !$auth_actor['can_write_emotions']) {
 
 if ($emotions_path === '/vocab' || $emotions_path === '/') {
     if ($method === 'POST') {
-        $body = json_decode((string) file_get_contents('php://input'), true);
+        $body = \Field::jsonArray((string) file_get_contents('php://input'));
         if (empty($body['state']) || !is_string($body['state'])) {
             http_response_code(400);
             echo json_encode(['error' => 'Missing or invalid "state" field']);
@@ -119,7 +119,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         }
         echo json_encode($vocab);
     } elseif ($method === 'PATCH') {
-        $body = json_decode((string) file_get_contents('php://input'), true);
+        $body = \Field::jsonArray((string) file_get_contents('php://input'));
         $my_id = $body['my_id'] ?? null;
         $new_state = $body['state'] ?? null;
         if ($my_id === null || !is_string($new_state) || $new_state === '') {
@@ -134,16 +134,16 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         $stmt = $pdo->prepare(
             'UPDATE my_ids_for_my_users_state SET state = ? WHERE api_key_id = ? AND my_id = ?'
         );
-        $stmt->execute([$encrypted_state, $auth_key_id, (int) $my_id]);
+        $stmt->execute([$encrypted_state, $auth_key_id, \Field::toInt($my_id)]);
 
         if ($stmt->rowCount() === 0) {
             http_response_code(404);
             echo json_encode(['error' => 'Vocab entry not found']);
             return;
         }
-        echo json_encode(['my_id' => (int) $my_id, 'state' => $new_state]);
+        echo json_encode(['my_id' => \Field::toInt($my_id), 'state' => $new_state]);
     } elseif ($method === 'DELETE') {
-        $body = json_decode((string) file_get_contents('php://input'), true);
+        $body = \Field::jsonArray((string) file_get_contents('php://input'));
         $my_id = $body['my_id'] ?? null;
         if ($my_id === null) {
             http_response_code(400);
@@ -155,14 +155,14 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         $stmt = $pdo->prepare(
             'SELECT mifmus_id FROM my_ids_for_my_users_state WHERE api_key_id = ? AND my_id = ?'
         );
-        $stmt->execute([$auth_key_id, (int) $my_id]);
+        $stmt->execute([$auth_key_id, \Field::toInt($my_id)]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         if (!$row) {
             echo json_encode(['deleted' => 0, 'events_untagged' => 0]);
             return;
         }
-        $mifmus_id = (int) $row['mifmus_id'];
+        $mifmus_id = \Field::int($row, 'mifmus_id');
 
         // Count events that will be untagged
         $stmt = $pdo->prepare('SELECT COUNT(*) FROM interaction_events WHERE mifmus_id = ?');
@@ -180,7 +180,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
     }
 } elseif ($emotions_path === '/events') {
     if ($method === 'POST') {
-        $body = json_decode((string) file_get_contents('php://input'), true);
+        $body = \Field::jsonArray((string) file_get_contents('php://input'));
         $event_type = $body['event_type'] ?? '';
         $content = $body['content'] ?? '';
         $my_id = $body['my_id'] ?? null;
@@ -202,7 +202,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
                 $stmt = $pdo->prepare(
                     'SELECT mifmus_id FROM my_ids_for_my_users_state WHERE api_key_id = ? AND my_id = ?'
                 );
-                $stmt->execute([$auth_key_id, (int) $my_id]);
+                $stmt->execute([$auth_key_id, \Field::toInt($my_id)]);
                 $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                 if (!$row) {
                     $pdo->rollBack();
@@ -210,7 +210,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
                     echo json_encode(['error' => 'Unknown my_id']);
                     return;
                 }
-                $mifmus_id = (int) $row['mifmus_id'];
+                $mifmus_id = \Field::int($row, 'mifmus_id');
             }
 
             $session_id = $ledger->getOrCreateSession();
@@ -253,7 +253,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         $q_from       = $_GET['from'] ?? null;
         $q_to         = $_GET['to'] ?? null;
         $q_event_type = $_GET['event_type'] ?? null;
-        $q_limit      = min((int) ($_GET['limit'] ?? 50), 200);
+        $q_limit      = min(\Field::int($_GET, 'limit', 50), 200);
         if ($q_limit < 1) {
             $q_limit = 50;
         }
@@ -272,13 +272,13 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
 
         if ($q_my_id !== null) {
             $join = 'INNER JOIN my_ids_for_my_users_state m ON m.mifmus_id = e.mifmus_id AND m.my_id = ?';
-            array_unshift($params, (int) $q_my_id); // my_id param goes before api_key_id
+            array_unshift($params, \Field::toInt($q_my_id)); // my_id param goes before api_key_id
             // Rebuild params: my_id for JOIN, then api_key_id for WHERE
-            $params = [(int) $q_my_id, $auth_key_id];
+            $params = [\Field::toInt($q_my_id), $auth_key_id];
         }
         if ($q_session_id !== null) {
             $where[] = 'e.session_id = ?';
-            $params[] = (int) $q_session_id;
+            $params[] = \Field::toInt($q_session_id);
         }
         if ($q_from !== null) {
             $where[] = 'e.event_timestamp >= ?';
@@ -326,7 +326,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         }
         echo json_encode($events);
     } elseif ($method === 'DELETE') {
-        $body = json_decode((string) file_get_contents('php://input'), true);
+        $body = \Field::jsonArray((string) file_get_contents('php://input'));
         $event_id = $body['event_id'] ?? null;
         if ($event_id === null) {
             http_response_code(400);
@@ -337,10 +337,10 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         $stmt = $pdo->prepare(
             'DELETE FROM interaction_events WHERE event_id = ? AND api_key_id = ?'
         );
-        $stmt->execute([(int) $event_id, $auth_key_id]);
+        $stmt->execute([\Field::toInt($event_id), $auth_key_id]);
         echo json_encode(['deleted' => $stmt->rowCount()]);
     } elseif ($method === 'PATCH') {
-        $body = json_decode((string) file_get_contents('php://input'), true);
+        $body = \Field::jsonArray((string) file_get_contents('php://input'));
         $event_id = $body['event_id'] ?? null;
         if ($event_id === null) {
             http_response_code(400);
@@ -372,7 +372,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
                     return;
                 }
                 $sets[] = 'mifmus_id = ?';
-                $params[] = (int) $row['mifmus_id'];
+                $params[] = \Field::int($row, 'mifmus_id');
             } else {
                 $sets[] = 'mifmus_id = ?';
                 $params[] = null;
@@ -385,7 +385,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
             return;
         }
 
-        $params[] = (int) $event_id;
+        $params[] = \Field::toInt($event_id);
         $params[] = $auth_key_id;
         $stmt = $pdo->prepare(
             'UPDATE interaction_events SET ' . implode(', ', $sets) . ' WHERE event_id = ? AND api_key_id = ?'
@@ -401,7 +401,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         if (array_key_exists('my_id', $body)) {
             $my_id_result = $body['my_id'] !== null ? (int) $body['my_id'] : null;
         }
-        echo json_encode(['event_id' => (int) $event_id, 'my_id' => $my_id_result]);
+        echo json_encode(['event_id' => \Field::toInt($event_id), 'my_id' => $my_id_result]);
     } else {
         http_response_code(405);
         echo json_encode(['error' => 'Method not allowed']);
@@ -415,7 +415,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
 
     $q_from  = $_GET['from'] ?? null;
     $q_to    = $_GET['to'] ?? null;
-    $q_limit = min((int) ($_GET['limit'] ?? 20), 100);
+    $q_limit = min(\Field::int($_GET, 'limit', 20), 100);
     if ($q_limit < 1) {
         $q_limit = 20;
     }
@@ -467,7 +467,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         return;
     }
 
-    $body = json_decode((string) file_get_contents('php://input'), true);
+    $body = \Field::jsonArray((string) file_get_contents('php://input'));
     if (($body['confirm'] ?? '') !== 'delete everything') {
         http_response_code(400);
         echo json_encode(['error' => 'Missing or incorrect confirm field. Send {"confirm": "delete everything"}']);

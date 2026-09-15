@@ -104,17 +104,17 @@ class VisibilityAndRoutingTest extends Unit
         // #2 Full → Alpha
         $r = self::send(self::$keyFull, self::$runTag . ' to_alpha', self::$aiuAlpha);
         self::assertSetupOk($r, '#2 to Alpha');
-        self::$msgToAlpha = $r['body']['message_id'];
+        self::$msgToAlpha = \Field::int($r['body'], 'message_id');
 
         // #3 Full → Beta
         $r = self::send(self::$keyFull, self::$runTag . ' to_beta', self::$aiuBeta);
         self::assertSetupOk($r, '#3 to Beta');
-        self::$msgToBeta = $r['body']['message_id'];
+        self::$msgToBeta = \Field::int($r['body'], 'message_id');
 
         // #4 Beta → Alpha
         $r = self::send(self::$keyBeta, self::$runTag . ' beta_to_alpha', self::$aiuAlpha);
         self::assertSetupOk($r, '#4 Beta to Alpha');
-        self::$msgBetaToAlpha = $r['body']['message_id'];
+        self::$msgBetaToAlpha = \Field::int($r['body'], 'message_id');
 
         self::$initialized = true;
     }
@@ -174,7 +174,7 @@ class VisibilityAndRoutingTest extends Unit
 
         return [
             'status' => $status,
-            'body'   => json_decode((string) $response, true) ?? [],
+            'body'   => \Field::jsonArray((string) $response),
         ];
     }
 
@@ -196,7 +196,7 @@ class VisibilityAndRoutingTest extends Unit
         $result = self::rawRequest($key, 'POST', '/inbox/send', $payload);
 
         if (isset($result['body']['message_id'])) {
-            self::$cleanupIds[] = $result['body']['message_id'];
+            self::$cleanupIds[] = \Field::int($result['body'], 'message_id');
         }
 
         return $result;
@@ -221,7 +221,7 @@ class VisibilityAndRoutingTest extends Unit
      */
     private function extractIds(array $result): array
     {
-        return array_column($result['body']['messages'] ?? [], 'message_id');
+        return array_column(\Field::array($result['body'], 'messages'), 'message_id');
     }
 
     /**
@@ -395,8 +395,8 @@ class VisibilityAndRoutingTest extends Unit
         $this->assertEquals(200, $result['status']);
 
         $msg4 = null;
-        foreach ($result['body']['messages'] ?? [] as $msg) {
-            if ($msg['message_id'] === self::$msgBetaToAlpha) {
+        foreach (\Field::array($result['body'], 'messages') as $msg) {
+            if (\Field::int($msg, 'message_id') === self::$msgBetaToAlpha) {
                 $msg4 = $msg;
                 break;
             }
@@ -405,7 +405,7 @@ class VisibilityAndRoutingTest extends Unit
         $this->assertNotNull($msg4, 'Message #4 should exist in list');
         $this->assertEquals(
             self::$aiuBeta,
-            $msg4['sender_aiu'] ?? null,
+            \Field::intOrNull($msg4, 'sender_aiu'),
             'sender_aiu should be auto-populated with Beta aiu_id (14)'
         );
     }

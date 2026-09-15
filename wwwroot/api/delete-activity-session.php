@@ -27,10 +27,10 @@ if (!$is_logged_in->isLoggedIn()) {
 }
 
 // Get JSON input
-$input = json_decode((string) file_get_contents('php://input'), true);
+$input = \Field::jsonArray((string) file_get_contents('php://input'));
 
 // Get ak_id from session_key or ak_id
-$session_key = trim($input['session_key'] ?? '');
+$session_key = trim(\Field::string($input, 'session_key'));
 $ak_id = 0;
 
 $pdo = \Database\Base::getPDO($config);
@@ -46,7 +46,7 @@ if (!empty($session_key)) {
         exit;
     }
 } else {
-    $ak_id = (int)($input['ak_id'] ?? 0);
+    $ak_id = \Field::int($input, 'ak_id');
 }
 
 if ($ak_id <= 0) {

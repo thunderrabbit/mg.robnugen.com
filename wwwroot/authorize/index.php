@@ -35,7 +35,7 @@ include_once $matches[1] . '/prepend.php';
 
 // Must be logged in to authorize
 if (!$is_logged_in->isLoggedIn()) {
-    $return = urlencode('https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']);
+    $return = urlencode('https://' . \Field::string($_SERVER, 'HTTP_HOST') . \Field::string($_SERVER, 'REQUEST_URI'));
     header("Location: /login/?next={$return}");
     exit;
 }
@@ -45,12 +45,12 @@ $pdo     = \Database\Base::getPDO($config);
 
 // ── Read OAuth params ─────────────────────────────────────────────────────────
 
-$response_type          = $_REQUEST['response_type']          ?? '';
-$client_id              = $_REQUEST['client_id']              ?? '';
-$redirect_uri           = $_REQUEST['redirect_uri']           ?? '';
-$code_challenge         = $_REQUEST['code_challenge']         ?? '';
-$code_challenge_method  = $_REQUEST['code_challenge_method']  ?? '';
-$state                  = $_REQUEST['state']                  ?? '';
+$response_type          = \Field::string($_REQUEST, 'response_type');
+$client_id              = \Field::string($_REQUEST, 'client_id');
+$redirect_uri           = \Field::string($_REQUEST, 'redirect_uri');
+$code_challenge         = \Field::string($_REQUEST, 'code_challenge');
+$code_challenge_method  = \Field::string($_REQUEST, 'code_challenge_method');
+$state                  = \Field::string($_REQUEST, 'state');
 
 // Validate required params; show a plain error (don't redirect — redirect_uri may be bad)
 $oauth_error = null;
@@ -118,7 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $client_id !== '') {
 // ── POST: issue code, remember consent, and redirect ──────────────────────────
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $chosen_aiu = (int)($_POST['aiu_id'] ?? 0);
+    $chosen_aiu = \Field::int($_POST, 'aiu_id');
 
     // Verify chosen aiu belongs to this user
     $valid = false;

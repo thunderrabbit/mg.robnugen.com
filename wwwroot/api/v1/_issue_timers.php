@@ -23,11 +23,11 @@
 // ─── GET /issues/timers/list ────────────────────────────────────────────────
 
 if ($method === 'GET' && $tsub === '/list') {
-    $issue_id     = (int)($_GET['issue_id'] ?? 0);
-    $worker_aiu   = isset($_GET['worker_aiu']) ? (int)$_GET['worker_aiu'] : null;
-    $running_only = (int)($_GET['running_only'] ?? 0);
-    $limit        = max(1, min(500, (int)($_GET['limit'] ?? 200)));
-    $offset       = max(0, (int)($_GET['offset'] ?? 0));
+    $issue_id     = \Field::int($_GET, 'issue_id');
+    $worker_aiu   = \Field::intOrNull($_GET, 'worker_aiu');
+    $running_only = \Field::int($_GET, 'running_only');
+    $limit        = max(1, min(500, \Field::int($_GET, 'limit', 200)));
+    $offset       = max(0, \Field::int($_GET, 'offset'));
 
     if ($issue_id <= 0) {
         http_response_code(400);
@@ -88,8 +88,8 @@ if ($method === 'GET' && $tsub === '/list') {
 // ─── POST /issues/timers/start ──────────────────────────────────────────────
 
 if ($method === 'POST' && $tsub === '/start') {
-    $input    = json_decode((string) file_get_contents('php://input'), true) ?? [];
-    $issue_id = (int)($input['issue_id'] ?? 0);
+    $input    = \Field::jsonArray((string) file_get_contents('php://input'));
+    $issue_id = \Field::int($input, 'issue_id');
     $note     = array_key_exists('note', $input) ? trim((string)$input['note']) : null;
 
     if ($issue_id <= 0) {
@@ -139,8 +139,8 @@ if ($method === 'POST' && $tsub === '/start') {
 // ─── PATCH /issues/timers/stop ──────────────────────────────────────────────
 
 if ($method === 'PATCH' && $tsub === '/stop') {
-    $input    = json_decode((string) file_get_contents('php://input'), true) ?? [];
-    $timer_id = (int)($input['issue_timer_id'] ?? 0);
+    $input    = \Field::jsonArray((string) file_get_contents('php://input'));
+    $timer_id = \Field::int($input, 'issue_timer_id');
 
     if ($timer_id <= 0) {
         http_response_code(400);
@@ -174,8 +174,8 @@ if ($method === 'PATCH' && $tsub === '/stop') {
 // ─── PATCH /issues/timers/edit-note ─────────────────────────────────────────
 
 if ($method === 'PATCH' && $tsub === '/edit-note') {
-    $input    = json_decode((string) file_get_contents('php://input'), true) ?? [];
-    $timer_id = (int)($input['issue_timer_id'] ?? 0);
+    $input    = \Field::jsonArray((string) file_get_contents('php://input'));
+    $timer_id = \Field::int($input, 'issue_timer_id');
     $note     = array_key_exists('note', $input) ? trim((string)$input['note']) : null;
 
     if ($timer_id <= 0) {
@@ -214,8 +214,8 @@ if ($method === 'PATCH' && $tsub === '/edit-note') {
 // ─── DELETE /issues/timers/delete ───────────────────────────────────────────
 
 if ($method === 'DELETE' && $tsub === '/delete') {
-    $input    = json_decode((string) file_get_contents('php://input'), true) ?? [];
-    $timer_id = (int)($input['issue_timer_id'] ?? 0);
+    $input    = \Field::jsonArray((string) file_get_contents('php://input'));
+    $timer_id = \Field::int($input, 'issue_timer_id');
 
     if ($timer_id <= 0) {
         http_response_code(400);

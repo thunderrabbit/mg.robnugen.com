@@ -38,7 +38,7 @@ $todoHelper = new \ActivityTracking\Todo($pdo);
 $activityHelper = new \ActivityTracking\Activity($pdo);
 
 // Check for Edit Mode
-$todo_id = isset($_REQUEST['todo_id']) ? (int)$_REQUEST['todo_id'] : null;
+$todo_id = \Field::intOrNull($_REQUEST, 'todo_id');
 $todo_data = null;
 $page_title = "Create New Todo - Meiso Gambare";
 $btn_text = "Create Todo";
@@ -59,16 +59,16 @@ if ($todo_id) {
 
     // Format dates for HTML5 inputs
     if (!empty($todo_data['due_date'])) {
-        $todo_data['due_date'] = date('Y-m-d', strtotime($todo_data['due_date']));
+        $todo_data['due_date'] = date('Y-m-d', (int) strtotime(\Field::string($todo_data, 'due_date')));
     }
     if (!empty($todo_data['do_time'])) {
-        $todo_data['do_time'] = date('H:i', strtotime($todo_data['do_time']));
+        $todo_data['do_time'] = date('H:i', (int) strtotime(\Field::string($todo_data, 'do_time')));
     }
 }
 
 // Handle POST Submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $title = trim($_POST['title'] ?? '');
+    $title = trim(\Field::string($_POST, 'title'));
 
     if (empty($title)) {
         $error = "Title is required";
@@ -76,12 +76,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $data = [
             'user_id' => $user_id,
             'title' => $title,
-            'description' => trim($_POST['description'] ?? ''),
+            'description' => trim(\Field::string($_POST, 'description')),
             'is_timer' => isset($_POST['is_timer']) ? 1 : 0,
             'is_counter' => isset($_POST['is_counter']) ? 1 : 0,
-            'target_count' => (int)($_POST['target_count'] ?? 1),
-            'target_duration_seconds' => !empty($_POST['target_duration_seconds']) ? (int)$_POST['target_duration_seconds'] : null,
-            'activity_id' => !empty($_POST['activity_id']) ? (int)$_POST['activity_id'] : null,
+            'target_count' => \Field::int($_POST, 'target_count', 1),
+            'target_duration_seconds' => !empty($_POST['target_duration_seconds']) ? \Field::int($_POST, 'target_duration_seconds') : null,
+            'activity_id' => !empty($_POST['activity_id']) ? \Field::int($_POST, 'activity_id') : null,
             'do_time' => !empty($_POST['do_time']) ? $_POST['do_time'] : null,
             'due_date' => !empty($_POST['due_date']) ? $_POST['due_date'] : null,
             'is_active' => 1
@@ -89,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Handle Days of Week (Recurrence)
         if (!empty($_POST['do_days']) && is_array($_POST['do_days'])) {
-            $data['do_days'] = implode(',', $_POST['do_days']);
+            $data['do_days'] = implode(',', array_map(\Field::toString(...), $_POST['do_days']));
         } else {
             $data['do_days'] = null; // Explicitly clear if empty
         }
@@ -97,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Handle Dates of Month (Recurrence)
         if (!empty($_POST['do_dates'])) {
             // Clean up and validate integers
-            $dates = array_map('trim', explode(',', $_POST['do_dates']));
+            $dates = array_map('trim', explode(',', \Field::string($_POST, 'do_dates')));
             $clean_dates = [];
             foreach ($dates as $d) {
                 if (is_numeric($d) && $d >= 1 && $d <= 31) {
@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Handle Days Between (Interval Recurrence)
         if (!empty($_POST['do_every_n_days'])) {
-            $n = (int) $_POST['do_every_n_days'];
+            $n = \Field::int($_POST, 'do_every_n_days');
             if ($n >= 1) {
                 $data['do_every_n_days'] = $n;
             }
