@@ -40,8 +40,10 @@ $todosToCreate = $input['todos'];
 $createdIds = [];
 $errors = [];
 
+// prepend.php has already connected with this config, so this can't throw here.
+$pdo = \Database\Base::getPDO($config);
+
 try {
-    $pdo = \Database\Base::getPDO($config);
     $todoHelper = new \ActivityTracking\Todo($pdo);
 
     $pdo->beginTransaction();
@@ -107,7 +109,7 @@ try {
         echo json_encode(['success' => false, 'error' => 'No todos were created.', 'details' => $errors]);
     }
 } catch (Exception $e) {
-    if ($pdo && $pdo->inTransaction()) {
+    if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
     http_response_code(500);
