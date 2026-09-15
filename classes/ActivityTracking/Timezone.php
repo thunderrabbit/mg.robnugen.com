@@ -50,12 +50,13 @@ class Timezone
      */
     public function getAllTimezones(): array
     {
-        $stmt = $this->pdo->query("
+        $stmt = $this->pdo->prepare("
             SELECT timezone_id, iana_name, display_name
             FROM timezones
             WHERE is_active = 1
             ORDER BY display_name
         ");
+        $stmt->execute();
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 

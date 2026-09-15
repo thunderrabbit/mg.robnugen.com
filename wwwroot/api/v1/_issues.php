@@ -131,10 +131,11 @@ if ($is_commits) {
 // ─── GET /issues/statuses ────────────────────────────────────────────────────
 
 if ($method === 'GET' && $sub === '/statuses') {
-    $stmt = $pdo->query(
+    $stmt = $pdo->prepare(
         "SELECT status_id, slug, label, sort_order, is_terminal, is_default
          FROM issue_statuses ORDER BY sort_order ASC"
     );
+    $stmt->execute();
     echo json_encode(['statuses' => $stmt->fetchAll(\PDO::FETCH_ASSOC)]);
     return;
 }
@@ -361,9 +362,10 @@ if ($method === 'POST' && $sub === '/create') {
         }
         $is_terminal = (int)$status_row['is_terminal'];
     } else {
-        $d = $pdo->query(
+        $d = $pdo->prepare(
             "SELECT status_id, is_terminal FROM issue_statuses WHERE is_default = 1 LIMIT 1"
         );
+        $d->execute();
         $default_row = $d->fetch(\PDO::FETCH_ASSOC);
         if (!$default_row) {
             http_response_code(500);

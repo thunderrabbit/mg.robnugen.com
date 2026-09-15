@@ -335,9 +335,10 @@ class Issues
             throw new AccessException("No write access to project {$project_id}");
         }
 
-        $d = $this->pdo->query(
+        $d = $this->pdo->prepare(
             "SELECT status_id, is_terminal FROM issue_statuses WHERE is_default = 1 LIMIT 1"
         );
+        $d->execute();
         $default = $d->fetch(\PDO::FETCH_ASSOC);
         if (!$default) {
             throw new \RuntimeException("no default issue status configured");
