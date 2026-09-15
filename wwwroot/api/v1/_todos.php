@@ -19,7 +19,7 @@
 //   $method         — HTTP method
 //   $path           — URL path relative to /api/v1 (e.g. /todos/list)
 
-$todos_path = rtrim(preg_replace('#^/todos#', '', $path), '/') ?: '/';
+$todos_path = rtrim(preg_replace('#^/todos#', '', $path) ?? '', '/') ?: '/';
 
 // Permission: agent_inbox_user.can_read_todos
 if ($method === 'GET' && !$auth_actor['can_read_todos']) {
