@@ -4,7 +4,7 @@ namespace ActivityTracking;
 
 class Timezone
 {
-    private $pdo;
+    private \PDO $pdo;
 
     public function __construct(\PDO $pdo)
     {
@@ -46,7 +46,7 @@ class Timezone
     /**
      * Get all active timezones (for dropdowns)
      *
-     * @return array Array of timezones with id, iana_name, display_name
+     * @return list<array<string, mixed>> Array of timezones with id, iana_name, display_name
      */
     public function getAllTimezones(): array
     {

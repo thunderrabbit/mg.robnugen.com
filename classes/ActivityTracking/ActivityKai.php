@@ -4,7 +4,7 @@ namespace ActivityTracking;
 
 class ActivityKai
 {
-    private $pdo;
+    private \PDO $pdo;
 
     public function __construct(\PDO $pdo)
     {
@@ -174,7 +174,7 @@ class ActivityKai
      *
      * @param int $user_id
      * @param int $activity_id
-     * @return array|null Session data or null if none active
+     * @return array<string, mixed>|null Session data or null if none active
      */
     public function getActiveSession(int $user_id, int $activity_id): ?array
     {
@@ -199,7 +199,7 @@ class ActivityKai
      *
      * @param int $user_id
      * @param int $limit Number of sessions to retrieve
-     * @return array Array of session records
+     * @return list<array<string, mixed>> Array of session records
      */
     public function getUserSessions(int $user_id, int $limit = 10): array
     {

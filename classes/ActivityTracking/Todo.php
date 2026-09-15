@@ -4,7 +4,7 @@ namespace ActivityTracking;
 
 class Todo
 {
-    private $pdo;
+    private \PDO $pdo;
 
     public function __construct(\PDO $pdo)
     {
@@ -25,7 +25,7 @@ class Todo
      * @param string $dayOfWeek Day name (Sun, Mon, Tue, Wed, Thu, Fri, Sat)
      * @param int $dayOfMonth Day of month (1-31)
      * @param string $todayDate Full date (Y-m-d)
-     * @return array Array of todos with completion status
+     * @return list<array<string, mixed>> Array of todos with completion status
      */
     public function getTodaysTodos(int $user_id, string $dayOfWeek, int $dayOfMonth, string $todayDate): array
     {
@@ -109,7 +109,7 @@ class Todo
      *
      * @param int $todo_id
      * @param string $date Date in Y-m-d format
-     * @return array Array of completion records
+     * @return list<array<string, mixed>> Array of completion records
      */
     public function getCompletionsForDate(int $todo_id, string $date): array
     {
@@ -129,7 +129,7 @@ class Todo
      * Get total completion status for a todo (across all time)
      *
      * @param int $todo_id
-     * @return array [count => int, last_logged => string|null]
+     * @return array{count: int, last_logged: mixed} [count => int, last_logged => string|null]
      */
     public function getCompletionStatus(int $todo_id): array
     {
@@ -257,7 +257,7 @@ class Todo
      * Get a single todo by ID
      *
      * @param int $todo_id
-     * @return array|null
+     * @return array<string, mixed>|null
      */
     public function getTodo(int $todo_id): ?array
     {
@@ -280,7 +280,7 @@ class Todo
      * Get all active todos for a user
      *
      * @param int $user_id
-     * @return array
+     * @return list<array<string, mixed>>
      */
     public function getAllTodos(int $user_id): array
     {
@@ -303,7 +303,7 @@ class Todo
      * Create a new todo item
 
      *
-     * @param array $data Todo data
+     * @param array<string, mixed> $data Todo data
      * @return int|false New todo ID or false on failure
      */
     public function createTodo(array $data)
@@ -363,7 +363,7 @@ class Todo
      * Update an existing todo
      *
      * @param int $todo_id
-     * @param array $data Update data
+     * @param array<string, mixed> $data Update data
      * @return bool Success
      */
     public function updateTodo(int $todo_id, array $data): bool
@@ -452,7 +452,7 @@ class Todo
      * Get all archived (inactive) todos for a user
      *
      * @param int $user_id
-     * @return array
+     * @return list<array<string, mixed>>
      */
     public function getArchivedTodos(int $user_id): array
     {
@@ -499,7 +499,7 @@ class Todo
      * @param int $user_id
      * @param int $limit
      * @param int $offset
-     * @return array
+     * @return list<array<string, mixed>>
      */
     public function getCompletedHistory(int $user_id, int $limit = 50, int $offset = 0): array
     {
@@ -528,7 +528,7 @@ class Todo
      * @param string $todayDate Y-m-d
      * @param int $limit
      * @param int $offset
-     * @return array
+     * @return list<array<string, mixed>>
      */
     public function getUpcomingTodos(int $user_id, string $todayDate, int $limit = 50, int $offset = 0): array
     {
@@ -558,7 +558,7 @@ class Todo
      *
      * @param int $user_id
      * @param string $todayDate Y-m-d
-     * @return array Todos with next_due_date computed from last completion
+     * @return list<array<string, mixed>> Todos with next_due_date computed from last completion
      */
     public function getDaysBetweenTodos(int $user_id, string $todayDate): array
     {
@@ -603,7 +603,7 @@ class Todo
      * @param int $user_id
      * @param int $limit
      * @param int $offset
-     * @return array
+     * @return list<array<string, mixed>>
      */
     public function getFullyCompletedHistory(int $user_id, int $limit = 50, int $offset = 0): array
     {

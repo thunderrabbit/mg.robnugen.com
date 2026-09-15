@@ -4,7 +4,7 @@ namespace ActivityTracking;
 
 class SessionKey
 {
-    private $pdo;
+    private \PDO $pdo;
 
     public function __construct(\PDO $pdo)
     {
@@ -65,7 +65,7 @@ class SessionKey
      *
      * @param string $session_key Session key
      * @param int $user_id User ID for ownership verification
-     * @return array|null Session data or null if not found/not owned
+     * @return array<string, mixed>|null Session data or null if not found/not owned
      */
     public function getSessionByKey(string $session_key, int $user_id): ?array
     {
@@ -88,7 +88,7 @@ class SessionKey
      * Get public view of session (no user info, privacy-safe)
      *
      * @param string $session_key Session key
-     * @return array|null Session data or null if not found/not public
+     * @return array<string, mixed>|null Session data or null if not found/not public
      */
     public function getPublicSessionByKey(string $session_key): ?array
     {
