@@ -40,38 +40,50 @@ class TimezoneTest extends Unit
 
     public function testInvalidIanaNameLowercaseContinent()
     {
-        $this->assertFalse($this->timezone->isValidIanaName('america/New_York'),
-            'Lowercase continent should fail');
+        $this->assertFalse(
+            $this->timezone->isValidIanaName('america/New_York'),
+            'Lowercase continent should fail'
+        );
     }
 
     public function testInvalidIanaNameNoSlash()
     {
-        $this->assertFalse($this->timezone->isValidIanaName('EuropeLondon'),
-            'Missing slash should fail');
+        $this->assertFalse(
+            $this->timezone->isValidIanaName('EuropeLondon'),
+            'Missing slash should fail'
+        );
     }
 
     public function testInvalidIanaNameEmpty()
     {
-        $this->assertFalse($this->timezone->isValidIanaName(''),
-            'Empty string should fail');
+        $this->assertFalse(
+            $this->timezone->isValidIanaName(''),
+            'Empty string should fail'
+        );
     }
 
     public function testInvalidIanaNameSpecialChars()
     {
-        $this->assertFalse($this->timezone->isValidIanaName('Europe/Lon@don'),
-            'Special characters should fail');
+        $this->assertFalse(
+            $this->timezone->isValidIanaName('Europe/Lon@don'),
+            'Special characters should fail'
+        );
     }
 
     public function testInvalidIanaNameNumbers()
     {
-        $this->assertFalse($this->timezone->isValidIanaName('Europe/London123'),
-            'Numbers in city should fail');
+        $this->assertFalse(
+            $this->timezone->isValidIanaName('Europe/London123'),
+            'Numbers in city should fail'
+        );
     }
 
     public function testValidIanaNameWithUnderscore()
     {
         // The regex allows underscore in city: [A-Z][a-z_]+
-        $this->assertTrue($this->timezone->isValidIanaName('America/New_york'),
-            'Underscore in city should pass');
+        $this->assertTrue(
+            $this->timezone->isValidIanaName('America/New_york'),
+            'Underscore in city should pass'
+        );
     }
 }

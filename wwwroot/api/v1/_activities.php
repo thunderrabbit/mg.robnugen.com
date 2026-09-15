@@ -9,6 +9,14 @@
  * Variables from index.php: $pdo, $auth_user_id, $method
  */
 
+/**
+ * Set up by index.php, which includes this file.
+ *
+ * @var \PDO $pdo
+ * @var int $auth_user_id
+ * @var string $method
+ */
+
 $activityHelper = new \ActivityTracking\Activity($pdo);
 
 // ── GET /activities ───────────────────────────────────────────────────────────

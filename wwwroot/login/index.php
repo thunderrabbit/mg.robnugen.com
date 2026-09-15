@@ -5,6 +5,13 @@
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
 
+/**
+ * Set up by prepend.php.
+ *
+ * @var \Config $config
+ * @var \Auth\IsLoggedIn $is_logged_in
+ */
+
 if ($is_logged_in->isLoggedIn()) {
     // We logged in.. yay!
     // Check if there's a return URL saved

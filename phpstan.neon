@@ -1,0 +1,24 @@
+# Static analysis, run in Docker by ~/work/rob/standards-mcp/run-phpstan.sh
+# and by .githooks/pre-commit. Raised one level per bubble (mg #505).
+parameters:
+    level: 1
+    paths:
+        - classes
+        - wwwroot
+        - prepend.php
+        - Tests
+    excludePaths:
+        analyse:
+            # Vendored third-party library; scanned so Utilities can use it.
+            - classes/Parsedown.php
+        analyseAndScan:
+            # Gitignored per-server credentials; ConfigSample declares the same class.
+            - classes/Config.php (?)
+            # Codeception output, and the actors built from generated traits
+            # that a fresh clone doesn't have.
+            - Tests/_output/*
+            - Tests/Support/*
+    bootstrapFiles:
+        - vendor/autoload.php
+        # SEMVER, SENTIMENTAL_VERSION and the app-wide constants.
+        - version.php

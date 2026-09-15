@@ -8,6 +8,13 @@
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
 
+/**
+ * Set up by prepend.php.
+ *
+ * @var \Config $config
+ * @var \Auth\IsLoggedIn $is_logged_in
+ */
+
 // Authentication Check - Allow admins and paid users only
 if (!$is_logged_in->isLoggedIn()) {
     header("Location: /login/");
@@ -155,7 +162,7 @@ $inner_page = new \Template($config, $is_logged_in);
 $inner_page->setTemplate("todos/create.tpl.php");
 
 // Pass data to template
-$activities = $activityHelper->getActivitiesForUser($user_id, $is_admin, $is_pro ?? false);
+$activities = $activityHelper->getActivitiesForUser($user_id, $is_admin, $is_pro);
 $inner_page->set("activities", $activities);
 $inner_page->set("todo", $todo_data); // Will be null if creating
 $inner_page->set("is_edit", !!$todo_id);

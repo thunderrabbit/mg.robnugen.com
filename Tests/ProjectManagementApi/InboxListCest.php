@@ -142,9 +142,9 @@ class InboxListCest
 
     public function listOrderUrgentPutsHighPriorityFirst(AcceptanceTester $I): void
     {
-        $lowFirst   = $this->postMarked($I, 'low-first',  'low');
-        $highMiddle = $this->postMarked($I, 'high',       'high');
-        $normalLast = $this->postMarked($I, 'normal-last','normal');
+        $lowFirst   = $this->postMarked($I, 'low-first', 'low');
+        $highMiddle = $this->postMarked($I, 'high', 'high');
+        $normalLast = $this->postMarked($I, 'normal-last', 'normal');
 
         $urgent = $this->grabMarkedIds($I, 'order=urgent&limit=100');
         \PHPUnit\Framework\Assert::assertSame(

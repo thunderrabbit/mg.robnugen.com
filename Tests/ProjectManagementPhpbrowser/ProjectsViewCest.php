@@ -31,7 +31,8 @@ class ProjectsViewCest
         $I->dontSee('mg.robnugen.com');
     }
 
-    public function adminSeesOpenIssuesListOnProjectDetail(AcceptanceTester $I) {
+    public function adminSeesOpenIssuesListOnProjectDetail(AcceptanceTester $I)
+    {
         $I->loginAsAdmin();
         $I->amOnPage('/projects/view.php?project_id=2');
         $I->see('Open Issues');                              // section header

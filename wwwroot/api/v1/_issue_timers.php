@@ -8,6 +8,18 @@
  *                         $method, $caller_aiu, $is_human, $tsub
  */
 
+/**
+ * Set up by index.php and _issues.php, which includes this file.
+ *
+ * @var \PDO $pdo
+ * @var int $auth_user_id
+ * @var int $auth_key_id
+ * @var string $method
+ * @var int $caller_aiu
+ * @var bool $is_human
+ * @var string $tsub
+ */
+
 // ─── GET /issues/timers/list ────────────────────────────────────────────────
 
 if ($method === 'GET' && $tsub === '/list') {

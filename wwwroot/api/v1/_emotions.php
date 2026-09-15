@@ -1,5 +1,17 @@
 <?php
 
+/**
+ * Set up by index.php, which includes this file.
+ *
+ * @var \PDO $pdo
+ * @var string $raw_key
+ * @var int $auth_user_id
+ * @var int $auth_key_id
+ * @var array<string, mixed> $auth_actor
+ * @var string $method
+ * @var string $path
+ */
+
 // Emotional Interaction Ledger sub-dispatcher
 //
 // Variables in scope from index.php:

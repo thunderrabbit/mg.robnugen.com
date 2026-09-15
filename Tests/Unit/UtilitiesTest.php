@@ -32,8 +32,11 @@ class UtilitiesTest extends Unit
             $result = \Utilities::randomString(50);
             for ($j = 0; $j < strlen($result); $j++) {
                 $char = $result[$j];
-                $this->assertStringContainsString($char, $default,
-                    "Character '$char' should be in default charset");
+                $this->assertStringContainsString(
+                    $char,
+                    $default,
+                    "Character '$char' should be in default charset"
+                );
             }
         }
     }
@@ -45,8 +48,11 @@ class UtilitiesTest extends Unit
 
         for ($i = 0; $i < strlen($result); $i++) {
             $char = $result[$i];
-            $this->assertStringContainsString($char, $charset,
-                "Character '$char' should be in custom charset");
+            $this->assertStringContainsString(
+                $char,
+                $charset,
+                "Character '$char' should be in custom charset"
+            );
         }
     }
 

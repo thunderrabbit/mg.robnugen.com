@@ -24,6 +24,18 @@
  *   DELETE /inbox/delete      — delete a message permanently
  */
 
+/**
+ * Set up by index.php, which includes this file.
+ *
+ * @var \PDO $pdo
+ * @var \Auth\Guards $guards
+ * @var int $auth_user_id
+ * @var int $auth_key_id
+ * @var array<string, mixed> $auth_actor
+ * @var string $method
+ * @var string $path
+ */
+
 $sub = preg_replace('#^/inbox#', '', $path) ?: '/';
 
 // Permission: agent_inbox_user.can_read_inbox

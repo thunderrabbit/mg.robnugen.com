@@ -9,7 +9,16 @@
 
     <file>classes</file>
     <file>wwwroot</file>
+    <file>prepend.php</file>
+    <file>Tests</file>
     <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/Tests/_output/*</exclude-pattern>
+    <exclude-pattern>*/Tests/Support/_generated/*</exclude-pattern>
+
+    <!-- Codeception calls _before() and _after() by those exact names. -->
+    <rule ref="PSR2.Methods.MethodDeclaration.Underscore">
+        <exclude-pattern>*/Tests/*</exclude-pattern>
+    </rule>
 
     <rule ref="PSR12">
         <!-- Pending manual cleanup (violation counts at adoption, 2026-07-20): -->

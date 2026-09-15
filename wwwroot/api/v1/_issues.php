@@ -41,6 +41,17 @@
  * Variables from index.php: $pdo, $auth_user_id, $auth_key_id, $auth_actor, $method, $path
  */
 
+/**
+ * Set up by index.php, which includes this file.
+ *
+ * @var \PDO $pdo
+ * @var int $auth_user_id
+ * @var int $auth_key_id
+ * @var array<string, mixed> $auth_actor
+ * @var string $method
+ * @var string $path
+ */
+
 $sub        = preg_replace('#^/issues#', '', $path) ?: '/';
 $caller_aiu = (int) $auth_actor['aiu_id'];
 $is_human   = ($auth_actor['actor_type'] ?? '') === 'human';

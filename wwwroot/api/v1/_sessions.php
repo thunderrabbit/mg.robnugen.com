@@ -13,6 +13,17 @@
  * Variables from index.php: $pdo, $auth_user_id, $method, $path
  */
 
+/**
+ * Set up by index.php, which includes this file.
+ *
+ * @var \PDO $pdo
+ * @var int $auth_user_id
+ * @var int $auth_key_id
+ * @var array<string, mixed> $auth_actor
+ * @var string $method
+ * @var string $path
+ */
+
 // Permission: agent_inbox_user.can_read_sessions
 if ($method === 'GET' && !$auth_actor['can_read_sessions']) {
     http_response_code(403);

@@ -35,9 +35,46 @@ auto_mgTester only.
 
 **Claude cannot commit on master.** Create a feature branch first; Rob integrates via merge bubble.
 
-## Standards gate (commit-tier) — run before you report a change as done
+## Standards gates (unit tests + phpcs + PHPStan) — run before you report a change as done
 
-The `standards` MCP server runs mg's Unit suite deterministically. Before
+mg carries three commit-tier gates from `~/work/rob/standards-mcp` (hermetic:
+read-only mount, no network, no credentials):
+
+    ~/work/rob/standards-mcp/run-unit.sh    ~/work/rob/mg.robnugen.com   # Codeception Unit suite
+    ~/work/rob/standards-mcp/run-phpcs.sh   ~/work/rob/mg.robnugen.com   # PSR-12 style gate
+    ~/work/rob/standards-mcp/run-phpstan.sh ~/work/rob/mg.robnugen.com   # PHPStan, level in phpstan.neon
+
+All three must pass. Setup and fixing:
+
+- Populate `vendor/` once per clone with the stock composer image (Lemur has no
+  composer; rootless docker, so container root writes as your user):
+
+      docker run --rm -v "$PWD":/app -w /app composer:2 \
+        composer install --ignore-platform-reqs --no-interaction
+
+- Auto-fix style with phpcbf, then fix what's left by hand:
+
+      docker run --rm --network none -v "$PWD":/app -w /app \
+        standards-codeception-runner:php8.3 php -d memory_limit=1G vendor/bin/phpcbf
+
+- `phpcs.xml` is PSR-12 over `classes/`, `wwwroot/`, `prepend.php` and `Tests/`.
+  Its PSR-12 excludes are a manual-cleanup backlog; the `_before`/`_after`
+  exclusion under `Tests/` is deliberate (Codeception's names).
+  `templates/*.tpl.php` are out of scope.
+- **Every commit is checked.** `.githooks/pre-commit` runs phpcs on the staged
+  content of each staged PHP file in `phpcs.xml`'s scope, and PHPStan over the
+  whole staged tree whenever PHP, `phpstan.neon` or `composer.lock` is staged.
+  Any error or warning blocks the commit. Enable it once per clone with
+  `git config core.hooksPath .githooks`. Merges (`git close-bubble`) don't run
+  it; `git commit --no-verify` is the emergency bypass, not a way to skip a fix.
+  The hook doesn't run the unit suite; run that yourself.
+- PHPStan climbs one level per bubble toward level 10 (mg #505), with no
+  baseline. Fix a finding rather than baselining it or lowering the level.
+  Entry scripts name the globals they take from `prepend.php` in a `@var` block
+  under the include; `api/v1/_*.php` handlers do the same for `index.php`'s
+  variables. `classes/Parsedown.php` is vendored and excluded from analysis.
+
+The `standards` MCP server runs the Unit suite deterministically too. Before
 reporting any code change as done, call:
 
     check_tests(repo="mg")
@@ -99,7 +136,7 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
 
 ## Development Notes
 
-- No package manager (composer/npm) — pure PHP with custom autoloader
+- No runtime dependencies — pure PHP with custom autoloader. `composer.json` holds dev tools only (Codeception, phpcs, PHPStan); `vendor/` is never deployed
 - `?debug=1` URL parameter enables debug output; `print_rob($var)` echoes `<pre>` dump and exits; `print_roblog($var, $label)` appends to `~/rob.log`
 
 ### Including prepend.php
@@ -110,6 +147,15 @@ All PHP files (except templates and prepend.php itself) must include prepend.php
 # Extract DreamHost project root: /home/username/domain.com
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
+
+/**
+ * Set up by prepend.php.
+ *
+ * @var \Config $config
+ * @var \Auth\IsLoggedIn $is_logged_in
+ */
 ```
+
+List only the globals the page uses (`$config`, `$is_logged_in`, `$mla_request`, `$mla_database`, `$dbExistaroo`) in the `@var` block, so PHPStan knows their types. A global the page uses but doesn't list is reported as undefined, and the commit hook blocks it.
 
 This leverages DreamHost's consistent `/home/username/domain.com/` path structure to dynamically find the project root.

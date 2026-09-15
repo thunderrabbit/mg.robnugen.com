@@ -61,6 +61,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
 
+/**
+ * Set up by prepend.php.
+ *
+ * @var \Config $config
+ */
+
 // ── Parse request body ────────────────────────────────────────────────────────
 
 $content_type = $_SERVER['CONTENT_TYPE'] ?? '';

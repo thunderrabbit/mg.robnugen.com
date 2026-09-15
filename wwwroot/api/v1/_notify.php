@@ -11,6 +11,14 @@
  * silently drop a blocked/alert ping.
  */
 
+/**
+ * Set up by index.php, which includes this file.
+ *
+ * @var \Config $config
+ * @var string $method
+ * @var string $path
+ */
+
 $sub = preg_replace('#^/notify#', '', $path) ?: '/';
 
 if (empty($auth_actor['can_ping_phone'])) {
