@@ -107,7 +107,7 @@ class Base
     {
         // Strip single-line SQL comments before splitting on semicolons.
         // A '--' comment containing a ';' would cause a false split.
-        $sql = preg_replace('/--[^\n]*\n/', "\n", $sql);
+        $sql = preg_replace('/--[^\n]*\n/', "\n", $sql) ?? $sql;
 
         // Split SQL into individual statements
         $statements = array_filter(
