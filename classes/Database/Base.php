@@ -118,12 +118,10 @@ class Base
         );
 
         foreach ($statements as $statement) {
-            if (!empty($statement)) {
-                try {
-                    $pdo->exec($statement);
-                } catch (\PDOException $e) {
-                    throw new \Database\EDatabaseException("Error executing statement: $statement. Error: " . $e->getMessage());
-                }
+            try {
+                $pdo->exec($statement);
+            } catch (\PDOException $e) {
+                throw new \Database\EDatabaseException("Error executing statement: $statement. Error: " . $e->getMessage());
             }
         }
     }
