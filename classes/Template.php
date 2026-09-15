@@ -9,7 +9,7 @@ class Template
 
     public function __construct(
         \Config $config,
-        \Auth\IsLoggedIn $is_logged_in = null
+        ?\Auth\IsLoggedIn $is_logged_in = null
     ) {
         $this->template_location = "{$config->app_path}/templates";
 
