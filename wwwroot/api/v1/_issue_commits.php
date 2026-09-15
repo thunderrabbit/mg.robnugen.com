@@ -7,6 +7,18 @@
  *                         $method, $caller_aiu, $is_human, $xsub
  */
 
+/**
+ * Set up by index.php and _issues.php, which includes this file.
+ *
+ * @var \PDO $pdo
+ * @var int $auth_user_id
+ * @var int $auth_key_id
+ * @var string $method
+ * @var int $caller_aiu
+ * @var bool $is_human
+ * @var string $xsub
+ */
+
 // ─── GET /issues/commits/list ───────────────────────────────────────────────
 
 if ($method === 'GET' && $xsub === '/list') {

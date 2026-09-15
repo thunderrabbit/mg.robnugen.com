@@ -12,6 +12,15 @@
  * Variables from index.php: $pdo, $auth_user_id, $auth_key_id, $auth_actor, $method, $path
  */
 
+/**
+ * Set up by index.php, which includes this file.
+ *
+ * @var \PDO $pdo
+ * @var int $auth_user_id
+ * @var int $auth_key_id
+ * @var string $method
+ */
+
 // ── Supervisor check ─────────────────────────────────────────────────────────
 // Only supervisors (inbox_visibility row with peer=NULL, can_read=1) can manage agents.
 

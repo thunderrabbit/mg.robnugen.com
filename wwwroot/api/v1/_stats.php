@@ -14,6 +14,16 @@
  * Variables from index.php: $pdo, $auth_user_id, $method
  */
 
+/**
+ * Set up by index.php, which includes this file.
+ *
+ * @var \PDO $pdo
+ * @var int $auth_user_id
+ * @var int $auth_key_id
+ * @var string $method
+ * @var string $path
+ */
+
 if ($method !== 'GET') {
     http_response_code(405);
     echo json_encode(['error' => 'Method not allowed']);
