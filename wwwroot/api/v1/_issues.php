@@ -7,8 +7,10 @@
  *   GET    /issues/list              free — ?project_id required; filters: status, assignee_aiu,
  *                                           include_terminal, parent_issue_id, limit, offset
  *   GET    /issues/get               free — ?issue_id
- *   POST   /issues/create            1    — body: {project_id, title, description?, assignee_aiu?, parent_issue_id?, status_id?}
- *   PATCH  /issues/update            1    — body: {issue_id, title?, description?, assignee_aiu?, parent_issue_id?, status_id?}
+ *   POST   /issues/create            1    — body: {project_id, title, description?, priority?,
+ *                                                  assignee_aiu?, parent_issue_id?, status_id?}
+ *   PATCH  /issues/update            1    — body: {issue_id, title?, description?, priority?,
+ *                                                  assignee_aiu?, parent_issue_id?, status_id?}
  *   DELETE /issues/delete            1    — human only
  *   GET    /issues/statuses          free — static 4-row lookup
  *
@@ -31,12 +33,9 @@
  *                                           repo.user_id must equal project.user_id
  *   DELETE /issues/commits/delete    1    — added_by = caller OR human
  *
- * Invariants enforced here (not in schema):
- *   - parent_issue_id must be in the same project AND have parent_issue_id IS NULL (2-level cap)
- *   - assignee_aiu, if set, must be a project member
- *   - transition to is_terminal=1 is blocked (409) while any timer on the issue is running
- *   - author/worker/added_by is always the authed caller; never trusted from request body
- *   - repo referenced by a commit must belong to the project's account
+ * get, create and update go through Issues\IssueService, which owns the issue rules
+ * (access, assignee and parent checks, statuses, the running-timer block on
+ * terminal statuses). The rest are still inline here.
  *
  * Variables from index.php: $pdo, $auth_user_id, $auth_key_id, $auth_actor, $method, $path
  */
@@ -56,7 +55,34 @@ $sub        = preg_replace('#^/issues#', '', $path) ?: '/';
 $caller_aiu = \Field::int($auth_actor, 'aiu_id');
 $is_human   = ($auth_actor['actor_type'] ?? '') === 'human';
 
+$issue_caller  = new \Issues\Caller(userId: $auth_user_id, aiu: $caller_aiu, isHuman: $is_human);
+$issue_service = new \Issues\IssueService(
+    new \Issues\PdoIssueStore($pdo),
+    beforeWrite: static fn(string $action) => require_credit($pdo, $auth_user_id, $auth_key_id, $action),
+);
+
 // ─── Helpers (file-local) ────────────────────────────────────────────────────
+
+/**
+ * Runs one IssueService call, answering its errors with the API's usual codes.
+ *
+ * @param \Closure(): void $call
+ */
+function issues_api(\Closure $call): void
+{
+    try {
+        $call();
+    } catch (\Input\InvalidInput | \Issues\ValidationException $e) {
+        http_response_code(400);
+        echo json_encode(['error' => $e->getMessage()]);
+    } catch (\Issues\NotFoundException $e) {
+        http_response_code(404);
+        echo json_encode(['error' => $e->getMessage()]);
+    } catch (\Issues\AccessException $e) {
+        http_response_code(403);
+        echo json_encode(['error' => $e->getMessage()]);
+    }
+}
 
 /**
  * Load an issue and the caller's membership on its project in one query.
@@ -89,7 +115,7 @@ function issue_with_access(\PDO $pdo, int $issue_id, int $user_id, int $caller_a
 
 /**
  * Return running timers on an issue (stopped_at_utc IS NULL).
- * Used to decide whether a status transition to is_terminal is allowed.
+ * Used in the 409 answer when a status change to is_terminal is blocked.
  *
  * @return array<int, array<string, mixed>>
  */
@@ -229,354 +255,69 @@ if ($method === 'GET' && $sub === '/list') {
 // ─── GET /issues/get ─────────────────────────────────────────────────────────
 
 if ($method === 'GET' && $sub === '/get') {
-    $issue_id = \Field::int($_GET, 'issue_id');
-    if ($issue_id <= 0) {
-        http_response_code(400);
-        echo json_encode(['error' => 'issue_id is required']);
-        return;
-    }
+    issues_api(static function () use ($issue_service, $issue_caller, $pdo): void {
+        $view     = $issue_service->view($issue_caller, \Input\Input::positiveId($_GET, 'issue_id'));
+        $issue_id = $view->issue->issueId;
 
-    $access = issue_with_access($pdo, $issue_id, $auth_user_id, $caller_aiu);
-    if (!$access || !$access['role']['can_read']) {
-        http_response_code(404);
-        echo json_encode(['error' => 'Issue not found or no access']);
-        return;
-    }
+        $counts_stmt = $pdo->prepare(
+            "SELECT
+                (SELECT COUNT(*) FROM issue_comments WHERE issue_id = ?) AS comments,
+                (SELECT COUNT(*) FROM issue_timers   WHERE issue_id = ?) AS timers,
+                (SELECT COUNT(*) FROM issue_timers   WHERE issue_id = ? AND stopped_at_utc IS NULL) AS running_timers,
+                (SELECT COUNT(*) FROM issue_commits  WHERE issue_id = ?) AS commits"
+        );
+        $counts_stmt->execute([$issue_id, $issue_id, $issue_id, $issue_id]);
 
-    $issue = $access['issue'];
-
-    // Attach status detail + counts for sub-resources
-    $status_stmt = $pdo->prepare(
-        "SELECT slug, label, is_terminal FROM issue_statuses WHERE status_id = ?"
-    );
-    $status_stmt->execute([\Field::int($issue, 'status_id')]);
-    $status_row = $status_stmt->fetch(\PDO::FETCH_ASSOC);
-
-    $counts_stmt = $pdo->prepare(
-        "SELECT
-            (SELECT COUNT(*) FROM issue_comments WHERE issue_id = ?) AS comments,
-            (SELECT COUNT(*) FROM issue_timers   WHERE issue_id = ?) AS timers,
-            (SELECT COUNT(*) FROM issue_timers   WHERE issue_id = ? AND stopped_at_utc IS NULL) AS running_timers,
-            (SELECT COUNT(*) FROM issue_commits  WHERE issue_id = ?) AS commits"
-    );
-    $counts_stmt->execute([$issue_id, $issue_id, $issue_id, $issue_id]);
-    $counts = $counts_stmt->fetch(\PDO::FETCH_ASSOC);
-
-    // Drop per-row perm columns from the returned issue — they're reported separately
-    unset($issue['can_read'], $issue['can_write']);
-
-    echo json_encode([
-        'issue'  => $issue + ['status' => $status_row, 'counts' => $counts],
-        'my_can_read'  => $access['role']['can_read'],
-        'my_can_write' => $access['role']['can_write'],
-    ]);
+        echo json_encode([
+            'issue' => $view->issue->jsonSerialize() + [
+                'status' => [
+                    'slug'        => $view->status->slug,
+                    'label'       => $view->status->label,
+                    'is_terminal' => (int) $view->status->isTerminal,
+                ],
+                'counts' => $counts_stmt->fetch(\PDO::FETCH_ASSOC),
+            ],
+            'my_can_read'  => (int) $view->membership->canRead,
+            'my_can_write' => (int) $view->membership->canWrite,
+        ]);
+    });
     return;
 }
 
 // ─── POST /issues/create ─────────────────────────────────────────────────────
 
 if ($method === 'POST' && $sub === '/create') {
-    $input           = \Field::jsonArray((string) file_get_contents('php://input'));
-    $project_id      = \Field::int($input, 'project_id');
-    $title           = trim(\Field::string($input, 'title'));
-    $description     = array_key_exists('description', $input) ? (string)$input['description'] : null;
-    $assignee_aiu    = array_key_exists('assignee_aiu', $input) && $input['assignee_aiu'] !== null
-                       ? (int)$input['assignee_aiu'] : null;
-    $parent_issue_id = array_key_exists('parent_issue_id', $input) && $input['parent_issue_id'] !== null
-                       ? (int)$input['parent_issue_id'] : null;
-    $status_id       = array_key_exists('status_id', $input) && $input['status_id'] !== null
-                       ? (int)$input['status_id'] : null;
-    $priority        = trim((string)($input['priority'] ?? 'normal'));
+    issues_api(static function () use ($issue_service, $issue_caller): void {
+        $input = \Field::jsonArray((string) file_get_contents('php://input'));
+        $issue = $issue_service->create($issue_caller, \Issues\Command\CreateIssue::fromInput($input));
 
-    if (!in_array($priority, ['low', 'normal', 'high'], true)) {
-        http_response_code(400);
-        echo json_encode(['error' => "priority must be 'low', 'normal', or 'high'"]);
-        return;
-    }
-    if ($project_id <= 0) {
-        http_response_code(400);
-        echo json_encode(['error' => 'project_id is required']);
-        return;
-    }
-    if ($title === '') {
-        http_response_code(400);
-        echo json_encode(['error' => 'title is required']);
-        return;
-    }
-    if (mb_strlen($title) > 255) {
-        http_response_code(400);
-        echo json_encode(['error' => 'title must be 255 characters or fewer']);
-        return;
-    }
-
-    $role = project_membership($pdo, $project_id, $auth_user_id, $caller_aiu);
-    if (!$role) {
-        http_response_code(404);
-        echo json_encode(['error' => 'Project not found or no access']);
-        return;
-    }
-    if (!$role['can_write']) {
-        http_response_code(403);
-        echo json_encode(['error' => 'No write access to this project']);
-        return;
-    }
-
-    // Validate assignee is a project member
-    if ($assignee_aiu !== null && $assignee_aiu > 0) {
-        $a = $pdo->prepare(
-            "SELECT 1 FROM project_members WHERE project_id = ? AND member_aiu = ?"
-        );
-        $a->execute([$project_id, $assignee_aiu]);
-        if (!$a->fetch()) {
-            http_response_code(400);
-            echo json_encode(['error' => 'assignee_aiu is not a member of this project']);
-            return;
-        }
-    } elseif ($assignee_aiu === 0) {
-        $assignee_aiu = null;   // 0 → unassigned
-    }
-
-    // Validate parent_issue_id: same project, not itself a child
-    if ($parent_issue_id !== null && $parent_issue_id > 0) {
-        $p = $pdo->prepare(
-            "SELECT project_id, parent_issue_id FROM issues WHERE issue_id = ?"
-        );
-        $p->execute([$parent_issue_id]);
-        $parent_row = $p->fetch(\PDO::FETCH_ASSOC);
-        if (!$parent_row || \Field::int($parent_row, 'project_id') !== $project_id) {
-            http_response_code(400);
-            echo json_encode(['error' => 'parent_issue_id must be an issue in the same project']);
-            return;
-        }
-    }
-
-    // Resolve status_id: explicit or default
-    if ($status_id !== null) {
-        $s = $pdo->prepare("SELECT is_terminal FROM issue_statuses WHERE status_id = ?");
-        $s->execute([$status_id]);
-        $status_row = $s->fetch(\PDO::FETCH_ASSOC);
-        if (!$status_row) {
-            http_response_code(400);
-            echo json_encode(['error' => 'status_id is not a valid status']);
-            return;
-        }
-        $is_terminal = \Field::int($status_row, 'is_terminal');
-    } else {
-        $d = $pdo->prepare(
-            "SELECT status_id, is_terminal FROM issue_statuses WHERE is_default = 1 LIMIT 1"
-        );
-        $d->execute();
-        $default_row = $d->fetch(\PDO::FETCH_ASSOC);
-        if (!$default_row) {
-            http_response_code(500);
-            echo json_encode(['error' => 'no default status configured']);
-            return;
-        }
-        $status_id   = \Field::int($default_row, 'status_id');
-        $is_terminal = \Field::int($default_row, 'is_terminal');
-    }
-
-    require_credit($pdo, $auth_user_id, $auth_key_id, 'issues/create');
-
-    // $is_terminal is PHP-local, not user-controlled → safe to interpolate
-    $done_clause = $is_terminal ? 'NOW(6)' : 'NULL';
-    $stmt = $pdo->prepare(
-        "INSERT INTO issues
-            (project_id, priority, parent_issue_id, author_aiu, assignee_aiu, status_id, title, description, done_at_utc)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, {$done_clause})"
-    );
-    $stmt->execute([
-        $project_id, $priority, $parent_issue_id, $caller_aiu, $assignee_aiu, $status_id,
-        $title, $description !== null && $description !== '' ? $description : null,
-    ]);
-    $issue_id = (int) $pdo->lastInsertId();
-
-    http_response_code(201);
-    echo json_encode([
-        'issue' => [
-            'issue_id'        => $issue_id,
-            'project_id'      => $project_id,
-            'priority'        => $priority,
-            'parent_issue_id' => $parent_issue_id,
-            'author_aiu'      => $caller_aiu,
-            'assignee_aiu'    => $assignee_aiu,
-            'status_id'       => $status_id,
-            'title'           => $title,
-        ],
-    ]);
+        http_response_code(201);
+        echo json_encode(['issue' => $issue]);
+    });
     return;
 }
 
 // ─── PATCH /issues/update ────────────────────────────────────────────────────
 
 if ($method === 'PATCH' && $sub === '/update') {
-    $input    = \Field::jsonArray((string) file_get_contents('php://input'));
-    $issue_id = \Field::int($input, 'issue_id');
+    issues_api(static function () use ($issue_service, $issue_caller, $pdo): void {
+        $input  = \Field::jsonArray((string) file_get_contents('php://input'));
+        $update = \Issues\Command\UpdateIssue::fromInput($input);
 
-    $title_in           = array_key_exists('title', $input)
-                          ? trim((string)$input['title']) : null;
-    $description_in     = array_key_exists('description', $input)
-                          ? (string)$input['description'] : 'NOT_SET';
-    $assignee_in        = array_key_exists('assignee_aiu', $input)
-                          ? $input['assignee_aiu'] : 'NOT_SET';
-    $parent_in          = array_key_exists('parent_issue_id', $input)
-                          ? $input['parent_issue_id'] : 'NOT_SET';
-    $status_id_in       = array_key_exists('status_id', $input)
-                          ? (int)$input['status_id'] : null;
-    $priority_in        = array_key_exists('priority', $input)
-                          ? trim((string)$input['priority']) : null;
-
-    if ($priority_in !== null && !in_array($priority_in, ['low', 'normal', 'high'], true)) {
-        http_response_code(400);
-        echo json_encode(['error' => "priority must be 'low', 'normal', or 'high'"]);
-        return;
-    }
-
-    if ($issue_id <= 0) {
-        http_response_code(400);
-        echo json_encode(['error' => 'issue_id is required']);
-        return;
-    }
-    if (
-        $title_in === null && $description_in === 'NOT_SET' && $assignee_in === 'NOT_SET'
-        && $parent_in === 'NOT_SET' && $status_id_in === null && $priority_in === null
-    ) {
-        http_response_code(400);
-        echo json_encode(['error' => 'provide at least one field to update']);
-        return;
-    }
-
-    $access = issue_with_access($pdo, $issue_id, $auth_user_id, $caller_aiu);
-    if (!$access) {
-        http_response_code(404);
-        echo json_encode(['error' => 'Issue not found or no access']);
-        return;
-    }
-    if (!$access['role']['can_write']) {
-        http_response_code(403);
-        echo json_encode(['error' => 'No write access to this project']);
-        return;
-    }
-    $issue      = $access['issue'];
-    $project_id = \Field::int($issue, 'project_id');
-
-    // All SET clauses must be qualified with `i.` — the UPDATE joins `projects p`,
-    // which has overlapping column names (notably `description`), so unqualified
-    // writes trigger MySQL error 1052 (ambiguous column) and produce an empty
-    // response body.
-    $sets = [];
-    $params = [];
-
-    if ($title_in !== null) {
-        if ($title_in === '' || mb_strlen($title_in) > 255) {
-            http_response_code(400);
-            echo json_encode(['error' => 'title must be 1-255 characters']);
+        try {
+            $issue = $issue_service->update($issue_caller, $update);
+        } catch (\Issues\ConflictException $e) {
+            http_response_code(409);
+            echo json_encode([
+                'error'          => $e->getMessage(),
+                'running_timers' => running_timers($pdo, $update->issueId),
+                'hint'           => 'Stop timers via PATCH /issues/timers/stop, then retry',
+            ]);
             return;
         }
-        $sets[] = 'i.title = ?';
-        $params[] = $title_in;
-    }
-    if ($description_in !== 'NOT_SET') {
-        $sets[] = 'i.description = ?';
-        $params[] = ($description_in === '') ? null : $description_in;
-    }
-    if ($assignee_in !== 'NOT_SET') {
-        if ($assignee_in === null || $assignee_in === 0 || $assignee_in === '0' || $assignee_in === '') {
-            $sets[] = 'i.assignee_aiu = NULL';
-        } else {
-            $new_assignee = (int)$assignee_in;
-            $a = $pdo->prepare(
-                "SELECT 1 FROM project_members WHERE project_id = ? AND member_aiu = ?"
-            );
-            $a->execute([$project_id, $new_assignee]);
-            if (!$a->fetch()) {
-                http_response_code(400);
-                echo json_encode(['error' => 'assignee_aiu is not a member of this project']);
-                return;
-            }
-            $sets[] = 'i.assignee_aiu = ?';
-            $params[] = $new_assignee;
-        }
-    }
-    if ($parent_in !== 'NOT_SET') {
-        if ($parent_in === null || $parent_in === 0 || $parent_in === '0' || $parent_in === '') {
-            $sets[] = 'i.parent_issue_id = NULL';
-        } else {
-            $new_parent = (int)$parent_in;
-            if ($new_parent === $issue_id) {
-                http_response_code(400);
-                echo json_encode(['error' => 'an issue cannot be its own parent']);
-                return;
-            }
-            $p = $pdo->prepare(
-                "SELECT project_id, parent_issue_id FROM issues WHERE issue_id = ?"
-            );
-            $p->execute([$new_parent]);
-            $parent_row = $p->fetch(\PDO::FETCH_ASSOC);
-            if (!$parent_row || \Field::int($parent_row, 'project_id') !== $project_id) {
-                http_response_code(400);
-                echo json_encode(['error' => 'parent_issue_id must be an issue in the same project']);
-                return;
-            }
-            $sets[] = 'i.parent_issue_id = ?';
-            $params[] = $new_parent;
-        }
-    }
 
-    $new_is_terminal = null;
-    if ($status_id_in !== null) {
-        $s = $pdo->prepare("SELECT is_terminal FROM issue_statuses WHERE status_id = ?");
-        $s->execute([$status_id_in]);
-        $status_row = $s->fetch(\PDO::FETCH_ASSOC);
-        if (!$status_row) {
-            http_response_code(400);
-            echo json_encode(['error' => 'status_id is not a valid status']);
-            return;
-        }
-        $new_is_terminal = \Field::int($status_row, 'is_terminal');
-
-        // Block transition into a terminal status while timers are running
-        if ($new_is_terminal) {
-            $running = running_timers($pdo, $issue_id);
-            if (!empty($running)) {
-                http_response_code(409);
-                echo json_encode([
-                    'error'          => 'Cannot move to a terminal status while timers are running',
-                    'running_timers' => $running,
-                    'hint'           => 'Stop timers via PATCH /issues/timers/stop, then retry',
-                ]);
-                return;
-            }
-        }
-
-        $sets[] = 'i.status_id = ?';
-        $params[] = $status_id_in;
-        if ($new_is_terminal) {
-            $sets[] = 'i.done_at_utc = NOW(6)';
-        } else {
-            $sets[] = 'i.done_at_utc = NULL';
-        }
-    }
-
-    if ($priority_in !== null) {
-        $sets[] = 'i.priority = ?';
-        $params[] = $priority_in;
-    }
-
-    require_credit($pdo, $auth_user_id, $auth_key_id, 'issues/update');
-
-    $params[] = $issue_id;
-    $params[] = $auth_user_id;
-    $set_sql = implode(', ', $sets);
-    $stmt = $pdo->prepare(
-        "UPDATE issues i
-         JOIN projects p ON p.project_id = i.project_id
-         SET {$set_sql}
-         WHERE i.issue_id = ? AND p.user_id = ?"
-    );
-    $stmt->execute($params);
-
-    echo json_encode(['updated' => $stmt->rowCount()]);
+        echo json_encode(['updated' => 1, 'issue' => $issue]);
+    });
     return;
 }
 
