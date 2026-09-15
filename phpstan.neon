@@ -2,6 +2,8 @@
 # and by .githooks/pre-commit. Raised a rung at a time toward level 10 (mg #505).
 parameters:
     level: 9
+    # mg's production PHP. Analyse as 8.5 even if run on an older PHP.
+    phpVersion: 80500
     paths:
         - classes
         - wwwroot
