@@ -74,3 +74,20 @@ This project is built on a minimalist custom PHP framework tailored for DreamHos
    - `/templates/admin/index.tpl.php`: Admin dashboard
 
 5. **Visit `/`** to automatically create admin user in the freshly set up MySQL tables.
+
+### 🧪 Checks on every commit
+
+`.githooks/pre-commit` runs phpcs on each staged PHP file and PHPStan over the whole staged
+tree, both in Docker (`standards-codeception-runner:php8.3`, no network). Any finding blocks
+the commit.
+
+Git never turns on a repo's hooks by itself, so **run this once in every clone you commit
+from**:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+`git config core.hooksPath` should then print `.githooks`. The hook needs Docker running and
+`vendor/` populated (the composer command is in `CLAUDE.md`). Merges don't run it, and
+`git commit --no-verify` skips it in an emergency.
