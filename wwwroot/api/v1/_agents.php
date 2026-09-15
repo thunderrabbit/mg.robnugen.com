@@ -43,7 +43,7 @@ if (!$sup_stmt->fetch()) {
 }
 
 // ── Sub-route parsing ────────────────────────────────────────────────────────
-$sub = preg_replace('#^/agents#', '', preg_replace('#^/api/v1#', '', rtrim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/'))) ?: '';
+$sub = preg_replace('#^/agents#', '', preg_replace('#^/api/v1#', '', rtrim((string) parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/'))) ?: '';
 
 // ── GET /agents ──────────────────────────────────────────────────────────────
 
