@@ -28,7 +28,7 @@ if ($stmt->fetchColumn() > 0) {
 
 // Handle POST — save the passphrase verification blob
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $verify_blob = $_POST['verify_blob'] ?? '';
+    $verify_blob = \Field::string($_POST, 'verify_blob');
     if ($verify_blob) {
         $stmt = $pdo->prepare("INSERT INTO dm_user_config (user_id, passphrase_verify) VALUES (?, ?)");
         $stmt->execute([$user_id, base64_decode($verify_blob)]);

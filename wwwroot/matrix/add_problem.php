@@ -28,7 +28,7 @@ if (!$verify_row) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $encrypted_problem = $_POST['encrypted_problem'] ?? '';
+    $encrypted_problem = \Field::string($_POST, 'encrypted_problem');
     if ($encrypted_problem) {
         $stmt = $pdo->prepare("INSERT INTO dm_my_problems (user_id, problem) VALUES (?, ?)");
         $stmt->execute([$user_id, base64_decode($encrypted_problem)]);

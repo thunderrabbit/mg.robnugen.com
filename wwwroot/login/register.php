@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // handle form submission...
     $mla_database = \Database\Base::getPDO($config);
     $username = trim(\Field::string($_POST, 'username'));
-    $password = $_POST['pass'] ?? '';
+    $password = \Field::string($_POST, 'pass');
 
     // Validate input
     $errors = [];

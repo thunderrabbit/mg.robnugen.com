@@ -13,7 +13,7 @@ include_once $matches[1] . '/prepend.php';
  */
 
 // Check URL for session key pattern: /mg/{session_key}
-$uri = $_SERVER['REQUEST_URI'] ?? '';
+$uri = \Field::string($_SERVER, 'REQUEST_URI');
 if (preg_match('#^/mg/([a-zA-Z0-9_-]{11})(?:\?.*)?$#', $uri, $matches)) {
     $session_key = $matches[1];
 

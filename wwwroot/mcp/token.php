@@ -69,7 +69,7 @@ include_once $matches[1] . '/prepend.php';
 
 // ── Parse request body ────────────────────────────────────────────────────────
 
-$content_type = $_SERVER['CONTENT_TYPE'] ?? '';
+$content_type = \Field::string($_SERVER, 'CONTENT_TYPE');
 if (str_contains($content_type, 'application/json')) {
     $body = \Field::jsonArray((string) file_get_contents('php://input'));
 } else {
@@ -167,7 +167,7 @@ if ($grant_type === 'authorization_code') {
     $client_secret = $body['client_secret'] ?? '';
 
     // Also accept Basic auth header
-    $auth_header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+    $auth_header = \Field::string($_SERVER, 'HTTP_AUTHORIZATION');
     if (preg_match('/^Basic\s+(.+)$/i', $auth_header, $m)) {
         $decoded = base64_decode($m[1], true);
         if ($decoded !== false && str_contains($decoded, ':')) {

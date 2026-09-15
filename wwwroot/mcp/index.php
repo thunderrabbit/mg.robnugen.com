@@ -56,9 +56,7 @@ include_once $matches[1] . '/prepend.php';
 // Accepts OAuth access tokens (issued by mcp/token.php) or direct API keys.
 
 // DreamHost FastCGI may deliver this as REDIRECT_HTTP_AUTHORIZATION
-$auth_header = $_SERVER['HTTP_AUTHORIZATION']
-    ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION']
-    ?? '';
+$auth_header = \Field::string($_SERVER, 'HTTP_AUTHORIZATION', \Field::string($_SERVER, 'REDIRECT_HTTP_AUTHORIZATION'));
 $raw_token = '';
 if (preg_match('/^Bearer\s+(\S+)$/i', $auth_header, $m)) {
     $raw_token = $m[1];

@@ -17,7 +17,7 @@ if ($debugLevel > 0) {
     echo "<pre>Debug Level: $debugLevel</pre>";
 }
 
-$uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+$uri = parse_url(\Field::string($_SERVER, 'REQUEST_URI', '/'), PHP_URL_PATH);
 
 // Check if we're at the root
 if ($uri === '/' || $uri === '' || $uri === '/index.php') {

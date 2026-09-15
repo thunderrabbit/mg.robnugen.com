@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_key_action'])) {
             $vis_stmt->execute([$new_aiu_id, $new_aiu_id]);
 
             // Create send-to visibility rows for selected actors
-            $send_to = $_POST['can_send_to'] ?? [];
+            $send_to = \Field::array($_POST, 'can_send_to');
             if (!empty($send_to)) {
                 $send_stmt = $mla_database->prepare(
                     "INSERT INTO inbox_visibility (inbox_user_aiu_id, inbox_peer_aiu_id, can_read, can_send) VALUES (?, ?, 0, 1)"

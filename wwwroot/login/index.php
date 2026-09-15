@@ -16,7 +16,7 @@ if ($is_logged_in->isLoggedIn()) {
     // We logged in.. yay!
     // Check if there's a return URL saved
     if (isset($_SESSION['return_url'])) {
-        $return_url = $_SESSION['return_url'];
+        $return_url = \Field::string($_SESSION, 'return_url');
         unset($_SESSION['return_url']); // Clear it
         // Only allow safe relative paths (must start with / but not //)
         if (!preg_match('#^/[^/]#', $return_url)) {

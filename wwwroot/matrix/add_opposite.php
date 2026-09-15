@@ -18,7 +18,7 @@ if (!$is_logged_in->isLoggedIn()) {
 $user_id = $is_logged_in->loggedInID();
 $pdo = \Database\Base::getPDO($config);
 
-$dm_mp = intval($_GET['dm_mp'] ?? 0);
+$dm_mp = \Field::int($_GET, 'dm_mp');
 if (!$dm_mp) {
     header("Location: /matrix/");
     exit;
@@ -42,7 +42,7 @@ if ($stmt->fetchColumn() > 0) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $encrypted_opposite = $_POST['encrypted_opposite'] ?? '';
+    $encrypted_opposite = \Field::string($_POST, 'encrypted_opposite');
     if ($encrypted_opposite) {
         $stmt = $pdo->prepare("INSERT INTO dm_my_opposites (dm_mp, user_id, opposite) VALUES (?, ?, ?)");
         $stmt->execute([$dm_mp, $user_id, base64_decode($encrypted_opposite)]);

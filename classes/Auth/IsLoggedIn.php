@@ -33,12 +33,12 @@ class IsLoggedIn
     public function checkLogin(\Mlaphp\Request $mla_request): void
     {
         $found_user_id = 0;
-        $current_ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        $current_ip = \Field::string($_SERVER, 'REMOTE_ADDR', 'unknown');
 
         if (!empty($mla_request->cookie[$this->di_config->cookie_name])) {
             $found_user_id = $this->getUserIdForCookieInDatabase(
-                cookie: $mla_request->cookie[$this->di_config->cookie_name],
-                user_agent: $_SERVER['HTTP_USER_AGENT'] ?? ''
+                cookie: \Field::string($mla_request->cookie, $this->di_config->cookie_name),
+                user_agent: \Field::string($_SERVER, 'HTTP_USER_AGENT')
             );
             if (empty($found_user_id)) {
                 $this->logAuth("user_id: N/A, IP: {$current_ip} - Cookie validation FAILED");
@@ -55,9 +55,9 @@ class IsLoggedIn
                 $this->logAuth("user_id: N/A, IP: {$current_ip} - Login blocked: CSRF token mismatch");
                 return;
             }
-            $found_user_id = $this->checkPHPHashedPassword($mla_request->post['username'], $mla_request->post['pass']);
+            $found_user_id = $this->checkPHPHashedPassword(\Field::string($mla_request->post, 'username'), \Field::string($mla_request->post, 'pass'));
             if (empty($found_user_id)) {
-                $this->logAuth("user_id: N/A, IP: {$current_ip} - Password login FAILED (username: {$mla_request->post['username']})");
+                $this->logAuth("user_id: N/A, IP: {$current_ip} - Password login FAILED (username: " . \Field::string($mla_request->post, 'username') . ")");
                 $this->killCookie();        // bad login, so kill any cookie
                 $this->who_is_logged_in = 0;
             } else {
@@ -153,7 +153,7 @@ class IsLoggedIn
             'user_id' => $user_id,
             'cookie' => $cookie,
             'last_access' => date(format: "Y-m-d H:i:s"),
-            'user_agent_md5' => md5($_SERVER['HTTP_USER_AGENT'] ?? '')
+            'user_agent_md5' => md5(\Field::string($_SERVER, 'HTTP_USER_AGENT'))
         ];
 
         // Insert using native PDO
@@ -236,11 +236,11 @@ class IsLoggedIn
             if (count($result2) > 0) {
                 // Cookie exists but user agent doesn't match
                 $user_id = $result2[0]['user_id'];
-                $current_ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+                $current_ip = \Field::string($_SERVER, 'REMOTE_ADDR', 'unknown');
                 $this->logAuth("user_id: {$user_id}, IP: {$current_ip} - Cookie USER AGENT MISMATCH");
             } else {
                 // Cookie doesn't exist at all
-                $current_ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+                $current_ip = \Field::string($_SERVER, 'REMOTE_ADDR', 'unknown');
                 $this->logAuth("user_id: N/A, IP: {$current_ip} - Cookie NOT FOUND in database");
             }
             return 0;

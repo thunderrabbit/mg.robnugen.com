@@ -66,11 +66,11 @@ $sort_map = [
     'title'    => 'i.title',
     'priority' => "FIELD(i.priority, 'low', 'normal', 'high')",
 ];
-$sort = $_GET['sort'] ?? 'updated';
+$sort = \Field::string($_GET, 'sort', 'updated');
 if (!isset($sort_map[$sort])) {
     $sort = 'updated';
 }
-$dir = strtolower($_GET['dir'] ?? 'desc');
+$dir = strtolower(\Field::string($_GET, 'dir', 'desc'));
 if ($dir !== 'asc') {
     $dir = 'desc';
 }

@@ -25,7 +25,7 @@ include_once $matches[1] . '/prepend.php';
 
 // ── Authentication ────────────────────────────────────────────────────────────
 
-$raw_key = $_SERVER['HTTP_X_API_KEY'] ?? null;
+$raw_key = \Field::string($_SERVER, 'HTTP_X_API_KEY');
 if (empty($raw_key)) {
     http_response_code(401);
     echo json_encode(['error' => 'Missing X-API-Key header']);
@@ -58,8 +58,8 @@ $auth_actor = is_array($auth_actor) ? $auth_actor : [];
 
 // ── Route parsing ─────────────────────────────────────────────────────────────
 
-$method    = $_SERVER['REQUEST_METHOD'];
-$uri_path  = (string) parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$method    = \Field::string($_SERVER, 'REQUEST_METHOD');
+$uri_path  = (string) parse_url(\Field::string($_SERVER, 'REQUEST_URI'), PHP_URL_PATH);
 $path      = rtrim(preg_replace('#^/api/v1#', '', $uri_path) ?? '', '/') ?: '/';
 
 // ── Credit enforcement + usage logging ───────────────────────────────────────

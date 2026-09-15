@@ -31,8 +31,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     // Password Change Logic
     if (isset($_POST['change_password_action'])) {
-        $current_password = $_POST['current_password'] ?? '';
-        $new_password = $_POST['new_password'] ?? '';
+        $current_password = \Field::string($_POST, 'current_password');
+        $new_password = \Field::string($_POST, 'new_password');
         $confirm_password = $_POST['confirm_password'] ?? '';
 
         // Validate input
