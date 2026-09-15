@@ -1,7 +1,7 @@
 # Static analysis, run in Docker by ~/work/rob/standards-mcp/run-phpstan.sh
 # and by .githooks/pre-commit. Raised one level per bubble (mg #505).
 parameters:
-    level: 3
+    level: 4
     paths:
         - classes
         - wwwroot
