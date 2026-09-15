@@ -38,7 +38,7 @@ class Issues
     /**
      * Check project membership or throw. Returns ['can_read','can_write'].
      *
-     * @return array<string, mixed>
+     * @return array<mixed>
      */
     private function projectAccess(int $project_id, int $user_id, int $caller_aiu): array
     {
@@ -51,7 +51,7 @@ class Issues
         );
         $stmt->execute([$project_id, $caller_aiu, $user_id]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-        if (!$row) {
+        if (!is_array($row)) {
             throw new AccessException("Not a member of project {$project_id}");
         }
         return $row;
@@ -113,7 +113,7 @@ class Issues
     /**
      * Fetch one issue (with status detail) the caller can read, or throw.
      *
-     * @return array<string, mixed>
+     * @return array<mixed>
      */
     public function getIssue(int $issue_id, int $user_id, int $caller_aiu): array
     {
@@ -129,7 +129,7 @@ class Issues
         );
         $stmt->execute([$caller_aiu, $issue_id, $user_id]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-        if (!$row || !\Field::int($row, 'can_read')) {
+        if (!is_array($row) || !\Field::int($row, 'can_read')) {
             throw new NotFoundException("Issue {$issue_id} not found or no access");
         }
         unset($row['can_read'], $row['can_write']);
@@ -142,7 +142,7 @@ class Issues
      * transitions. Returns the updated issue row.
      *
      * @param array<string, mixed> $data
-     * @return array<string, mixed>
+     * @return array<mixed>
      */
     public function updateIssue(int $issue_id, int $user_id, int $caller_aiu, array $data): array
     {
@@ -308,7 +308,7 @@ class Issues
      * trusted from input).
      *
      * @param array<string, mixed> $data
-     * @return array<string, mixed>
+     * @return array<mixed>
      */
     public function createIssue(int $user_id, int $caller_aiu, array $data): array
     {

@@ -54,6 +54,7 @@ $actor_stmt = $pdo->prepare(
 );
 $actor_stmt->execute([$auth_key_id]);
 $auth_actor = $actor_stmt->fetch(\PDO::FETCH_ASSOC);
+$auth_actor = is_array($auth_actor) ? $auth_actor : [];
 
 // ── Route parsing ─────────────────────────────────────────────────────────────
 

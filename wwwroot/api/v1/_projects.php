@@ -90,7 +90,7 @@ if ($method === 'GET' && $sub === '/get') {
     );
     $stmt->execute([$project_id, $auth_user_id]);
     $project = $stmt->fetch(\PDO::FETCH_ASSOC);
-    if (!$project) {
+    if (!is_array($project)) {
         http_response_code(404);
         echo json_encode(['error' => 'Project not found']);
         return;

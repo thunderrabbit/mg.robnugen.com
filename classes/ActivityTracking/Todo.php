@@ -146,7 +146,7 @@ class Todo
 
         return [
             'count' => \Field::int($result, 'count'),
-            'last_logged' => $result['last_logged'] ?? null
+            'last_logged' => is_array($result) ? ($result['last_logged'] ?? null) : null
         ];
     }
 
@@ -250,14 +250,14 @@ class Todo
         $stmt->execute([$todo_id, $user_id]);
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-        return $result['count'] > 0;
+        return \Field::int($result, 'count') > 0;
     }
 
     /**
      * Get a single todo by ID
      *
      * @param int $todo_id
-     * @return array<string, mixed>|null
+     * @return array<mixed>|null
      */
     public function getTodo(int $todo_id): ?array
     {
@@ -273,7 +273,7 @@ class Todo
         $stmt->execute([$todo_id]);
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-        return $result ?: null;
+        return is_array($result) ? $result : null;
     }
 
     /**

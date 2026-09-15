@@ -175,7 +175,7 @@ class ActivityKai
      *
      * @param int $user_id
      * @param int $activity_id
-     * @return array<string, mixed>|null Session data or null if none active
+     * @return array<mixed>|null Session data or null if none active
      */
     public function getActiveSession(int $user_id, int $activity_id): ?array
     {
@@ -192,7 +192,7 @@ class ActivityKai
         $stmt->execute([$user_id, $activity_id]);
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-        return $result ?: null;
+        return is_array($result) ? $result : null;
     }
 
     /**
@@ -245,7 +245,7 @@ class ActivityKai
         $stmt->execute([$ak_id, $user_id]);
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-        return $result['count'] > 0;
+        return \Field::int($result, 'count') > 0;
     }
 
     /**

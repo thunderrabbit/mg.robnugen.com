@@ -64,7 +64,7 @@ $is_human   = ($auth_actor['actor_type'] ?? '') === 'human';
  * Null is returned both for "not found" and "not a member"; caller should 404/403 uniformly
  * to avoid leaking project existence to non-members.
  *
- * @return array{issue: array<string, mixed>, role: array{can_read: int, can_write: int}}|null
+ * @return array{issue: array<mixed>, role: array{can_read: int, can_write: int}}|null
  */
 function issue_with_access(\PDO $pdo, int $issue_id, int $user_id, int $caller_aiu): ?array
 {

@@ -65,7 +65,7 @@ class SessionKey
      *
      * @param string $session_key Session key
      * @param int $user_id User ID for ownership verification
-     * @return array<string, mixed>|null Session data or null if not found/not owned
+     * @return array<mixed>|null Session data or null if not found/not owned
      */
     public function getSessionByKey(string $session_key, int $user_id): ?array
     {
@@ -81,14 +81,14 @@ class SessionKey
         ");
         $stmt->execute([$session_key, $user_id]);
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
-        return $result ?: null;
+        return is_array($result) ? $result : null;
     }
 
     /**
      * Get public view of session (no user info, privacy-safe)
      *
      * @param string $session_key Session key
-     * @return array<string, mixed>|null Session data or null if not found/not public
+     * @return array<mixed>|null Session data or null if not found/not public
      */
     public function getPublicSessionByKey(string $session_key): ?array
     {
@@ -104,7 +104,7 @@ class SessionKey
         ");
         $stmt->execute([$session_key]);
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
-        return $result ?: null;
+        return is_array($result) ? $result : null;
     }
 
     /**
@@ -142,6 +142,6 @@ class SessionKey
         ");
         $stmt->execute([$session_key, $user_id]);
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
-        return $result['count'] > 0;
+        return \Field::int($result, 'count') > 0;
     }
 }

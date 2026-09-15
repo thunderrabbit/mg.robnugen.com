@@ -200,11 +200,11 @@ class IsLoggedIn
         // get password hash
         $user_id_and_hash_array = $this->getIDandPHPHashedPasswordForUsername($username);
         if (!empty($user_id_and_hash_array)) {
-            $hashed_password = $user_id_and_hash_array['password_hash'];
+            $hashed_password = \Field::string($user_id_and_hash_array, 'password_hash');
             // check it
             if (password_verify($password, $hashed_password)) {
                 // password is correct, so this user_id has logged in properly
-                $user_id = $user_id_and_hash_array['user_id'];
+                $user_id = \Field::int($user_id_and_hash_array, 'user_id');
                 // return user_id
                 return $user_id;
             }

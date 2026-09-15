@@ -73,7 +73,7 @@ class Items
     /**
      * Load item + caller's project membership, or throw.
      *
-     * @return array<string, mixed>
+     * @return array<mixed>
      */
     private function itemWithAccess(int $exterm_item_id, int $user_id, int $caller_aiu): array
     {
@@ -87,7 +87,7 @@ class Items
         );
         $stmt->execute([$caller_aiu, $exterm_item_id, $user_id]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-        if (!$row) {
+        if (!is_array($row)) {
             throw new NotFoundException("Item {$exterm_item_id} not found or access denied");
         }
         return $row;
@@ -96,7 +96,7 @@ class Items
     /**
      * Check project membership or throw. Returns ['can_read','can_write'].
      *
-     * @return array<string, mixed>
+     * @return array<mixed>
      */
     private function projectAccess(int $project_id, int $user_id, int $caller_aiu): array
     {
@@ -109,7 +109,7 @@ class Items
         );
         $stmt->execute([$project_id, $caller_aiu, $user_id]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-        if (!$row) {
+        if (!is_array($row)) {
             throw new AccessException("Not a member of project {$project_id}");
         }
         return $row;
@@ -190,7 +190,7 @@ class Items
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array<mixed>
      */
     public function getItem(int $exterm_item_id, int $user_id, int $caller_aiu): array
     {
@@ -208,12 +208,16 @@ class Items
              LIMIT 1"
         );
         $stmt->execute([$exterm_item_id]);
-        return $stmt->fetch(\PDO::FETCH_ASSOC);
+        $item = $stmt->fetch(\PDO::FETCH_ASSOC);
+        if (!is_array($item)) {
+            throw new NotFoundException("Item {$exterm_item_id} not found");
+        }
+        return $item;
     }
 
     /**
      * @param array<string, mixed> $data
-     * @return array<string, mixed>
+     * @return array<mixed>
      */
     public function createItem(int $user_id, int $caller_aiu, array $data): array
     {
@@ -247,7 +251,7 @@ class Items
      * write access on the destination project.
      *
      * @param array<string, mixed> $data
-     * @return array<string, mixed>
+     * @return array<mixed>
      */
     public function updateItem(int $user_id, int $caller_aiu, int $exterm_item_id, array $data): array
     {
