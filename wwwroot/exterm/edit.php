@@ -35,7 +35,7 @@ $aiu_stmt = $pdo->prepare(
 $aiu_stmt->execute([$user_id]);
 $human_aiu = (int) $aiu_stmt->fetchColumn();
 
-$exterm_item_id = (int)($_REQUEST['exterm_item_id'] ?? 0);
+$exterm_item_id = \Field::int($_REQUEST, 'exterm_item_id');
 if (!$exterm_item_id) {
     header("Location: /exterm/");
     exit;

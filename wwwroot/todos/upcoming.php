@@ -31,7 +31,7 @@ $pdo = \Database\Base::getPDO($config);
 $todoHelper = new \ActivityTracking\Todo($pdo);
 
 // Pagination Logic
-$page_num = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$page_num = isset($_GET['page']) ? max(1, \Field::int($_GET, 'page')) : 1;
 $limit = 20;
 $offset = ($page_num - 1) * $limit;
 

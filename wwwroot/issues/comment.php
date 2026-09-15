@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$issue_id = (int)($_POST['issue_id'] ?? 0);
+$issue_id = \Field::int($_POST, 'issue_id');
 $body     = trim($_POST['body'] ?? '');
 
 if ($issue_id <= 0) {

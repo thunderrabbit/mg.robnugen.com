@@ -162,7 +162,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
             echo json_encode(['deleted' => 0, 'events_untagged' => 0]);
             return;
         }
-        $mifmus_id = (int) $row['mifmus_id'];
+        $mifmus_id = \Field::int($row, 'mifmus_id');
 
         // Count events that will be untagged
         $stmt = $pdo->prepare('SELECT COUNT(*) FROM interaction_events WHERE mifmus_id = ?');
@@ -210,7 +210,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
                     echo json_encode(['error' => 'Unknown my_id']);
                     return;
                 }
-                $mifmus_id = (int) $row['mifmus_id'];
+                $mifmus_id = \Field::int($row, 'mifmus_id');
             }
 
             $session_id = $ledger->getOrCreateSession();
@@ -253,7 +253,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         $q_from       = $_GET['from'] ?? null;
         $q_to         = $_GET['to'] ?? null;
         $q_event_type = $_GET['event_type'] ?? null;
-        $q_limit      = min((int) ($_GET['limit'] ?? 50), 200);
+        $q_limit      = min(\Field::int($_GET, 'limit', 50), 200);
         if ($q_limit < 1) {
             $q_limit = 50;
         }
@@ -372,7 +372,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
                     return;
                 }
                 $sets[] = 'mifmus_id = ?';
-                $params[] = (int) $row['mifmus_id'];
+                $params[] = \Field::int($row, 'mifmus_id');
             } else {
                 $sets[] = 'mifmus_id = ?';
                 $params[] = null;
@@ -415,7 +415,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
 
     $q_from  = $_GET['from'] ?? null;
     $q_to    = $_GET['to'] ?? null;
-    $q_limit = min((int) ($_GET['limit'] ?? 20), 100);
+    $q_limit = min(\Field::int($_GET, 'limit', 20), 100);
     if ($q_limit < 1) {
         $q_limit = 20;
     }

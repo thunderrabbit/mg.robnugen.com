@@ -133,7 +133,7 @@ function project_membership(\PDO $pdo, int $project_id, int $user_id, int $calle
     if (!$row) {
         return null;
     }
-    return ['can_read' => (int)$row['can_read'], 'can_write' => (int)$row['can_write']];
+    return ['can_read' => \Field::int($row, 'can_read'), 'can_write' => \Field::int($row, 'can_write')];
 }
 
 // ── Route dispatch ────────────────────────────────────────────────────────────

@@ -22,11 +22,11 @@
 // ─── GET /issues/commits/list ───────────────────────────────────────────────
 
 if ($method === 'GET' && $xsub === '/list') {
-    $issue_id    = (int)($_GET['issue_id'] ?? 0);
+    $issue_id    = \Field::int($_GET, 'issue_id');
     $repo_id     = \Field::intOrNull($_GET, 'repo_id');
     $commit_hash = trim($_GET['commit_hash'] ?? '');
-    $limit       = max(1, min(500, (int)($_GET['limit'] ?? 200)));
-    $offset      = max(0, (int)($_GET['offset'] ?? 0));
+    $limit       = max(1, min(500, \Field::int($_GET, 'limit', 200)));
+    $offset      = max(0, \Field::int($_GET, 'offset'));
 
     if ($issue_id <= 0) {
         http_response_code(400);
@@ -86,8 +86,8 @@ if ($method === 'GET' && $xsub === '/list') {
 
 if ($method === 'POST' && $xsub === '/add') {
     $input       = json_decode((string) file_get_contents('php://input'), true) ?? [];
-    $issue_id    = (int)($input['issue_id'] ?? 0);
-    $repo_id     = (int)($input['repo_id'] ?? 0);
+    $issue_id    = \Field::int($input, 'issue_id');
+    $repo_id     = \Field::int($input, 'repo_id');
     $commit_hash = trim((string)($input['commit_hash'] ?? ''));
     $note        = array_key_exists('note', $input) ? trim((string)$input['note']) : null;
 
@@ -162,7 +162,7 @@ if ($method === 'POST' && $xsub === '/add') {
 
 if ($method === 'DELETE' && $xsub === '/delete') {
     $input            = json_decode((string) file_get_contents('php://input'), true) ?? [];
-    $issue_commit_id  = (int)($input['issue_commit_id'] ?? 0);
+    $issue_commit_id  = \Field::int($input, 'issue_commit_id');
 
     if ($issue_commit_id <= 0) {
         http_response_code(400);

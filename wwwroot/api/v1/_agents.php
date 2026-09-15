@@ -162,10 +162,10 @@ if ($method === 'POST' && $sub === '') {
 if ($method === 'POST' && $sub === '/visibility') {
     $input = json_decode((string) file_get_contents('php://input'), true) ?? [];
 
-    $reader_aiu = (int)($input['reader_aiu_id'] ?? 0);
+    $reader_aiu = \Field::int($input, 'reader_aiu_id');
     $peer_aiu   = \Field::intOrNull($input, 'peer_aiu_id');
-    $can_read   = (int)($input['can_read'] ?? 0);
-    $can_send   = (int)($input['can_send'] ?? 0);
+    $can_read   = \Field::int($input, 'can_read');
+    $can_send   = \Field::int($input, 'can_send');
 
     if ($reader_aiu <= 0) {
         http_response_code(400);
@@ -231,7 +231,7 @@ if ($method === 'POST' && $sub === '/visibility') {
 if ($method === 'POST' && $sub === '/keys') {
     $input = json_decode((string) file_get_contents('php://input'), true) ?? [];
 
-    $aiu_id = (int)($input['aiu_id'] ?? 0);
+    $aiu_id = \Field::int($input, 'aiu_id');
     $label  = trim($input['label'] ?? '');
 
     if ($aiu_id <= 0) {

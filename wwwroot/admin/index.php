@@ -27,7 +27,7 @@ if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
             header('Location: /admin/');
             exit;
         } elseif ($action === 'dismiss_alert' && !empty($_POST['omg_id'])) {
-            \Admin\OmgAlerts::dismissOne($mla_database, (int) $_POST['omg_id']);
+            \Admin\OmgAlerts::dismissOne($mla_database, \Field::int($_POST, 'omg_id'));
             header('Location: /admin/');
             exit;
         }

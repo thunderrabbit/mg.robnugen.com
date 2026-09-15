@@ -72,14 +72,14 @@ class Issues
         }
 
         $role = $this->projectAccess($project_id, $user_id, $caller_aiu);
-        if (!(int)$role['can_read']) {
+        if (!\Field::int($role, 'can_read')) {
             throw new AccessException("No read access to project {$project_id}");
         }
 
         $status_slug      = trim($filters['status'] ?? '');
-        $include_terminal = (int)($filters['include_terminal'] ?? 0);
-        $limit            = max(1, min(200, (int)($filters['limit'] ?? 100)));
-        $offset           = max(0, (int)($filters['offset'] ?? 0));
+        $include_terminal = \Field::int($filters, 'include_terminal');
+        $limit            = max(1, min(200, \Field::int($filters, 'limit', 100)));
+        $offset           = max(0, \Field::int($filters, 'offset'));
 
         $where  = ['i.project_id = ?', 'p.user_id = ?'];
         $params = [$project_id, $user_id];
@@ -129,7 +129,7 @@ class Issues
         );
         $stmt->execute([$caller_aiu, $issue_id, $user_id]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-        if (!$row || !(int)$row['can_read']) {
+        if (!$row || !\Field::int($row, 'can_read')) {
             throw new NotFoundException("Issue {$issue_id} not found or no access");
         }
         unset($row['can_read'], $row['can_write']);
@@ -173,7 +173,7 @@ class Issues
         if (!$row) {
             throw new NotFoundException("Issue {$issue_id} not found or no access");
         }
-        if (!(int)$row['can_write']) {
+        if (!\Field::int($row, 'can_write')) {
             throw new AccessException("No write access to project");
         }
 
@@ -233,7 +233,7 @@ class Issues
         if (!$row) {
             throw new NotFoundException("Issue {$issue_id} not found or no access");
         }
-        if (!(int)$row['can_write']) {
+        if (!\Field::int($row, 'can_write')) {
             throw new AccessException("No write access to project");
         }
 
@@ -258,8 +258,8 @@ class Issues
      */
     public function listComments(int $issue_id, int $user_id, int $caller_aiu, array $filters = []): array
     {
-        $limit  = max(1, min(200, (int)($filters['limit']  ?? 100)));
-        $offset = max(0, (int)($filters['offset'] ?? 0));
+        $limit  = max(1, min(200, \Field::int($filters, 'limit', 100)));
+        $offset = max(0, \Field::int($filters, 'offset'));
 
         $stmt = $this->pdo->prepare(
             "SELECT pm.can_read
@@ -274,7 +274,7 @@ class Issues
         if (!$row) {
             throw new NotFoundException("Issue {$issue_id} not found or no access");
         }
-        if (!(int)$row['can_read']) {
+        if (!\Field::int($row, 'can_read')) {
             throw new AccessException("No read access to project");
         }
 
@@ -312,7 +312,7 @@ class Issues
      */
     public function createIssue(int $user_id, int $caller_aiu, array $data): array
     {
-        $project_id  = isset($data['project_id']) ? (int)$data['project_id'] : 0;
+        $project_id  = \Field::int($data, 'project_id');
         $title       = trim($data['title'] ?? '');
         $description = array_key_exists('description', $data) ? (string)$data['description'] : null;
         $priority    = trim((string)($data['priority'] ?? 'normal'));
@@ -331,7 +331,7 @@ class Issues
         }
 
         $role = $this->projectAccess($project_id, $user_id, $caller_aiu);
-        if (!(int)$role['can_write']) {
+        if (!\Field::int($role, 'can_write')) {
             throw new AccessException("No write access to project {$project_id}");
         }
 
@@ -343,8 +343,8 @@ class Issues
         if (!$default) {
             throw new \RuntimeException("no default issue status configured");
         }
-        $status_id   = (int)$default['status_id'];
-        $is_terminal = (int)$default['is_terminal'];
+        $status_id   = \Field::int($default, 'status_id');
+        $is_terminal = \Field::int($default, 'is_terminal');
 
         // $is_terminal is server-local, not user-controlled → safe to interpolate
         $done_clause = $is_terminal ? 'NOW(6)' : 'NULL';

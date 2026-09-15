@@ -76,7 +76,7 @@ try {
 
         // Duration
         if (!empty($todoData['target_duration_seconds'])) {
-            $options['target_duration_seconds'] = (int)$todoData['target_duration_seconds'];
+            $options['target_duration_seconds'] = \Field::int($todoData, 'target_duration_seconds');
             $options['is_timer'] = 1; // Assume generic timer if duration set
         }
 

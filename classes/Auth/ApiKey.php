@@ -34,14 +34,14 @@ class ApiKey
             return null;
         }
 
-        $this->last_key_id = (int) $row['key_id'];
+        $this->last_key_id = \Field::int($row, 'key_id');
 
         $update = $this->di_pdo->prepare(
             "UPDATE api_keys SET last_used = NOW() WHERE key_id = ?"
         );
         $update->execute([$this->last_key_id]);
 
-        return (int) $row['user_id'];
+        return \Field::int($row, 'user_id');
     }
 
     /**

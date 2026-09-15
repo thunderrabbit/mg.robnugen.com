@@ -25,8 +25,8 @@ if (!$is_logged_in->isLoggedIn()) {
 }
 
 // Get pagination parameters
-$limit = min((int)($_GET['limit'] ?? 10), 50); // Max 50 per page
-$offset = max((int)($_GET['offset'] ?? 0), 0);
+$limit = min(\Field::int($_GET, 'limit', 10), 50); // Max 50 per page
+$offset = max(\Field::int($_GET, 'offset'), 0);
 
 try {
     $pdo = \Database\Base::getPDO($config);

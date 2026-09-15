@@ -79,9 +79,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'description' => trim($_POST['description'] ?? ''),
             'is_timer' => isset($_POST['is_timer']) ? 1 : 0,
             'is_counter' => isset($_POST['is_counter']) ? 1 : 0,
-            'target_count' => (int)($_POST['target_count'] ?? 1),
-            'target_duration_seconds' => !empty($_POST['target_duration_seconds']) ? (int)$_POST['target_duration_seconds'] : null,
-            'activity_id' => !empty($_POST['activity_id']) ? (int)$_POST['activity_id'] : null,
+            'target_count' => \Field::int($_POST, 'target_count', 1),
+            'target_duration_seconds' => !empty($_POST['target_duration_seconds']) ? \Field::int($_POST, 'target_duration_seconds') : null,
+            'activity_id' => !empty($_POST['activity_id']) ? \Field::int($_POST, 'activity_id') : null,
             'do_time' => !empty($_POST['do_time']) ? $_POST['do_time'] : null,
             'due_date' => !empty($_POST['due_date']) ? $_POST['due_date'] : null,
             'is_active' => 1
@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Handle Days Between (Interval Recurrence)
         if (!empty($_POST['do_every_n_days'])) {
-            $n = (int) $_POST['do_every_n_days'];
+            $n = \Field::int($_POST, 'do_every_n_days');
             if ($n >= 1) {
                 $data['do_every_n_days'] = $n;
             }

@@ -76,7 +76,7 @@ if ($todos_path === '/list') {
         $completed_nths = array_column($completions, 'nth');
         $todo['completed_nths'] = array_map('intval', $completed_nths);
 
-        $targetCount = (int) ($todo['target_count'] ?? 1);
+        $targetCount = \Field::int($todo, 'target_count', 1);
 
         if (!$isRecurring && !empty($todo['due_date'])) {
             $completedToday = !empty($completions) && count($completions) >= $targetCount;
@@ -99,7 +99,7 @@ if ($todos_path === '/list') {
 
             if (is_string($lastDone) && $lastDone !== '') {
                 $next = new \DateTime($lastDone, $tz);
-                $next->modify('+' . (int) $todo['do_every_n_days'] . ' days');
+                $next->modify('+' . \Field::int($todo, 'do_every_n_days') . ' days');
                 $todo['next_due_date'] = $next->format('Y-m-d');
                 $todo['days_until_due'] = (int) $now->diff($next)->format('%r%a');
             } else {
@@ -186,8 +186,8 @@ if ($todos_path === '/list') {
     }
 
     $body = json_decode((string) file_get_contents('php://input'), true);
-    $todo_id = (int) ($body['todo_id'] ?? 0);
-    $nth = (int) ($body['nth'] ?? 0);
+    $todo_id = \Field::int($body, 'todo_id');
+    $nth = \Field::int($body, 'nth');
     $timezone = $body['timezone'] ?? 'UTC';
 
     if ($todo_id <= 0 || $nth <= 0) {
@@ -256,8 +256,8 @@ if ($todos_path === '/list') {
     }
 
     $body = json_decode((string) file_get_contents('php://input'), true);
-    $todo_id = (int) ($body['todo_id'] ?? 0);
-    $nth = (int) ($body['nth'] ?? 0);
+    $todo_id = \Field::int($body, 'todo_id');
+    $nth = \Field::int($body, 'nth');
     $timezone = $body['timezone'] ?? 'UTC';
 
     if ($todo_id <= 0 || $nth <= 0) {
@@ -347,7 +347,7 @@ if ($todos_path === '/list') {
     }
 
     $body = json_decode((string) file_get_contents('php://input'), true);
-    $todo_id = (int) ($body['todo_id'] ?? 0);
+    $todo_id = \Field::int($body, 'todo_id');
     $field = $body['field'] ?? '';
     $value = $body['value'] ?? null;
 
@@ -470,7 +470,7 @@ if ($todos_path === '/list') {
     }
 
     $body = json_decode((string) file_get_contents('php://input'), true);
-    $todo_id = (int) ($body['todo_id'] ?? 0);
+    $todo_id = \Field::int($body, 'todo_id');
 
     if ($todo_id <= 0) {
         http_response_code(400);
@@ -493,7 +493,7 @@ if ($todos_path === '/list') {
     }
 
     $body = json_decode((string) file_get_contents('php://input'), true);
-    $todo_id = (int) ($body['todo_id'] ?? 0);
+    $todo_id = \Field::int($body, 'todo_id');
 
     if ($todo_id <= 0) {
         http_response_code(400);
@@ -516,7 +516,7 @@ if ($todos_path === '/list') {
     }
 
     $body = json_decode((string) file_get_contents('php://input'), true);
-    $todo_id = (int) ($body['todo_id'] ?? 0);
+    $todo_id = \Field::int($body, 'todo_id');
 
     if ($todo_id <= 0) {
         http_response_code(400);
@@ -538,8 +538,8 @@ if ($todos_path === '/list') {
     }
 
     $body = json_decode((string) file_get_contents('php://input'), true);
-    $todo_id = (int) ($body['todo_id'] ?? 0);
-    $ak_id = (int) ($body['ak_id'] ?? 0);
+    $todo_id = \Field::int($body, 'todo_id');
+    $ak_id = \Field::int($body, 'ak_id');
     $duration_seconds = \Field::intOrNull($body, 'duration_seconds');
     $timezone = $body['timezone'] ?? 'UTC';
 
@@ -625,8 +625,8 @@ if ($todos_path === '/list') {
         return;
     }
 
-    $limit = min((int) ($_GET['limit'] ?? 20), 50);
-    $offset = max((int) ($_GET['offset'] ?? 0), 0);
+    $limit = min(\Field::int($_GET, 'limit', 20), 50);
+    $offset = max(\Field::int($_GET, 'offset'), 0);
     if ($limit < 1) {
         $limit = 20;
     }

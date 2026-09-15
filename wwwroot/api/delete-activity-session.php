@@ -46,7 +46,7 @@ if (!empty($session_key)) {
         exit;
     }
 } else {
-    $ak_id = (int)($input['ak_id'] ?? 0);
+    $ak_id = \Field::int($input, 'ak_id');
 }
 
 if ($ak_id <= 0) {

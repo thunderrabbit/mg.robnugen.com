@@ -100,7 +100,7 @@ class InboxListCest
         $I->seeResponseCodeIs(201);
         $raw = $I->grabResponse();
         $decoded = json_decode($raw, true);
-        $id = (int)($decoded['message_id'] ?? 0);
+        $id = \Field::int($decoded, 'message_id');
         if ($id <= 0) {
             $I->fail('Expected message_id in POST /inbox/send response, got: ' . $raw);
         }
@@ -124,7 +124,7 @@ class InboxListCest
         $ids = [];
         foreach (($decoded['messages'] ?? []) as $m) {
             if (isset($m['message']) && str_contains($m['message'], $this->marker)) {
-                $ids[] = (int)$m['message_id'];
+                $ids[] = \Field::int($m, 'message_id');
             }
         }
         return $ids;

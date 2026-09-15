@@ -128,8 +128,8 @@ if ($grant_type === 'authorization_code') {
     $pdo->prepare("UPDATE oauth_auth_codes SET used_at_utc = NOW() WHERE code_id = ?")
         ->execute([$code_row['code_id']]);
 
-    $aiu_id           = (int) $code_row['aiu_id'];
-    $auth_user_id     = (int) $code_row['user_id'];
+    $aiu_id           = \Field::int($code_row, 'aiu_id');
+    $auth_user_id     = \Field::int($code_row, 'user_id');
     $existing_token_id = null;
 
     // ── Refresh Token (silent renewal) ───────────────────────────────────────────
@@ -158,9 +158,9 @@ if ($grant_type === 'authorization_code') {
         exit;
     }
 
-    $aiu_id            = (int) $refresh_row['aiu_id'];
-    $auth_user_id      = (int) $refresh_row['user_id'];
-    $existing_token_id = (int) $refresh_row['token_id'];
+    $aiu_id            = \Field::int($refresh_row, 'aiu_id');
+    $auth_user_id      = \Field::int($refresh_row, 'user_id');
+    $existing_token_id = \Field::int($refresh_row, 'token_id');
 
     // ── Client Credentials (fallback) ────────────────────────────────────────────
 } elseif ($grant_type === 'client_credentials') {

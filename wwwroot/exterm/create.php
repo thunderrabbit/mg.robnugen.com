@@ -42,7 +42,7 @@ $aiu_stmt = $pdo->prepare(
 $aiu_stmt->execute([$user_id]);
 $human_aiu = (int) $aiu_stmt->fetchColumn();
 
-$project_id = (int)($_REQUEST['project_id'] ?? 0);
+$project_id = \Field::int($_REQUEST, 'project_id');
 if ($project_id <= 0) {
     header("Location: /exterm/");
     exit;

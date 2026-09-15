@@ -59,8 +59,8 @@ if ($method === 'GET' && $ak_id === null && !$is_backfill) {
     $to          = $_GET['to']   ?? null;
     $activity_id = \Field::intOrNull($_GET, 'activity_id');
     $is_active   = \Field::intOrNull($_GET, 'is_active');
-    $limit       = min((int)($_GET['limit']  ?? 20), 50);
-    $offset      = max((int)($_GET['offset'] ?? 0), 0);
+    $limit       = min(\Field::int($_GET, 'limit', 20), 50);
+    $offset      = max(\Field::int($_GET, 'offset'), 0);
 
     $where  = ['ak.user_id = ?'];
     $params = [$auth_user_id];
@@ -140,7 +140,7 @@ if ($method === 'POST' && $is_backfill) {
     require_credit($pdo, $auth_user_id, $auth_key_id, $path);
 
     $input        = json_decode((string) file_get_contents('php://input'), true) ?? [];
-    $activity_id  = (int)($input['activity_id']  ?? 1);
+    $activity_id  = \Field::int($input, 'activity_id', 1);
     $timezone_str = trim($input['timezone'] ?? 'UTC');
     $start_time   = trim($input['start_time'] ?? '');
     $end_time     = trim($input['end_time']   ?? '');
@@ -220,9 +220,9 @@ if ($method === 'POST' && $ak_id === null) {
     require_credit($pdo, $auth_user_id, $auth_key_id, $path);
 
     $input        = json_decode((string) file_get_contents('php://input'), true) ?? [];
-    $activity_id  = (int)($input['activity_id']  ?? 1);
+    $activity_id  = \Field::int($input, 'activity_id', 1);
     $timezone_str = trim($input['timezone'] ?? 'UTC');
-    $intended_sec = (int)($input['intended_sec']  ?? 0);
+    $intended_sec = \Field::int($input, 'intended_sec');
 
     // Validate timezone using PHP's DateTimeZone (handles America/New_York etc.)
     try {
@@ -284,7 +284,7 @@ if ($method === 'PATCH' && $ak_id !== null && $sub_action === 'stop') {
         exit;
     }
 
-    $actual_sec = max(0, (int)$row['elapsed']);
+    $actual_sec = max(0, \Field::int($row, 'elapsed'));
     $activityHelper->stopActivity($ak_id, $auth_user_id, $actual_sec, 0);
 
     echo json_encode([

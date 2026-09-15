@@ -95,8 +95,8 @@ $credits = (int)$credit_stmt->fetchColumn();
 
 echo json_encode([
     'stats' => [
-        'total_sessions'      => (int)$totals['total_sessions'],
-        'total_seconds'       => (int)$totals['total_seconds'],
+        'total_sessions'      => \Field::int($totals, 'total_sessions'),
+        'total_seconds'       => \Field::int($totals, 'total_seconds'),
         'current_streak_days' => $streak,
         'credits_remaining'   => $credits,
     ],

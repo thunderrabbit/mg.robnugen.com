@@ -31,7 +31,7 @@ $is_human = ($auth_actor['actor_type'] ?? '') === 'human';
 // ── GET /repositories/list ───────────────────────────────────────────────────
 
 if ($method === 'GET' && $sub === '/list') {
-    $include_inactive = (int)($_GET['include_inactive'] ?? 0);
+    $include_inactive = \Field::int($_GET, 'include_inactive');
 
     $where = ['user_id = ?'];
     $params = [$auth_user_id];
@@ -126,7 +126,7 @@ if ($method === 'PATCH' && $sub === '/update') {
     }
 
     $input          = json_decode((string) file_get_contents('php://input'), true) ?? [];
-    $repo_id        = (int)($input['repo_id'] ?? 0);
+    $repo_id        = \Field::int($input, 'repo_id');
     $name           = array_key_exists('name', $input)           ? trim((string)$input['name'])           : null;
     $url            = array_key_exists('url', $input)            ? trim((string)$input['url'])            : 'NOT_SET';
     $default_branch = array_key_exists('default_branch', $input) ? trim((string)$input['default_branch']) : null;
@@ -194,7 +194,7 @@ if ($method === 'PATCH' && $sub === '/deactivate') {
     }
 
     $input   = json_decode((string) file_get_contents('php://input'), true) ?? [];
-    $repo_id = (int)($input['repo_id'] ?? 0);
+    $repo_id = \Field::int($input, 'repo_id');
 
     if ($repo_id <= 0) {
         http_response_code(400);

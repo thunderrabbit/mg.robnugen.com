@@ -122,7 +122,7 @@ class SessionKey
         ");
         $stmt->execute([$session_key]);
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
-        return $result ? (int)$result['ak_id'] : null;
+        return $result ? \Field::int($result, 'ak_id') : null;
     }
 
     /**

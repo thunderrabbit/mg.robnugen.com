@@ -61,7 +61,7 @@ class Ledger
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         if ($row) {
-            $session_id = (int) $row['session_id'];
+            $session_id = \Field::int($row, 'session_id');
             $this->pdo->prepare(
                 'UPDATE interaction_sessions SET last_event_time = NOW() WHERE session_id = ?'
             )->execute([$session_id]);

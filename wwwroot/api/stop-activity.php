@@ -49,8 +49,8 @@ if (!empty($session_key)) {
     $ak_id = (int)($input['ak_id'] ?? $_SESSION['active_ak_id'] ?? 0);
 }
 
-$actual_sec = (int)($input['actual_sec'] ?? 0);
-$bonus_sec = (int)($input['bonus_sec'] ?? 0);
+$actual_sec = \Field::int($input, 'actual_sec');
+$bonus_sec = \Field::int($input, 'bonus_sec');
 
 if ($ak_id <= 0) {
     http_response_code(400);

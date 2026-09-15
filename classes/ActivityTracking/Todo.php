@@ -101,7 +101,7 @@ class Todo
 
         $stmt->execute([$todo_id, $date]);
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
-        return (int)$result['count'];
+        return \Field::int($result, 'count');
     }
 
     /**
@@ -145,7 +145,7 @@ class Todo
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         return [
-            'count' => (int)($result['count'] ?? 0),
+            'count' => \Field::int($result, 'count'),
             'last_logged' => $result['last_logged'] ?? null
         ];
     }
@@ -203,7 +203,7 @@ class Todo
             ");
             $existing->execute([$todo_id, $ak_id]);
             $row = $existing->fetch(\PDO::FETCH_ASSOC);
-            return $row ? (int)$row['log_id'] : 0;
+            return $row ? \Field::int($row, 'log_id') : 0;
         }
 
         return $log_id;

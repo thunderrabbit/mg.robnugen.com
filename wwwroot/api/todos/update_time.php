@@ -35,7 +35,7 @@ if (empty($input['todo_id'])) {
     exit;
 }
 
-$todo_id = (int)$input['todo_id'];
+$todo_id = \Field::int($input, 'todo_id');
 $do_time = $input['do_time'] ?? null;
 
 // Validate time format (HH:MM or HH:MM:SS) if provided

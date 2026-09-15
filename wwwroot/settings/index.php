@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_key_action'])) {
 
     if ($_POST['api_key_action'] === 'generate') {
         $label       = trim($_POST['api_key_label'] ?? '');
-        $aiu_id      = (int)($_POST['aiu_id'] ?? 0) ?: null;
+        $aiu_id      = \Field::int($_POST, 'aiu_id') ?: null;
         try {
             $new_api_key = $apiKeyHelper->generateKey($user_id, $label, $aiu_id);
             $success_message = 'API key generated. Copy it now — it will not be shown again.';
@@ -89,8 +89,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_key_action'])) {
             $success_message = "Agent '$name' created (ID: $new_aiu_id).";
         }
     } elseif ($_POST['api_key_action'] === 'assign_actor') {
-        $key_id = (int)($_POST['key_id'] ?? 0);
-        $aiu_id = (int)($_POST['aiu_id'] ?? 0);
+        $key_id = \Field::int($_POST, 'key_id');
+        $aiu_id = \Field::int($_POST, 'aiu_id');
         if ($key_id > 0 && $aiu_id > 0) {
             $stmt = $mla_database->prepare(
                 "UPDATE api_keys SET aiu_id = ? WHERE key_id = ? AND user_id = ?"
@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_key_action'])) {
             $success_message = 'Actor assigned to key.';
         }
     } elseif ($_POST['api_key_action'] === 'revoke') {
-        $key_id = (int)($_POST['key_id'] ?? 0);
+        $key_id = \Field::int($_POST, 'key_id');
         if ($key_id > 0 && $apiKeyHelper->revokeKey($key_id, $user_id)) {
             $success_message = 'API key revoked.';
         } else {

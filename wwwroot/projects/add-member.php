@@ -25,7 +25,7 @@ if (!$is_logged_in->isAdmin() && !$is_logged_in->isPaid()) {
     exit;
 }
 
-$project_id = (int)($_REQUEST['project_id'] ?? 0);
+$project_id = \Field::int($_REQUEST, 'project_id');
 if ($project_id <= 0) {
     header("Location: /projects/?msg=project_not_found");
     exit;

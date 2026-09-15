@@ -37,7 +37,7 @@
  */
 
 $sub        = preg_replace('#^/exterm#', '', $path) ?: '/';
-$caller_aiu = (int) $auth_actor['aiu_id'];
+$caller_aiu = \Field::int($auth_actor, 'aiu_id');
 $exterm     = new \Exterm\Items($pdo);
 
 function exterm_error(int $code, string $msg): void
@@ -73,7 +73,7 @@ if ($sub === '/list' && $method === 'GET') {
 
 // ── GET /exterm/get ───────────────────────────────────────────────────────────
 if ($sub === '/get' && $method === 'GET') {
-    $id = isset($_GET['exterm_item_id']) ? (int)$_GET['exterm_item_id'] : 0;
+    $id = \Field::int($_GET, 'exterm_item_id');
     if (!$id) {
         exterm_error(400, "exterm_item_id is required");
     }
@@ -89,7 +89,7 @@ if ($sub === '/get' && $method === 'GET') {
 if ($sub === '/search' && $method === 'GET') {
     $query      = trim($_GET['query'] ?? '');
     $project_id = \Field::intOrNull($_GET, 'project_id');
-    $limit      = isset($_GET['limit']) ? (int)$_GET['limit'] : 20;
+    $limit      = \Field::int($_GET, 'limit', 20);
     try {
         echo json_encode($exterm->searchItems($auth_user_id, $caller_aiu, $query, $project_id, $limit));
     } catch (\Exterm\AccessException | \Exterm\NotFoundException | \Exterm\ValidationException $e) {
@@ -117,7 +117,7 @@ if ($sub === '/create' && $method === 'POST') {
 
 // ── PATCH /exterm/update ──────────────────────────────────────────────────────
 if ($sub === '/update' && $method === 'PATCH') {
-    $id = isset($body['exterm_item_id']) ? (int)$body['exterm_item_id'] : 0;
+    $id = \Field::int($body, 'exterm_item_id');
     if (!$id) {
         exterm_error(400, "exterm_item_id is required");
     }
@@ -132,7 +132,7 @@ if ($sub === '/update' && $method === 'PATCH') {
 
 // ── DELETE /exterm/delete ─────────────────────────────────────────────────────
 if ($sub === '/delete' && $method === 'DELETE') {
-    $id = isset($body['exterm_item_id']) ? (int)$body['exterm_item_id'] : 0;
+    $id = \Field::int($body, 'exterm_item_id');
     if (!$id) {
         exterm_error(400, "exterm_item_id is required");
     }

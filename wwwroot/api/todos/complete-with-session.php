@@ -32,8 +32,8 @@ if (!$input || !isset($input['todo_id']) || !isset($input['ak_id'])) {
     exit;
 }
 
-$todo_id = (int)$input['todo_id'];
-$ak_id = (int)$input['ak_id'];
+$todo_id = \Field::int($input, 'todo_id');
+$ak_id = \Field::int($input, 'ak_id');
 $duration_seconds = \Field::intOrNull($input, 'duration_seconds');
 $timezone = $input['timezone'] ?? date_default_timezone_get();
 

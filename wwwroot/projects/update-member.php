@@ -28,8 +28,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$project_id = (int)($_POST['project_id'] ?? 0);
-$member_aiu = (int)($_POST['member_aiu'] ?? 0);
+$project_id = \Field::int($_POST, 'project_id');
+$member_aiu = \Field::int($_POST, 'member_aiu');
 $can_read   = !empty($_POST['can_read'])  ? 1 : 0;
 $can_write  = !empty($_POST['can_write']) ? 1 : 0;
 

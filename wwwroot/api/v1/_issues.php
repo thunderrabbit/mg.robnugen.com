@@ -53,7 +53,7 @@
  */
 
 $sub        = preg_replace('#^/issues#', '', $path) ?: '/';
-$caller_aiu = (int) $auth_actor['aiu_id'];
+$caller_aiu = \Field::int($auth_actor, 'aiu_id');
 $is_human   = ($auth_actor['actor_type'] ?? '') === 'human';
 
 // ─── Helpers (file-local) ────────────────────────────────────────────────────
@@ -83,7 +83,7 @@ function issue_with_access(\PDO $pdo, int $issue_id, int $user_id, int $caller_a
     }
     return [
         'issue' => $row,
-        'role'  => ['can_read' => (int)$row['can_read'], 'can_write' => (int)$row['can_write']],
+        'role'  => ['can_read' => \Field::int($row, 'can_read'), 'can_write' => \Field::int($row, 'can_write')],
     ];
 }
 
@@ -143,13 +143,13 @@ if ($method === 'GET' && $sub === '/statuses') {
 // ─── GET /issues/list ────────────────────────────────────────────────────────
 
 if ($method === 'GET' && $sub === '/list') {
-    $project_id       = (int)($_GET['project_id'] ?? 0);
+    $project_id       = \Field::int($_GET, 'project_id');
     $status_slug      = trim($_GET['status'] ?? '');
     $assignee_aiu     = \Field::intOrNull($_GET, 'assignee_aiu');
-    $include_terminal = (int)($_GET['include_terminal'] ?? 0);
+    $include_terminal = \Field::int($_GET, 'include_terminal');
     $parent_filter    = isset($_GET['parent_issue_id']) ? $_GET['parent_issue_id'] : null;
-    $limit            = max(1, min(200, (int)($_GET['limit'] ?? 100)));
-    $offset           = max(0, (int)($_GET['offset'] ?? 0));
+    $limit            = max(1, min(200, \Field::int($_GET, 'limit', 100)));
+    $offset           = max(0, \Field::int($_GET, 'offset'));
 
     if ($project_id <= 0) {
         http_response_code(400);
@@ -229,7 +229,7 @@ if ($method === 'GET' && $sub === '/list') {
 // ─── GET /issues/get ─────────────────────────────────────────────────────────
 
 if ($method === 'GET' && $sub === '/get') {
-    $issue_id = (int)($_GET['issue_id'] ?? 0);
+    $issue_id = \Field::int($_GET, 'issue_id');
     if ($issue_id <= 0) {
         http_response_code(400);
         echo json_encode(['error' => 'issue_id is required']);
@@ -249,7 +249,7 @@ if ($method === 'GET' && $sub === '/get') {
     $status_stmt = $pdo->prepare(
         "SELECT slug, label, is_terminal FROM issue_statuses WHERE status_id = ?"
     );
-    $status_stmt->execute([(int)$issue['status_id']]);
+    $status_stmt->execute([\Field::int($issue, 'status_id')]);
     $status_row = $status_stmt->fetch(\PDO::FETCH_ASSOC);
 
     $counts_stmt = $pdo->prepare(
@@ -277,7 +277,7 @@ if ($method === 'GET' && $sub === '/get') {
 
 if ($method === 'POST' && $sub === '/create') {
     $input           = json_decode((string) file_get_contents('php://input'), true) ?? [];
-    $project_id      = (int)($input['project_id'] ?? 0);
+    $project_id      = \Field::int($input, 'project_id');
     $title           = trim($input['title'] ?? '');
     $description     = array_key_exists('description', $input) ? (string)$input['description'] : null;
     $assignee_aiu    = array_key_exists('assignee_aiu', $input) && $input['assignee_aiu'] !== null
@@ -343,7 +343,7 @@ if ($method === 'POST' && $sub === '/create') {
         );
         $p->execute([$parent_issue_id]);
         $parent_row = $p->fetch(\PDO::FETCH_ASSOC);
-        if (!$parent_row || (int)$parent_row['project_id'] !== $project_id) {
+        if (!$parent_row || \Field::int($parent_row, 'project_id') !== $project_id) {
             http_response_code(400);
             echo json_encode(['error' => 'parent_issue_id must be an issue in the same project']);
             return;
@@ -360,7 +360,7 @@ if ($method === 'POST' && $sub === '/create') {
             echo json_encode(['error' => 'status_id is not a valid status']);
             return;
         }
-        $is_terminal = (int)$status_row['is_terminal'];
+        $is_terminal = \Field::int($status_row, 'is_terminal');
     } else {
         $d = $pdo->prepare(
             "SELECT status_id, is_terminal FROM issue_statuses WHERE is_default = 1 LIMIT 1"
@@ -372,8 +372,8 @@ if ($method === 'POST' && $sub === '/create') {
             echo json_encode(['error' => 'no default status configured']);
             return;
         }
-        $status_id   = (int)$default_row['status_id'];
-        $is_terminal = (int)$default_row['is_terminal'];
+        $status_id   = \Field::int($default_row, 'status_id');
+        $is_terminal = \Field::int($default_row, 'is_terminal');
     }
 
     require_credit($pdo, $auth_user_id, $auth_key_id, 'issues/create');
@@ -411,7 +411,7 @@ if ($method === 'POST' && $sub === '/create') {
 
 if ($method === 'PATCH' && $sub === '/update') {
     $input    = json_decode((string) file_get_contents('php://input'), true) ?? [];
-    $issue_id = (int)($input['issue_id'] ?? 0);
+    $issue_id = \Field::int($input, 'issue_id');
 
     $title_in           = array_key_exists('title', $input)
                           ? trim((string)$input['title']) : null;
@@ -458,7 +458,7 @@ if ($method === 'PATCH' && $sub === '/update') {
         return;
     }
     $issue      = $access['issue'];
-    $project_id = (int)$issue['project_id'];
+    $project_id = \Field::int($issue, 'project_id');
 
     // All SET clauses must be qualified with `i.` — the UPDATE joins `projects p`,
     // which has overlapping column names (notably `description`), so unqualified
@@ -513,7 +513,7 @@ if ($method === 'PATCH' && $sub === '/update') {
             );
             $p->execute([$new_parent]);
             $parent_row = $p->fetch(\PDO::FETCH_ASSOC);
-            if (!$parent_row || (int)$parent_row['project_id'] !== $project_id) {
+            if (!$parent_row || \Field::int($parent_row, 'project_id') !== $project_id) {
                 http_response_code(400);
                 echo json_encode(['error' => 'parent_issue_id must be an issue in the same project']);
                 return;
@@ -533,7 +533,7 @@ if ($method === 'PATCH' && $sub === '/update') {
             echo json_encode(['error' => 'status_id is not a valid status']);
             return;
         }
-        $new_is_terminal = (int)$status_row['is_terminal'];
+        $new_is_terminal = \Field::int($status_row, 'is_terminal');
 
         // Block transition into a terminal status while timers are running
         if ($new_is_terminal) {
@@ -590,7 +590,7 @@ if ($method === 'DELETE' && $sub === '/delete') {
     }
 
     $input    = json_decode((string) file_get_contents('php://input'), true) ?? [];
-    $issue_id = (int)($input['issue_id'] ?? 0);
+    $issue_id = \Field::int($input, 'issue_id');
     if ($issue_id <= 0) {
         http_response_code(400);
         echo json_encode(['error' => 'issue_id is required']);

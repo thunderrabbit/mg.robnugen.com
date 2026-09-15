@@ -118,7 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $client_id !== '') {
 // ── POST: issue code, remember consent, and redirect ──────────────────────────
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $chosen_aiu = (int)($_POST['aiu_id'] ?? 0);
+    $chosen_aiu = \Field::int($_POST, 'aiu_id');
 
     // Verify chosen aiu belongs to this user
     $valid = false;

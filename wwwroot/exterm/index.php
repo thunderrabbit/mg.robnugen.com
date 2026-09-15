@@ -43,7 +43,7 @@ $proj_stmt = $pdo->prepare(
 $proj_stmt->execute([$user_id]);
 $projects = $proj_stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-$project_id   = isset($_GET['project_id']) ? (int)$_GET['project_id'] : 0;
+$project_id   = \Field::int($_GET, 'project_id');
 
 $items        = [];
 $project_name = '';

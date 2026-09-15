@@ -59,12 +59,12 @@ if ($is_write_op && ($guard = $guards->permission($auth_actor, 'can_write_inbox'
 if ($method === 'GET' && $sub === '/list') {
     // ── List inbox messages ──────────────────────────────────────────────
     $status = trim($_GET['status'] ?? '');   // pending | seen | done | (empty = all)
-    $limit  = max(1, min(100, (int)($_GET['limit'] ?? 50)));
-    $offset = max(0, (int)($_GET['offset'] ?? 0));
-    $include_sent = (int)($_GET['include_sent'] ?? 0);
-    $filter_sender_aiu = (int)($_GET['sender_aiu'] ?? 0);
+    $limit  = max(1, min(100, \Field::int($_GET, 'limit', 50)));
+    $offset = max(0, \Field::int($_GET, 'offset'));
+    $include_sent = \Field::int($_GET, 'include_sent');
+    $filter_sender_aiu = \Field::int($_GET, 'sender_aiu');
 
-    $caller_aiu = (int) $auth_actor['aiu_id'];
+    $caller_aiu = \Field::int($auth_actor, 'aiu_id');
 
     $where = ['i.user_id = ?'];
     $params = [$auth_user_id];
@@ -107,12 +107,12 @@ if ($method === 'GET' && $sub === '/list') {
         $params[] = $filter_sender_aiu;
     }
 
-    $include_archived = (int)($_GET['include_archived'] ?? 0);
+    $include_archived = \Field::int($_GET, 'include_archived');
     if (!$include_archived) {
         $where[] = 'i.archived_at IS NULL';
     }
 
-    $include_future = (int)($_GET['include_future'] ?? 0);
+    $include_future = \Field::int($_GET, 'include_future');
     if (!$include_future) {
         $where[] = '(i.show_date IS NULL OR i.show_date <= NOW())';
     }
@@ -184,7 +184,7 @@ if ($method === 'GET' && $sub === '/list') {
     }
 
     // Auto-populate sender from the calling key's actor
-    $sender_aiu = (int) $auth_actor['aiu_id'];
+    $sender_aiu = \Field::int($auth_actor, 'aiu_id');
 
     // Validate recipient_aiu if provided
     if ($recipient_aiu !== null) {
@@ -252,7 +252,7 @@ if ($method === 'GET' && $sub === '/list') {
 } elseif ($method === 'PATCH' && $sub === '/mark-seen') {
     // ── Mark message as seen ─────────────────────────────────────────────
     $input = json_decode((string) file_get_contents('php://input'), true);
-    $message_id = (int)($input['message_id'] ?? 0);
+    $message_id = \Field::int($input, 'message_id');
 
     if ($message_id <= 0) {
         http_response_code(400);
@@ -261,7 +261,7 @@ if ($method === 'GET' && $sub === '/list') {
     }
 
     // Mutation auth: caller must be sender, recipient, or supervisor
-    $caller_aiu = (int) $auth_actor['aiu_id'];
+    $caller_aiu = \Field::int($auth_actor, 'aiu_id');
     $stmt = $pdo->prepare(
         "UPDATE agent_inbox SET seen_at = NOW()
          WHERE message_id = ? AND user_id = ? AND seen_at IS NULL
@@ -275,7 +275,7 @@ if ($method === 'GET' && $sub === '/list') {
 } elseif ($method === 'PATCH' && $sub === '/mark-done') {
     // ── Mark message as done ─────────────────────────────────────────────
     $input = json_decode((string) file_get_contents('php://input'), true);
-    $message_id = (int)($input['message_id'] ?? 0);
+    $message_id = \Field::int($input, 'message_id');
     $response   = trim($input['response'] ?? '');
 
     if ($message_id <= 0) {
@@ -290,7 +290,7 @@ if ($method === 'GET' && $sub === '/list') {
     }
 
     // Mutation auth: caller must be sender, recipient, or supervisor
-    $caller_aiu = (int) $auth_actor['aiu_id'];
+    $caller_aiu = \Field::int($auth_actor, 'aiu_id');
     $sql = "UPDATE agent_inbox SET done_at = NOW(), seen_at = COALESCE(seen_at, NOW())";
     $params = [];
     if ($response !== '') {
@@ -332,7 +332,7 @@ if ($method === 'GET' && $sub === '/list') {
     }
 
     // Mutation auth: caller must be sender, recipient, or supervisor
-    $caller_aiu = (int) $auth_actor['aiu_id'];
+    $caller_aiu = \Field::int($auth_actor, 'aiu_id');
     $placeholders = implode(',', array_fill(0, count($message_ids), '?'));
     $stmt = $pdo->prepare(
         "UPDATE agent_inbox SET seen_at = NOW()
@@ -347,7 +347,7 @@ if ($method === 'GET' && $sub === '/list') {
 } elseif ($method === 'PATCH' && $sub === '/edit') {
     // ── Edit a message ───────────────────────────────────────────────────
     $input = json_decode((string) file_get_contents('php://input'), true);
-    $message_id = (int)($input['message_id'] ?? 0);
+    $message_id = \Field::int($input, 'message_id');
     $message       = isset($input['message']) ? trim($input['message']) : null;
     $priority      = isset($input['priority']) ? trim($input['priority']) : null;
     $show_date     = array_key_exists('show_date', $input) ? $input['show_date'] : 'NOT_SET';
@@ -413,7 +413,7 @@ if ($method === 'GET' && $sub === '/list') {
             }
             $sets[] = 'recipient_aiu = NULL';
         } else {
-            $sender_aiu = (int) $auth_actor['aiu_id'];
+            $sender_aiu = \Field::int($auth_actor, 'aiu_id');
             $send_stmt = $pdo->prepare(
                 "SELECT can_send FROM inbox_visibility
                  WHERE inbox_user_aiu_id = ?
@@ -442,7 +442,7 @@ if ($method === 'GET' && $sub === '/list') {
 } elseif ($method === 'PATCH' && $sub === '/archive') {
     // ── Archive a message ────────────────────────────────────────────────
     $input = json_decode((string) file_get_contents('php://input'), true);
-    $message_id = (int)($input['message_id'] ?? 0);
+    $message_id = \Field::int($input, 'message_id');
 
     if ($message_id <= 0) {
         http_response_code(400);
@@ -451,7 +451,7 @@ if ($method === 'GET' && $sub === '/list') {
     }
 
     // Mutation auth: caller must be sender, recipient, or supervisor
-    $caller_aiu = (int) $auth_actor['aiu_id'];
+    $caller_aiu = \Field::int($auth_actor, 'aiu_id');
     $stmt = $pdo->prepare(
         "UPDATE agent_inbox SET archived_at = NOW()
          WHERE message_id = ? AND user_id = ? AND archived_at IS NULL
@@ -465,7 +465,7 @@ if ($method === 'GET' && $sub === '/list') {
 } elseif ($method === 'DELETE' && $sub === '/delete') {
     // ── Delete a message ─────────────────────────────────────────────────
     $input = json_decode((string) file_get_contents('php://input'), true);
-    $message_id = (int)($input['message_id'] ?? 0);
+    $message_id = \Field::int($input, 'message_id');
 
     if ($message_id <= 0) {
         http_response_code(400);
@@ -474,7 +474,7 @@ if ($method === 'GET' && $sub === '/list') {
     }
 
     // Mutation auth: caller must be sender, recipient, or supervisor
-    $caller_aiu = (int) $auth_actor['aiu_id'];
+    $caller_aiu = \Field::int($auth_actor, 'aiu_id');
     $stmt = $pdo->prepare(
         "DELETE FROM agent_inbox
          WHERE message_id = ? AND user_id = ?
@@ -507,7 +507,7 @@ if ($method === 'GET' && $sub === '/list') {
     // Use case: message was marked seen but not processed (e.g. budget ran
     // out mid-session). Resetting to unseen lets the next cron wake pick it up.
     $input = json_decode((string) file_get_contents('php://input'), true);
-    $message_id = (int)($input['message_id'] ?? 0);
+    $message_id = \Field::int($input, 'message_id');
 
     if ($message_id <= 0) {
         http_response_code(400);
@@ -516,7 +516,7 @@ if ($method === 'GET' && $sub === '/list') {
     }
 
     // Mutation auth: caller must be sender, recipient, or supervisor
-    $caller_aiu = (int) $auth_actor['aiu_id'];
+    $caller_aiu = \Field::int($auth_actor, 'aiu_id');
     $stmt = $pdo->prepare(
         "UPDATE agent_inbox SET seen_at = NULL
          WHERE message_id = ? AND user_id = ? AND done_at IS NULL

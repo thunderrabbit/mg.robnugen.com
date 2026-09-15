@@ -61,7 +61,7 @@ try {
         $completed_nths = array_column($completions, 'nth');
         $todo['completed_nths'] = array_map('intval', $completed_nths);
 
-        $targetCount = (int)($todo['target_count'] ?? 1);
+        $targetCount = \Field::int($todo, 'target_count', 1);
 
         if (!$isRecurring && !empty($todo['due_date'])) {
             // ONE-TIME TODO Logic
@@ -105,7 +105,7 @@ try {
 
             if (is_string($lastDone) && $lastDone !== '') {
                 $next = new \DateTime($lastDone, $tz);
-                $next->modify('+' . (int) $todo['do_every_n_days'] . ' days');
+                $next->modify('+' . \Field::int($todo, 'do_every_n_days') . ' days');
                 $todo['next_due_date'] = $next->format('Y-m-d');
                 $todo['days_until_due'] = (int) $now->diff($next)->format('%r%a');
             } else {

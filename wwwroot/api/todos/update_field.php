@@ -36,7 +36,7 @@ if (empty($input['todo_id']) || empty($input['field'])) {
     exit;
 }
 
-$todo_id = (int)$input['todo_id'];
+$todo_id = \Field::int($input, 'todo_id');
 $field = $input['field'];
 $value = $input['value'] ?? null;
 
