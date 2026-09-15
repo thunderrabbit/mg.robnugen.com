@@ -2,7 +2,8 @@
 
 /**
  * Edit Issue Page
- * Loads an issue's title + description, pre-fills a form on GET, updates on POST.
+ * Loads an issue's title + description, pre-fills a form on GET, and on POST
+ * updates title, description and assignee through IssueService.
  * Gated on admin/paid + project_members.can_write.
  */
 
@@ -80,28 +81,25 @@ $assignee_choices = $assignee_stmt->fetchAll(\PDO::FETCH_ASSOC);
 $error = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $title          = trim(\Field::string($_POST, 'title'));
-    $description    = trim(\Field::string($_POST, 'description'));
-    $assignee_input = $_POST['assignee_aiu'] ?? '';
-    $assignee_aiu   = ($assignee_input === '') ? null : \Field::toInt($assignee_input);
+    $service = new \Issues\IssueService(new \Issues\PdoIssueStore($pdo));
+    $caller  = new \Issues\Caller(userId: $user_id, aiu: $human_aiu, isHuman: true);
 
-    if ($title === '') {
-        $error = "Title is required.";
-    } elseif (mb_strlen($title) > 255) {
-        $error = "Title must be 255 characters or fewer.";
-    } elseif ($assignee_aiu !== null) {
-        $valid_ids = array_column($assignee_choices, 'aiu_id');
-        if (!in_array($assignee_aiu, array_map(\Field::toInt(...), $valid_ids), true)) {
-            $error = "Assignee must be a member of this project.";
-        }
-    }
-
-    if ($error === null) {
-        $upd = $pdo->prepare(
-            "UPDATE issues SET title = ?, description = ?, assignee_aiu = ? WHERE issue_id = ?"
-        );
-        $upd->execute([$title, $description !== '' ? $description : null, $assignee_aiu, $issue_id]);
+    try {
+        $service->update($caller, \Issues\Command\UpdateIssue::fromInput([
+            'issue_id'     => $issue_id,
+            'title'        => $_POST['title'] ?? null,
+            'description'  => trim(\Field::string($_POST, 'description')),
+            'assignee_aiu' => $_POST['assignee_aiu'] ?? '',
+        ]));
         header("Location: /issues/view.php?issue_id={$issue_id}");
+        exit;
+    } catch (\Input\InvalidInput | \Issues\ValidationException $e) {
+        $error = ucfirst($e->getMessage()) . '.';
+    } catch (\Issues\AccessException) {
+        header("Location: /projects/?msg=no_write_access");
+        exit;
+    } catch (\Issues\NotFoundException) {
+        header("Location: /projects/?msg=issue_not_found");
         exit;
     }
 }

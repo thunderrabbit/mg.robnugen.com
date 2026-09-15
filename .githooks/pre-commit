@@ -17,7 +17,7 @@
 # Bypass in an emergency: git commit --no-verify
 set -euo pipefail
 
-IMAGE="standards-codeception-runner:php8.3"
+IMAGE="standards-codeception-runner:php8.5"   # mg's production PHP; standards-mcp repos.yaml php_target
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT"
 

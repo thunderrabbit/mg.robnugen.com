@@ -78,7 +78,7 @@ This project is built on a minimalist custom PHP framework tailored for DreamHos
 ### 🧪 Checks on every commit
 
 `.githooks/pre-commit` runs phpcs on each staged PHP file and PHPStan over the whole staged
-tree, both in Docker (`standards-codeception-runner:php8.3`, no network). Any finding blocks
+tree, both in Docker (`standards-codeception-runner:php8.5`, no network). Any finding blocks
 the commit.
 
 Git never turns on a repo's hooks by itself, so **run this once in every clone you commit

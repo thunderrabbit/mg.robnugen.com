@@ -1,0 +1,148 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Unit;
+
+use Codeception\Test\Unit;
+use Db\Enum\IssuePriority;
+use Input\Absent;
+use Input\Input;
+use Input\InvalidInput;
+use Input\Length;
+
+/**
+ * Hermetic unit tests for Input\Input, the strict reader for request fields.
+ * A wrong or missing field is the caller's mistake, so it throws InvalidInput
+ * with a message an agent can act on; each surface turns that into a 400, a
+ * JSON-RPC error or a form message.
+ */
+final class InputTest extends Unit
+{
+    // === positiveId() ===
+
+    public function testPositiveIdAcceptsIntsAndDigitStrings(): void
+    {
+        $this->assertSame(7, Input::positiveId(['issue_id' => 7], 'issue_id'));
+        $this->assertSame(42, Input::positiveId(['issue_id' => '42'], 'issue_id'));
+    }
+
+    public function testPositiveIdSaysWhatIsWrong(): void
+    {
+        $this->assertInvalid('issue_id is required', static fn() => Input::positiveId([], 'issue_id'));
+        $this->assertInvalid('issue_id is required', static fn() => Input::positiveId(['issue_id' => null], 'issue_id'));
+        foreach ([0, -1, '0', '', '4.2', 'x', 4.0, true, [1]] as $bad) {
+            $this->assertInvalid(
+                'issue_id must be a positive integer',
+                static fn() => Input::positiveId(['issue_id' => $bad], 'issue_id'),
+            );
+        }
+    }
+
+    // === nullableId() ===
+
+    public function testNullableIdSeparatesAbsentClearedAndSet(): void
+    {
+        $this->assertSame(Absent::Field, Input::nullableId([], 'assignee_aiu'));
+        foreach ([null, 0, '0', '', 'null'] as $clear) {
+            $this->assertNull(Input::nullableId(['assignee_aiu' => $clear], 'assignee_aiu'));
+        }
+        $this->assertSame(35, Input::nullableId(['assignee_aiu' => '35'], 'assignee_aiu'));
+        $this->assertInvalid(
+            'assignee_aiu must be a positive integer, or 0 or null to clear it',
+            static fn() => Input::nullableId(['assignee_aiu' => 'x'], 'assignee_aiu'),
+        );
+    }
+
+    // === int() / flag() ===
+
+    public function testIntFallsBackToItsDefaultOnlyWhenAbsent(): void
+    {
+        $this->assertSame(100, Input::int([], 'limit', 100));
+        $this->assertSame(100, Input::int(['limit' => null], 'limit', 100));
+        $this->assertSame(20, Input::int(['limit' => '20'], 'limit', 100));
+        $this->assertSame(-1, Input::int(['offset' => -1], 'offset', 0));
+        $this->assertInvalid('limit must be an integer', static fn() => Input::int(['limit' => 'lots'], 'limit', 100));
+    }
+
+    public function testFlagAcceptsCommonSpellings(): void
+    {
+        $this->assertFalse(Input::flag([], 'include_terminal'));
+        foreach ([true, 1, '1', 'true'] as $on) {
+            $this->assertTrue(Input::flag(['include_terminal' => $on], 'include_terminal'));
+        }
+        foreach ([false, 0, '0', 'false', ''] as $off) {
+            $this->assertFalse(Input::flag(['include_terminal' => $off], 'include_terminal'));
+        }
+        $this->assertInvalid(
+            'include_terminal must be 1 or 0',
+            static fn() => Input::flag(['include_terminal' => 'maybe'], 'include_terminal'),
+        );
+    }
+
+    // === text() ===
+
+    public function testTextTrimsAndRequiresSomething(): void
+    {
+        $this->assertSame('Fix it', Input::text(['title' => "  Fix it \n"], 'title', 255));
+        $this->assertInvalid('title is required', static fn() => Input::text([], 'title', 255));
+        $this->assertInvalid('title is required', static fn() => Input::text(['title' => '   '], 'title', 255));
+        $this->assertInvalid('title must be a string', static fn() => Input::text(['title' => 5], 'title', 255));
+    }
+
+    public function testTextCountsCharactersOrBytes(): void
+    {
+        $this->assertSame(str_repeat('あ', 255), Input::text(['title' => str_repeat('あ', 255)], 'title', 255));
+        $this->assertInvalid(
+            'title must be 255 characters or fewer',
+            static fn() => Input::text(['title' => str_repeat('a', 256)], 'title', 255),
+        );
+        $this->assertInvalid(
+            'body must be 6 bytes or fewer',
+            static fn() => Input::text(['body' => 'あああ'], 'body', 6, Length::Bytes),
+        );
+        $this->assertSame('ああ', Input::text(['body' => 'ああ'], 'body', 6, Length::Bytes));
+    }
+
+    // === optionalText() ===
+
+    public function testOptionalTextSeparatesAbsentClearedAndSet(): void
+    {
+        $this->assertSame(Absent::Field, Input::optionalText([], 'description', 65535));
+        $this->assertNull(Input::optionalText(['description' => null], 'description', 65535));
+        $this->assertNull(Input::optionalText(['description' => ''], 'description', 65535));
+        $this->assertSame(" keep\n", Input::optionalText(['description' => " keep\n"], 'description', 65535));
+        $this->assertSame('trimmed', Input::optionalText(['note' => ' trimmed '], 'note', 255, trim: true));
+        $this->assertNull(Input::optionalText(['note' => '   '], 'note', 255, trim: true));
+        $this->assertInvalid(
+            'note must be 3 characters or fewer',
+            static fn() => Input::optionalText(['note' => 'four'], 'note', 3),
+        );
+    }
+
+    // === enum() ===
+
+    public function testEnumReadsACaseOrAbsent(): void
+    {
+        $this->assertSame(IssuePriority::High, Input::enum(['priority' => 'high'], 'priority', IssuePriority::class));
+        $this->assertSame(Absent::Field, Input::enum([], 'priority', IssuePriority::class));
+        $this->assertInvalid(
+            "priority must be 'low', 'normal', or 'high'",
+            static fn() => Input::enum(['priority' => 'urgent'], 'priority', IssuePriority::class),
+        );
+        $this->assertInvalid(
+            "priority must be 'low', 'normal', or 'high'",
+            static fn() => Input::enum(['priority' => 3], 'priority', IssuePriority::class),
+        );
+    }
+
+    private function assertInvalid(string $message, \Closure $read): void
+    {
+        try {
+            $read();
+            $this->fail("Expected InvalidInput: {$message}");
+        } catch (InvalidInput $e) {
+            $this->assertSame($message, $e->getMessage());
+        }
+    }
+}

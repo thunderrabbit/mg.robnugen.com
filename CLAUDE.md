@@ -26,7 +26,7 @@ All three must pass. Setup and fixing:
 - Auto-fix style with phpcbf, then fix what's left by hand:
 
       docker run --rm --network none -v "$PWD":/app -w /app \
-        standards-codeception-runner:php8.3 php -d memory_limit=1G vendor/bin/phpcbf
+        standards-codeception-runner:php8.5 php -d memory_limit=1G vendor/bin/phpcbf
 
 - `phpcs.xml` is PSR-12 over `classes/`, `wwwroot/`, `prepend.php` and `Tests/`.
   Its PSR-12 excludes are a manual-cleanup backlog; the `_before`/`_after`
