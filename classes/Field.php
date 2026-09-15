@@ -25,6 +25,17 @@ class Field
     }
 
     /**
+     * Reads a nested array field, or [] when it is missing or not an array.
+     *
+     * @return array<mixed>
+     */
+    public static function array(mixed $from, string $key): array
+    {
+        $value = is_array($from) ? ($from[$key] ?? null) : null;
+        return is_array($value) ? $value : [];
+    }
+
+    /**
      * Casts one untyped value like (int), or gives the default for null or a
      * non-scalar.
      */

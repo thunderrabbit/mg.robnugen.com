@@ -109,6 +109,22 @@ class FieldTest extends Unit
         $this->assertSame([1, 2, 0], array_map(\Field::toInt(...), ['1', 2, 'x']));
     }
 
+    // === array() ===
+
+    public function testArrayReturnsANestedArray(): void
+    {
+        $this->assertSame(['plan' => 'growth'], \Field::array(['metadata' => ['plan' => 'growth']], 'metadata'));
+        $this->assertSame([1, 2], \Field::array(['ids' => [1, 2]], 'ids'));
+    }
+
+    public function testArrayIsEmptyForMissingOrNonArrayValues(): void
+    {
+        $this->assertSame([], \Field::array([], 'metadata'));
+        $this->assertSame([], \Field::array(['metadata' => null], 'metadata'));
+        $this->assertSame([], \Field::array(['metadata' => 'growth'], 'metadata'));
+        $this->assertSame([], \Field::array(null, 'metadata'));
+    }
+
     // === jsonArray() ===
 
     public function testJsonArrayDecodesObjectsAndLists(): void
