@@ -112,6 +112,13 @@ $caller_aiu  = \Field::int($auth_actor, 'aiu_id');
 $exterm      = new \Exterm\Items($pdo);
 $issues      = new \Issues\Issues($pdo);
 
+$issue_service = new \Issues\IssueService(new \Issues\PdoIssueStore($pdo));
+$issue_caller  = new \Issues\Caller(
+    userId: $auth_user_id,
+    aiu: $caller_aiu,
+    isHuman: \Field::string($auth_actor, 'actor_type') === 'human',
+);
+
 // ── Request parsing ───────────────────────────────────────────────────────────
 
 $raw_body = (string) file_get_contents('php://input');
@@ -184,13 +191,22 @@ switch ($method) {
         $args = \Field::array($params, 'arguments');
 
         try {
-            $result = exterm_dispatch($exterm, $issues, $auth_user_id, $caller_aiu, $tool, $args);
+            $result = exterm_dispatch(
+                $exterm,
+                $issues,
+                $issue_service,
+                $issue_caller,
+                $auth_user_id,
+                $caller_aiu,
+                $tool,
+                $args,
+            );
             echo json_encode(mcp_tool_result($id, $result));
-        } catch (\Exterm\ValidationException | \Issues\ValidationException $e) {
+        } catch (\Exterm\ValidationException | \Issues\ValidationException | \Input\InvalidInput $e) {
             echo json_encode(mcp_error($id, -32602, $e->getMessage()));
         } catch (\Exterm\NotFoundException | \Issues\NotFoundException $e) {
             echo json_encode(mcp_error($id, -32603, $e->getMessage()));
-        } catch (\Exterm\AccessException | \Issues\AccessException $e) {
+        } catch (\Exterm\AccessException | \Issues\AccessException | \Issues\ConflictException $e) {
             echo json_encode(mcp_error($id, -32603, $e->getMessage()));
         } catch (\Exception $e) {
             echo json_encode(mcp_error($id, -32603, 'Internal error'));
@@ -206,8 +222,16 @@ switch ($method) {
 /**
  * @param array<mixed> $a
  */
-function exterm_dispatch(\Exterm\Items $exterm, \Issues\Issues $issues, int $user_id, int $caller_aiu, string $tool, array $a): mixed
-{
+function exterm_dispatch(
+    \Exterm\Items $exterm,
+    \Issues\Issues $issues,
+    \Issues\IssueService $issueService,
+    \Issues\Caller $caller,
+    int $user_id,
+    int $caller_aiu,
+    string $tool,
+    array $a,
+): mixed {
     switch ($tool) {
         case 'exterm_list_projects':
             return $exterm->listProjects($user_id, $caller_aiu);
@@ -245,21 +269,23 @@ function exterm_dispatch(\Exterm\Items $exterm, \Issues\Issues $issues, int $use
             return $issues->listIssues($user_id, $caller_aiu, $project_id, $a);
 
         case 'issue_get':
-            $iid = \Field::int($a, 'issue_id');
-            if (!$iid) {
-                throw new \Issues\ValidationException("issue_id is required");
-            }
-            return $issues->getIssue($iid, $user_id, $caller_aiu);
+            return mcp_issue_json($issueService->view($caller, \Input\Input::positiveId($a, 'issue_id')));
 
         case 'issue_create':
-            return $issues->createIssue($user_id, $caller_aiu, $a);
+            // The phone path doesn't set assignees, parents or statuses; laptop agents own those.
+            $created = $issueService->create(
+                $caller,
+                \Issues\Command\CreateIssue::fromInput(mcp_only($a, ['project_id', 'title', 'description', 'priority'])),
+            );
+            return mcp_issue_json($issueService->view($caller, $created->issueId));
 
         case 'issue_update':
-            $iid = \Field::int($a, 'issue_id');
-            if (!$iid) {
-                throw new \Issues\ValidationException("issue_id is required");
-            }
-            return $issues->updateIssue($iid, $user_id, $caller_aiu, $a);
+            // Status changes stay with laptop agents, so only these fields are accepted here.
+            $updated = $issueService->update(
+                $caller,
+                \Issues\Command\UpdateIssue::fromInput(mcp_only($a, ['issue_id', 'title', 'description', 'priority'])),
+            );
+            return mcp_issue_json($issueService->view($caller, $updated->issueId));
 
         case 'issue_comment_add':
             $iid  = \Field::int($a, 'issue_id');
@@ -285,6 +311,33 @@ function exterm_dispatch(\Exterm\Items $exterm, \Issues\Issues $issues, int $use
         default:
             throw new \RuntimeException("Unknown tool: {$tool}");
     }
+}
+
+/**
+ * An issue as the MCP tools have always returned it: its row plus the status
+ * slug, label and terminal flag.
+ *
+ * @return array<string, mixed>
+ */
+function mcp_issue_json(\Issues\IssueView $view): array
+{
+    return $view->issue->jsonSerialize() + [
+        'status_slug'  => $view->status->slug,
+        'status_label' => $view->status->label,
+        'is_terminal'  => (int) $view->status->isTerminal,
+    ];
+}
+
+/**
+ * Only the tool arguments a phone-side issue tool may pass on.
+ *
+ * @param array<mixed> $a
+ * @param list<string> $keys
+ * @return array<mixed>
+ */
+function mcp_only(array $a, array $keys): array
+{
+    return array_intersect_key($a, array_flip($keys));
 }
 
 // ── Tool definitions (JSON Schema) ────────────────────────────────────────────
