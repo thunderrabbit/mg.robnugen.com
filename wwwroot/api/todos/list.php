@@ -103,7 +103,7 @@ try {
             $logStmt->execute([$todo['todo_id']]);
             $lastDone = $logStmt->fetchColumn();
 
-            if ($lastDone) {
+            if (is_string($lastDone) && $lastDone !== '') {
                 $next = new \DateTime($lastDone, $tz);
                 $next->modify('+' . (int) $todo['do_every_n_days'] . ' days');
                 $todo['next_due_date'] = $next->format('Y-m-d');

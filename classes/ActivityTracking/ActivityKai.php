@@ -100,7 +100,8 @@ class ActivityKai
             // Fetch timezone string
             $tzStmt = $this->pdo->prepare("SELECT iana_name FROM timezones WHERE timezone_id = ?");
             $tzStmt->execute([$session['timezone_id']]);
-            $timezone = $tzStmt->fetchColumn() ?: 'UTC';
+            $tz_name = $tzStmt->fetchColumn();
+            $timezone = is_string($tz_name) && $tz_name !== '' ? $tz_name : 'UTC';
 
             // Mark todo as complete
             $todo_id = (int)$session['todo_id'];
