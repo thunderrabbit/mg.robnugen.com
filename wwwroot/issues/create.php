@@ -61,11 +61,11 @@ if (!$mem) {
     header("Location: /projects/?msg=project_not_found");
     exit;
 }
-if (!$mem['can_write']) {
+if (!\Field::int($mem, 'can_write')) {
     header("Location: /projects/?msg=no_write_access");
     exit;
 }
-$project_name = $mem['name'];
+$project_name = \Field::string($mem, 'name');
 
 // Candidate assignees: project members of this project.
 $assignee_stmt = $pdo->prepare(

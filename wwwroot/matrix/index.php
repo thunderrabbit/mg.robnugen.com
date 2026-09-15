@@ -44,11 +44,11 @@ if (!$has_config) {
         $stmt2 = $pdo->prepare("SELECT dm_mo, opposite FROM dm_my_opposites WHERE dm_mp = ? AND user_id = ?");
         $stmt2->execute([$p['dm_mp'], $user_id]);
         $opp = $stmt2->fetch(\PDO::FETCH_ASSOC);
-        $p['opposite'] = $opp ? ['dm_mo' => $opp['dm_mo'], 'opposite' => base64_encode($opp['opposite'])] : null;
+        $p['opposite'] = $opp ? ['dm_mo' => \Field::int($opp, 'dm_mo'), 'opposite' => base64_encode(\Field::string($opp, 'opposite'))] : null;
 
         if ($opp) {
             $stmt3 = $pdo->prepare("SELECT dm_me, evidence FROM dm_my_evidence WHERE dm_mo = ? AND user_id = ? ORDER BY created_at");
-            $stmt3->execute([$opp['dm_mo'], $user_id]);
+            $stmt3->execute([\Field::int($opp, 'dm_mo'), $user_id]);
             $evs = $stmt3->fetchAll(\PDO::FETCH_ASSOC);
             foreach ($evs as &$e) {
                 $e['evidence'] = base64_encode($e['evidence']);

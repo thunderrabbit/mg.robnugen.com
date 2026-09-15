@@ -59,10 +59,10 @@ if ($todo_id) {
 
     // Format dates for HTML5 inputs
     if (!empty($todo_data['due_date'])) {
-        $todo_data['due_date'] = date('Y-m-d', strtotime($todo_data['due_date']));
+        $todo_data['due_date'] = date('Y-m-d', (int) strtotime(\Field::string($todo_data, 'due_date')));
     }
     if (!empty($todo_data['do_time'])) {
-        $todo_data['do_time'] = date('H:i', strtotime($todo_data['do_time']));
+        $todo_data['do_time'] = date('H:i', (int) strtotime(\Field::string($todo_data, 'do_time')));
     }
 }
 
@@ -89,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Handle Days of Week (Recurrence)
         if (!empty($_POST['do_days']) && is_array($_POST['do_days'])) {
-            $data['do_days'] = implode(',', $_POST['do_days']);
+            $data['do_days'] = implode(',', array_map(\Field::toString(...), $_POST['do_days']));
         } else {
             $data['do_days'] = null; // Explicitly clear if empty
         }
@@ -97,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Handle Dates of Month (Recurrence)
         if (!empty($_POST['do_dates'])) {
             // Clean up and validate integers
-            $dates = array_map('trim', explode(',', $_POST['do_dates']));
+            $dates = array_map('trim', explode(',', \Field::string($_POST, 'do_dates')));
             $clean_dates = [];
             foreach ($dates as $d) {
                 if (is_numeric($d) && $d >= 1 && $d <= 31) {

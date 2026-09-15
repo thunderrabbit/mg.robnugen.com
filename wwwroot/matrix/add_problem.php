@@ -44,7 +44,7 @@ $page->set("page_title", "Add a Problem - Decision Matrix");
 
 $inner_page = new \Template($config, $is_logged_in);
 $inner_page->setTemplate("matrix/add_problem.tpl.php");
-$inner_page->set("verify_blob", base64_encode($verify_row['passphrase_verify']));
+$inner_page->set("verify_blob", base64_encode(\Field::string($verify_row, 'passphrase_verify')));
 
 $page->set("page_content", $inner_page->grabTheGoods());
 $page->echoToScreen();

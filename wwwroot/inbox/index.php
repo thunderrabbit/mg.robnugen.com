@@ -41,7 +41,7 @@ $aiu_stmt = $mla_database->prepare(
 $aiu_stmt->execute([$user_id]);
 $aiu_row = $aiu_stmt->fetch(\PDO::FETCH_ASSOC);
 $web_sender_aiu = \Field::int($aiu_row, 'aiu_id') ?: null;
-$web_can_broadcast = !empty($aiu_row['can_broadcast_inbox']);
+$web_can_broadcast = !empty(\Field::int($aiu_row, 'can_broadcast_inbox'));
 
 $error_message   = '';
 $success_message = '';

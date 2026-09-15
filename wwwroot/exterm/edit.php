@@ -56,7 +56,7 @@ if (!$item) {
     header("Location: /exterm/?msg=not_found");
     exit;
 }
-if (!$item['can_write']) {
+if (!\Field::int($item, 'can_write')) {
     header("Location: /exterm/view.php?exterm_item_id={$exterm_item_id}&msg=no_write");
     exit;
 }

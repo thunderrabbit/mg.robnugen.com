@@ -75,7 +75,7 @@ if (!$perm) {
     header("Location: /projects/?msg=issue_not_found");
     exit;
 }
-if (!$perm['can_write']) {
+if (!\Field::int($perm, 'can_write')) {
     header("Location: /projects/?msg=no_write_access");
     exit;
 }

@@ -100,7 +100,7 @@ $available = $avail_stmt->fetchAll(\PDO::FETCH_ASSOC);
 
 $page = new \Template($config, $is_logged_in);
 $page->setTemplate("layout/base.tpl.php");
-$page->set("page_title", "Add Member to " . $project['name'] . " - Meiso Gambare");
+$page->set("page_title", "Add Member to " . \Field::string($project, 'name') . " - Meiso Gambare");
 
 $inner = new \Template($config, $is_logged_in);
 $inner->setTemplate("projects/add-member.tpl.php");

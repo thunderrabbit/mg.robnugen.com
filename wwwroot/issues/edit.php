@@ -61,7 +61,7 @@ if (!$issue) {
     header("Location: /projects/?msg=issue_not_found");
     exit;
 }
-if (empty($issue['can_write'])) {
+if (empty(\Field::int($issue, 'can_write'))) {
     header("Location: /projects/?msg=no_write_access");
     exit;
 }
@@ -74,7 +74,7 @@ $assignee_stmt = $pdo->prepare(
      WHERE pm.project_id = ?
      ORDER BY a.actor_type DESC, a.name ASC"
 );
-$assignee_stmt->execute([$issue['project_id']]);
+$assignee_stmt->execute([\Field::int($issue, 'project_id')]);
 $assignee_choices = $assignee_stmt->fetchAll(\PDO::FETCH_ASSOC);
 
 $error = null;

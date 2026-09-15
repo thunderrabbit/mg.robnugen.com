@@ -121,7 +121,7 @@ $members = $member_stmt->fetchAll(\PDO::FETCH_ASSOC);
 
 $page = new \Template($config, $is_logged_in);
 $page->setTemplate("layout/base.tpl.php");
-$page->set("page_title", $project['name'] . " - Meiso Gambare");
+$page->set("page_title", \Field::string($project, 'name') . " - Meiso Gambare");
 
 $inner_page = new \Template($config, $is_logged_in);
 $inner_page->setTemplate("projects/view.tpl.php");

@@ -62,11 +62,11 @@ if (!$mem) {
     header("Location: /exterm/?msg=not_found");
     exit;
 }
-if (!$mem['can_write']) {
+if (!\Field::int($mem, 'can_write')) {
     header("Location: /exterm/?msg=no_write");
     exit;
 }
-$project_name = $mem['name'];
+$project_name = \Field::string($mem, 'name');
 
 $error = null;
 

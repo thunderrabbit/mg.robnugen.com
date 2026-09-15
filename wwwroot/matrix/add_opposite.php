@@ -65,7 +65,7 @@ $page->set("page_title", "Find the Opposite - Decision Matrix");
 $inner_page = new \Template($config, $is_logged_in);
 $inner_page->setTemplate("matrix/add_opposite.tpl.php");
 $inner_page->set("verify_blob", $verify_blob);
-$inner_page->set("problem_blob", base64_encode($problem['problem']));
+$inner_page->set("problem_blob", base64_encode(\Field::string($problem, 'problem')));
 $inner_page->set("dm_mp", $dm_mp);
 
 $page->set("page_content", $inner_page->grabTheGoods());

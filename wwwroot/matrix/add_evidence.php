@@ -70,8 +70,8 @@ $page->set("page_title", "Find Evidence - Decision Matrix");
 $inner_page = new \Template($config, $is_logged_in);
 $inner_page->setTemplate("matrix/add_evidence.tpl.php");
 $inner_page->set("verify_blob", $verify_blob);
-$inner_page->set("problem_blob", base64_encode($row['problem']));
-$inner_page->set("opposite_blob", base64_encode($row['opposite']));
+$inner_page->set("problem_blob", base64_encode(\Field::string($row, 'problem')));
+$inner_page->set("opposite_blob", base64_encode(\Field::string($row, 'opposite')));
 $inner_page->set("dm_mo", $dm_mo);
 $inner_page->set("evidence_count", $evidence_count);
 
