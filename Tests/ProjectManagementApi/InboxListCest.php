@@ -122,8 +122,8 @@ class InboxListCest
         $I->seeResponseCodeIs(200);
         $decoded = \Field::jsonArray($I->grabResponse());
         $ids = [];
-        foreach (($decoded['messages'] ?? []) as $m) {
-            if (isset($m['message']) && str_contains($m['message'], $this->marker)) {
+        foreach (\Field::array($decoded, 'messages') as $m) {
+            if (str_contains(\Field::string($m, 'message'), $this->marker)) {
                 $ids[] = \Field::int($m, 'message_id');
             }
         }

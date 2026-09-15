@@ -52,7 +52,7 @@ class CreateIssueCest
         $I->seeElement('select[name=assignee_aiu]');
         $I->see('— unassigned —', 'select[name=assignee_aiu] option');
         $firstOption = $I->grabTextFrom('select[name=assignee_aiu] option:first-of-type');
-        \PHPUnit\Framework\Assert::assertSame('— unassigned —', trim($firstOption));
+        \PHPUnit\Framework\Assert::assertSame('— unassigned —', trim(\Field::toString($firstOption)));
     }
 
     public function createWithMemberAssigneePersists(AcceptanceTester $I): void
