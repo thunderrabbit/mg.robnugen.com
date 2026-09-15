@@ -42,7 +42,7 @@ if (!$todo_id) {
 $success = $todoHelper->deArchiveTodo($todo_id, $user_id);
 
 // Check if this is an AJAX request
-$isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest');
+$isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower(\Field::string($_SERVER, 'HTTP_X_REQUESTED_WITH')) == 'xmlhttprequest');
 
 if ($isAjax) {
     header('Content-Type: application/json');
