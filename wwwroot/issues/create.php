@@ -94,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (!in_array($priority, ['low', 'normal', 'high'], true)) {
         $error = "Invalid priority.";
     } elseif ($assignee_aiu !== null) {
-        $valid_ids = array_map('intval', array_column($assignee_choices, 'aiu_id'));
+        $valid_ids = array_map(\Field::toInt(...), array_column($assignee_choices, 'aiu_id'));
         if (!in_array($assignee_aiu, $valid_ids, true)) {
             $error = "Assignee must be a member of this project.";
         }

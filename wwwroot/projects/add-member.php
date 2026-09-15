@@ -47,7 +47,7 @@ if (!$project) {
 $error = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $submitted = array_map('intval', (array)($_POST['member_aiu'] ?? []));
+    $submitted = array_map(\Field::toInt(...), (array)($_POST['member_aiu'] ?? []));
     $submitted = array_values(array_unique(array_filter($submitted, fn($id) => $id > 0)));
     $can_read  = !empty($_POST['can_read'])  ? 1 : 0;
     $can_write = !empty($_POST['can_write']) ? 1 : 0;

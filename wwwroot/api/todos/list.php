@@ -59,7 +59,7 @@ try {
 
         // Calculate which nth values are completed (always relevant for today's view)
         $completed_nths = array_column($completions, 'nth');
-        $todo['completed_nths'] = array_map('intval', $completed_nths);
+        $todo['completed_nths'] = array_map(\Field::toInt(...), $completed_nths);
 
         $targetCount = \Field::int($todo, 'target_count', 1);
 

@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = "Title must be 255 characters or fewer.";
     } elseif ($assignee_aiu !== null) {
         $valid_ids = array_column($assignee_choices, 'aiu_id');
-        if (!in_array($assignee_aiu, array_map('intval', $valid_ids), true)) {
+        if (!in_array($assignee_aiu, array_map(\Field::toInt(...), $valid_ids), true)) {
             $error = "Assignee must be a member of this project.";
         }
     }

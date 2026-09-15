@@ -322,7 +322,7 @@ if ($method === 'GET' && $sub === '/list') {
         return;
     }
 
-    $message_ids = array_map('intval', $message_ids);
+    $message_ids = array_map(\Field::toInt(...), $message_ids);
     $message_ids = array_filter($message_ids, fn($id) => $id > 0);
 
     if (empty($message_ids)) {

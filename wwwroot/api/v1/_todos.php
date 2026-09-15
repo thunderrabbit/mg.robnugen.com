@@ -74,7 +74,7 @@ if ($todos_path === '/list') {
         $todo['completions'] = $completions;
 
         $completed_nths = array_column($completions, 'nth');
-        $todo['completed_nths'] = array_map('intval', $completed_nths);
+        $todo['completed_nths'] = array_map(\Field::toInt(...), $completed_nths);
 
         $targetCount = \Field::int($todo, 'target_count', 1);
 
