@@ -23,10 +23,10 @@ class Guards
      * Missing/0/''/false/null all read as "not granted" (empty() semantics),
      * matching the endpoints' inline !$flag / empty($flag) checks.
      *
-     * @param array  $auth_actor Row of can_* capability flags.
+     * @param array<string, mixed>  $auth_actor Row of can_* capability flags.
      * @param string $flag       Column name, e.g. 'can_read_inbox'.
      * @param string $label      Phrase for the message, e.g. 'read inbox'.
-     * @return array|null null if permitted, else ['code'=>403,'error'=>...].
+     * @return array{code: int, error: string}|null null if permitted, else ['code'=>403,'error'=>...].
      */
     public function permission(array $auth_actor, string $flag, string $label): ?array
     {
@@ -44,7 +44,7 @@ class Guards
      * @param string $field Field name for the message, e.g. 'message'.
      * @param string $value Raw value to measure.
      * @param int    $max   Byte cap (default MAX_MESSAGE_BYTES).
-     * @return array|null null if within limit, else ['code'=>400,'error'=>...].
+     * @return array{code: int, error: string}|null null if within limit, else ['code'=>400,'error'=>...].
      */
     public function byteLimit(string $field, string $value, int $max = self::MAX_MESSAGE_BYTES): ?array
     {

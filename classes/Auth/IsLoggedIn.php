@@ -173,7 +173,10 @@ class IsLoggedIn
 
 
 
-    private function getIDandPHPHashedPasswordForUsername($username)
+    /**
+     * @return array<string, mixed> The user_id and password_hash row, or [] when no such user
+     */
+    private function getIDandPHPHashedPasswordForUsername(string $username): array
     {
         // get password hash
         $stmt = $this->di_pdo->prepare("SELECT `user_id`, `password_hash` FROM `users` WHERE LOWER(`username`) = LOWER(?) LIMIT 1");
@@ -192,7 +195,7 @@ class IsLoggedIn
      * @param $password
      * @return int The user_id, or 0 when the password doesn't match
      */
-    private function checkPHPHashedPassword($username, $password): int
+    private function checkPHPHashedPassword(string $username, string $password): int
     {
         // get password hash
         $user_id_and_hash_array = $this->getIDandPHPHashedPasswordForUsername($username);
