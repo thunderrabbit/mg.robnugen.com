@@ -62,9 +62,9 @@ if ($method === 'POST' && $sub === '/create') {
     }
 
     $input          = json_decode((string) file_get_contents('php://input'), true) ?? [];
-    $name           = trim($input['name'] ?? '');
-    $url            = trim($input['url'] ?? '') ?: null;
-    $default_branch = trim($input['default_branch'] ?? '') ?: 'master';
+    $name           = trim(\Field::string($input, 'name'));
+    $url            = trim(\Field::string($input, 'url')) ?: null;
+    $default_branch = trim(\Field::string($input, 'default_branch')) ?: 'master';
 
     if ($name === '') {
         http_response_code(400);

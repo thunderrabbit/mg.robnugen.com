@@ -58,7 +58,7 @@ if ($is_write_op && ($guard = $guards->permission($auth_actor, 'can_write_inbox'
 
 if ($method === 'GET' && $sub === '/list') {
     // ── List inbox messages ──────────────────────────────────────────────
-    $status = trim($_GET['status'] ?? '');   // pending | seen | done | (empty = all)
+    $status = trim(\Field::string($_GET, 'status'));   // pending | seen | done | (empty = all)
     $limit  = max(1, min(100, \Field::int($_GET, 'limit', 50)));
     $offset = max(0, \Field::int($_GET, 'offset'));
     $include_sent = \Field::int($_GET, 'include_sent');
@@ -170,10 +170,10 @@ if ($method === 'GET' && $sub === '/list') {
 } elseif ($method === 'POST' && $sub === '/send') {
     // ── Send a message to the inbox (costs 1 credit) ─────────────────────
     $input = json_decode((string) file_get_contents('php://input'), true);
-    $message   = trim($input['message'] ?? '');
-    $priority  = trim($input['priority'] ?? 'normal');
+    $message   = trim(\Field::string($input, 'message'));
+    $priority  = trim(\Field::string($input, 'priority', 'normal'));
     $show_date = isset($input['show_date']) ? trim($input['show_date']) : null;
-    $sender_timezone = trim($input['sender_timezone'] ?? '');
+    $sender_timezone = trim(\Field::string($input, 'sender_timezone'));
     $recipient_aiu = \Field::intOrNull($input, 'recipient_aiu');
     // Validate IANA timezone — stored for Carrie (and future agents) to determine
     // the sender's local date when processing journal entries via the API.
@@ -276,7 +276,7 @@ if ($method === 'GET' && $sub === '/list') {
     // ── Mark message as done ─────────────────────────────────────────────
     $input = json_decode((string) file_get_contents('php://input'), true);
     $message_id = \Field::int($input, 'message_id');
-    $response   = trim($input['response'] ?? '');
+    $response   = trim(\Field::string($input, 'response'));
 
     if ($message_id <= 0) {
         http_response_code(400);

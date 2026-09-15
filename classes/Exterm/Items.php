@@ -218,7 +218,7 @@ class Items
     public function createItem(int $user_id, int $caller_aiu, array $data): array
     {
         $project_id = \Field::intOrNull($data, 'project_id');
-        $title      = trim($data['title'] ?? '');
+        $title      = trim(\Field::string($data, 'title'));
         $body       = $data['body'] ?? null;
 
         if (!$project_id) {

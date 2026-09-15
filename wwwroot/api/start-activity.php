@@ -33,8 +33,8 @@ $input = json_decode((string) file_get_contents('php://input'), true);
 $activity_id = \Field::int($input, 'activity_id', 1); // Default to meditation
 $todo_id = \Field::intOrNull($input, 'todo_id');
 $intended_sec = \Field::int($input, 'intended_sec');
-$timezone_iana = trim($input['timezone_iana'] ?? '');
-$start_local_dt = trim($input['start_local_dt'] ?? '');
+$timezone_iana = trim(\Field::string($input, 'timezone_iana'));
+$start_local_dt = trim(\Field::string($input, 'start_local_dt'));
 
 if ($intended_sec <= 0) {
     http_response_code(400);

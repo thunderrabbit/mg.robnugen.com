@@ -30,7 +30,7 @@ if (!$is_logged_in->isLoggedIn()) {
 $input = json_decode((string) file_get_contents('php://input'), true);
 
 // Get ak_id from session_key, ak_id, or session
-$session_key = trim($input['session_key'] ?? '');
+$session_key = trim(\Field::string($input, 'session_key'));
 $ak_id = 0;
 
 if (!empty($session_key)) {

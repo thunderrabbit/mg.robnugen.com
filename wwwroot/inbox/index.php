@@ -54,11 +54,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
     }
 
     if ($_POST['inbox_action'] === 'send') {
-        $message   = trim($_POST['message'] ?? '');
-        $priority  = trim($_POST['priority'] ?? 'normal');
-        $show_date = trim($_POST['show_date'] ?? '');
+        $message   = trim(\Field::string($_POST, 'message'));
+        $priority  = trim(\Field::string($_POST, 'priority', 'normal'));
+        $show_date = trim(\Field::string($_POST, 'show_date'));
         $show_date = $show_date !== '' ? $show_date : null;
-        $sender_timezone = trim($_POST['sender_timezone'] ?? '');
+        $sender_timezone = trim(\Field::string($_POST, 'sender_timezone'));
         // Validate IANA timezone (see _inbox.php for rationale)
         if ($sender_timezone && !in_array($sender_timezone, \DateTimeZone::listIdentifiers())) {
             $sender_timezone = '';
@@ -106,10 +106,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
         }
     } elseif ($_POST['inbox_action'] === 'edit') {
         $message_id = \Field::int($_POST, 'message_id');
-        $message    = trim($_POST['message'] ?? '');
-        $priority   = trim($_POST['priority'] ?? '');
+        $message    = trim(\Field::string($_POST, 'message'));
+        $priority   = trim(\Field::string($_POST, 'priority'));
         $recipient_aiu = \Field::int($_POST, 'recipient_aiu') ?: null;
-        $show_date  = trim($_POST['show_date'] ?? '');
+        $show_date  = trim(\Field::string($_POST, 'show_date'));
         $show_date  = $show_date !== '' ? $show_date : null;
         $is_ajax = !empty($_POST['ajax']);
 

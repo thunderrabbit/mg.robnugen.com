@@ -81,9 +81,9 @@ $assignee_choices = $assignee_stmt->fetchAll(\PDO::FETCH_ASSOC);
 $error = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $title          = trim($_POST['title'] ?? '');
-    $description    = trim($_POST['description'] ?? '');
-    $priority       = trim($_POST['priority'] ?? 'normal');
+    $title          = trim(\Field::string($_POST, 'title'));
+    $description    = trim(\Field::string($_POST, 'description'));
+    $priority       = trim(\Field::string($_POST, 'priority', 'normal'));
     $assignee_input = $_POST['assignee_aiu'] ?? '';
     $assignee_aiu   = ($assignee_input === '') ? null : (int)$assignee_input;
 

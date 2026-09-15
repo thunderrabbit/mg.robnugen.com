@@ -141,9 +141,9 @@ if ($method === 'POST' && $is_backfill) {
 
     $input        = json_decode((string) file_get_contents('php://input'), true) ?? [];
     $activity_id  = \Field::int($input, 'activity_id', 1);
-    $timezone_str = trim($input['timezone'] ?? 'UTC');
-    $start_time   = trim($input['start_time'] ?? '');
-    $end_time     = trim($input['end_time']   ?? '');
+    $timezone_str = trim(\Field::string($input, 'timezone', 'UTC'));
+    $start_time   = trim(\Field::string($input, 'start_time'));
+    $end_time     = trim(\Field::string($input, 'end_time'));
 
     if (!$start_time || !$end_time) {
         http_response_code(400);
@@ -221,7 +221,7 @@ if ($method === 'POST' && $ak_id === null) {
 
     $input        = json_decode((string) file_get_contents('php://input'), true) ?? [];
     $activity_id  = \Field::int($input, 'activity_id', 1);
-    $timezone_str = trim($input['timezone'] ?? 'UTC');
+    $timezone_str = trim(\Field::string($input, 'timezone', 'UTC'));
     $intended_sec = \Field::int($input, 'intended_sec');
 
     // Validate timezone using PHP's DateTimeZone (handles America/New_York etc.)

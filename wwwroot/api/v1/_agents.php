@@ -69,8 +69,8 @@ if ($method === 'GET' && $sub === '') {
 
 if ($method === 'POST' && $sub === '') {
     $input = json_decode((string) file_get_contents('php://input'), true) ?? [];
-    $name  = trim($input['name'] ?? '');
-    $desc  = trim($input['description'] ?? '') ?: null;
+    $name  = trim(\Field::string($input, 'name'));
+    $desc  = trim(\Field::string($input, 'description')) ?: null;
 
     if (empty($name)) {
         http_response_code(400);
@@ -232,7 +232,7 @@ if ($method === 'POST' && $sub === '/keys') {
     $input = json_decode((string) file_get_contents('php://input'), true) ?? [];
 
     $aiu_id = \Field::int($input, 'aiu_id');
-    $label  = trim($input['label'] ?? '');
+    $label  = trim(\Field::string($input, 'label'));
 
     if ($aiu_id <= 0) {
         http_response_code(400);

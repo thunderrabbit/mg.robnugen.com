@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_key_action'])) {
     $errors = [];
 
     if ($_POST['api_key_action'] === 'generate') {
-        $label       = trim($_POST['api_key_label'] ?? '');
+        $label       = trim(\Field::string($_POST, 'api_key_label'));
         $aiu_id      = \Field::int($_POST, 'aiu_id') ?: null;
         try {
             $new_api_key = $apiKeyHelper->generateKey($user_id, $label, $aiu_id);
@@ -40,8 +40,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_key_action'])) {
             $errors[] = $e->getMessage();
         }
     } elseif ($_POST['api_key_action'] === 'create_agent') {
-        $name = trim($_POST['agent_name'] ?? '');
-        $description = trim($_POST['agent_description'] ?? '');
+        $name = trim(\Field::string($_POST, 'agent_name'));
+        $description = trim(\Field::string($_POST, 'agent_description'));
         if ($name === '') {
             $errors[] = 'Agent name is required.';
         } else {

@@ -112,8 +112,8 @@ if ($method === 'POST' && $sub === '/create') {
     }
 
     $input = json_decode((string) file_get_contents('php://input'), true) ?? [];
-    $name  = trim($input['name'] ?? '');
-    $desc  = trim($input['description'] ?? '') ?: null;
+    $name  = trim(\Field::string($input, 'name'));
+    $desc  = trim(\Field::string($input, 'description')) ?: null;
 
     if ($name === '') {
         http_response_code(400);

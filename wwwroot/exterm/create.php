@@ -71,8 +71,8 @@ $project_name = $mem['name'];
 $error = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $title = trim($_POST['title'] ?? '');
-    $body  = trim($_POST['body']  ?? '') ?: null;
+    $title = trim(\Field::string($_POST, 'title'));
+    $body  = trim(\Field::string($_POST, 'body')) ?: null;
 
     if (!$title) {
         $error = "Title is required.";

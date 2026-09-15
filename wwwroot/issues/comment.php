@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $issue_id = \Field::int($_POST, 'issue_id');
-$body     = trim($_POST['body'] ?? '');
+$body     = trim(\Field::string($_POST, 'body'));
 
 if ($issue_id <= 0) {
     header("Location: /projects/?msg=issue_not_found");

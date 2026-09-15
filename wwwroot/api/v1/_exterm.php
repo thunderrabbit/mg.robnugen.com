@@ -87,7 +87,7 @@ if ($sub === '/get' && $method === 'GET') {
 
 // ── GET /exterm/search ────────────────────────────────────────────────────────
 if ($sub === '/search' && $method === 'GET') {
-    $query      = trim($_GET['query'] ?? '');
+    $query      = trim(\Field::string($_GET, 'query'));
     $project_id = \Field::intOrNull($_GET, 'project_id');
     $limit      = \Field::int($_GET, 'limit', 20);
     try {

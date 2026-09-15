@@ -68,7 +68,7 @@ if ($todo_id) {
 
 // Handle POST Submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $title = trim($_POST['title'] ?? '');
+    $title = trim(\Field::string($_POST, 'title'));
 
     if (empty($title)) {
         $error = "Title is required";
@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $data = [
             'user_id' => $user_id,
             'title' => $title,
-            'description' => trim($_POST['description'] ?? ''),
+            'description' => trim(\Field::string($_POST, 'description')),
             'is_timer' => isset($_POST['is_timer']) ? 1 : 0,
             'is_counter' => isset($_POST['is_counter']) ? 1 : 0,
             'target_count' => \Field::int($_POST, 'target_count', 1),

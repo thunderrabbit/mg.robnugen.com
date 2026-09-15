@@ -216,7 +216,7 @@ if ($todos_path === '/list') {
     // completion "as of" that date so do_every_n_days recurrence recomputes
     // from the real date (next_due reads MAX(DATE(date_logged))). Absent =>
     // now, so existing callers are unaffected.
-    $raw_date = trim($body['date_logged'] ?? '');
+    $raw_date = trim(\Field::string($body, 'date_logged'));
     if ($raw_date !== '') {
         try {
             $dt = new \DateTime($raw_date, $tz);
@@ -298,7 +298,7 @@ if ($todos_path === '/list') {
     }
 
     $body = json_decode((string) file_get_contents('php://input'), true);
-    $title = trim($body['title'] ?? '');
+    $title = trim(\Field::string($body, 'title'));
 
     if ($title === '') {
         http_response_code(400);
@@ -575,7 +575,7 @@ if ($todos_path === '/list') {
     // Optional backdated completion (mirrors /complete). When supplied, the
     // explicit date_logged overrides the session-derived "now", and nth is
     // counted against that date's completions.
-    $raw_date = trim($body['date_logged'] ?? '');
+    $raw_date = trim(\Field::string($body, 'date_logged'));
     if ($raw_date !== '') {
         try {
             $dt = new \DateTime($raw_date, $tz);

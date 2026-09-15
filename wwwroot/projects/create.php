@@ -32,8 +32,8 @@ $pdo = \Database\Base::getPDO($config);
 $error = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $name        = trim($_POST['name'] ?? '');
-    $description = trim($_POST['description'] ?? '');
+    $name        = trim(\Field::string($_POST, 'name'));
+    $description = trim(\Field::string($_POST, 'description'));
 
     if ($name === '') {
         $error = "Name is required.";

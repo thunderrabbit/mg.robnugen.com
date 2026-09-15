@@ -76,7 +76,7 @@ class Issues
             throw new AccessException("No read access to project {$project_id}");
         }
 
-        $status_slug      = trim($filters['status'] ?? '');
+        $status_slug      = trim(\Field::string($filters, 'status'));
         $include_terminal = \Field::int($filters, 'include_terminal');
         $limit            = max(1, min(200, \Field::int($filters, 'limit', 100)));
         $offset           = max(0, \Field::int($filters, 'offset'));
@@ -313,9 +313,9 @@ class Issues
     public function createIssue(int $user_id, int $caller_aiu, array $data): array
     {
         $project_id  = \Field::int($data, 'project_id');
-        $title       = trim($data['title'] ?? '');
+        $title       = trim(\Field::string($data, 'title'));
         $description = array_key_exists('description', $data) ? (string)$data['description'] : null;
-        $priority    = trim((string)($data['priority'] ?? 'normal'));
+        $priority    = trim(\Field::string($data, 'priority', 'normal'));
 
         if ($project_id <= 0) {
             throw new ValidationException("project_id is required");

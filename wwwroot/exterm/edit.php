@@ -64,8 +64,8 @@ if (!$item['can_write']) {
 $error = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $new_title = trim($_POST['title'] ?? '');
-    $new_body  = trim($_POST['body']  ?? '') ?: null;
+    $new_title = trim(\Field::string($_POST, 'title'));
+    $new_body  = trim(\Field::string($_POST, 'body')) ?: null;
 
     if (!$new_title) {
         $error = "Title is required.";

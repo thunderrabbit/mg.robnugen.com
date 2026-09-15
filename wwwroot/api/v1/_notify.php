@@ -29,8 +29,8 @@ if (empty($auth_actor['can_ping_phone'])) {
 
 if ($method === 'POST' && $sub === '/send') {
     $input   = json_decode((string) file_get_contents('php://input'), true);
-    $message = trim($input['message'] ?? '');
-    $type    = trim($input['type'] ?? 'done');
+    $message = trim(\Field::string($input, 'message'));
+    $type    = trim(\Field::string($input, 'type', 'done'));
 
     if ($message === '') {
         http_response_code(400);

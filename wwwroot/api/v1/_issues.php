@@ -144,7 +144,7 @@ if ($method === 'GET' && $sub === '/statuses') {
 
 if ($method === 'GET' && $sub === '/list') {
     $project_id       = \Field::int($_GET, 'project_id');
-    $status_slug      = trim($_GET['status'] ?? '');
+    $status_slug      = trim(\Field::string($_GET, 'status'));
     $assignee_aiu     = \Field::intOrNull($_GET, 'assignee_aiu');
     $include_terminal = \Field::int($_GET, 'include_terminal');
     $parent_filter    = isset($_GET['parent_issue_id']) ? $_GET['parent_issue_id'] : null;
@@ -278,7 +278,7 @@ if ($method === 'GET' && $sub === '/get') {
 if ($method === 'POST' && $sub === '/create') {
     $input           = json_decode((string) file_get_contents('php://input'), true) ?? [];
     $project_id      = \Field::int($input, 'project_id');
-    $title           = trim($input['title'] ?? '');
+    $title           = trim(\Field::string($input, 'title'));
     $description     = array_key_exists('description', $input) ? (string)$input['description'] : null;
     $assignee_aiu    = array_key_exists('assignee_aiu', $input) && $input['assignee_aiu'] !== null
                        ? (int)$input['assignee_aiu'] : null;

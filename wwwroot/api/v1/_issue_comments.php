@@ -68,7 +68,7 @@ if ($method === 'GET' && $csub === '/list') {
 if ($method === 'POST' && $csub === '/add') {
     $input    = json_decode((string) file_get_contents('php://input'), true) ?? [];
     $issue_id = \Field::int($input, 'issue_id');
-    $body     = (string)($input['body'] ?? '');
+    $body     = \Field::string($input, 'body');
 
     if ($issue_id <= 0) {
         http_response_code(400);
@@ -123,7 +123,7 @@ if ($method === 'POST' && $csub === '/add') {
 if ($method === 'PATCH' && $csub === '/edit') {
     $input      = json_decode((string) file_get_contents('php://input'), true) ?? [];
     $comment_id = \Field::int($input, 'issue_comment_id');
-    $body       = (string)($input['body'] ?? '');
+    $body       = \Field::string($input, 'body');
 
     if ($comment_id <= 0) {
         http_response_code(400);

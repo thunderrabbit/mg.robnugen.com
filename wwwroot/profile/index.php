@@ -73,8 +73,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Site Settings Logic
     if (isset($_POST['update_settings_action'])) {
-        $site_title = trim($_POST['site_title'] ?? '');
-        $site_subtitle = trim($_POST['site_subtitle'] ?? '');
+        $site_title = trim(\Field::string($_POST, 'site_title'));
+        $site_subtitle = trim(\Field::string($_POST, 'site_subtitle'));
         $user_id = $is_logged_in->loggedInID();
 
         // Check if settings exist for user

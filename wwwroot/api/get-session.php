@@ -20,7 +20,7 @@ include_once $matches[1] . '/prepend.php';
 header('Content-Type: application/json');
 
 // Get session_key from query string
-$session_key = trim($_GET['session_key'] ?? '');
+$session_key = trim(\Field::string($_GET, 'session_key'));
 
 if (empty($session_key)) {
     http_response_code(400);

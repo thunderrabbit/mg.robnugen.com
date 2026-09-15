@@ -24,7 +24,7 @@
 if ($method === 'GET' && $xsub === '/list') {
     $issue_id    = \Field::int($_GET, 'issue_id');
     $repo_id     = \Field::intOrNull($_GET, 'repo_id');
-    $commit_hash = trim($_GET['commit_hash'] ?? '');
+    $commit_hash = trim(\Field::string($_GET, 'commit_hash'));
     $limit       = max(1, min(500, \Field::int($_GET, 'limit', 200)));
     $offset      = max(0, \Field::int($_GET, 'offset'));
 
@@ -88,7 +88,7 @@ if ($method === 'POST' && $xsub === '/add') {
     $input       = json_decode((string) file_get_contents('php://input'), true) ?? [];
     $issue_id    = \Field::int($input, 'issue_id');
     $repo_id     = \Field::int($input, 'repo_id');
-    $commit_hash = trim((string)($input['commit_hash'] ?? ''));
+    $commit_hash = trim(\Field::string($input, 'commit_hash'));
     $note        = array_key_exists('note', $input) ? trim((string)$input['note']) : null;
 
     if ($issue_id <= 0 || $repo_id <= 0) {
