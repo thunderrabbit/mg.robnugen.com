@@ -54,7 +54,7 @@ $todo_id = $_GET['todo_id'] ?? null;
 if ($todo_id && $is_logged_in->isLoggedIn()) {
     $pdo = \Database\Base::getPDO($config); // Ensure PDO is available
     $todoHelper = new \ActivityTracking\Todo($pdo);
-    if (!$todoHelper->verifyOwnership((int)$todo_id, $is_logged_in->loggedInID())) {
+    if (!$todoHelper->verifyOwnership(\Field::toInt($todo_id), $is_logged_in->loggedInID())) {
         header("Location: /mg/?yeah=nah");
         exit;
     }

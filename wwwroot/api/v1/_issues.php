@@ -187,7 +187,7 @@ if ($method === 'GET' && $sub === '/list') {
             $where[] = 'i.parent_issue_id IS NULL';
         } else {
             $where[] = 'i.parent_issue_id = ?';
-            $params[] = (int)$parent_filter;
+            $params[] = \Field::toInt($parent_filter);
         }
     }
 

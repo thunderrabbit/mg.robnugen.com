@@ -85,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $description    = trim(\Field::string($_POST, 'description'));
     $priority       = trim(\Field::string($_POST, 'priority', 'normal'));
     $assignee_input = $_POST['assignee_aiu'] ?? '';
-    $assignee_aiu   = ($assignee_input === '') ? null : (int)$assignee_input;
+    $assignee_aiu   = ($assignee_input === '') ? null : \Field::toInt($assignee_input);
 
     if ($title === '') {
         $error = "Title is required.";

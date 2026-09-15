@@ -86,7 +86,7 @@ switch ($field) {
         break;
 
     case 'target_duration_seconds':
-        $value = (int)$value;
+        $value = \Field::toInt($value);
         if ($value < 0) {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Duration cannot be negative']);
@@ -96,7 +96,7 @@ switch ($field) {
 
     case 'do_every_n_days':
         if ($value !== null && $value !== '') {
-            $value = (int) $value;
+            $value = \Field::toInt($value);
             if ($value < 1) {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'do_every_n_days must be at least 1']);

@@ -407,7 +407,7 @@ if ($todos_path === '/list') {
             break;
 
         case 'target_duration_seconds':
-            $value = (int) $value;
+            $value = \Field::toInt($value);
             if ($value < 0) {
                 http_response_code(400);
                 echo json_encode(['error' => 'Duration cannot be negative']);
@@ -417,7 +417,7 @@ if ($todos_path === '/list') {
 
         case 'do_every_n_days':
             if ($value !== null && $value !== '') {
-                $value = (int) $value;
+                $value = \Field::toInt($value);
                 if ($value < 1 || $value > 65535) {
                     http_response_code(400);
                     echo json_encode(['error' => 'do_every_n_days must be 1-65535']);
@@ -430,7 +430,7 @@ if ($todos_path === '/list') {
 
         case 'is_timer':
         case 'is_counter':
-            $value = (int) $value;
+            $value = \Field::toInt($value);
             if ($value !== 0 && $value !== 1) {
                 http_response_code(400);
                 echo json_encode(['error' => $field . ' must be 0 or 1']);
@@ -440,7 +440,7 @@ if ($todos_path === '/list') {
 
         case 'activity_id':
             if ($value !== null && $value !== '') {
-                $value = (int) $value;
+                $value = \Field::toInt($value);
                 // Verify activity exists
                 $stmt = $pdo->prepare("SELECT activity_id FROM activities WHERE activity_id = ? AND (user_id IS NULL OR user_id = ?)");
                 $stmt->execute([$value, $auth_user_id]);

@@ -79,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_key_action'])) {
                     "INSERT INTO inbox_visibility (inbox_user_aiu_id, inbox_peer_aiu_id, can_read, can_send) VALUES (?, ?, 0, 1)"
                 );
                 foreach ($send_to as $peer_aiu_id) {
-                    $peer_aiu_id = (int) $peer_aiu_id;
+                    $peer_aiu_id = \Field::toInt($peer_aiu_id);
                     if ($peer_aiu_id > 0 && $peer_aiu_id !== $new_aiu_id) {
                         $send_stmt->execute([$new_aiu_id, $peer_aiu_id]);
                     }
