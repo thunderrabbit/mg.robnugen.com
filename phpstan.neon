@@ -9,6 +9,7 @@ parameters:
         - wwwroot
         - prepend.php
         - Tests
+        - tools
     excludePaths:
         analyse:
             # Vendored third-party library; scanned so Utilities can use it.
