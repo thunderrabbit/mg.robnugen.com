@@ -1,7 +1,7 @@
 # Static analysis, run in Docker by ~/work/rob/standards-mcp/run-phpstan.sh
 # and by .githooks/pre-commit. Raised one level per bubble (mg #505).
 parameters:
-    level: 1
+    level: 2
     paths:
         - classes
         - wwwroot
@@ -18,6 +18,16 @@ parameters:
             # that a fresh clone doesn't have.
             - Tests/_output/*
             - Tests/Support/*
+    ignoreErrors:
+        # Codeception builds each actor's methods ($I->amOnPage(), ...) into
+        # traits under Tests/Support/_generated, which is gitignored and so
+        # absent from the tree the pre-commit hook checks. Three suites also
+        # share AcceptanceTester with different modules, so no one build of
+        # those traits is right. Only actor method calls are ignored.
+        -
+            identifier: method.notFound
+            message: '#^Call to an undefined method Tests\\Support\\\w+Tester::\w+\(\)\.$#'
+            path: Tests/*
     bootstrapFiles:
         - vendor/autoload.php
         # SEMVER, SENTIMENTAL_VERSION and the app-wide constants.
