@@ -44,7 +44,7 @@ try {
         AND tl.nth >= t.target_count
     ");
     $countStmt->execute([$user_id]);
-    $totalCount = (int)$countStmt->fetch(\PDO::FETCH_ASSOC)['total'];
+    $totalCount = \Field::int($countStmt->fetch(\PDO::FETCH_ASSOC), 'total');
 
     echo json_encode([
         'success' => true,

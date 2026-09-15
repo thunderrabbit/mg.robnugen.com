@@ -42,7 +42,7 @@ try {
           AND ak.actual_sec IS NOT NULL
     ");
     $countStmt->execute([$user_id]);
-    $totalCount = (int)$countStmt->fetch(\PDO::FETCH_ASSOC)['total'];
+    $totalCount = \Field::int($countStmt->fetch(\PDO::FETCH_ASSOC), 'total');
 
     // Get completed sessions (actual_sec IS NOT NULL)
     $stmt = $pdo->prepare("
