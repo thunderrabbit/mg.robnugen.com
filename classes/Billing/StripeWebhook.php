@@ -49,6 +49,9 @@ class StripeWebhook
 
     // ── Event dispatch ────────────────────────────────────────────────────────
 
+    /**
+     * @param array<string, mixed> $event
+     */
     public function handle(array $event): void
     {
         $object = $event['data']['object'] ?? [];
@@ -65,6 +68,9 @@ class StripeWebhook
     // client_reference_id = user_id (set during checkout session creation)
     // metadata[plan]       = 'developer' or 'growth' (set during checkout session creation)
 
+    /**
+     * @param array<string, mixed> $session
+     */
     private function handleCheckoutComplete(array $session): void
     {
         $user_id     = (int)($session['client_reference_id'] ?? 0);
@@ -120,6 +126,9 @@ class StripeWebhook
     // the first payment (which is already handled by checkout.session.completed).
     // subscription_details.metadata[plan] carries the plan name set at checkout.
 
+    /**
+     * @param array<string, mixed> $invoice
+     */
     private function handleInvoicePayment(array $invoice): void
     {
         if (($invoice['billing_reason'] ?? '') !== 'subscription_cycle') {
