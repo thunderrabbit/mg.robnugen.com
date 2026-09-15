@@ -30,18 +30,15 @@ use Codeception\Test\Unit;
  *
  * IMPORTANT: These tests will FAIL until Session F is deployed.
  *
- * Requires env vars: MG_TEST_KEY_FULL, MG_TEST_KEY_NONE,
- *   MG_TEST_KEY_ALPHA, MG_TEST_KEY_BETA,
- *   MG_TEST_AIU_FULL, MG_TEST_AIU_ALPHA, MG_TEST_AIU_BETA
+ * Requires env vars: MG_TEST_KEY_FULL, MG_TEST_KEY_ALPHA, MG_TEST_KEY_BETA,
+ *   MG_TEST_AIU_ALPHA, MG_TEST_AIU_BETA
  */
 class VisibilityAndRoutingTest extends Unit
 {
     private static string $keyFull;
-    private static string $keyNone;
     private static string $keyAlpha;
     private static string $keyBeta;
 
-    private static int $aiuFull;
     private static int $aiuAlpha;
     private static int $aiuBeta;
 
@@ -70,10 +67,8 @@ class VisibilityAndRoutingTest extends Unit
 
         $required = [
             'MG_TEST_KEY_FULL',
-            'MG_TEST_KEY_NONE',
             'MG_TEST_KEY_ALPHA',
             'MG_TEST_KEY_BETA',
-            'MG_TEST_AIU_FULL',
             'MG_TEST_AIU_ALPHA',
             'MG_TEST_AIU_BETA',
         ];
@@ -92,11 +87,9 @@ class VisibilityAndRoutingTest extends Unit
         }
 
         self::$keyFull  = getenv('MG_TEST_KEY_FULL');
-        self::$keyNone  = getenv('MG_TEST_KEY_NONE');
         self::$keyAlpha = getenv('MG_TEST_KEY_ALPHA');
         self::$keyBeta  = getenv('MG_TEST_KEY_BETA');
 
-        self::$aiuFull  = (int) getenv('MG_TEST_AIU_FULL');
         self::$aiuAlpha = (int) getenv('MG_TEST_AIU_ALPHA');
         self::$aiuBeta  = (int) getenv('MG_TEST_AIU_BETA');
 
