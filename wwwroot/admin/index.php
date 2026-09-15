@@ -19,7 +19,7 @@ if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
     if (
         $_SERVER['REQUEST_METHOD'] === 'POST'
         && isset($_POST['csrf_token'])
-        && hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])
+        && hash_equals(\Field::string($_SESSION, 'csrf_token'), \Field::string($_POST, 'csrf_token'))
     ) {
         $action = $_POST['action'] ?? '';
         if ($action === 'dismiss_alerts') {
