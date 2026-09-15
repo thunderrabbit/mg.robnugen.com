@@ -292,7 +292,7 @@ function exterm_dispatch(\Exterm\Items $exterm, \Issues\Issues $issues, int $use
 // ── Tool definitions (JSON Schema) ────────────────────────────────────────────
 
 /**
- * @return list<array<string, mixed>>
+ * @return array<int, array<string, mixed>>
  */
 function exterm_tool_defs(): array
 {

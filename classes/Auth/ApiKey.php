@@ -110,7 +110,7 @@ class ApiKey
      * Returns all active keys for a user: key_id, label, created_at, last_used.
      * Does NOT return the raw api_key value — only show it once at generation time.
      *
-     * @return list<array<string, mixed>>
+     * @return array<int, array<string, mixed>>
      */
     public function getKeysForUser(int $user_id): array
     {

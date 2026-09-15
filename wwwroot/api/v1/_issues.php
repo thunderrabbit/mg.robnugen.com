@@ -91,7 +91,7 @@ function issue_with_access(\PDO $pdo, int $issue_id, int $user_id, int $caller_a
  * Return running timers on an issue (stopped_at_utc IS NULL).
  * Used to decide whether a status transition to is_terminal is allowed.
  *
- * @return list<array<string, mixed>>
+ * @return array<int, array<string, mixed>>
  */
 function running_timers(\PDO $pdo, int $issue_id): array
 {

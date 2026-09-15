@@ -46,7 +46,7 @@ class Timezone
     /**
      * Get all active timezones (for dropdowns)
      *
-     * @return list<array<string, mixed>> Array of timezones with id, iana_name, display_name
+     * @return array<int, array<string, mixed>> Array of timezones with id, iana_name, display_name
      */
     public function getAllTimezones(): array
     {

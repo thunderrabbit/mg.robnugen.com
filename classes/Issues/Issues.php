@@ -63,7 +63,7 @@ class Issues
      * specific status slug is requested.
      *
      * @param array<string, mixed> $filters
-     * @return list<array<string, mixed>>
+     * @return array<int, array<string, mixed>>
      */
     public function listIssues(int $user_id, int $caller_aiu, int $project_id, array $filters = []): array
     {

@@ -199,7 +199,7 @@ class ActivityKai
      *
      * @param int $user_id
      * @param int $limit Number of sessions to retrieve
-     * @return list<array<string, mixed>> Array of session records
+     * @return array<int, array<string, mixed>> Array of session records
      */
     public function getUserSessions(int $user_id, int $limit = 10): array
     {

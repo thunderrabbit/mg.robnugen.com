@@ -118,7 +118,7 @@ class Items
     // ── Projects ─────────────────────────────────────────────────────────────
 
     /**
-     * @return list<array<string, mixed>>
+     * @return array<int, array<string, mixed>>
      */
     public function listProjects(int $user_id, int $caller_aiu): array
     {
@@ -142,7 +142,7 @@ class Items
      * read (powers "what was I thinking about?" recall on the phone).
      *
      * @param array<string, mixed> $filters
-     * @return list<array<string, mixed>>
+     * @return array<int, array<string, mixed>>
      */
     public function listItems(int $user_id, int $caller_aiu, array $filters): array
     {
@@ -306,7 +306,7 @@ class Items
     }
 
     /**
-     * @return list<array<string, mixed>>
+     * @return array<int, array<string, mixed>>
      */
     public function searchItems(int $user_id, int $caller_aiu, string $query, ?int $project_id = null, int $limit = 20): array
     {
