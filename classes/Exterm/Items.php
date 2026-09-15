@@ -70,7 +70,11 @@ class Items
 
     // ── Access helpers ────────────────────────────────────────────────────────
 
-    /** Load item + caller's project membership, or throw. */
+    /**
+     * Load item + caller's project membership, or throw.
+     *
+     * @return array<string, mixed>
+     */
     private function itemWithAccess(int $exterm_item_id, int $user_id, int $caller_aiu): array
     {
         $stmt = $this->pdo->prepare(
@@ -89,7 +93,11 @@ class Items
         return $row;
     }
 
-    /** Check project membership or throw. Returns ['can_read','can_write']. */
+    /**
+     * Check project membership or throw. Returns ['can_read','can_write'].
+     *
+     * @return array<string, mixed>
+     */
     private function projectAccess(int $project_id, int $user_id, int $caller_aiu): array
     {
         $stmt = $this->pdo->prepare(
@@ -109,6 +117,9 @@ class Items
 
     // ── Projects ─────────────────────────────────────────────────────────────
 
+    /**
+     * @return list<array<string, mixed>>
+     */
     public function listProjects(int $user_id, int $caller_aiu): array
     {
         $stmt = $this->pdo->prepare(
@@ -129,6 +140,9 @@ class Items
      * List notes. With project_id → that project's notes. Without project_id →
      * the caller's most-recently-touched notes across every project they can
      * read (powers "what was I thinking about?" recall on the phone).
+     *
+     * @param array<string, mixed> $filters
+     * @return list<array<string, mixed>>
      */
     public function listItems(int $user_id, int $caller_aiu, array $filters): array
     {
@@ -175,6 +189,9 @@ class Items
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getItem(int $exterm_item_id, int $user_id, int $caller_aiu): array
     {
         $row = $this->itemWithAccess($exterm_item_id, $user_id, $caller_aiu);
@@ -194,6 +211,10 @@ class Items
         return $stmt->fetch(\PDO::FETCH_ASSOC);
     }
 
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
     public function createItem(int $user_id, int $caller_aiu, array $data): array
     {
         $project_id = isset($data['project_id']) ? (int)$data['project_id'] : null;
@@ -224,6 +245,9 @@ class Items
      * Update a note. Accepts title, body, and project_id (re-filing a note into
      * another project — e.g. promoting a greenfield idea). Re-filing requires
      * write access on the destination project.
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
      */
     public function updateItem(int $user_id, int $caller_aiu, int $exterm_item_id, array $data): array
     {
@@ -268,6 +292,9 @@ class Items
         return $this->getItem($exterm_item_id, $user_id, $caller_aiu);
     }
 
+    /**
+     * @return array{exterm_item_id: int, deleted: bool}
+     */
     public function deleteItem(int $user_id, int $caller_aiu, int $exterm_item_id): array
     {
         $row = $this->itemWithAccess($exterm_item_id, $user_id, $caller_aiu);
@@ -278,6 +305,9 @@ class Items
         return ['exterm_item_id' => $exterm_item_id, 'deleted' => true];
     }
 
+    /**
+     * @return list<array<string, mixed>>
+     */
     public function searchItems(int $user_id, int $caller_aiu, string $query, ?int $project_id = null, int $limit = 20): array
     {
         if (!trim($query)) {
