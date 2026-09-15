@@ -15,7 +15,11 @@ class InboxMessageLimitTest extends Unit
     private string $baseUrl = 'https://mg.robnugen.com/api/v1/inbox';
     private string $apiKey;
 
-    /** message_ids created during the test run, deleted in tearDown */
+    /**
+     * message_ids created during the test run, deleted in tearDown
+     *
+     * @var list<int>
+     */
     private array $createdIds = [];
 
     protected function _before(): void
@@ -40,7 +44,8 @@ class InboxMessageLimitTest extends Unit
     /**
      * Make an HTTP request to the inbox API.
      *
-     * @return array{status: int, body: array}
+     * @param array<string, mixed> $payload
+     * @return array{status: int, body: array<string, mixed>}
      */
     private function apiRequest(string $method, string $subPath, array $payload = []): array
     {
@@ -70,6 +75,8 @@ class InboxMessageLimitTest extends Unit
 
     /**
      * POST /send and track the message_id for cleanup.
+     *
+     * @return array{status: int, body: array<string, mixed>}
      */
     private function sendMessage(string $message, string $priority = 'normal'): array
     {

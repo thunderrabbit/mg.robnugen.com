@@ -33,7 +33,11 @@ class PermissionGuardsTest extends Unit
 
     private static string $baseUrl = 'https://mg.robnugen.com/api/v1';
 
-    /** Track created resources for cleanup (keyed by type) */
+    /**
+     * Track created resources for cleanup (keyed by type)
+     *
+     * @var array<string, list<int>>
+     */
     private static array $cleanup = [
         'inbox'    => [],  // message_ids
         'todos'    => [],  // todo_ids
@@ -108,7 +112,8 @@ class PermissionGuardsTest extends Unit
     // ── HTTP helper ──────────────────────────────────────────────────────
 
     /**
-     * @return array{status: int, body: array}
+     * @param array<string, mixed> $payload
+     * @return array{status: int, body: array<string, mixed>}
      */
     private static function rawRequest(string $apiKey, string $method, string $path, array $payload = []): array
     {
@@ -147,11 +152,17 @@ class PermissionGuardsTest extends Unit
 
     // ── Endpoint helpers ─────────────────────────────────────────────────
 
+    /**
+     * @return array{status: int, body: array<string, mixed>}
+     */
     private function readInbox(string $key): array
     {
         return self::rawRequest($key, 'GET', '/inbox/list');
     }
 
+    /**
+     * @return array{status: int, body: array<string, mixed>}
+     */
     private function writeInbox(string $key): array
     {
         $result = self::rawRequest($key, 'POST', '/inbox/send', [
@@ -164,11 +175,17 @@ class PermissionGuardsTest extends Unit
         return $result;
     }
 
+    /**
+     * @return array{status: int, body: array<string, mixed>}
+     */
     private function readTodos(string $key): array
     {
         return self::rawRequest($key, 'GET', '/todos/list', ['timezone' => 'UTC']);
     }
 
+    /**
+     * @return array{status: int, body: array<string, mixed>}
+     */
     private function writeTodos(string $key): array
     {
         $result = self::rawRequest($key, 'POST', '/todos/create', [
@@ -180,11 +197,17 @@ class PermissionGuardsTest extends Unit
         return $result;
     }
 
+    /**
+     * @return array{status: int, body: array<string, mixed>}
+     */
     private function readSessions(string $key): array
     {
         return self::rawRequest($key, 'GET', '/sessions');
     }
 
+    /**
+     * @return array{status: int, body: array<string, mixed>}
+     */
     private function writeSessions(string $key): array
     {
         $result = self::rawRequest($key, 'POST', '/sessions', [
@@ -197,11 +220,17 @@ class PermissionGuardsTest extends Unit
         return $result;
     }
 
+    /**
+     * @return array{status: int, body: array<string, mixed>}
+     */
     private function readEmotions(string $key): array
     {
         return self::rawRequest($key, 'GET', '/emotions/vocab');
     }
 
+    /**
+     * @return array{status: int, body: array<string, mixed>}
+     */
     private function writeEmotions(string $key): array
     {
         $result = self::rawRequest($key, 'POST', '/emotions/vocab', [
@@ -215,6 +244,9 @@ class PermissionGuardsTest extends Unit
 
     // ── Assertion helpers ────────────────────────────────────────────────
 
+    /**
+     * @param array{status: int, body: array<string, mixed>} $result
+     */
     private function assertAllowed(array $result, string $context): void
     {
         $this->assertNotEquals(
@@ -224,6 +256,9 @@ class PermissionGuardsTest extends Unit
         );
     }
 
+    /**
+     * @param array{status: int, body: array<string, mixed>} $result
+     */
     private function assertDenied(array $result, string $expectedError, string $context): void
     {
         $this->assertEquals(

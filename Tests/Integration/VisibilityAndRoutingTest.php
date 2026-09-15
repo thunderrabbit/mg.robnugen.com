@@ -49,7 +49,11 @@ class VisibilityAndRoutingTest extends Unit
     private static int $msgToBeta;          // #3 Full → Beta
     private static int $msgBetaToAlpha;     // #4 Beta → Alpha
 
-    /** All message IDs to clean up */
+    /**
+     * All message IDs to clean up
+     *
+     * @var list<int>
+     */
     private static array $cleanupIds = [];
 
     /** Unique tag to identify this test run's messages */
@@ -136,7 +140,8 @@ class VisibilityAndRoutingTest extends Unit
     // ── HTTP helpers ─────────────────────────────────────────────────────
 
     /**
-     * @return array{status: int, body: array}
+     * @param array<string, mixed> $payload
+     * @return array{status: int, body: array<string, mixed>}
      */
     private static function rawRequest(string $apiKey, string $method, string $path, array $payload = []): array
     {
@@ -174,6 +179,8 @@ class VisibilityAndRoutingTest extends Unit
 
     /**
      * POST /inbox/send and track the message_id for cleanup.
+     *
+     * @return array{status: int, body: array<string, mixed>}
      */
     private static function send(string $key, string $message, ?int $recipientAiu = null): array
     {
@@ -196,6 +203,9 @@ class VisibilityAndRoutingTest extends Unit
 
     /**
      * GET /inbox/list with optional query params.
+     *
+     * @param array<string, mixed> $params
+     * @return array{status: int, body: array<string, mixed>}
      */
     private function listInbox(string $key, array $params = []): array
     {
@@ -204,12 +214,18 @@ class VisibilityAndRoutingTest extends Unit
 
     /**
      * Extract message_ids from a list response.
+     *
+     * @param array{status: int, body: array<string, mixed>} $result
+     * @return array<int, mixed>
      */
     private function extractIds(array $result): array
     {
         return array_column($result['body']['messages'] ?? [], 'message_id');
     }
 
+    /**
+     * @param array{status: int, body: array<string, mixed>} $result
+     */
     private static function assertSetupOk(array $result, string $label): void
     {
         if ($result['status'] !== 201 || !isset($result['body']['message_id'])) {
