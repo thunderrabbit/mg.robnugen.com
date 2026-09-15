@@ -117,9 +117,9 @@ $issues      = new \Issues\Issues($pdo);
 // ── Request parsing ───────────────────────────────────────────────────────────
 
 $raw_body = (string) file_get_contents('php://input');
-$msg      = json_decode($raw_body, true);
+$msg      = \Field::jsonArray($raw_body);
 
-if (!is_array($msg) || !isset($msg['method'])) {
+if (!isset($msg['method'])) {
     http_response_code(400);
     echo json_encode(mcp_error(null, -32700, 'Invalid JSON-RPC message'));
     exit;

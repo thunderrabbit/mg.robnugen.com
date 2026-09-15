@@ -68,7 +68,7 @@ if ($method === 'GET' && $sub === '') {
 // ── POST /agents ─────────────────────────────────────────────────────────────
 
 if ($method === 'POST' && $sub === '') {
-    $input = json_decode((string) file_get_contents('php://input'), true) ?? [];
+    $input = \Field::jsonArray((string) file_get_contents('php://input'));
     $name  = trim(\Field::string($input, 'name'));
     $desc  = trim(\Field::string($input, 'description')) ?: null;
 
@@ -160,7 +160,7 @@ if ($method === 'POST' && $sub === '') {
 // Add an inbox_visibility row: grant one agent read/send access to another's inbox.
 
 if ($method === 'POST' && $sub === '/visibility') {
-    $input = json_decode((string) file_get_contents('php://input'), true) ?? [];
+    $input = \Field::jsonArray((string) file_get_contents('php://input'));
 
     $reader_aiu = \Field::int($input, 'reader_aiu_id');
     $peer_aiu   = \Field::intOrNull($input, 'peer_aiu_id');
@@ -229,7 +229,7 @@ if ($method === 'POST' && $sub === '/visibility') {
 // Generate an API key for an agent. Returns the raw key ONCE — it cannot be retrieved again.
 
 if ($method === 'POST' && $sub === '/keys') {
-    $input = json_decode((string) file_get_contents('php://input'), true) ?? [];
+    $input = \Field::jsonArray((string) file_get_contents('php://input'));
 
     $aiu_id = \Field::int($input, 'aiu_id');
     $label  = trim(\Field::string($input, 'label'));

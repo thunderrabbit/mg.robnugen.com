@@ -61,7 +61,7 @@ if ($method === 'POST' && $sub === '/create') {
         return;
     }
 
-    $input          = json_decode((string) file_get_contents('php://input'), true) ?? [];
+    $input          = \Field::jsonArray((string) file_get_contents('php://input'));
     $name           = trim(\Field::string($input, 'name'));
     $url            = trim(\Field::string($input, 'url')) ?: null;
     $default_branch = trim(\Field::string($input, 'default_branch')) ?: 'master';
@@ -125,7 +125,7 @@ if ($method === 'PATCH' && $sub === '/update') {
         return;
     }
 
-    $input          = json_decode((string) file_get_contents('php://input'), true) ?? [];
+    $input          = \Field::jsonArray((string) file_get_contents('php://input'));
     $repo_id        = \Field::int($input, 'repo_id');
     $name           = array_key_exists('name', $input)           ? trim((string)$input['name'])           : null;
     $url            = array_key_exists('url', $input)            ? trim((string)$input['url'])            : 'NOT_SET';
@@ -193,7 +193,7 @@ if ($method === 'PATCH' && $sub === '/deactivate') {
         return;
     }
 
-    $input   = json_decode((string) file_get_contents('php://input'), true) ?? [];
+    $input   = \Field::jsonArray((string) file_get_contents('php://input'));
     $repo_id = \Field::int($input, 'repo_id');
 
     if ($repo_id <= 0) {

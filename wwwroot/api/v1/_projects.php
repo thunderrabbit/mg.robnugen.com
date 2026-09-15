@@ -111,7 +111,7 @@ if ($method === 'POST' && $sub === '/create') {
         return;
     }
 
-    $input = json_decode((string) file_get_contents('php://input'), true) ?? [];
+    $input = \Field::jsonArray((string) file_get_contents('php://input'));
     $name  = trim(\Field::string($input, 'name'));
     $desc  = trim(\Field::string($input, 'description')) ?: null;
 
@@ -177,7 +177,7 @@ if ($method === 'PATCH' && $sub === '/update') {
         return;
     }
 
-    $input      = json_decode((string) file_get_contents('php://input'), true) ?? [];
+    $input      = \Field::jsonArray((string) file_get_contents('php://input'));
     $project_id = \Field::int($input, 'project_id');
     $name        = array_key_exists('name', $input) ? trim((string)$input['name']) : null;
     $description = array_key_exists('description', $input) ? trim((string)$input['description']) : 'NOT_SET';
@@ -240,7 +240,7 @@ if ($method === 'DELETE' && $sub === '/delete') {
         return;
     }
 
-    $input      = json_decode((string) file_get_contents('php://input'), true) ?? [];
+    $input      = \Field::jsonArray((string) file_get_contents('php://input'));
     $project_id = \Field::int($input, 'project_id');
 
     if ($project_id <= 0) {
@@ -299,7 +299,7 @@ if ($method === 'POST' && $sub === '/add-member') {
         return;
     }
 
-    $input      = json_decode((string) file_get_contents('php://input'), true) ?? [];
+    $input      = \Field::jsonArray((string) file_get_contents('php://input'));
     $project_id = \Field::int($input, 'project_id');
     $member_aiu = \Field::int($input, 'member_aiu');
     $can_read   = isset($input['can_read'])  ? (int)(bool)$input['can_read']  : 1;
@@ -369,7 +369,7 @@ if ($method === 'PATCH' && $sub === '/update-member') {
         return;
     }
 
-    $input      = json_decode((string) file_get_contents('php://input'), true) ?? [];
+    $input      = \Field::jsonArray((string) file_get_contents('php://input'));
     $project_id = \Field::int($input, 'project_id');
     $member_aiu = \Field::int($input, 'member_aiu');
     $can_read   = array_key_exists('can_read', $input)  ? (int)(bool)$input['can_read']  : null;
@@ -424,7 +424,7 @@ if ($method === 'DELETE' && $sub === '/remove-member') {
         return;
     }
 
-    $input      = json_decode((string) file_get_contents('php://input'), true) ?? [];
+    $input      = \Field::jsonArray((string) file_get_contents('php://input'));
     $project_id = \Field::int($input, 'project_id');
     $member_aiu = \Field::int($input, 'member_aiu');
 

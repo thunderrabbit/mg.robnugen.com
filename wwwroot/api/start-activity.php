@@ -27,7 +27,7 @@ if (!$is_logged_in->isLoggedIn()) {
 }
 
 // Get JSON input
-$input = json_decode((string) file_get_contents('php://input'), true);
+$input = \Field::jsonArray((string) file_get_contents('php://input'));
 
 // Validate input
 $activity_id = \Field::int($input, 'activity_id', 1); // Default to meditation

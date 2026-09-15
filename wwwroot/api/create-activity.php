@@ -27,7 +27,7 @@ if (!$is_logged_in->isLoggedIn()) {
 }
 
 // Validate input
-$input = json_decode((string) file_get_contents('php://input'), true);
+$input = \Field::jsonArray((string) file_get_contents('php://input'));
 if (!isset($input['activity_name']) || empty(trim($input['activity_name']))) {
     http_response_code(400);
     echo json_encode(['error' => 'Activity name is required']);

@@ -139,7 +139,7 @@ if ($method === 'GET' && $ak_id !== null && $sub_action === null) {
 if ($method === 'POST' && $is_backfill) {
     require_credit($pdo, $auth_user_id, $auth_key_id, $path);
 
-    $input        = json_decode((string) file_get_contents('php://input'), true) ?? [];
+    $input        = \Field::jsonArray((string) file_get_contents('php://input'));
     $activity_id  = \Field::int($input, 'activity_id', 1);
     $timezone_str = trim(\Field::string($input, 'timezone', 'UTC'));
     $start_time   = trim(\Field::string($input, 'start_time'));
@@ -219,7 +219,7 @@ if ($method === 'POST' && $is_backfill) {
 if ($method === 'POST' && $ak_id === null) {
     require_credit($pdo, $auth_user_id, $auth_key_id, $path);
 
-    $input        = json_decode((string) file_get_contents('php://input'), true) ?? [];
+    $input        = \Field::jsonArray((string) file_get_contents('php://input'));
     $activity_id  = \Field::int($input, 'activity_id', 1);
     $timezone_str = trim(\Field::string($input, 'timezone', 'UTC'));
     $intended_sec = \Field::int($input, 'intended_sec');

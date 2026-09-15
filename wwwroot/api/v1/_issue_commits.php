@@ -85,7 +85,7 @@ if ($method === 'GET' && $xsub === '/list') {
 // ─── POST /issues/commits/add ───────────────────────────────────────────────
 
 if ($method === 'POST' && $xsub === '/add') {
-    $input       = json_decode((string) file_get_contents('php://input'), true) ?? [];
+    $input       = \Field::jsonArray((string) file_get_contents('php://input'));
     $issue_id    = \Field::int($input, 'issue_id');
     $repo_id     = \Field::int($input, 'repo_id');
     $commit_hash = trim(\Field::string($input, 'commit_hash'));
@@ -161,7 +161,7 @@ if ($method === 'POST' && $xsub === '/add') {
 // ─── DELETE /issues/commits/delete ──────────────────────────────────────────
 
 if ($method === 'DELETE' && $xsub === '/delete') {
-    $input            = json_decode((string) file_get_contents('php://input'), true) ?? [];
+    $input            = \Field::jsonArray((string) file_get_contents('php://input'));
     $issue_commit_id  = \Field::int($input, 'issue_commit_id');
 
     if ($issue_commit_id <= 0) {

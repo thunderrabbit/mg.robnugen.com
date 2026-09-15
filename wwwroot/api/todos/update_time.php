@@ -27,7 +27,7 @@ if (!$is_logged_in->isLoggedIn()) {
 $user_id = $is_logged_in->loggedInID();
 
 // Get JSON input
-$input = json_decode((string) file_get_contents('php://input'), true);
+$input = \Field::jsonArray((string) file_get_contents('php://input'));
 
 if (empty($input['todo_id'])) {
     http_response_code(400);

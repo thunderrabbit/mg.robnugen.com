@@ -185,7 +185,7 @@ if ($todos_path === '/list') {
         return;
     }
 
-    $body = json_decode((string) file_get_contents('php://input'), true);
+    $body = \Field::jsonArray((string) file_get_contents('php://input'));
     $todo_id = \Field::int($body, 'todo_id');
     $nth = \Field::int($body, 'nth');
     $timezone = $body['timezone'] ?? 'UTC';
@@ -255,7 +255,7 @@ if ($todos_path === '/list') {
         return;
     }
 
-    $body = json_decode((string) file_get_contents('php://input'), true);
+    $body = \Field::jsonArray((string) file_get_contents('php://input'));
     $todo_id = \Field::int($body, 'todo_id');
     $nth = \Field::int($body, 'nth');
     $timezone = $body['timezone'] ?? 'UTC';
@@ -297,7 +297,7 @@ if ($todos_path === '/list') {
         return;
     }
 
-    $body = json_decode((string) file_get_contents('php://input'), true);
+    $body = \Field::jsonArray((string) file_get_contents('php://input'));
     $title = trim(\Field::string($body, 'title'));
 
     if ($title === '') {
@@ -346,7 +346,7 @@ if ($todos_path === '/list') {
         return;
     }
 
-    $body = json_decode((string) file_get_contents('php://input'), true);
+    $body = \Field::jsonArray((string) file_get_contents('php://input'));
     $todo_id = \Field::int($body, 'todo_id');
     $field = $body['field'] ?? '';
     $value = $body['value'] ?? null;
@@ -469,7 +469,7 @@ if ($todos_path === '/list') {
         return;
     }
 
-    $body = json_decode((string) file_get_contents('php://input'), true);
+    $body = \Field::jsonArray((string) file_get_contents('php://input'));
     $todo_id = \Field::int($body, 'todo_id');
 
     if ($todo_id <= 0) {
@@ -492,7 +492,7 @@ if ($todos_path === '/list') {
         return;
     }
 
-    $body = json_decode((string) file_get_contents('php://input'), true);
+    $body = \Field::jsonArray((string) file_get_contents('php://input'));
     $todo_id = \Field::int($body, 'todo_id');
 
     if ($todo_id <= 0) {
@@ -515,7 +515,7 @@ if ($todos_path === '/list') {
         return;
     }
 
-    $body = json_decode((string) file_get_contents('php://input'), true);
+    $body = \Field::jsonArray((string) file_get_contents('php://input'));
     $todo_id = \Field::int($body, 'todo_id');
 
     if ($todo_id <= 0) {
@@ -537,7 +537,7 @@ if ($todos_path === '/list') {
         return;
     }
 
-    $body = json_decode((string) file_get_contents('php://input'), true);
+    $body = \Field::jsonArray((string) file_get_contents('php://input'));
     $todo_id = \Field::int($body, 'todo_id');
     $ak_id = \Field::int($body, 'ak_id');
     $duration_seconds = \Field::intOrNull($body, 'duration_seconds');

@@ -27,7 +27,7 @@ if (!$is_logged_in->isLoggedIn()) {
 }
 
 // Get JSON input
-$input = json_decode((string) file_get_contents('php://input'), true);
+$input = \Field::jsonArray((string) file_get_contents('php://input'));
 
 // Get ak_id from session_key or ak_id
 $session_key = trim(\Field::string($input, 'session_key'));

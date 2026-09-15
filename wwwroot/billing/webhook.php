@@ -37,7 +37,7 @@ if (!\Billing\StripeWebhook::verifySignature($payload, $sig_header, $config->str
 
 // ── Parse and dispatch ────────────────────────────────────────────────────────
 
-$event = json_decode($payload, true);
+$event = \Field::jsonArray($payload);
 
 if (!$event || !isset($event['type'])) {
     http_response_code(400);

@@ -174,7 +174,7 @@ class VisibilityAndRoutingTest extends Unit
 
         return [
             'status' => $status,
-            'body'   => json_decode((string) $response, true) ?? [],
+            'body'   => \Field::jsonArray((string) $response),
         ];
     }
 

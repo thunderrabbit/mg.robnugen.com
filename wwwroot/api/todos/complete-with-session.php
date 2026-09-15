@@ -24,7 +24,7 @@ if (!$is_logged_in->isLoggedIn()) {
 }
 
 // Get JSON input
-$input = json_decode((string) file_get_contents('php://input'), true);
+$input = \Field::jsonArray((string) file_get_contents('php://input'));
 
 if (!$input || !isset($input['todo_id']) || !isset($input['ak_id'])) {
     http_response_code(400);

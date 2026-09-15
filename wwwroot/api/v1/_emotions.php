@@ -39,7 +39,7 @@ if ($method !== 'GET' && !$auth_actor['can_write_emotions']) {
 
 if ($emotions_path === '/vocab' || $emotions_path === '/') {
     if ($method === 'POST') {
-        $body = json_decode((string) file_get_contents('php://input'), true);
+        $body = \Field::jsonArray((string) file_get_contents('php://input'));
         if (empty($body['state']) || !is_string($body['state'])) {
             http_response_code(400);
             echo json_encode(['error' => 'Missing or invalid "state" field']);
@@ -119,7 +119,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         }
         echo json_encode($vocab);
     } elseif ($method === 'PATCH') {
-        $body = json_decode((string) file_get_contents('php://input'), true);
+        $body = \Field::jsonArray((string) file_get_contents('php://input'));
         $my_id = $body['my_id'] ?? null;
         $new_state = $body['state'] ?? null;
         if ($my_id === null || !is_string($new_state) || $new_state === '') {
@@ -143,7 +143,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         }
         echo json_encode(['my_id' => (int) $my_id, 'state' => $new_state]);
     } elseif ($method === 'DELETE') {
-        $body = json_decode((string) file_get_contents('php://input'), true);
+        $body = \Field::jsonArray((string) file_get_contents('php://input'));
         $my_id = $body['my_id'] ?? null;
         if ($my_id === null) {
             http_response_code(400);
@@ -180,7 +180,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
     }
 } elseif ($emotions_path === '/events') {
     if ($method === 'POST') {
-        $body = json_decode((string) file_get_contents('php://input'), true);
+        $body = \Field::jsonArray((string) file_get_contents('php://input'));
         $event_type = $body['event_type'] ?? '';
         $content = $body['content'] ?? '';
         $my_id = $body['my_id'] ?? null;
@@ -326,7 +326,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         }
         echo json_encode($events);
     } elseif ($method === 'DELETE') {
-        $body = json_decode((string) file_get_contents('php://input'), true);
+        $body = \Field::jsonArray((string) file_get_contents('php://input'));
         $event_id = $body['event_id'] ?? null;
         if ($event_id === null) {
             http_response_code(400);
@@ -340,7 +340,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         $stmt->execute([(int) $event_id, $auth_key_id]);
         echo json_encode(['deleted' => $stmt->rowCount()]);
     } elseif ($method === 'PATCH') {
-        $body = json_decode((string) file_get_contents('php://input'), true);
+        $body = \Field::jsonArray((string) file_get_contents('php://input'));
         $event_id = $body['event_id'] ?? null;
         if ($event_id === null) {
             http_response_code(400);
@@ -467,7 +467,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         return;
     }
 
-    $body = json_decode((string) file_get_contents('php://input'), true);
+    $body = \Field::jsonArray((string) file_get_contents('php://input'));
     if (($body['confirm'] ?? '') !== 'delete everything') {
         http_response_code(400);
         echo json_encode(['error' => 'Missing or incorrect confirm field. Send {"confirm": "delete everything"}']);

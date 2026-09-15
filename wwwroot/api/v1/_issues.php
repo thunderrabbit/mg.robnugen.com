@@ -276,7 +276,7 @@ if ($method === 'GET' && $sub === '/get') {
 // ─── POST /issues/create ─────────────────────────────────────────────────────
 
 if ($method === 'POST' && $sub === '/create') {
-    $input           = json_decode((string) file_get_contents('php://input'), true) ?? [];
+    $input           = \Field::jsonArray((string) file_get_contents('php://input'));
     $project_id      = \Field::int($input, 'project_id');
     $title           = trim(\Field::string($input, 'title'));
     $description     = array_key_exists('description', $input) ? (string)$input['description'] : null;
@@ -410,7 +410,7 @@ if ($method === 'POST' && $sub === '/create') {
 // ─── PATCH /issues/update ────────────────────────────────────────────────────
 
 if ($method === 'PATCH' && $sub === '/update') {
-    $input    = json_decode((string) file_get_contents('php://input'), true) ?? [];
+    $input    = \Field::jsonArray((string) file_get_contents('php://input'));
     $issue_id = \Field::int($input, 'issue_id');
 
     $title_in           = array_key_exists('title', $input)
@@ -589,7 +589,7 @@ if ($method === 'DELETE' && $sub === '/delete') {
         return;
     }
 
-    $input    = json_decode((string) file_get_contents('php://input'), true) ?? [];
+    $input    = \Field::jsonArray((string) file_get_contents('php://input'));
     $issue_id = \Field::int($input, 'issue_id');
     if ($issue_id <= 0) {
         http_response_code(400);

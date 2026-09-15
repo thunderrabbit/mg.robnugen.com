@@ -64,7 +64,7 @@ $result    = curl_exec($ch);
 $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
-$session = json_decode((string) $result, true);
+$session = \Field::jsonArray((string) $result);
 
 if ($http_code !== 200 || empty($session['url'])) {
     $stripe_error_msg = $session['error']['message'] ?? 'unknown error';
