@@ -6,7 +6,7 @@ use Tests\Support\AcceptanceTester;
 
 class IssuePriorityCest
 {
-    public function listReturnsPriorityField(AcceptanceTester $I)
+    public function listReturnsPriorityField(AcceptanceTester $I): void
     {
         $I->haveHttpHeader('X-API-Key', getenv('MG_TEST_KEY_FULL'));
         $I->sendGET('/api/v1/issues/list?project_id=3');
@@ -15,7 +15,7 @@ class IssuePriorityCest
         $I->seeResponseContains('normal');
     }
 
-    public function createAcceptsValidPriority(AcceptanceTester $I)
+    public function createAcceptsValidPriority(AcceptanceTester $I): void
     {
         $I->haveHttpHeader('X-API-Key', getenv('MG_TEST_KEY_FULL'));
         $I->haveHttpHeader('Content-Type', 'application/json');
@@ -28,7 +28,7 @@ class IssuePriorityCest
         $I->seeResponseContains('"priority":"high"');
     }
 
-    public function createRejectsInvalidPriority(AcceptanceTester $I)
+    public function createRejectsInvalidPriority(AcceptanceTester $I): void
     {
         $I->haveHttpHeader('X-API-Key', getenv('MG_TEST_KEY_FULL'));
         $I->haveHttpHeader('Content-Type', 'application/json');

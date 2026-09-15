@@ -6,14 +6,14 @@ use Tests\Support\AcceptanceTester;
 
 class FreeUserCest
 {
-    public function _before(AcceptanceTester $I)
+    public function _before(AcceptanceTester $I): void
     {
         $I->loginAsFree();
     }
 
     // === POSITIVE TESTS ===
 
-    public function canStartTimer(AcceptanceTester $I)
+    public function canStartTimer(AcceptanceTester $I): void
     {
         $I->amOnPage('/mg/');
         $I->see('Countdown minutes:');
@@ -24,7 +24,7 @@ class FreeUserCest
         $I->seeElement('.stop');
     }
 
-    public function canStopTimer(AcceptanceTester $I)
+    public function canStopTimer(AcceptanceTester $I): void
     {
         $I->amOnPage('/mg/');
         $I->fillField('#countdown_minutes', '0.05');  // 3 seconds for fast testing
@@ -36,14 +36,14 @@ class FreeUserCest
 
     // === NEGATIVE TESTS ===
 
-    public function cannotAccessAdminArea(AcceptanceTester $I)
+    public function cannotAccessAdminArea(AcceptanceTester $I): void
     {
         $I->amOnPage('/admin/');
         $I->see('Access Denied');
         $I->see('You need administrator privileges to access this page.');
     }
 
-    public function seesWelcomePageNotDashboard(AcceptanceTester $I)
+    public function seesWelcomePageNotDashboard(AcceptanceTester $I): void
     {
         $I->amOnPage('/');
         $I->see('A simple countdown timer for your meditation practice');

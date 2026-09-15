@@ -6,7 +6,7 @@ use Tests\Support\AcceptanceTester;
 
 class ProjectMembersCest
 {
-    public function adminSeesMembersSectionOnProjectDetail(AcceptanceTester $I)
+    public function adminSeesMembersSectionOnProjectDetail(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/projects/view.php?project_id=2');
@@ -15,7 +15,7 @@ class ProjectMembersCest
         $I->see('Read + Write');
     }
 
-    public function membersListShowsActorType(AcceptanceTester $I)
+    public function membersListShowsActorType(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/projects/view.php?project_id=2');

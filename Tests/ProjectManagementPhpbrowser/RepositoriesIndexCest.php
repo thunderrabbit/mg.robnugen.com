@@ -6,7 +6,7 @@ use Tests\Support\AcceptanceTester;
 
 class RepositoriesIndexCest
 {
-    public function adminSeesTheirRepository(AcceptanceTester $I)
+    public function adminSeesTheirRepository(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/repositories/');
@@ -16,7 +16,7 @@ class RepositoriesIndexCest
         $I->see('default branch: main');
     }
 
-    public function freeUserCannotSeeRepositoriesPage(AcceptanceTester $I)
+    public function freeUserCannotSeeRepositoriesPage(AcceptanceTester $I): void
     {
         $I->loginAsFree();
         $I->amOnPage('/repositories/');
@@ -24,7 +24,7 @@ class RepositoriesIndexCest
         $I->dontSee('administrator-test-repo');
     }
 
-    public function adminSeesNewRepoLink(AcceptanceTester $I)
+    public function adminSeesNewRepoLink(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/repositories/');

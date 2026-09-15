@@ -20,12 +20,12 @@ use Tests\Support\AcceptanceTester;
  */
 class InboxRoutingDisplayCest
 {
-    public function _before(AcceptanceTester $I)
+    public function _before(AcceptanceTester $I): void
     {
         $I->loginAsTester();
     }
 
-    public function canSeeFromAndToBadgesOnDirectMessage(AcceptanceTester $I)
+    public function canSeeFromAndToBadgesOnDirectMessage(AcceptanceTester $I): void
     {
         $tag = 'routing_display_' . bin2hex(random_bytes(4));
 

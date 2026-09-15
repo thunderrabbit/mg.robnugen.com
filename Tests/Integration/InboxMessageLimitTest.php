@@ -87,7 +87,7 @@ class InboxMessageLimitTest extends Unit
 
     // ── Tests ─────────────────────────────────────────────────────────────
 
-    public function testMessageAtExactLimitIsAccepted()
+    public function testMessageAtExactLimitIsAccepted(): void
     {
         $result = $this->sendMessage(str_repeat('x', 10240));
 
@@ -96,7 +96,7 @@ class InboxMessageLimitTest extends Unit
         $this->assertArrayHasKey('message_id', $result['body']);
     }
 
-    public function testMessageOneByteOverLimitIsRejected()
+    public function testMessageOneByteOverLimitIsRejected(): void
     {
         $result = $this->sendMessage(str_repeat('x', 10241));
 
@@ -107,7 +107,7 @@ class InboxMessageLimitTest extends Unit
         );
     }
 
-    public function testMultiByteOverLimit()
+    public function testMultiByteOverLimit(): void
     {
         // 3,414 × あ (3 bytes each) = 10,242 bytes
         $message = str_repeat('あ', 3414);
@@ -119,7 +119,7 @@ class InboxMessageLimitTest extends Unit
         $this->assertStringContainsString('10242 bytes', $result['body']['error'] ?? '');
     }
 
-    public function testMultiByteJustUnderLimit()
+    public function testMultiByteJustUnderLimit(): void
     {
         // 3,413 × あ (3 bytes each) = 10,239 bytes
         $message = str_repeat('あ', 3413);

@@ -6,7 +6,7 @@ use Tests\Support\AcceptanceTester;
 
 class CreateIssueCest
 {
-    public function adminSeesCreateIssueForm(AcceptanceTester $I)
+    public function adminSeesCreateIssueForm(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/issues/create.php?project_id=2');
@@ -17,7 +17,7 @@ class CreateIssueCest
         $I->seeElement('select[name=priority]');
     }
 
-    public function adminCanSubmitNewIssue(AcceptanceTester $I)
+    public function adminCanSubmitNewIssue(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/issues/create.php?project_id=2');
@@ -30,14 +30,14 @@ class CreateIssueCest
         $I->see($issueTitle, 'h1');
     }
 
-    public function projectDetailHasNewIssueLink(AcceptanceTester $I)
+    public function projectDetailHasNewIssueLink(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/projects/view.php?project_id=2');
         $I->seeLink('+ New Issue', '/issues/create.php?project_id=2');
     }
 
-    public function freeUserCannotAccessCreateIssueForm(AcceptanceTester $I)
+    public function freeUserCannotAccessCreateIssueForm(AcceptanceTester $I): void
     {
         $I->loginAsFree();
         $I->amOnPage('/issues/create.php?project_id=2');
@@ -45,7 +45,7 @@ class CreateIssueCest
         $I->dontSee('New Issue in', 'h1');
     }
 
-    public function createFormShowsAssigneeDropdown(AcceptanceTester $I)
+    public function createFormShowsAssigneeDropdown(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/issues/create.php?project_id=2');
@@ -55,7 +55,7 @@ class CreateIssueCest
         \PHPUnit\Framework\Assert::assertSame('— unassigned —', trim($firstOption));
     }
 
-    public function createWithMemberAssigneePersists(AcceptanceTester $I)
+    public function createWithMemberAssigneePersists(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/issues/create.php?project_id=2');
@@ -76,7 +76,7 @@ class CreateIssueCest
         $I->dontSee('unassigned');
     }
 
-    public function createWithUnassignedPersistsAsNull(AcceptanceTester $I)
+    public function createWithUnassignedPersistsAsNull(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/issues/create.php?project_id=2');
@@ -92,7 +92,7 @@ class CreateIssueCest
         $I->dontSee('assigned to');
     }
 
-    public function assigneeAndPriorityInFormRow(AcceptanceTester $I)
+    public function assigneeAndPriorityInFormRow(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/issues/create.php?project_id=2');
@@ -100,7 +100,7 @@ class CreateIssueCest
         $I->seeElement('.form-row select[name=priority]');
     }
 
-    public function createWithNonMemberAssigneeShowsError(AcceptanceTester $I)
+    public function createWithNonMemberAssigneeShowsError(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/issues/create.php?project_id=2');

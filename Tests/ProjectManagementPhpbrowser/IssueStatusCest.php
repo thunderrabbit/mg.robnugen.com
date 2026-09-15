@@ -6,7 +6,7 @@ use Tests\Support\AcceptanceTester;
 
 class IssueStatusCest
 {
-    public function adminSeesStatusPicker(AcceptanceTester $I)
+    public function adminSeesStatusPicker(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/issues/view.php?issue_id=4');
@@ -14,7 +14,7 @@ class IssueStatusCest
         $I->see('Change status');
     }
 
-    public function adminCanChangeStatus(AcceptanceTester $I)
+    public function adminCanChangeStatus(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/issues/view.php?issue_id=4');

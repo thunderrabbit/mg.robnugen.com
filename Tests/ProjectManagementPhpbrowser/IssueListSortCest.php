@@ -6,7 +6,7 @@ use Tests\Support\AcceptanceTester;
 
 class IssueListSortCest
 {
-    public function issueListShowsPriorityAndDate(AcceptanceTester $I)
+    public function issueListShowsPriorityAndDate(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/projects/view.php?project_id=2');
@@ -14,7 +14,7 @@ class IssueListSortCest
         $I->seeElement('.issue-date');
     }
 
-    public function sortControlsPresent(AcceptanceTester $I)
+    public function sortControlsPresent(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/projects/view.php?project_id=2');
@@ -26,7 +26,7 @@ class IssueListSortCest
         $I->seeLink('Priority');
     }
 
-    public function defaultSortIsUpdatedDesc(AcceptanceTester $I)
+    public function defaultSortIsUpdatedDesc(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/projects/view.php?project_id=2');
@@ -34,7 +34,7 @@ class IssueListSortCest
         $I->see('Updated ↓', '.sort-link-active');
     }
 
-    public function sortByTitleAscending(AcceptanceTester $I)
+    public function sortByTitleAscending(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/projects/view.php?project_id=2&sort=title&dir=asc');
@@ -42,7 +42,7 @@ class IssueListSortCest
         $I->see('Title ↑', '.sort-link-active');
     }
 
-    public function invalidSortFallsBackToUpdated(AcceptanceTester $I)
+    public function invalidSortFallsBackToUpdated(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/projects/view.php?project_id=2&sort=nonsense&dir=nope');

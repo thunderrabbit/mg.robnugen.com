@@ -12,12 +12,12 @@ use Tests\Support\AcceptanceTester;
  */
 class CreateAgentCest
 {
-    public function _before(AcceptanceTester $I)
+    public function _before(AcceptanceTester $I): void
     {
         $I->loginAsTester();
     }
 
-    public function canCreateAgentViaUI(AcceptanceTester $I)
+    public function canCreateAgentViaUI(AcceptanceTester $I): void
     {
         $agentName = 'test_ui_agent_' . substr(bin2hex(random_bytes(4)), 0, 8);
         $agentDesc = 'Webdriver test ' . date('Y M d');
@@ -49,7 +49,7 @@ class CreateAgentCest
         $I->see($agentName, '#gen_aiu_id');
     }
 
-    public function canCreateAgentWithSendToPermissions(AcceptanceTester $I)
+    public function canCreateAgentWithSendToPermissions(AcceptanceTester $I): void
     {
         $agentName = 'test_sendto_' . substr(bin2hex(random_bytes(4)), 0, 8);
         $agentDesc = 'I5 send-to test ' . date('Y M d');

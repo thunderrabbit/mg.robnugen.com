@@ -9,7 +9,7 @@ class SessionKeyTest extends Unit
 {
     private SessionKey $sessionKey;
 
-    protected function _before()
+    protected function _before(): void
     {
         // Create mock PDO (not used for generateSessionKey)
         $pdo = $this->createMock(\PDO::class);
@@ -18,13 +18,13 @@ class SessionKeyTest extends Unit
 
     // === generateSessionKey tests ===
 
-    public function testGenerateSessionKeyLength()
+    public function testGenerateSessionKeyLength(): void
     {
         $key = $this->sessionKey->generateSessionKey();
         $this->assertEquals(11, strlen($key), 'Session key should be 11 characters');
     }
 
-    public function testGenerateSessionKeyValidChars()
+    public function testGenerateSessionKeyValidChars(): void
     {
         // Base64url chars: a-z, A-Z, 0-9, _, -
         $validChars = '_-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -42,7 +42,7 @@ class SessionKeyTest extends Unit
         }
     }
 
-    public function testGenerateSessionKeyUnique()
+    public function testGenerateSessionKeyUnique(): void
     {
         $keys = [];
         for ($i = 0; $i < 100; $i++) {
@@ -52,7 +52,7 @@ class SessionKeyTest extends Unit
         $this->assertCount(100, $unique, 'All 100 keys should be unique');
     }
 
-    public function testGenerateSessionKeyNoInvalidChars()
+    public function testGenerateSessionKeyNoInvalidChars(): void
     {
         // Should not contain +, /, = (standard base64 chars not in base64url)
         for ($i = 0; $i < 50; $i++) {

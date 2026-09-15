@@ -6,7 +6,7 @@ use Tests\Support\AcceptanceTester;
 
 class ProjectsIndexCest
 {
-    public function adminSeesTheirProject(AcceptanceTester $I)
+    public function adminSeesTheirProject(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/projects/');
@@ -15,7 +15,7 @@ class ProjectsIndexCest
         $I->see('administrator test project');
     }
 
-    public function freeUserCannotSeeProjectsPage(AcceptanceTester $I)
+    public function freeUserCannotSeeProjectsPage(AcceptanceTester $I): void
     {
         $I->loginAsFree();
         $I->amOnPage('/projects/');
@@ -23,7 +23,7 @@ class ProjectsIndexCest
         $I->dontSee('administrator test project');
     }
 
-    public function adminSeesOpenIssueCountNextToProject(AcceptanceTester $I)
+    public function adminSeesOpenIssueCountNextToProject(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/projects/');

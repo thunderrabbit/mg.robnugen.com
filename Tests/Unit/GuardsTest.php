@@ -16,14 +16,14 @@ class GuardsTest extends Unit
 {
     private Guards $guards;
 
-    protected function _before()
+    protected function _before(): void
     {
         $this->guards = new Guards();
     }
 
     // === permission() ===
 
-    public function testPermissionGrantedReturnsNull()
+    public function testPermissionGrantedReturnsNull(): void
     {
         // DB delivers flags as 1 / '1'; both mean granted.
         $this->assertNull($this->guards->permission(['can_read_inbox' => 1], 'can_read_inbox', 'read inbox'));
@@ -31,7 +31,7 @@ class GuardsTest extends Unit
         $this->assertNull($this->guards->permission(['can_read_inbox' => true], 'can_read_inbox', 'read inbox'));
     }
 
-    public function testPermissionDeniedForEveryFalsyOrMissingValue()
+    public function testPermissionDeniedForEveryFalsyOrMissingValue(): void
     {
         foreach ([0, '0', '', false, null] as $denied) {
             $verdict = $this->guards->permission(['can_write_inbox' => $denied], 'can_write_inbox', 'write inbox');
@@ -45,7 +45,7 @@ class GuardsTest extends Unit
         $this->assertSame('This API key does not have permission to write inbox', $verdict['error']);
     }
 
-    public function testPermissionLabelsMatchEndpointStrings()
+    public function testPermissionLabelsMatchEndpointStrings(): void
     {
         $cases = [
             ['can_read_inbox',      'read inbox'],
@@ -64,27 +64,27 @@ class GuardsTest extends Unit
 
     // === byteLimit() ===
 
-    public function testByteLimitAllowsUnderAndExactlyAtCap()
+    public function testByteLimitAllowsUnderAndExactlyAtCap(): void
     {
         $this->assertNull($this->guards->byteLimit('message', str_repeat('a', 10239)));
         // Exactly 10240 bytes is allowed (the check is strictly greater-than).
         $this->assertNull($this->guards->byteLimit('message', str_repeat('a', 10240)));
     }
 
-    public function testByteLimitRejectsOverCapWithExactString()
+    public function testByteLimitRejectsOverCapWithExactString(): void
     {
         $verdict = $this->guards->byteLimit('message', str_repeat('a', 10241));
         $this->assertSame(400, $verdict['code']);
         $this->assertSame('message exceeds 10240 byte limit (10241 bytes)', $verdict['error']);
     }
 
-    public function testByteLimitFieldNameIsReflected()
+    public function testByteLimitFieldNameIsReflected(): void
     {
         $verdict = $this->guards->byteLimit('response', str_repeat('a', 10241));
         $this->assertSame('response exceeds 10240 byte limit (10241 bytes)', $verdict['error']);
     }
 
-    public function testByteLimitCountsBytesNotCharacters()
+    public function testByteLimitCountsBytesNotCharacters(): void
     {
         // 3414 × "あ" (3 UTF-8 bytes) = 3414 chars but 10242 bytes → over cap.
         $multibyte = str_repeat("\u{3042}", 3414);

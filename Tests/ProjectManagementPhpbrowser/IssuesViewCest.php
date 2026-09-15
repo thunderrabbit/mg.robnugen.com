@@ -6,7 +6,7 @@ use Tests\Support\AcceptanceTester;
 
 class IssuesViewCest
 {
-    public function adminSeesOwnIssueDetail(AcceptanceTester $I)
+    public function adminSeesOwnIssueDetail(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/issues/view.php?issue_id=4');
@@ -15,7 +15,7 @@ class IssuesViewCest
         $I->see('#4');
     }
 
-    public function freeUserCannotAccessIssueDetail(AcceptanceTester $I)
+    public function freeUserCannotAccessIssueDetail(AcceptanceTester $I): void
     {
         $I->loginAsFree();
         $I->amOnPage('/issues/view.php?issue_id=4');
@@ -23,7 +23,7 @@ class IssuesViewCest
         $I->dontSee('Wire up the frontend for issues list');
     }
 
-    public function adminCannotSeeAnotherAccountsIssue(AcceptanceTester $I)
+    public function adminCannotSeeAnotherAccountsIssue(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/issues/view.php?issue_id=1');
@@ -32,7 +32,7 @@ class IssuesViewCest
         $I->dontSee('Get current tests working');
     }
 
-    public function adminSeesCommentsOnOwnIssueDetail(AcceptanceTester $I)
+    public function adminSeesCommentsOnOwnIssueDetail(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/issues/view.php?issue_id=4');

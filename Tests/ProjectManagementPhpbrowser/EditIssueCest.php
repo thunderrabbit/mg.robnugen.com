@@ -6,7 +6,7 @@ use Tests\Support\AcceptanceTester;
 
 class EditIssueCest
 {
-    public function adminSeesEditLinkAndForm(AcceptanceTester $I)
+    public function adminSeesEditLinkAndForm(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/issues/view.php?issue_id=4');
@@ -17,7 +17,7 @@ class EditIssueCest
         $I->seeElement('textarea[name=description]');
     }
 
-    public function adminCanEditTitle(AcceptanceTester $I)
+    public function adminCanEditTitle(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/issues/edit.php?issue_id=4');

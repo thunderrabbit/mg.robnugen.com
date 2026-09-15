@@ -6,14 +6,14 @@ use Tests\Support\AcceptanceTester;
 
 class AdminUserCest
 {
-    public function _before(AcceptanceTester $I)
+    public function _before(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
     }
 
     // === POSITIVE TESTS ===
 
-    public function canSeeAdminDashboard(AcceptanceTester $I)
+    public function canSeeAdminDashboard(AcceptanceTester $I): void
     {
         $I->amOnPage('/');
         // Dashboard is JS-rendered; wait for the sections to appear rather than asserting immediately
@@ -23,13 +23,13 @@ class AdminUserCest
         $I->waitForText("Start New Timer", 10);
     }
 
-    public function canAccessAdminArea(AcceptanceTester $I)
+    public function canAccessAdminArea(AcceptanceTester $I): void
     {
         $I->amOnPage('/admin/');
         $I->dontSee('Access Denied');
     }
 
-    public function canSeeLoginHistory(AcceptanceTester $I)
+    public function canSeeLoginHistory(AcceptanceTester $I): void
     {
         $I->amOnPage('/admin/auth_log.php');
         $I->see('Authentication Log');
@@ -37,7 +37,7 @@ class AdminUserCest
         $I->see('entries (newest first)');
     }
 
-    public function canCreateTodo(AcceptanceTester $I)
+    public function canCreateTodo(AcceptanceTester $I): void
     {
         $I->amOnPage('/todos/create.php');
         $I->see('Create New Todo');
@@ -60,7 +60,7 @@ class AdminUserCest
 
     // === NEGATIVE TESTS ===
 
-    public function doesNotSeeWelcomePage(AcceptanceTester $I)
+    public function doesNotSeeWelcomePage(AcceptanceTester $I): void
     {
         $I->amOnPage('/');
         $I->dontSee('A simple countdown timer for your meditation practice');

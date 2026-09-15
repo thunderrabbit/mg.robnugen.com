@@ -6,7 +6,7 @@ use Tests\Support\AcceptanceTester;
 
 class ProjectsViewCest
 {
-    public function adminSeesTheirOwnProjectDetail(AcceptanceTester $I)
+    public function adminSeesTheirOwnProjectDetail(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/projects/view.php?project_id=2');
@@ -14,7 +14,7 @@ class ProjectsViewCest
         $I->see('administrator test project');
     }
 
-    public function freeUserCannotAccessProjectDetail(AcceptanceTester $I)
+    public function freeUserCannotAccessProjectDetail(AcceptanceTester $I): void
     {
         $I->loginAsFree();
         $I->amOnPage('/projects/view.php?project_id=2');
@@ -22,7 +22,7 @@ class ProjectsViewCest
         $I->dontSee('administrator test project');
     }
 
-    public function adminCannotSeeAnotherAccountsProject(AcceptanceTester $I)
+    public function adminCannotSeeAnotherAccountsProject(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/projects/view.php?project_id=1');
@@ -31,7 +31,7 @@ class ProjectsViewCest
         $I->dontSee('mg.robnugen.com');
     }
 
-    public function adminSeesOpenIssuesListOnProjectDetail(AcceptanceTester $I)
+    public function adminSeesOpenIssuesListOnProjectDetail(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/projects/view.php?project_id=2');

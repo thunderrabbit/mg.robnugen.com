@@ -242,42 +242,42 @@ class PermissionGuardsTest extends Unit
     //  FULL ACCESS — sanity: every endpoint should succeed
     // ═══════════════════════════════════════════════════════════════════════
 
-    public function testFullAccessCanReadInbox()
+    public function testFullAccessCanReadInbox(): void
     {
         $this->assertAllowed($this->readInbox(self::$keyFull), 'full/read_inbox');
     }
 
-    public function testFullAccessCanWriteInbox()
+    public function testFullAccessCanWriteInbox(): void
     {
         $this->assertAllowed($this->writeInbox(self::$keyFull), 'full/write_inbox');
     }
 
-    public function testFullAccessCanReadTodos()
+    public function testFullAccessCanReadTodos(): void
     {
         $this->assertAllowed($this->readTodos(self::$keyFull), 'full/read_todos');
     }
 
-    public function testFullAccessCanWriteTodos()
+    public function testFullAccessCanWriteTodos(): void
     {
         $this->assertAllowed($this->writeTodos(self::$keyFull), 'full/write_todos');
     }
 
-    public function testFullAccessCanReadSessions()
+    public function testFullAccessCanReadSessions(): void
     {
         $this->assertAllowed($this->readSessions(self::$keyFull), 'full/read_sessions');
     }
 
-    public function testFullAccessCanWriteSessions()
+    public function testFullAccessCanWriteSessions(): void
     {
         $this->assertAllowed($this->writeSessions(self::$keyFull), 'full/write_sessions');
     }
 
-    public function testFullAccessCanReadEmotions()
+    public function testFullAccessCanReadEmotions(): void
     {
         $this->assertAllowed($this->readEmotions(self::$keyFull), 'full/read_emotions');
     }
 
-    public function testFullAccessCanWriteEmotions()
+    public function testFullAccessCanWriteEmotions(): void
     {
         $this->assertAllowed($this->writeEmotions(self::$keyFull), 'full/write_emotions');
     }
@@ -286,7 +286,7 @@ class PermissionGuardsTest extends Unit
     //  ZERO ACCESS — sanity: every endpoint should return 403
     // ═══════════════════════════════════════════════════════════════════════
 
-    public function testNoAccessBlockedFromReadInbox()
+    public function testNoAccessBlockedFromReadInbox(): void
     {
         $this->assertDenied(
             $this->readInbox(self::$keyNone),
@@ -295,7 +295,7 @@ class PermissionGuardsTest extends Unit
         );
     }
 
-    public function testNoAccessBlockedFromWriteInbox()
+    public function testNoAccessBlockedFromWriteInbox(): void
     {
         $this->assertDenied(
             $this->writeInbox(self::$keyNone),
@@ -304,7 +304,7 @@ class PermissionGuardsTest extends Unit
         );
     }
 
-    public function testNoAccessBlockedFromReadTodos()
+    public function testNoAccessBlockedFromReadTodos(): void
     {
         $this->assertDenied(
             $this->readTodos(self::$keyNone),
@@ -313,7 +313,7 @@ class PermissionGuardsTest extends Unit
         );
     }
 
-    public function testNoAccessBlockedFromWriteTodos()
+    public function testNoAccessBlockedFromWriteTodos(): void
     {
         $this->assertDenied(
             $this->writeTodos(self::$keyNone),
@@ -322,7 +322,7 @@ class PermissionGuardsTest extends Unit
         );
     }
 
-    public function testNoAccessBlockedFromReadSessions()
+    public function testNoAccessBlockedFromReadSessions(): void
     {
         $this->assertDenied(
             $this->readSessions(self::$keyNone),
@@ -331,7 +331,7 @@ class PermissionGuardsTest extends Unit
         );
     }
 
-    public function testNoAccessBlockedFromWriteSessions()
+    public function testNoAccessBlockedFromWriteSessions(): void
     {
         $this->assertDenied(
             $this->writeSessions(self::$keyNone),
@@ -340,7 +340,7 @@ class PermissionGuardsTest extends Unit
         );
     }
 
-    public function testNoAccessBlockedFromReadEmotions()
+    public function testNoAccessBlockedFromReadEmotions(): void
     {
         $this->assertDenied(
             $this->readEmotions(self::$keyNone),
@@ -349,7 +349,7 @@ class PermissionGuardsTest extends Unit
         );
     }
 
-    public function testNoAccessBlockedFromWriteEmotions()
+    public function testNoAccessBlockedFromWriteEmotions(): void
     {
         $this->assertDenied(
             $this->writeEmotions(self::$keyNone),
@@ -363,12 +363,12 @@ class PermissionGuardsTest extends Unit
     //          read_sessions=1, write_sessions=0, read_emotions=0, write_emotions=1
     // ═══════════════════════════════════════════════════════════════════════
 
-    public function testAlphaCanReadInbox()
+    public function testAlphaCanReadInbox(): void
     {
         $this->assertAllowed($this->readInbox(self::$keyAlpha), 'alpha/read_inbox');
     }
 
-    public function testAlphaBlockedFromWriteInbox()
+    public function testAlphaBlockedFromWriteInbox(): void
     {
         $this->assertDenied(
             $this->writeInbox(self::$keyAlpha),
@@ -377,7 +377,7 @@ class PermissionGuardsTest extends Unit
         );
     }
 
-    public function testAlphaBlockedFromReadTodos()
+    public function testAlphaBlockedFromReadTodos(): void
     {
         $this->assertDenied(
             $this->readTodos(self::$keyAlpha),
@@ -386,17 +386,17 @@ class PermissionGuardsTest extends Unit
         );
     }
 
-    public function testAlphaCanWriteTodos()
+    public function testAlphaCanWriteTodos(): void
     {
         $this->assertAllowed($this->writeTodos(self::$keyAlpha), 'alpha/write_todos');
     }
 
-    public function testAlphaCanReadSessions()
+    public function testAlphaCanReadSessions(): void
     {
         $this->assertAllowed($this->readSessions(self::$keyAlpha), 'alpha/read_sessions');
     }
 
-    public function testAlphaBlockedFromWriteSessions()
+    public function testAlphaBlockedFromWriteSessions(): void
     {
         $this->assertDenied(
             $this->writeSessions(self::$keyAlpha),
@@ -405,7 +405,7 @@ class PermissionGuardsTest extends Unit
         );
     }
 
-    public function testAlphaBlockedFromReadEmotions()
+    public function testAlphaBlockedFromReadEmotions(): void
     {
         $this->assertDenied(
             $this->readEmotions(self::$keyAlpha),
@@ -414,7 +414,7 @@ class PermissionGuardsTest extends Unit
         );
     }
 
-    public function testAlphaCanWriteEmotions()
+    public function testAlphaCanWriteEmotions(): void
     {
         $this->assertAllowed($this->writeEmotions(self::$keyAlpha), 'alpha/write_emotions');
     }
@@ -425,7 +425,7 @@ class PermissionGuardsTest extends Unit
     //         read_sessions=0, write_sessions=1, read_emotions=1, write_emotions=0
     // ═══════════════════════════════════════════════════════════════════════
 
-    public function testBetaBlockedFromReadInbox()
+    public function testBetaBlockedFromReadInbox(): void
     {
         $this->assertDenied(
             $this->readInbox(self::$keyBeta),
@@ -434,17 +434,17 @@ class PermissionGuardsTest extends Unit
         );
     }
 
-    public function testBetaCanWriteInbox()
+    public function testBetaCanWriteInbox(): void
     {
         $this->assertAllowed($this->writeInbox(self::$keyBeta), 'beta/write_inbox');
     }
 
-    public function testBetaCanReadTodos()
+    public function testBetaCanReadTodos(): void
     {
         $this->assertAllowed($this->readTodos(self::$keyBeta), 'beta/read_todos');
     }
 
-    public function testBetaBlockedFromWriteTodos()
+    public function testBetaBlockedFromWriteTodos(): void
     {
         $this->assertDenied(
             $this->writeTodos(self::$keyBeta),
@@ -453,7 +453,7 @@ class PermissionGuardsTest extends Unit
         );
     }
 
-    public function testBetaBlockedFromReadSessions()
+    public function testBetaBlockedFromReadSessions(): void
     {
         $this->assertDenied(
             $this->readSessions(self::$keyBeta),
@@ -462,17 +462,17 @@ class PermissionGuardsTest extends Unit
         );
     }
 
-    public function testBetaCanWriteSessions()
+    public function testBetaCanWriteSessions(): void
     {
         $this->assertAllowed($this->writeSessions(self::$keyBeta), 'beta/write_sessions');
     }
 
-    public function testBetaCanReadEmotions()
+    public function testBetaCanReadEmotions(): void
     {
         $this->assertAllowed($this->readEmotions(self::$keyBeta), 'beta/read_emotions');
     }
 
-    public function testBetaBlockedFromWriteEmotions()
+    public function testBetaBlockedFromWriteEmotions(): void
     {
         $this->assertDenied(
             $this->writeEmotions(self::$keyBeta),
@@ -485,7 +485,7 @@ class PermissionGuardsTest extends Unit
     //  GET /inbox/actors — requires can_write_inbox
     // ═══════════════════════════════════════════════════════════════════════
 
-    public function testFullAccessCanListActors()
+    public function testFullAccessCanListActors(): void
     {
         $result = self::rawRequest(self::$keyFull, 'GET', '/inbox/actors');
         $this->assertAllowed($result, 'full/inbox_actors');
@@ -501,7 +501,7 @@ class PermissionGuardsTest extends Unit
         $this->assertArrayHasKey('description', $first, 'Actor should have description');
     }
 
-    public function testAlphaBlockedFromListActors()
+    public function testAlphaBlockedFromListActors(): void
     {
         $this->assertDenied(
             self::rawRequest(self::$keyAlpha, 'GET', '/inbox/actors'),

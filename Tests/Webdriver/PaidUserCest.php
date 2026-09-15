@@ -6,14 +6,14 @@ use Tests\Support\AcceptanceTester;
 
 class PaidUserCest
 {
-    public function _before(AcceptanceTester $I)
+    public function _before(AcceptanceTester $I): void
     {
         $I->loginAsPaid();
     }
 
     // === POSITIVE TESTS ===
 
-    public function canSeeDashboard(AcceptanceTester $I)
+    public function canSeeDashboard(AcceptanceTester $I): void
     {
         $I->amOnPage('/');
         // Dashboard is JS-rendered; wait for the section label to appear
@@ -22,7 +22,7 @@ class PaidUserCest
         $I->dontSee('Admin');  // Paid users don't see admin link
     }
 
-    public function canCreateActivity(AcceptanceTester $I)
+    public function canCreateActivity(AcceptanceTester $I): void
     {
         $I->amOnPage('/mg/');
         // Wait for JavaScript to populate the dropdown
@@ -34,7 +34,7 @@ class PaidUserCest
         $I->seeElement('#save_new_activity');
     }
 
-    public function canCreateTodo(AcceptanceTester $I)
+    public function canCreateTodo(AcceptanceTester $I): void
     {
         $I->amOnPage('/todos/create.php');
         $I->see('Create New Todo');
@@ -57,7 +57,7 @@ class PaidUserCest
 
     // === NEGATIVE TESTS ===
 
-    public function cannotAccessAdminArea(AcceptanceTester $I)
+    public function cannotAccessAdminArea(AcceptanceTester $I): void
     {
         $I->amOnPage('/admin/');
         $I->see('Access Denied');

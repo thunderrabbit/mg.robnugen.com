@@ -6,7 +6,7 @@ use Tests\Support\AcceptanceTester;
 
 class ProjectsListCest
 {
-    public function fullKeySeesOwnProject(AcceptanceTester $I)
+    public function fullKeySeesOwnProject(AcceptanceTester $I): void
     {
         $I->haveHttpHeader('X-API-Key', getenv('MG_TEST_KEY_FULL'));
         $I->sendGET('/api/v1/projects/list');
@@ -14,7 +14,7 @@ class ProjectsListCest
         $I->seeResponseContains('Test-Full API project');
     }
 
-    public function missingKeyGets401(AcceptanceTester $I)
+    public function missingKeyGets401(AcceptanceTester $I): void
     {
         $I->sendGET('/api/v1/projects/list');
         $I->seeResponseCodeIs(401);

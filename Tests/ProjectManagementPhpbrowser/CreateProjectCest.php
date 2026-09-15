@@ -6,7 +6,7 @@ use Tests\Support\AcceptanceTester;
 
 class CreateProjectCest
 {
-    public function adminSeesCreateProjectForm(AcceptanceTester $I)
+    public function adminSeesCreateProjectForm(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/projects/create.php');
@@ -16,7 +16,7 @@ class CreateProjectCest
         $I->seeElement('textarea[name=description]');
     }
 
-    public function duplicateNameShowsError(AcceptanceTester $I)
+    public function duplicateNameShowsError(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/projects/create.php');
@@ -30,7 +30,7 @@ class CreateProjectCest
         $I->see('already exists');
     }
 
-    public function freeUserCannotAccessCreateForm(AcceptanceTester $I)
+    public function freeUserCannotAccessCreateForm(AcceptanceTester $I): void
     {
         $I->loginAsFree();
         $I->amOnPage('/projects/create.php');
@@ -38,7 +38,7 @@ class CreateProjectCest
         $I->dontSee('Create Project', 'h1');
     }
 
-    public function projectsIndexHasNewProjectLink(AcceptanceTester $I)
+    public function projectsIndexHasNewProjectLink(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/projects/');

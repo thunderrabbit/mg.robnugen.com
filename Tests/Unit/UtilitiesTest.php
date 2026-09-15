@@ -8,13 +8,13 @@ class UtilitiesTest extends Unit
 {
     // === randomString tests ===
 
-    public function testRandomStringLength()
+    public function testRandomStringLength(): void
     {
         $result = \Utilities::randomString(10);
         $this->assertEquals(10, strlen($result));
     }
 
-    public function testRandomStringLengthVarious()
+    public function testRandomStringLengthVarious(): void
     {
         foreach ([1, 5, 20, 100] as $length) {
             $result = \Utilities::randomString($length);
@@ -22,7 +22,7 @@ class UtilitiesTest extends Unit
         }
     }
 
-    public function testRandomStringUsesDefaultCharset()
+    public function testRandomStringUsesDefaultCharset(): void
     {
         // Default charset excludes 'e', 'i', 'l' (confusable chars)
         $default = "0123456789abcdfghjkmnopqrstuvwxyzABCDEFGHJKLMNOPQRSTUVWXYZ";
@@ -41,7 +41,7 @@ class UtilitiesTest extends Unit
         }
     }
 
-    public function testRandomStringCustomCharset()
+    public function testRandomStringCustomCharset(): void
     {
         $charset = 'ABC';
         $result = \Utilities::randomString(20, $charset);
@@ -56,7 +56,7 @@ class UtilitiesTest extends Unit
         }
     }
 
-    public function testRandomStringIsRandom()
+    public function testRandomStringIsRandom(): void
     {
         // Two calls should produce different results (statistically)
         $results = [];
@@ -69,35 +69,35 @@ class UtilitiesTest extends Unit
 
     // === getSchemaFilePath tests ===
 
-    public function testGetSchemaFilePathRejectsEmptyVersion()
+    public function testGetSchemaFilePathRejectsEmptyVersion(): void
     {
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('cannot be empty');
         \Utilities::getSchemaFilePath('/some/path', '');
     }
 
-    public function testGetSchemaFilePathRejectsPathTraversal()
+    public function testGetSchemaFilePathRejectsPathTraversal(): void
     {
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('traversal not allowed');
         \Utilities::getSchemaFilePath('/some/path', '../etc/passwd');
     }
 
-    public function testGetSchemaFilePathRejectsInvalidFormat()
+    public function testGetSchemaFilePathRejectsInvalidFormat(): void
     {
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('Invalid migration path format');
         \Utilities::getSchemaFilePath('/some/path', 'invalid_format.sql');
     }
 
-    public function testGetSchemaFilePathRejectsNoLeadingNumbers()
+    public function testGetSchemaFilePathRejectsNoLeadingNumbers(): void
     {
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('Invalid migration path format');
         \Utilities::getSchemaFilePath('/some/path', 'ab_name/create_table.sql');
     }
 
-    public function testGetSchemaFilePathValidFormatButMissingDir()
+    public function testGetSchemaFilePathValidFormatButMissingDir(): void
     {
         // Valid format but base directory doesn't exist
         $this->expectException(\Exception::class);
@@ -105,7 +105,7 @@ class UtilitiesTest extends Unit
         \Utilities::getSchemaFilePath('/tmp', '00_test/create_users.sql');
     }
 
-    public function testGetSchemaFilePathWithRealFile()
+    public function testGetSchemaFilePathWithRealFile(): void
     {
         // Use actual migration file from the project
         $appPath = dirname(__DIR__, 2);  // Go up from Tests/Unit to project root
@@ -117,21 +117,21 @@ class UtilitiesTest extends Unit
 
     // === renderMarkdown tests ===
 
-    public function testRenderMarkdownBoldAndItalic()
+    public function testRenderMarkdownBoldAndItalic(): void
     {
         $html = \Utilities::renderMarkdown('**bold** and *italic*');
         $this->assertStringContainsString('<strong>bold</strong>', $html);
         $this->assertStringContainsString('<em>italic</em>', $html);
     }
 
-    public function testRenderMarkdownHeadingsAndHr()
+    public function testRenderMarkdownHeadingsAndHr(): void
     {
         $html = \Utilities::renderMarkdown("## Heading\n\n---");
         $this->assertStringContainsString('<h2>Heading</h2>', $html);
         $this->assertStringContainsString('<hr', $html);
     }
 
-    public function testRenderMarkdownLists()
+    public function testRenderMarkdownLists(): void
     {
         $html = \Utilities::renderMarkdown("1. one\n2. two");
         $this->assertStringContainsString('<ol>', $html);
@@ -142,14 +142,14 @@ class UtilitiesTest extends Unit
         $this->assertStringContainsString('<li>a</li>', $html);
     }
 
-    public function testRenderMarkdownEscapesRawHtml()
+    public function testRenderMarkdownEscapesRawHtml(): void
     {
         $html = \Utilities::renderMarkdown('Hi <script>alert(1)</script>');
         $this->assertStringNotContainsString('<script>', $html);
         $this->assertStringContainsString('&lt;script&gt;', $html);
     }
 
-    public function testRenderMarkdownNeutralizesJavascriptLink()
+    public function testRenderMarkdownNeutralizesJavascriptLink(): void
     {
         $html = \Utilities::renderMarkdown('[click](javascript:alert(1))');
         // safe mode URL-encodes the colon so the browser won't treat it as a javascript: URL

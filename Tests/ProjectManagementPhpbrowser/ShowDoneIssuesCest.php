@@ -6,7 +6,7 @@ use Tests\Support\AcceptanceTester;
 
 class ShowDoneIssuesCest
 {
-    public function adminDoesNotSeeDoneIssueByDefault(AcceptanceTester $I)
+    public function adminDoesNotSeeDoneIssueByDefault(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/projects/view.php?project_id=2');
@@ -16,7 +16,7 @@ class ShowDoneIssuesCest
         $I->seeLink('Show done');
     }
 
-    public function adminSeesDoneIssueWithShowDoneFlag(AcceptanceTester $I)
+    public function adminSeesDoneIssueWithShowDoneFlag(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/projects/view.php?project_id=2&show_done=1');
@@ -26,7 +26,7 @@ class ShowDoneIssuesCest
         $I->seeLink('Hide done');
     }
 
-    public function toggleLinkPreservesProjectContext(AcceptanceTester $I)
+    public function toggleLinkPreservesProjectContext(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/projects/view.php?project_id=2');

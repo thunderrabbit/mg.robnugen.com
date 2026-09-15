@@ -6,14 +6,14 @@ use Tests\Support\AcceptanceTester;
 
 class AddMemberCest
 {
-    public function projectDetailHasAddMemberLink(AcceptanceTester $I)
+    public function projectDetailHasAddMemberLink(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/projects/view.php?project_id=2');
         $I->seeLink('+ Add Member', '/projects/add-member.php?project_id=2');
     }
 
-    public function adminSeesAddMemberForm(AcceptanceTester $I)
+    public function adminSeesAddMemberForm(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/projects/add-member.php?project_id=2');
@@ -25,7 +25,7 @@ class AddMemberCest
         $I->seeElement('button[type=submit]');
     }
 
-    public function freeUserCannotAccessAddMember(AcceptanceTester $I)
+    public function freeUserCannotAccessAddMember(AcceptanceTester $I): void
     {
         $I->loginAsFree();
         $I->amOnPage('/projects/add-member.php?project_id=2');

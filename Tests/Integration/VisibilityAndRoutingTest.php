@@ -226,7 +226,7 @@ class VisibilityAndRoutingTest extends Unit
     /**
      * Test 1: Full (supervisor) sees all 3 messages.
      */
-    public function testFullSeesAllMessages()
+    public function testFullSeesAllMessages(): void
     {
         $result = $this->listInbox(self::$keyFull);
         $this->assertEquals(200, $result['status']);
@@ -243,7 +243,7 @@ class VisibilityAndRoutingTest extends Unit
      * Test 2: Alpha sees messages addressed to Alpha (#2, #4),
      *         but NOT #3 (addressed to Beta).
      */
-    public function testAlphaSeesOwnMessagesOnly()
+    public function testAlphaSeesOwnMessagesOnly(): void
     {
         $result = $this->listInbox(self::$keyAlpha);
         $this->assertEquals(200, $result['status']);
@@ -258,7 +258,7 @@ class VisibilityAndRoutingTest extends Unit
     /**
      * Test 3: Beta cannot call list — can_read_inbox=0 → 403.
      */
-    public function testBetaCannotListInbox()
+    public function testBetaCannotListInbox(): void
     {
         $result = $this->listInbox(self::$keyBeta);
         $this->assertEquals(403, $result['status']);
@@ -271,7 +271,7 @@ class VisibilityAndRoutingTest extends Unit
     /**
      * Test 4: Full with sender_aiu filter sees only message #4 (sent by Beta).
      */
-    public function testFullFilterBySender()
+    public function testFullFilterBySender(): void
     {
         $result = $this->listInbox(self::$keyFull, ['sender_aiu' => self::$aiuBeta]);
         $this->assertEquals(200, $result['status']);
@@ -286,7 +286,7 @@ class VisibilityAndRoutingTest extends Unit
     /**
      * Test 5: Full with include_sent=1 still sees all 3 (supervisor sees all anyway).
      */
-    public function testFullWithIncludeSentSeesAll()
+    public function testFullWithIncludeSentSeesAll(): void
     {
         $result = $this->listInbox(self::$keyFull, ['include_sent' => 1]);
         $this->assertEquals(200, $result['status']);
@@ -303,7 +303,7 @@ class VisibilityAndRoutingTest extends Unit
      * Test 6: Alpha with include_sent=1 still sees #2, #4 —
      *         Alpha hasn't sent anything, no change.
      */
-    public function testAlphaWithIncludeSentNoChange()
+    public function testAlphaWithIncludeSentNoChange(): void
     {
         $result = $this->listInbox(self::$keyAlpha, ['include_sent' => 1]);
         $this->assertEquals(200, $result['status']);
@@ -322,7 +322,7 @@ class VisibilityAndRoutingTest extends Unit
     /**
      * Test 7: Beta sends to Alpha (recipient_aiu=13) — allowed by visibility.
      */
-    public function testBetaCanSendToAlpha()
+    public function testBetaCanSendToAlpha(): void
     {
         $result = self::send(self::$keyBeta, self::$runTag . ' routing_test_7', self::$aiuAlpha);
         $this->assertEquals(201, $result['status'], 'Beta→Alpha should be allowed');
@@ -334,7 +334,7 @@ class VisibilityAndRoutingTest extends Unit
      *         can_broadcast_inbox. Directed sends (Test 7) still work fine;
      *         only the broadcast path requires the extra permission.
      */
-    public function testBetaCannotSendBroadcastWithoutFlag()
+    public function testBetaCannotSendBroadcastWithoutFlag(): void
     {
         $result = self::send(self::$keyBeta, self::$runTag . ' routing_test_8');
         $this->assertEquals(403, $result['status'], 'Beta lacks can_broadcast_inbox');
@@ -347,7 +347,7 @@ class VisibilityAndRoutingTest extends Unit
     /**
      * Test 9: Beta sends to None (recipient_aiu=12) — no can_send row → 403.
      */
-    public function testBetaCannotSendToNone()
+    public function testBetaCannotSendToNone(): void
     {
         $aiuNone = 12;
         $result = self::send(self::$keyBeta, self::$runTag . ' routing_test_9', $aiuNone);
@@ -357,7 +357,7 @@ class VisibilityAndRoutingTest extends Unit
     /**
      * Test 10: Alpha cannot send at all — can_write_inbox=0 → 403.
      */
-    public function testAlphaCannotSend()
+    public function testAlphaCannotSend(): void
     {
         $result = self::send(self::$keyAlpha, self::$runTag . ' routing_test_10');
         $this->assertEquals(403, $result['status'], 'Alpha has can_write_inbox=0');
@@ -371,7 +371,7 @@ class VisibilityAndRoutingTest extends Unit
      * Test 11: Verify sender_aiu is auto-populated — read back message #4,
      *          check sender_aiu=14 (Beta).
      */
-    public function testSenderAiuAutoPopulated()
+    public function testSenderAiuAutoPopulated(): void
     {
         // Use Full key to list and find message #4
         $result = $this->listInbox(self::$keyFull);

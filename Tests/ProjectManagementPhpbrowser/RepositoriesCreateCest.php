@@ -6,7 +6,7 @@ use Tests\Support\AcceptanceTester;
 
 class RepositoriesCreateCest
 {
-    public function adminSeesCreateRepoForm(AcceptanceTester $I)
+    public function adminSeesCreateRepoForm(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/repositories/create.php');
@@ -18,7 +18,7 @@ class RepositoriesCreateCest
         $I->seeElement('button[type=submit]');
     }
 
-    public function freeUserCannotAccessCreateRepo(AcceptanceTester $I)
+    public function freeUserCannotAccessCreateRepo(AcceptanceTester $I): void
     {
         $I->loginAsFree();
         $I->amOnPage('/repositories/create.php');
@@ -26,7 +26,7 @@ class RepositoriesCreateCest
         $I->dontSee('Create Repository', 'h1');
     }
 
-    public function duplicateNameShowsError(AcceptanceTester $I)
+    public function duplicateNameShowsError(AcceptanceTester $I): void
     {
         // 'administrator-test-repo' is seeded for user_id=13 (admin), so a POST
         // with the same name must hit the duplicate-name guard (alert-error).

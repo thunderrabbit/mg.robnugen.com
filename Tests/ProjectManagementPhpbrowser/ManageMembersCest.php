@@ -6,7 +6,7 @@ use Tests\Support\AcceptanceTester;
 
 class ManageMembersCest
 {
-    public function adminCanAddUpdateAndRemoveMember(AcceptanceTester $I)
+    public function adminCanAddUpdateAndRemoveMember(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
 

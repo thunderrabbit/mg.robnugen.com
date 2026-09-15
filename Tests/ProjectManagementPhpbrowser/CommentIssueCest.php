@@ -6,7 +6,7 @@ use Tests\Support\AcceptanceTester;
 
 class CommentIssueCest
 {
-    public function adminSeesCommentForm(AcceptanceTester $I)
+    public function adminSeesCommentForm(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/issues/view.php?issue_id=4');
@@ -15,7 +15,7 @@ class CommentIssueCest
         $I->see('Post comment');
     }
 
-    public function adminCanPostCommentAndSeeIt(AcceptanceTester $I)
+    public function adminCanPostCommentAndSeeIt(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/issues/view.php?issue_id=4');

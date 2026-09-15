@@ -6,7 +6,7 @@ use Tests\Support\AcceptanceTester;
 
 class HeaderBackButtonCest
 {
-    public function backLinkIsDirectChildOfHeader(AcceptanceTester $I)
+    public function backLinkIsDirectChildOfHeader(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/projects/view.php?project_id=2');
@@ -14,7 +14,7 @@ class HeaderBackButtonCest
         $I->seeLink('← Back to Projects', '/projects/');
     }
 
-    public function backLinkPrecedesH1(AcceptanceTester $I)
+    public function backLinkPrecedesH1(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/projects/view.php?project_id=2');
@@ -27,7 +27,7 @@ class HeaderBackButtonCest
         );
     }
 
-    public function issueViewHasBackAndEdit(AcceptanceTester $I)
+    public function issueViewHasBackAndEdit(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/issues/view.php?issue_id=4');
@@ -36,7 +36,7 @@ class HeaderBackButtonCest
         $I->see('Edit', 'header.dashboard-header > div.header-actions > a');
     }
 
-    public function issueCreatePageHasBackButton(AcceptanceTester $I)
+    public function issueCreatePageHasBackButton(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/issues/create.php?project_id=2');

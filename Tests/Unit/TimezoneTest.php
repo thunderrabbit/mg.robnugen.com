@@ -9,7 +9,7 @@ class TimezoneTest extends Unit
 {
     private Timezone $timezone;
 
-    protected function _before()
+    protected function _before(): void
     {
         // Create mock PDO (not used for isValidIanaName)
         $pdo = $this->createMock(\PDO::class);
@@ -18,7 +18,7 @@ class TimezoneTest extends Unit
 
     // === isValidIanaName tests ===
 
-    public function testValidIanaNames()
+    public function testValidIanaNames(): void
     {
         $validNames = [
             'America/New_York',
@@ -38,7 +38,7 @@ class TimezoneTest extends Unit
         $this->assertTrue($this->timezone->isValidIanaName('Asia/Tokyo'));
     }
 
-    public function testInvalidIanaNameLowercaseContinent()
+    public function testInvalidIanaNameLowercaseContinent(): void
     {
         $this->assertFalse(
             $this->timezone->isValidIanaName('america/New_York'),
@@ -46,7 +46,7 @@ class TimezoneTest extends Unit
         );
     }
 
-    public function testInvalidIanaNameNoSlash()
+    public function testInvalidIanaNameNoSlash(): void
     {
         $this->assertFalse(
             $this->timezone->isValidIanaName('EuropeLondon'),
@@ -54,7 +54,7 @@ class TimezoneTest extends Unit
         );
     }
 
-    public function testInvalidIanaNameEmpty()
+    public function testInvalidIanaNameEmpty(): void
     {
         $this->assertFalse(
             $this->timezone->isValidIanaName(''),
@@ -62,7 +62,7 @@ class TimezoneTest extends Unit
         );
     }
 
-    public function testInvalidIanaNameSpecialChars()
+    public function testInvalidIanaNameSpecialChars(): void
     {
         $this->assertFalse(
             $this->timezone->isValidIanaName('Europe/Lon@don'),
@@ -70,7 +70,7 @@ class TimezoneTest extends Unit
         );
     }
 
-    public function testInvalidIanaNameNumbers()
+    public function testInvalidIanaNameNumbers(): void
     {
         $this->assertFalse(
             $this->timezone->isValidIanaName('Europe/London123'),
@@ -78,7 +78,7 @@ class TimezoneTest extends Unit
         );
     }
 
-    public function testValidIanaNameWithUnderscore()
+    public function testValidIanaNameWithUnderscore(): void
     {
         // The regex allows underscore in city: [A-Z][a-z_]+
         $this->assertTrue(

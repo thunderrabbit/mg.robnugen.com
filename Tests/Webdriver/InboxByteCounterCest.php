@@ -6,12 +6,12 @@ use Tests\Support\AcceptanceTester;
 
 class InboxByteCounterCest
 {
-    public function _before(AcceptanceTester $I)
+    public function _before(AcceptanceTester $I): void
     {
         $I->loginAsTester();
     }
 
-    public function mainTextareaCountsAsciiBytes(AcceptanceTester $I)
+    public function mainTextareaCountsAsciiBytes(AcceptanceTester $I): void
     {
         $I->amOnPage('/inbox/');
         $I->seeInTitle('Agent Inbox');
@@ -22,7 +22,7 @@ class InboxByteCounterCest
         $I->waitForText('5 / 10,240 bytes', 5, '#message-counter');
     }
 
-    public function mainTextareaCountsBytesNotCharacters(AcceptanceTester $I)
+    public function mainTextareaCountsBytesNotCharacters(AcceptanceTester $I): void
     {
         $I->amOnPage('/inbox/');
         $I->seeInTitle('Agent Inbox');
@@ -54,7 +54,7 @@ class InboxByteCounterCest
         $I->waitForText('8 / 10,240 bytes', 5, '#message-counter');
     }
 
-    public function counterShowsWarningNearLimit(AcceptanceTester $I)
+    public function counterShowsWarningNearLimit(AcceptanceTester $I): void
     {
         $I->amOnPage('/inbox/');
         $I->seeInTitle('Agent Inbox');
@@ -80,7 +80,7 @@ class InboxByteCounterCest
         $I->seeElement('#message-counter.byte-counter-over');
     }
 
-    public function counterResetsWhenCleared(AcceptanceTester $I)
+    public function counterResetsWhenCleared(AcceptanceTester $I): void
     {
         $I->amOnPage('/inbox/');
         $I->seeInTitle('Agent Inbox');
