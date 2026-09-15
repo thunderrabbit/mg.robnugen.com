@@ -540,7 +540,7 @@ if ($todos_path === '/list') {
     $body = json_decode((string) file_get_contents('php://input'), true);
     $todo_id = (int) ($body['todo_id'] ?? 0);
     $ak_id = (int) ($body['ak_id'] ?? 0);
-    $duration_seconds = isset($body['duration_seconds']) ? (int) $body['duration_seconds'] : null;
+    $duration_seconds = \Field::intOrNull($body, 'duration_seconds');
     $timezone = $body['timezone'] ?? 'UTC';
 
     if ($todo_id <= 0 || $ak_id <= 0) {

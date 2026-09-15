@@ -163,7 +163,7 @@ if ($method === 'POST' && $sub === '/visibility') {
     $input = json_decode((string) file_get_contents('php://input'), true) ?? [];
 
     $reader_aiu = (int)($input['reader_aiu_id'] ?? 0);
-    $peer_aiu   = isset($input['peer_aiu_id']) ? (int)$input['peer_aiu_id'] : null;
+    $peer_aiu   = \Field::intOrNull($input, 'peer_aiu_id');
     $can_read   = (int)($input['can_read'] ?? 0);
     $can_send   = (int)($input['can_send'] ?? 0);
 

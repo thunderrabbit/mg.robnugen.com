@@ -280,7 +280,7 @@ function exterm_dispatch(\Exterm\Items $exterm, \Issues\Issues $issues, int $use
 
         case 'exterm_search_items':
             $query      = $a['query']      ?? '';
-            $project_id = isset($a['project_id']) ? (int)$a['project_id'] : null;
+            $project_id = \Field::intOrNull($a, 'project_id');
             $limit      = isset($a['limit'])      ? (int)$a['limit']      : 20;
             return $exterm->searchItems($user_id, $caller_aiu, $query, $project_id, $limit);
 

@@ -57,8 +57,8 @@ $activityHelper = new \ActivityTracking\ActivityKai($pdo);
 if ($method === 'GET' && $ak_id === null && !$is_backfill) {
     $from        = $_GET['from'] ?? null;
     $to          = $_GET['to']   ?? null;
-    $activity_id = isset($_GET['activity_id']) ? (int)$_GET['activity_id'] : null;
-    $is_active   = isset($_GET['is_active']) ? (int)$_GET['is_active'] : null;
+    $activity_id = \Field::intOrNull($_GET, 'activity_id');
+    $is_active   = \Field::intOrNull($_GET, 'is_active');
     $limit       = min((int)($_GET['limit']  ?? 20), 50);
     $offset      = max((int)($_GET['offset'] ?? 0), 0);
 

@@ -174,7 +174,7 @@ if ($method === 'GET' && $sub === '/list') {
     $priority  = trim($input['priority'] ?? 'normal');
     $show_date = isset($input['show_date']) ? trim($input['show_date']) : null;
     $sender_timezone = trim($input['sender_timezone'] ?? '');
-    $recipient_aiu = isset($input['recipient_aiu']) ? (int) $input['recipient_aiu'] : null;
+    $recipient_aiu = \Field::intOrNull($input, 'recipient_aiu');
     // Validate IANA timezone — stored for Carrie (and future agents) to determine
     // the sender's local date when processing journal entries via the API.
     // Prepared statement prevents SQL injection, but garbage strings would break

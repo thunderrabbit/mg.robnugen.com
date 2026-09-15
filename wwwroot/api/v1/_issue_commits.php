@@ -23,7 +23,7 @@
 
 if ($method === 'GET' && $xsub === '/list') {
     $issue_id    = (int)($_GET['issue_id'] ?? 0);
-    $repo_id     = isset($_GET['repo_id']) ? (int)$_GET['repo_id'] : null;
+    $repo_id     = \Field::intOrNull($_GET, 'repo_id');
     $commit_hash = trim($_GET['commit_hash'] ?? '');
     $limit       = max(1, min(500, (int)($_GET['limit'] ?? 200)));
     $offset      = max(0, (int)($_GET['offset'] ?? 0));

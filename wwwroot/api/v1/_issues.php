@@ -145,7 +145,7 @@ if ($method === 'GET' && $sub === '/statuses') {
 if ($method === 'GET' && $sub === '/list') {
     $project_id       = (int)($_GET['project_id'] ?? 0);
     $status_slug      = trim($_GET['status'] ?? '');
-    $assignee_aiu     = isset($_GET['assignee_aiu']) ? (int)$_GET['assignee_aiu'] : null;
+    $assignee_aiu     = \Field::intOrNull($_GET, 'assignee_aiu');
     $include_terminal = (int)($_GET['include_terminal'] ?? 0);
     $parent_filter    = isset($_GET['parent_issue_id']) ? $_GET['parent_issue_id'] : null;
     $limit            = max(1, min(200, (int)($_GET['limit'] ?? 100)));

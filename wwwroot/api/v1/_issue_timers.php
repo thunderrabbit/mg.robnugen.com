@@ -24,7 +24,7 @@
 
 if ($method === 'GET' && $tsub === '/list') {
     $issue_id     = (int)($_GET['issue_id'] ?? 0);
-    $worker_aiu   = isset($_GET['worker_aiu']) ? (int)$_GET['worker_aiu'] : null;
+    $worker_aiu   = \Field::intOrNull($_GET, 'worker_aiu');
     $running_only = (int)($_GET['running_only'] ?? 0);
     $limit        = max(1, min(500, (int)($_GET['limit'] ?? 200)));
     $offset       = max(0, (int)($_GET['offset'] ?? 0));

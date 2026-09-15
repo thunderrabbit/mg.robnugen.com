@@ -146,7 +146,7 @@ class Items
      */
     public function listItems(int $user_id, int $caller_aiu, array $filters): array
     {
-        $project_id = isset($filters['project_id']) ? (int)$filters['project_id'] : null;
+        $project_id = \Field::intOrNull($filters, 'project_id');
         $limit  = min((int)($filters['limit'] ?? 20), 100);
         $offset = max((int)($filters['offset'] ?? 0), 0);
 
@@ -217,7 +217,7 @@ class Items
      */
     public function createItem(int $user_id, int $caller_aiu, array $data): array
     {
-        $project_id = isset($data['project_id']) ? (int)$data['project_id'] : null;
+        $project_id = \Field::intOrNull($data, 'project_id');
         $title      = trim($data['title'] ?? '');
         $body       = $data['body'] ?? null;
 

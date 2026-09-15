@@ -88,7 +88,7 @@ if ($sub === '/get' && $method === 'GET') {
 // ── GET /exterm/search ────────────────────────────────────────────────────────
 if ($sub === '/search' && $method === 'GET') {
     $query      = trim($_GET['query'] ?? '');
-    $project_id = isset($_GET['project_id']) ? (int)$_GET['project_id'] : null;
+    $project_id = \Field::intOrNull($_GET, 'project_id');
     $limit      = isset($_GET['limit']) ? (int)$_GET['limit'] : 20;
     try {
         echo json_encode($exterm->searchItems($auth_user_id, $caller_aiu, $query, $project_id, $limit));

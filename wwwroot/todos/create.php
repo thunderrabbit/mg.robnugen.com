@@ -38,7 +38,7 @@ $todoHelper = new \ActivityTracking\Todo($pdo);
 $activityHelper = new \ActivityTracking\Activity($pdo);
 
 // Check for Edit Mode
-$todo_id = isset($_REQUEST['todo_id']) ? (int)$_REQUEST['todo_id'] : null;
+$todo_id = \Field::intOrNull($_REQUEST, 'todo_id');
 $todo_data = null;
 $page_title = "Create New Todo - Meiso Gambare";
 $btn_text = "Create Todo";
