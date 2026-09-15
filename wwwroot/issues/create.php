@@ -3,8 +3,8 @@
 /**
  * Create Issue Page
  * Requires ?project_id=N. Gated on admin/paid + project_members.can_write.
- * On success, inserts issue scoped to the caller's human actor (author)
- * with default status and specified priority; redirects to the issue detail page.
+ * On POST, IssueService creates the issue with the caller's human actor as
+ * author and redirects to the issue detail page.
  */
 
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
@@ -81,44 +81,26 @@ $assignee_choices = $assignee_stmt->fetchAll(\PDO::FETCH_ASSOC);
 $error = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $title          = trim(\Field::string($_POST, 'title'));
-    $description    = trim(\Field::string($_POST, 'description'));
-    $priority       = trim(\Field::string($_POST, 'priority', 'normal'));
-    $assignee_input = $_POST['assignee_aiu'] ?? '';
-    $assignee_aiu   = ($assignee_input === '') ? null : \Field::toInt($assignee_input);
+    $service = new \Issues\IssueService(new \Issues\PdoIssueStore($pdo));
+    $caller  = new \Issues\Caller(userId: $user_id, aiu: $human_aiu, isHuman: true);
 
-    if ($title === '') {
-        $error = "Title is required.";
-    } elseif (mb_strlen($title) > 255) {
-        $error = "Title must be 255 characters or fewer.";
-    } elseif (!in_array($priority, ['low', 'normal', 'high'], true)) {
-        $error = "Invalid priority.";
-    } elseif ($assignee_aiu !== null) {
-        $valid_ids = array_map(\Field::toInt(...), array_column($assignee_choices, 'aiu_id'));
-        if (!in_array($assignee_aiu, $valid_ids, true)) {
-            $error = "Assignee must be a member of this project.";
-        }
-    }
-
-    if ($error === null) {
-        $status_stmt = $pdo->prepare(
-            "SELECT status_id FROM issue_statuses WHERE is_default = 1 LIMIT 1"
-        );
-        $status_stmt->execute();
-        $default_status_id = (int) $status_stmt->fetchColumn();
-
-        $ins = $pdo->prepare(
-            "INSERT INTO issues
-                (project_id, priority, author_aiu, assignee_aiu, status_id, title, description)
-             VALUES (?, ?, ?, ?, ?, ?, ?)"
-        );
-        $ins->execute([
-            $project_id, $priority, $human_aiu, $assignee_aiu, $default_status_id,
-            $title, $description !== '' ? $description : null,
-        ]);
-        $new_issue_id = (int) $pdo->lastInsertId();
-
-        header("Location: /issues/view.php?issue_id={$new_issue_id}");
+    try {
+        $issue = $service->create($caller, \Issues\Command\CreateIssue::fromInput([
+            'project_id'   => $project_id,
+            'title'        => $_POST['title'] ?? null,
+            'description'  => trim(\Field::string($_POST, 'description')),
+            'priority'     => $_POST['priority'] ?? null,
+            'assignee_aiu' => $_POST['assignee_aiu'] ?? null,
+        ]));
+        header("Location: /issues/view.php?issue_id={$issue->issueId}");
+        exit;
+    } catch (\Input\InvalidInput | \Issues\ValidationException $e) {
+        $error = ucfirst($e->getMessage()) . '.';
+    } catch (\Issues\AccessException) {
+        header("Location: /projects/?msg=no_write_access");
+        exit;
+    } catch (\Issues\NotFoundException) {
+        header("Location: /projects/?msg=project_not_found");
         exit;
     }
 }

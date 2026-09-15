@@ -2,8 +2,8 @@
 
 /**
  * Change the status of an issue.
- * Accepts POST only. Gated on admin/paid + project_members.can_write.
- * Transition to a terminal status is blocked if any timer on the issue is still running.
+ * Accepts POST only. Gated on admin/paid; IssueService checks project write
+ * access and blocks a terminal status while any timer on the issue is running.
  * Redirects back to /issues/view.php?issue_id=N on success or error.
  */
 
@@ -30,10 +30,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$issue_id  = \Field::int($_POST, 'issue_id');
-$status_id = \Field::int($_POST, 'status_id');
-
-if ($issue_id <= 0 || $status_id <= 0) {
+$issue_id = \Field::int($_POST, 'issue_id');
+if ($issue_id <= 0) {
     header("Location: /projects/?msg=issue_not_found");
     exit;
 }
@@ -52,54 +50,22 @@ if ($human_aiu <= 0) {
     exit;
 }
 
-$perm_stmt = $pdo->prepare(
-    "SELECT pm.can_write
-     FROM issues i
-     JOIN projects p         ON p.project_id = i.project_id
-     JOIN project_members pm ON pm.project_id = i.project_id AND pm.member_aiu = ?
-     WHERE i.issue_id = ? AND p.user_id = ?
-     LIMIT 1"
-);
-$perm_stmt->execute([$human_aiu, $issue_id, $user_id]);
-$perm = $perm_stmt->fetch(\PDO::FETCH_ASSOC);
+$service = new \Issues\IssueService(new \Issues\PdoIssueStore($pdo));
+$caller  = new \Issues\Caller(userId: $user_id, aiu: $human_aiu, isHuman: true);
 
-if (!$perm) {
-    header("Location: /projects/?msg=issue_not_found");
-    exit;
-}
-if (!\Field::int($perm, 'can_write')) {
-    header("Location: /projects/?msg=no_write_access");
-    exit;
-}
-
-$status_stmt = $pdo->prepare(
-    "SELECT is_terminal FROM issue_statuses WHERE status_id = ?"
-);
-$status_stmt->execute([$status_id]);
-$status = $status_stmt->fetch(\PDO::FETCH_ASSOC);
-if (!$status) {
+try {
+    $service->update($caller, \Issues\Command\UpdateIssue::fromInput([
+        'issue_id'  => $issue_id,
+        'status_id' => $_POST['status_id'] ?? null,
+    ]));
     header("Location: /issues/view.php?issue_id={$issue_id}");
-    exit;
+} catch (\Issues\ConflictException) {
+    header("Location: /issues/view.php?issue_id={$issue_id}&msg=timers_running");
+} catch (\Issues\AccessException) {
+    header("Location: /projects/?msg=no_write_access");
+} catch (\Issues\NotFoundException | \Input\InvalidInput) {
+    header("Location: /projects/?msg=issue_not_found");
+} catch (\Issues\ValidationException) {
+    header("Location: /issues/view.php?issue_id={$issue_id}");
 }
-$is_terminal = \Field::int($status, 'is_terminal');
-
-if ($is_terminal) {
-    $timer_stmt = $pdo->prepare(
-        "SELECT COUNT(*) FROM issue_timers WHERE issue_id = ? AND stopped_at_utc IS NULL"
-    );
-    $timer_stmt->execute([$issue_id]);
-    if ((int)$timer_stmt->fetchColumn() > 0) {
-        header("Location: /issues/view.php?issue_id={$issue_id}&msg=timers_running");
-        exit;
-    }
-}
-
-$done_clause = $is_terminal ? 'NOW(6)' : 'NULL';
-$upd = $pdo->prepare(
-    "UPDATE issues SET status_id = ?, done_at_utc = {$done_clause}
-     WHERE issue_id = ?"
-);
-$upd->execute([$status_id, $issue_id]);
-
-header("Location: /issues/view.php?issue_id={$issue_id}");
 exit;
