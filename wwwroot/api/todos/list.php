@@ -196,7 +196,7 @@ try {
         // MySQL ASC puts NULLs first. Let's stick to that.
         if ($timeA === $timeB) {
             // Secondary sort by title
-            return strcasecmp($a['title'], $b['title']);
+            return strcasecmp(\Field::string($a, 'title'), \Field::string($b, 'title'));
         }
 
         // If one is null, it comes first (MySQL behavior)
@@ -207,7 +207,7 @@ try {
             return 1;
         }
 
-        return strcmp($timeA, $timeB);
+        return strcmp(\Field::toString($timeA), \Field::toString($timeB));
     });
 
     echo json_encode([

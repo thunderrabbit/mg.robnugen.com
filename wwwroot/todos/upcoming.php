@@ -51,7 +51,7 @@ if ($page_num === 1) {
     usort($upcoming, function ($a, $b) {
         $dateA = $a['next_due_date'] ?? $a['due_date'] ?? $a['do_dates'] ?? '';
         $dateB = $b['next_due_date'] ?? $b['due_date'] ?? $b['do_dates'] ?? '';
-        return strcmp($dateA, $dateB);
+        return strcmp(\Field::toString($dateA), \Field::toString($dateB));
     });
 }
 

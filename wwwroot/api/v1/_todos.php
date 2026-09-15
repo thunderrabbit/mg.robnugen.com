@@ -159,7 +159,7 @@ if ($todos_path === '/list') {
         $timeB = $b['do_time'] ?? null;
 
         if ($timeA === $timeB) {
-            return strcasecmp($a['title'], $b['title']);
+            return strcasecmp(\Field::string($a, 'title'), \Field::string($b, 'title'));
         }
 
         if ($timeA === null) {
@@ -169,7 +169,7 @@ if ($todos_path === '/list') {
             return 1;
         }
 
-        return strcmp($timeA, $timeB);
+        return strcmp(\Field::toString($timeA), \Field::toString($timeB));
     });
 
     echo json_encode([
