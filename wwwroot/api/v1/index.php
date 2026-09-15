@@ -97,6 +97,9 @@ function require_credit(\PDO $pdo, int $user_id, int $key_id, string $endpoint):
 // Coarse subsystem gate for /projects, /repositories, /issues.
 // GET → can_read_project; everything else (POST/PATCH/DELETE) → can_write_project.
 // Fine-grained access within the subsystem continues to flow through project_members.
+/**
+ * @param array<string, mixed> $auth_actor
+ */
 function require_project_perm(array $auth_actor, string $method): void
 {
     $needs = ($method === 'GET') ? 'can_read_project' : 'can_write_project';
@@ -113,6 +116,9 @@ function require_project_perm(array $auth_actor, string $method): void
 // Project admin ops (create/update/delete project, membership CRUD) do NOT use this —
 // they gate on actor_type='human' plus account ownership, per Rob's rule that humans
 // can admin any project in their account but still need membership to read contents.
+/**
+ * @return array{can_read: int, can_write: int}|null
+ */
 function project_membership(\PDO $pdo, int $project_id, int $user_id, int $caller_aiu): ?array
 {
     $stmt = $pdo->prepare(

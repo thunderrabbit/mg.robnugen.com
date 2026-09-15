@@ -63,6 +63,8 @@ $is_human   = ($auth_actor['actor_type'] ?? '') === 'human';
  * Returns ['issue' => row, 'role' => ['can_read','can_write']] or null if no access / not found.
  * Null is returned both for "not found" and "not a member"; caller should 404/403 uniformly
  * to avoid leaking project existence to non-members.
+ *
+ * @return array<string, mixed>|null
  */
 function issue_with_access(\PDO $pdo, int $issue_id, int $user_id, int $caller_aiu): ?array
 {
@@ -88,6 +90,8 @@ function issue_with_access(\PDO $pdo, int $issue_id, int $user_id, int $caller_a
 /**
  * Return running timers on an issue (stopped_at_utc IS NULL).
  * Used to decide whether a status transition to is_terminal is allowed.
+ *
+ * @return list<array<string, mixed>>
  */
 function running_timers(\PDO $pdo, int $issue_id): array
 {

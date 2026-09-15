@@ -131,17 +131,27 @@ $params = $msg['params'] ?? [];
 
 // ── JSON-RPC helpers ──────────────────────────────────────────────────────────
 
-function mcp_ok($id, array $result): array
+/**
+ * @param array<string, mixed> $result
+ * @return array<string, mixed>
+ */
+function mcp_ok(mixed $id, array $result): array
 {
     return ['jsonrpc' => '2.0', 'id' => $id, 'result' => $result];
 }
 
-function mcp_error($id, int $code, string $message): array
+/**
+ * @return array<string, mixed>
+ */
+function mcp_error(mixed $id, int $code, string $message): array
 {
     return ['jsonrpc' => '2.0', 'id' => $id, 'error' => ['code' => $code, 'message' => $message]];
 }
 
-function mcp_tool_result($id, $data): array
+/**
+ * @return array<string, mixed>
+ */
+function mcp_tool_result(mixed $id, mixed $data): array
 {
     return mcp_ok($id, ['content' => [['type' => 'text', 'text' => json_encode($data)]]]);
 }
@@ -195,6 +205,9 @@ switch ($method) {
 
 // ── Tool dispatch ─────────────────────────────────────────────────────────────
 
+/**
+ * @param array<string, mixed> $a
+ */
 function exterm_dispatch(\Exterm\Items $exterm, \Issues\Issues $issues, int $user_id, int $caller_aiu, string $tool, array $a): mixed
 {
     switch ($tool) {
@@ -278,6 +291,9 @@ function exterm_dispatch(\Exterm\Items $exterm, \Issues\Issues $issues, int $use
 
 // ── Tool definitions (JSON Schema) ────────────────────────────────────────────
 
+/**
+ * @return list<array<string, mixed>>
+ */
 function exterm_tool_defs(): array
 {
     $item_id_prop = ['type' => 'integer', 'description' => 'exterm_item_id of the note'];
