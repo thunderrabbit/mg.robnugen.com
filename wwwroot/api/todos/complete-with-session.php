@@ -35,7 +35,7 @@ if (!$input || !isset($input['todo_id']) || !isset($input['ak_id'])) {
 $todo_id = \Field::int($input, 'todo_id');
 $ak_id = \Field::int($input, 'ak_id');
 $duration_seconds = \Field::intOrNull($input, 'duration_seconds');
-$timezone = $input['timezone'] ?? date_default_timezone_get();
+$timezone = \Field::string($input, 'timezone', date_default_timezone_get());
 
 if ($todo_id <= 0 || $ak_id <= 0) {
     http_response_code(400);

@@ -34,7 +34,7 @@ if (!$input || !isset($input['todo_id']) || !isset($input['nth'])) {
 
 $todo_id = \Field::int($input, 'todo_id');
 $nth = \Field::int($input, 'nth');
-$timezone = $input['timezone'] ?? date_default_timezone_get();
+$timezone = \Field::string($input, 'timezone', date_default_timezone_get());
 
 if ($todo_id <= 0 || $nth <= 0) {
     http_response_code(400);

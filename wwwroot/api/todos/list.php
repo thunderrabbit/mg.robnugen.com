@@ -28,7 +28,7 @@ try {
     $user_id = $is_logged_in->loggedInID();
 
     // Get timezone from request or default to server timezone
-    $timezone = $_GET['timezone'] ?? date_default_timezone_get();
+    $timezone = \Field::string($_GET, 'timezone', date_default_timezone_get());
 
     // Create DateTime in user's timezone to get correct day of week
     $tz = new \DateTimeZone($timezone);

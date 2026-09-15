@@ -43,7 +43,7 @@ if ($todos_path === '/list') {
         return;
     }
 
-    $timezone = $_GET['timezone'] ?? 'UTC';
+    $timezone = \Field::string($_GET, 'timezone', 'UTC');
 
     try {
         $tz = new \DateTimeZone($timezone);
@@ -188,7 +188,7 @@ if ($todos_path === '/list') {
     $body = \Field::jsonArray((string) file_get_contents('php://input'));
     $todo_id = \Field::int($body, 'todo_id');
     $nth = \Field::int($body, 'nth');
-    $timezone = $body['timezone'] ?? 'UTC';
+    $timezone = \Field::string($body, 'timezone', 'UTC');
 
     if ($todo_id <= 0 || $nth <= 0) {
         http_response_code(400);
@@ -258,7 +258,7 @@ if ($todos_path === '/list') {
     $body = \Field::jsonArray((string) file_get_contents('php://input'));
     $todo_id = \Field::int($body, 'todo_id');
     $nth = \Field::int($body, 'nth');
-    $timezone = $body['timezone'] ?? 'UTC';
+    $timezone = \Field::string($body, 'timezone', 'UTC');
 
     if ($todo_id <= 0 || $nth <= 0) {
         http_response_code(400);
@@ -541,7 +541,7 @@ if ($todos_path === '/list') {
     $todo_id = \Field::int($body, 'todo_id');
     $ak_id = \Field::int($body, 'ak_id');
     $duration_seconds = \Field::intOrNull($body, 'duration_seconds');
-    $timezone = $body['timezone'] ?? 'UTC';
+    $timezone = \Field::string($body, 'timezone', 'UTC');
 
     if ($todo_id <= 0 || $ak_id <= 0) {
         http_response_code(400);
