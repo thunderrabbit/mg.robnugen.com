@@ -397,7 +397,11 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
             echo json_encode(['error' => 'Event not found']);
             return;
         }
-        echo json_encode(['event_id' => (int) $event_id, 'my_id' => isset($my_id) ? ($my_id !== null ? (int) $my_id : null) : 'unchanged']);
+        $my_id_result = 'unchanged';
+        if (array_key_exists('my_id', $body)) {
+            $my_id_result = $body['my_id'] !== null ? (int) $body['my_id'] : null;
+        }
+        echo json_encode(['event_id' => (int) $event_id, 'my_id' => $my_id_result]);
     } else {
         http_response_code(405);
         echo json_encode(['error' => 'Method not allowed']);
