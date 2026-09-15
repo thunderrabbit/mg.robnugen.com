@@ -19,7 +19,7 @@ spl_autoload_register(array($autoloader, 'load'));
 
 $mla_request = new \Mlaphp\Request();
 
-function print_roblog($message, string $label = ''): void
+function print_roblog(mixed $message, string $label = ''): void
 {
     $prefix = $label ? "[$label] " : '';
     $line = date('Y-m-d H:i:s') . " {$prefix}" . (is_string($message) ? $message : print_r($message, true)) . "\n";
@@ -28,7 +28,7 @@ function print_roblog($message, string $label = ''): void
     @file_put_contents($logfile, $line, FILE_APPEND);
 }
 
-function print_rob($object, $exit = true)
+function print_rob(mixed $object, bool $exit = true): void
 {
     echo "<pre>";
     if (is_object($object) && method_exists($object, "toArray")) {
