@@ -166,6 +166,42 @@ final class IssueServiceTest extends Unit
         $this->assertThrows(NotFoundException::class, fn() => $this->update($issue, ['title' => 'x'], $this->stranger));
     }
 
+    // === beforeWrite ===
+
+    public function testBeforeWriteRunsOnlyAfterTheChecksPass(): void
+    {
+        $charged = [];
+        $service = new IssueService($this->store, beforeWrite: static function (string $action) use (&$charged): void {
+            $charged[] = $action;
+        });
+
+        try {
+            $service->create($this->reader, CreateIssue::fromInput(['project_id' => 7, 'title' => 'x']));
+        } catch (AccessException) {
+        }
+        $this->assertSame([], $charged);
+
+        $issue = $service->create($this->writer, CreateIssue::fromInput(['project_id' => 7, 'title' => 'x']));
+        $service->update($this->writer, UpdateIssue::fromInput(['issue_id' => $issue->issueId, 'title' => 'y']));
+        $this->assertSame(['issues/create', 'issues/update'], $charged);
+    }
+
+    // === view() ===
+
+    public function testViewAddsTheStatusAndTheCallersRights(): void
+    {
+        $issue = $this->create(['status_id' => 4]);
+
+        $view = $this->service->view($this->reader, $issue->issueId);
+
+        $this->assertSame($issue->issueId, $view->issue->issueId);
+        $this->assertSame('done', $view->status->slug);
+        $this->assertTrue($view->status->isTerminal);
+        $this->assertTrue($view->membership->canRead);
+        $this->assertFalse($view->membership->canWrite);
+        $this->assertThrows(NotFoundException::class, fn() => $this->service->view($this->stranger, $issue->issueId));
+    }
+
     // === get() ===
 
     public function testGetHidesIssuesTheCallerCannotRead(): void

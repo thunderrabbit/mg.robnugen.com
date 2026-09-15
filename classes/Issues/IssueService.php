@@ -20,18 +20,32 @@ use Issues\Command\UpdateIssue;
  */
 final class IssueService
 {
-    public function __construct(private IssueStore $store)
-    {
+    /**
+     * @param (\Closure(string): void)|null $beforeWrite Runs once every check has passed,
+     *        just before a write, with the action ('issues/create' or 'issues/update').
+     *        The API charges a credit there, so a rejected request is never billed.
+     */
+    public function __construct(
+        private IssueStore $store,
+        private ?\Closure $beforeWrite = null,
+    ) {
     }
 
-    public function get(Caller $caller, int $issueId): IssueRow
+    public function view(Caller $caller, int $issueId): IssueView
     {
         $issue = $this->store->issue($issueId, $caller);
         $role = $issue === null ? null : $this->store->membership($issue->projectId, $caller);
         if ($issue === null || $role === null || !$role->canRead) {
             throw new NotFoundException("Issue {$issueId} not found or no access");
         }
-        return $issue;
+        $status = $this->store->status($issue->statusId)
+            ?? throw new \LogicException("Issue {$issueId} points at unknown status {$issue->statusId}");
+        return new IssueView(issue: $issue, status: $status, membership: $role);
+    }
+
+    public function get(Caller $caller, int $issueId): IssueRow
+    {
+        return $this->view($caller, $issueId)->issue;
     }
 
     public function create(Caller $caller, CreateIssue $new): IssueRow
@@ -49,6 +63,7 @@ final class IssueService
         }
         $status = $new->statusId === null ? $this->store->defaultStatus() : $this->validStatus($new->statusId);
 
+        $this->beforeWrite('issues/create');
         $issueId = $this->store->insertIssue($new, $caller, $status);
         return $this->reread($issueId, $caller);
     }
@@ -81,8 +96,16 @@ final class IssueService
             }
         }
 
+        $this->beforeWrite('issues/update');
         $this->store->updateIssue($changes, $status);
         return $this->reread($issue->issueId, $caller);
+    }
+
+    private function beforeWrite(string $action): void
+    {
+        if ($this->beforeWrite !== null) {
+            ($this->beforeWrite)($action);
+        }
     }
 
     private function requireMember(int $projectId, int $aiu): void
