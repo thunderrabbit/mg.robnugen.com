@@ -34,49 +34,49 @@ class Request
     /**
      * A copy of $_COOKIE.
      *
-     * @var array
+     * @var array<string, mixed>
      */
     public $cookie = array();
 
     /**
      * A copy of $_ENV.
      *
-     * @var array
+     * @var array<string, mixed>
      */
     public $env = array();
 
     /**
      * A copy of $_FILES.
      *
-     * @var array
+     * @var array<string, mixed>
      */
     public $files = array();
 
     /**
      * A copy of $_GET.
      *
-     * @var array
+     * @var array<string, mixed>
      */
     public $get = array();
 
     /**
      * A copy of $_POST.
      *
-     * @var array
+     * @var array<string, mixed>
      */
     public $post = array();
 
     /**
      * A copy of $_REQUEST.
      *
-     * @var array
+     * @var array<string, mixed>
      */
     public $request = array();
 
     /**
      * A copy of $_SERVER.
      *
-     * @var array
+     * @var array<string, mixed>
      */
     public $server = array();
 
@@ -98,7 +98,7 @@ class Request
      * Provides a magic **reference** to $_SESSION.
      *
      * @param string $name The property name; must be 'session'.
-     * @return array A reference to $_SESSION.
+     * @return array<string, mixed> A reference to $_SESSION.
      * @throws InvalidArgumentException for any $name other than 'session'.
      * @throws DomainException when $_SESSION is not set.
      */
