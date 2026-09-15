@@ -139,7 +139,7 @@ if ($method === 'GET' && $ak_id !== null && $sub_action === null) {
 if ($method === 'POST' && $is_backfill) {
     require_credit($pdo, $auth_user_id, $auth_key_id, $path);
 
-    $input        = json_decode(file_get_contents('php://input'), true) ?? [];
+    $input        = json_decode((string) file_get_contents('php://input'), true) ?? [];
     $activity_id  = (int)($input['activity_id']  ?? 1);
     $timezone_str = trim($input['timezone'] ?? 'UTC');
     $start_time   = trim($input['start_time'] ?? '');
@@ -219,7 +219,7 @@ if ($method === 'POST' && $is_backfill) {
 if ($method === 'POST' && $ak_id === null) {
     require_credit($pdo, $auth_user_id, $auth_key_id, $path);
 
-    $input        = json_decode(file_get_contents('php://input'), true) ?? [];
+    $input        = json_decode((string) file_get_contents('php://input'), true) ?? [];
     $activity_id  = (int)($input['activity_id']  ?? 1);
     $timezone_str = trim($input['timezone'] ?? 'UTC');
     $intended_sec = (int)($input['intended_sec']  ?? 0);

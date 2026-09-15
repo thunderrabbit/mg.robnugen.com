@@ -35,7 +35,7 @@ if ($method === 'GET') {
 // ── POST /activities ──────────────────────────────────────────────────────────
 
 if ($method === 'POST') {
-    $input = json_decode(file_get_contents('php://input'), true) ?? [];
+    $input = json_decode((string) file_get_contents('php://input'), true) ?? [];
     $name  = trim($input['activity_name'] ?? '');
     $desc  = trim($input['description']   ?? '') ?: null;
 

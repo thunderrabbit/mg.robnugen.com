@@ -66,7 +66,7 @@ if ($method === 'GET' && $csub === '/list') {
 // ─── POST /issues/comments/add ──────────────────────────────────────────────
 
 if ($method === 'POST' && $csub === '/add') {
-    $input    = json_decode(file_get_contents('php://input'), true) ?? [];
+    $input    = json_decode((string) file_get_contents('php://input'), true) ?? [];
     $issue_id = (int)($input['issue_id'] ?? 0);
     $body     = (string)($input['body'] ?? '');
 
@@ -121,7 +121,7 @@ if ($method === 'POST' && $csub === '/add') {
 // ─── PATCH /issues/comments/edit ────────────────────────────────────────────
 
 if ($method === 'PATCH' && $csub === '/edit') {
-    $input      = json_decode(file_get_contents('php://input'), true) ?? [];
+    $input      = json_decode((string) file_get_contents('php://input'), true) ?? [];
     $comment_id = (int)($input['issue_comment_id'] ?? 0);
     $body       = (string)($input['body'] ?? '');
 
@@ -167,7 +167,7 @@ if ($method === 'PATCH' && $csub === '/edit') {
 // ─── DELETE /issues/comments/delete ─────────────────────────────────────────
 
 if ($method === 'DELETE' && $csub === '/delete') {
-    $input      = json_decode(file_get_contents('php://input'), true) ?? [];
+    $input      = json_decode((string) file_get_contents('php://input'), true) ?? [];
     $comment_id = (int)($input['issue_comment_id'] ?? 0);
 
     if ($comment_id <= 0) {

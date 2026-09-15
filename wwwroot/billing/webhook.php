@@ -27,7 +27,7 @@ $pdo    = \Database\Base::getPDO($config);
 
 // ── Verify signature before reading payload ───────────────────────────────────
 
-$payload    = file_get_contents('php://input');
+$payload    = (string) file_get_contents('php://input');
 $sig_header = $_SERVER['HTTP_STRIPE_SIGNATURE'] ?? '';
 
 if (!\Billing\StripeWebhook::verifySignature($payload, $sig_header, $config->stripe_webhook_secret)) {

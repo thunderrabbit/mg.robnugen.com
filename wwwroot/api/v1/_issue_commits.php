@@ -85,7 +85,7 @@ if ($method === 'GET' && $xsub === '/list') {
 // ─── POST /issues/commits/add ───────────────────────────────────────────────
 
 if ($method === 'POST' && $xsub === '/add') {
-    $input       = json_decode(file_get_contents('php://input'), true) ?? [];
+    $input       = json_decode((string) file_get_contents('php://input'), true) ?? [];
     $issue_id    = (int)($input['issue_id'] ?? 0);
     $repo_id     = (int)($input['repo_id'] ?? 0);
     $commit_hash = trim((string)($input['commit_hash'] ?? ''));
@@ -161,7 +161,7 @@ if ($method === 'POST' && $xsub === '/add') {
 // ─── DELETE /issues/commits/delete ──────────────────────────────────────────
 
 if ($method === 'DELETE' && $xsub === '/delete') {
-    $input            = json_decode(file_get_contents('php://input'), true) ?? [];
+    $input            = json_decode((string) file_get_contents('php://input'), true) ?? [];
     $issue_commit_id  = (int)($input['issue_commit_id'] ?? 0);
 
     if ($issue_commit_id <= 0) {

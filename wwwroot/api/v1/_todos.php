@@ -185,7 +185,7 @@ if ($todos_path === '/list') {
         return;
     }
 
-    $body = json_decode(file_get_contents('php://input'), true);
+    $body = json_decode((string) file_get_contents('php://input'), true);
     $todo_id = (int) ($body['todo_id'] ?? 0);
     $nth = (int) ($body['nth'] ?? 0);
     $timezone = $body['timezone'] ?? 'UTC';
@@ -255,7 +255,7 @@ if ($todos_path === '/list') {
         return;
     }
 
-    $body = json_decode(file_get_contents('php://input'), true);
+    $body = json_decode((string) file_get_contents('php://input'), true);
     $todo_id = (int) ($body['todo_id'] ?? 0);
     $nth = (int) ($body['nth'] ?? 0);
     $timezone = $body['timezone'] ?? 'UTC';
@@ -297,7 +297,7 @@ if ($todos_path === '/list') {
         return;
     }
 
-    $body = json_decode(file_get_contents('php://input'), true);
+    $body = json_decode((string) file_get_contents('php://input'), true);
     $title = trim($body['title'] ?? '');
 
     if ($title === '') {
@@ -346,7 +346,7 @@ if ($todos_path === '/list') {
         return;
     }
 
-    $body = json_decode(file_get_contents('php://input'), true);
+    $body = json_decode((string) file_get_contents('php://input'), true);
     $todo_id = (int) ($body['todo_id'] ?? 0);
     $field = $body['field'] ?? '';
     $value = $body['value'] ?? null;
@@ -469,7 +469,7 @@ if ($todos_path === '/list') {
         return;
     }
 
-    $body = json_decode(file_get_contents('php://input'), true);
+    $body = json_decode((string) file_get_contents('php://input'), true);
     $todo_id = (int) ($body['todo_id'] ?? 0);
 
     if ($todo_id <= 0) {
@@ -492,7 +492,7 @@ if ($todos_path === '/list') {
         return;
     }
 
-    $body = json_decode(file_get_contents('php://input'), true);
+    $body = json_decode((string) file_get_contents('php://input'), true);
     $todo_id = (int) ($body['todo_id'] ?? 0);
 
     if ($todo_id <= 0) {
@@ -515,7 +515,7 @@ if ($todos_path === '/list') {
         return;
     }
 
-    $body = json_decode(file_get_contents('php://input'), true);
+    $body = json_decode((string) file_get_contents('php://input'), true);
     $todo_id = (int) ($body['todo_id'] ?? 0);
 
     if ($todo_id <= 0) {
@@ -537,7 +537,7 @@ if ($todos_path === '/list') {
         return;
     }
 
-    $body = json_decode(file_get_contents('php://input'), true);
+    $body = json_decode((string) file_get_contents('php://input'), true);
     $todo_id = (int) ($body['todo_id'] ?? 0);
     $ak_id = (int) ($body['ak_id'] ?? 0);
     $duration_seconds = isset($body['duration_seconds']) ? (int) $body['duration_seconds'] : null;

@@ -116,7 +116,7 @@ $issues      = new \Issues\Issues($pdo);
 
 // ── Request parsing ───────────────────────────────────────────────────────────
 
-$raw_body = file_get_contents('php://input');
+$raw_body = (string) file_get_contents('php://input');
 $msg      = json_decode($raw_body, true);
 
 if (!is_array($msg) || !isset($msg['method'])) {

@@ -61,7 +61,7 @@ if ($method === 'POST' && $sub === '/create') {
         return;
     }
 
-    $input          = json_decode(file_get_contents('php://input'), true) ?? [];
+    $input          = json_decode((string) file_get_contents('php://input'), true) ?? [];
     $name           = trim($input['name'] ?? '');
     $url            = trim($input['url'] ?? '') ?: null;
     $default_branch = trim($input['default_branch'] ?? '') ?: 'master';
@@ -125,7 +125,7 @@ if ($method === 'PATCH' && $sub === '/update') {
         return;
     }
 
-    $input          = json_decode(file_get_contents('php://input'), true) ?? [];
+    $input          = json_decode((string) file_get_contents('php://input'), true) ?? [];
     $repo_id        = (int)($input['repo_id'] ?? 0);
     $name           = array_key_exists('name', $input)           ? trim((string)$input['name'])           : null;
     $url            = array_key_exists('url', $input)            ? trim((string)$input['url'])            : 'NOT_SET';
@@ -193,7 +193,7 @@ if ($method === 'PATCH' && $sub === '/deactivate') {
         return;
     }
 
-    $input   = json_decode(file_get_contents('php://input'), true) ?? [];
+    $input   = json_decode((string) file_get_contents('php://input'), true) ?? [];
     $repo_id = (int)($input['repo_id'] ?? 0);
 
     if ($repo_id <= 0) {

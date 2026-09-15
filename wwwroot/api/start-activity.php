@@ -27,7 +27,7 @@ if (!$is_logged_in->isLoggedIn()) {
 }
 
 // Get JSON input
-$input = json_decode(file_get_contents('php://input'), true);
+$input = json_decode((string) file_get_contents('php://input'), true);
 
 // Validate input
 $activity_id = (int)($input['activity_id'] ?? 1); // Default to meditation

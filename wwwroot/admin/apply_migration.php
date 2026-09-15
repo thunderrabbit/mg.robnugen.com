@@ -19,7 +19,7 @@ if (!$is_logged_in->isLoggedIn() || !$is_logged_in->isAdmin()) {
     exit;
 }
 
-$input = json_decode(file_get_contents("php://input"), true);
+$input = json_decode((string) file_get_contents('php://input'), true);
 
 if (empty($input['migration'])) {
     http_response_code(400);

@@ -275,7 +275,7 @@ if ($method === 'GET' && $sub === '/get') {
 // ─── POST /issues/create ─────────────────────────────────────────────────────
 
 if ($method === 'POST' && $sub === '/create') {
-    $input           = json_decode(file_get_contents('php://input'), true) ?? [];
+    $input           = json_decode((string) file_get_contents('php://input'), true) ?? [];
     $project_id      = (int)($input['project_id'] ?? 0);
     $title           = trim($input['title'] ?? '');
     $description     = array_key_exists('description', $input) ? (string)$input['description'] : null;
@@ -408,7 +408,7 @@ if ($method === 'POST' && $sub === '/create') {
 // ─── PATCH /issues/update ────────────────────────────────────────────────────
 
 if ($method === 'PATCH' && $sub === '/update') {
-    $input    = json_decode(file_get_contents('php://input'), true) ?? [];
+    $input    = json_decode((string) file_get_contents('php://input'), true) ?? [];
     $issue_id = (int)($input['issue_id'] ?? 0);
 
     $title_in           = array_key_exists('title', $input)
@@ -587,7 +587,7 @@ if ($method === 'DELETE' && $sub === '/delete') {
         return;
     }
 
-    $input    = json_decode(file_get_contents('php://input'), true) ?? [];
+    $input    = json_decode((string) file_get_contents('php://input'), true) ?? [];
     $issue_id = (int)($input['issue_id'] ?? 0);
     if ($issue_id <= 0) {
         http_response_code(400);
