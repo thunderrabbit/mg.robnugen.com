@@ -584,7 +584,7 @@ class Todo
         foreach ($todos as &$todo) {
             $n = (int) $todo['do_every_n_days'];
             if ($todo['last_completed_date']) {
-                $todo['next_due_date'] = date('Y-m-d', strtotime($todo['last_completed_date'] . " + {$n} days"));
+                $todo['next_due_date'] = date('Y-m-d', (int) strtotime($todo['last_completed_date'] . " + {$n} days"));
             } else {
                 // Never completed: start recurring from due_date, not today
                 $start = !empty($todo['due_date'])
