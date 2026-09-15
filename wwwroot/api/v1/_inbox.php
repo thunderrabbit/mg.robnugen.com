@@ -81,8 +81,9 @@ if ($method === 'GET' && $sub === '/list') {
     $is_supervisor = in_array(null, $vis_rows, true);
 
     if (!$is_supervisor) {
-        // Scoped: see messages addressed to readable peers + broadcasts
-        $readable_ids = array_filter($vis_rows, fn($id) => $id !== null);
+        // Scoped: see messages addressed to readable peers + broadcasts.
+        // No row has a NULL peer here, or the caller would be a supervisor.
+        $readable_ids = $vis_rows;
         if (empty($readable_ids)) {
             // No visibility rows with can_read — see only broadcasts
             $vis_filter = 'i.recipient_aiu IS NULL';
