@@ -182,17 +182,11 @@ if ($method === 'POST' && $sub === '/visibility') {
 
     // Verify both agents belong to this user
     $check = $pdo->prepare("SELECT aiu_id FROM agent_inbox_user WHERE aiu_id = ? AND user_id = ?");
-    $check->execute([$reader_aiu, $auth_user_id]);
-    if (!$check->fetch()) {
-        http_response_code(404);
-        echo json_encode(['error' => "reader_aiu_id $reader_aiu not found in your account"]);
-        exit;
-    }
-    if ($peer_aiu !== null) {
-        $check->execute([$peer_aiu, $auth_user_id]);
+    foreach (['reader' => $reader_aiu, 'peer' => $peer_aiu] as $role => $aiu) {
+        $check->execute([$aiu, $auth_user_id]);
         if (!$check->fetch()) {
             http_response_code(404);
-            echo json_encode(['error' => "peer_aiu_id $peer_aiu not found in your account"]);
+            echo json_encode(['error' => "{$role}_aiu_id $aiu not found in your account"]);
             exit;
         }
     }
@@ -201,26 +195,16 @@ if ($method === 'POST' && $sub === '/visibility') {
 
     // Upsert: if row exists, update; otherwise insert
     $existing = $pdo->prepare(
-        "SELECT 1 FROM inbox_visibility WHERE inbox_user_aiu_id = ? AND inbox_peer_aiu_id " .
-        ($peer_aiu === null ? "IS NULL" : "= ?")
+        "SELECT 1 FROM inbox_visibility WHERE inbox_user_aiu_id = ? AND inbox_peer_aiu_id = ?"
     );
-    $ex_params = [$reader_aiu];
-    if ($peer_aiu !== null) {
-        $ex_params[] = $peer_aiu;
-    }
-    $existing->execute($ex_params);
+    $existing->execute([$reader_aiu, $peer_aiu]);
 
     if ($existing->fetch()) {
         $upd = $pdo->prepare(
             "UPDATE inbox_visibility SET can_read = ?, can_send = ?
-             WHERE inbox_user_aiu_id = ? AND inbox_peer_aiu_id " .
-            ($peer_aiu === null ? "IS NULL" : "= ?")
+             WHERE inbox_user_aiu_id = ? AND inbox_peer_aiu_id = ?"
         );
-        $upd_params = [$can_read, $can_send, $reader_aiu];
-        if ($peer_aiu !== null) {
-            $upd_params[] = $peer_aiu;
-        }
-        $upd->execute($upd_params);
+        $upd->execute([$can_read, $can_send, $reader_aiu, $peer_aiu]);
     } else {
         $ins = $pdo->prepare(
             "INSERT INTO inbox_visibility (inbox_user_aiu_id, inbox_peer_aiu_id, can_read, can_send)

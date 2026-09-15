@@ -34,7 +34,7 @@ class Ledger
     public function decrypt(string $stored): string|false
     {
         $decoded = base64_decode($stored);
-        if ($decoded === false || strlen($decoded) < SODIUM_CRYPTO_SECRETBOX_NONCEBYTES) {
+        if (strlen($decoded) < SODIUM_CRYPTO_SECRETBOX_NONCEBYTES) {
             return false;
         }
         $nonce  = substr($decoded, 0, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);

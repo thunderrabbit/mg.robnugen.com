@@ -14,10 +14,10 @@ spl_autoload_register(array($autoloader, 'load'));
 
 
 $mla_request = new \Mlaphp\Request();
-$config = new \Config();
 
 try {
     $config = new \Config();
+    // @phpstan-ignore catch.neverThrown (the autoloader throws when Config.php is missing)
 } catch (\Exception $e) {
     error_log("Config init failed: " . $e->getMessage());
     echo "Configuration error. Please contact the administrator.";

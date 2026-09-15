@@ -44,6 +44,11 @@ All three must pass. Setup and fixing:
   Entry scripts name the globals they take from `prepend.php` in a `@var` block
   under the include; `api/v1/_*.php` handlers do the same for `index.php`'s
   variables. `classes/Parsedown.php` is vendored and excluded from analysis.
+  The one ignore in `phpstan.neon` covers Codeception actor method calls under
+  `Tests/`, whose traits are generated and gitignored. A finding PHPStan can't
+  see past gets `// @phpstan-ignore <identifier> (reason)` on that one line,
+  never a blanket ignore: the `catch` around `new \Config()` is live because
+  the autoloader throws.
 
 The `standards` MCP server runs the Unit suite deterministically too. Before
 reporting any code change as done, call:

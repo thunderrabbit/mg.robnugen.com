@@ -97,7 +97,7 @@ class Request
     /**
      * Provides a magic **reference** to $_SESSION.
      *
-     * @param string $property The property name; must be 'session'.
+     * @param string $name The property name; must be 'session'.
      * @return array A reference to $_SESSION.
      * @throws InvalidArgumentException for any $name other than 'session'.
      * @throws DomainException when $_SESSION is not set.

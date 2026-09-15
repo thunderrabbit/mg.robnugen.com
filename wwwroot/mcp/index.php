@@ -126,7 +126,7 @@ if (!is_array($msg) || !isset($msg['method'])) {
 }
 
 $id     = $msg['id']     ?? null;
-$method = $msg['method'] ?? '';
+$method = $msg['method'];
 $params = $msg['params'] ?? [];
 
 // ── JSON-RPC helpers ──────────────────────────────────────────────────────────
