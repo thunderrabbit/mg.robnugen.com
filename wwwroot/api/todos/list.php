@@ -53,7 +53,7 @@ try {
         // For recurring items, we only care about completion TODAY
         // For one-time items, we care if it's completed AT ALL
 
-        $completions = $todoHelper->getCompletionsForDate($todo['todo_id'], $today);
+        $completions = $todoHelper->getCompletionsForDate(\Field::int($todo, 'todo_id'), $today);
         $todo['completed_count'] = count($completions);
         $todo['completions'] = $completions;
 
@@ -81,7 +81,7 @@ try {
                  // effectively hiding them. We might want to respect that logic here too.
             } else {
                  // Not completed *today*. But was it completed *yesterday*?
-                 $overallStatus = $todoHelper->getCompletionStatus($todo['todo_id']);
+                 $overallStatus = $todoHelper->getCompletionStatus(\Field::int($todo, 'todo_id'));
                  $totalCompleted = $overallStatus['count'];
 
                 if ($totalCompleted >= $targetCount) {

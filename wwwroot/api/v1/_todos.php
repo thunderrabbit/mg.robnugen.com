@@ -69,7 +69,7 @@ if ($todos_path === '/list') {
     foreach ($todos as &$todo) {
         $isRecurring = !empty($todo['do_days']) || !empty($todo['do_dates']) || !empty($todo['do_every_n_days']);
 
-        $completions = $todoHelper->getCompletionsForDate($todo['todo_id'], $today);
+        $completions = $todoHelper->getCompletionsForDate(\Field::int($todo, 'todo_id'), $today);
         $todo['completed_count'] = count($completions);
         $todo['completions'] = $completions;
 
@@ -82,7 +82,7 @@ if ($todos_path === '/list') {
             $completedToday = !empty($completions) && count($completions) >= $targetCount;
 
             if (!$completedToday) {
-                $overallStatus = $todoHelper->getCompletionStatus($todo['todo_id']);
+                $overallStatus = $todoHelper->getCompletionStatus(\Field::int($todo, 'todo_id'));
                 if ($overallStatus['count'] >= $targetCount) {
                     continue;
                 }

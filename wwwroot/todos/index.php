@@ -50,7 +50,7 @@ if ($show_only_archived) {
 foreach ($todos as &$todo) {
     // Non-repeating if no days or dates scheduled
     if (empty($todo['do_days']) && empty($todo['do_dates'])) {
-        $status = $todoHelper->getCompletionStatus($todo['todo_id']);
+        $status = $todoHelper->getCompletionStatus(\Field::int($todo, 'todo_id'));
         if ($status['count'] > 0) {
             $todo['is_completed'] = true;
             $todo['completed_at'] = $status['last_logged'];
