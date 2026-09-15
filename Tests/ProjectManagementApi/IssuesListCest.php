@@ -8,7 +8,7 @@ class IssuesListCest
 {
     public function fullKeySeesOwnIssue(AcceptanceTester $I): void
     {
-        $I->haveHttpHeader('X-API-Key', getenv('MG_TEST_KEY_FULL'));
+        $I->haveHttpHeader('X-API-Key', (string) getenv('MG_TEST_KEY_FULL'));
         $I->sendGET('/api/v1/issues/list?project_id=3');
         $I->seeResponseCodeIs(200);
         $I->seeResponseContains('Test-Full API issue');
@@ -16,7 +16,7 @@ class IssuesListCest
 
     public function fullKeyCanFetchStatusesLookup(AcceptanceTester $I): void
     {
-        $I->haveHttpHeader('X-API-Key', getenv('MG_TEST_KEY_FULL'));
+        $I->haveHttpHeader('X-API-Key', (string) getenv('MG_TEST_KEY_FULL'));
         $I->sendGET('/api/v1/issues/statuses');
         $I->seeResponseCodeIs(200);
         $I->seeResponseContains('open');

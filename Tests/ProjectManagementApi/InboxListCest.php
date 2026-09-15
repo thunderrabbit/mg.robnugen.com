@@ -78,7 +78,7 @@ class InboxListCest
         // $this->created is only written by postMarked() from 201 responses
         // to our own POSTs, so in practice the array never holds a foreign id.
         foreach ($this->created as $id) {
-            $I->haveHttpHeader('X-API-Key', getenv('MG_TEST_KEY_BETA'));
+            $I->haveHttpHeader('X-API-Key', (string) getenv('MG_TEST_KEY_BETA'));
             $I->haveHttpHeader('Content-Type', 'application/json');
             $I->sendDELETE('/api/v1/inbox/delete', ['message_id' => $id]);
         }
@@ -90,13 +90,13 @@ class InboxListCest
      */
     private function postMarked(AcceptanceTester $I, string $suffix, string $priority = 'normal'): int
     {
-        $I->haveHttpHeader('X-API-Key', getenv('MG_TEST_KEY_BETA'));
+        $I->haveHttpHeader('X-API-Key', (string) getenv('MG_TEST_KEY_BETA'));
         $I->haveHttpHeader('Content-Type', 'application/json');
         $I->sendPOST('/api/v1/inbox/send', json_encode([
             'message'       => $this->marker . ' ' . $suffix,
             'priority'      => $priority,
             'recipient_aiu' => (int) getenv('MG_TEST_AIU_ALPHA'),
-        ]));
+        ], JSON_THROW_ON_ERROR));
         $I->seeResponseCodeIs(201);
         $raw = $I->grabResponse();
         $decoded = json_decode($raw, true);
@@ -117,7 +117,7 @@ class InboxListCest
      */
     private function grabMarkedIds(AcceptanceTester $I, string $query): array
     {
-        $I->haveHttpHeader('X-API-Key', getenv('MG_TEST_KEY_ALPHA'));
+        $I->haveHttpHeader('X-API-Key', (string) getenv('MG_TEST_KEY_ALPHA'));
         $I->sendGET('/api/v1/inbox/list?' . $query);
         $I->seeResponseCodeIs(200);
         $decoded = json_decode($I->grabResponse(), true);

@@ -8,7 +8,7 @@ class RepositoriesListCest
 {
     public function fullKeySeesOwnRepo(AcceptanceTester $I): void
     {
-        $I->haveHttpHeader('X-API-Key', getenv('MG_TEST_KEY_FULL'));
+        $I->haveHttpHeader('X-API-Key', (string) getenv('MG_TEST_KEY_FULL'));
         $I->sendGET('/api/v1/repositories/list');
         $I->seeResponseCodeIs(200);
         $I->seeResponseContains('test-full-repo');

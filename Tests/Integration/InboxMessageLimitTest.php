@@ -44,6 +44,7 @@ class InboxMessageLimitTest extends Unit
     /**
      * Make an HTTP request to the inbox API.
      *
+     * @param non-empty-string $method
      * @param array<string, mixed> $payload
      * @return array{status: int, body: array<string, mixed>}
      */
@@ -59,7 +60,7 @@ class InboxMessageLimitTest extends Unit
                 'Content-Type: application/json',
                 'X-API-Key: ' . $this->apiKey,
             ],
-            CURLOPT_POSTFIELDS     => json_encode($payload),
+            CURLOPT_POSTFIELDS     => json_encode($payload, JSON_THROW_ON_ERROR),
             CURLOPT_TIMEOUT        => 15,
         ]);
 
@@ -69,7 +70,7 @@ class InboxMessageLimitTest extends Unit
 
         return [
             'status' => $status,
-            'body'   => json_decode($response, true) ?? [],
+            'body'   => json_decode((string) $response, true) ?? [],
         ];
     }
 
