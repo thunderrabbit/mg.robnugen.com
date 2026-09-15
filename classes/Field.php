@@ -26,6 +26,18 @@ class Field
         return $value === null ? $default : (string) $value;
     }
 
+    /**
+     * Decodes a JSON request body into an array, or [] when it isn't a JSON
+     * object or list (empty, malformed, or a bare scalar).
+     *
+     * @return array<mixed>
+     */
+    public static function jsonArray(string $json): array
+    {
+        $decoded = json_decode($json, true);
+        return is_array($decoded) ? $decoded : [];
+    }
+
     private static function scalar(mixed $from, string $key): int|float|string|bool|null
     {
         if (!is_array($from)) {

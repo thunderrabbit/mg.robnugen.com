@@ -80,4 +80,21 @@ class FieldTest extends Unit
         $this->assertSame('normal', \Field::string(['k' => ['x']], 'k', 'normal'));
         $this->assertSame('normal', \Field::string(null, 'k', 'normal'));
     }
+
+    // === jsonArray() ===
+
+    public function testJsonArrayDecodesObjectsAndLists(): void
+    {
+        $this->assertSame(['title' => 'x', 'n' => 2], \Field::jsonArray('{"title":"x","n":2}'));
+        $this->assertSame([1, 2], \Field::jsonArray('[1,2]'));
+    }
+
+    public function testJsonArrayIsEmptyForBadEmptyOrScalarJson(): void
+    {
+        $this->assertSame([], \Field::jsonArray(''));
+        $this->assertSame([], \Field::jsonArray('{not json'));
+        $this->assertSame([], \Field::jsonArray('null'));
+        $this->assertSame([], \Field::jsonArray('5'));
+        $this->assertSame([], \Field::jsonArray('"text"'));
+    }
 }
