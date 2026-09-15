@@ -59,7 +59,7 @@ $auth_actor = $actor_stmt->fetch(\PDO::FETCH_ASSOC);
 
 $method    = $_SERVER['REQUEST_METHOD'];
 $uri_path  = (string) parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-$path      = rtrim(preg_replace('#^/api/v1#', '', $uri_path), '/') ?: '/';
+$path      = rtrim(preg_replace('#^/api/v1#', '', $uri_path) ?? '', '/') ?: '/';
 
 // ── Credit enforcement + usage logging ───────────────────────────────────────
 // Call at the top of any write endpoint before processing.

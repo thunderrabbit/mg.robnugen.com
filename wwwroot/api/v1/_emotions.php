@@ -22,7 +22,7 @@
 //   $method         — HTTP method
 //   $path           — URL path relative to /api/v1 (e.g. /emotions/vocab)
 
-$emotions_path = rtrim(preg_replace('#^/emotions#', '', $path), '/') ?: '/';
+$emotions_path = rtrim(preg_replace('#^/emotions#', '', $path) ?? '', '/') ?: '/';
 
 // Permission: agent_inbox_user.can_read_emotions
 if ($method === 'GET' && !$auth_actor['can_read_emotions']) {
