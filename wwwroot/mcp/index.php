@@ -46,6 +46,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
 
+/**
+ * Set up by prepend.php.
+ *
+ * @var \Config $config
+ */
+
 // ── Auth ──────────────────────────────────────────────────────────────────────
 // Accepts OAuth access tokens (issued by mcp/token.php) or direct API keys.
 

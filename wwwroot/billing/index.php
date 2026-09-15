@@ -3,6 +3,14 @@
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
 
+/**
+ * Set up by prepend.php.
+ *
+ * @var \Config $config
+ * @var \Auth\IsLoggedIn $is_logged_in
+ * @var \PDO $mla_database
+ */
+
 if (!$is_logged_in->isLoggedIn()) {
     $_SESSION['return_url'] = '/billing/';
     header('Location: /login/');

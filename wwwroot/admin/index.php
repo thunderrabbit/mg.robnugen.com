@@ -5,6 +5,15 @@
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
 
+/**
+ * Set up by prepend.php.
+ *
+ * @var \Config $config
+ * @var \Auth\IsLoggedIn $is_logged_in
+ * @var \PDO $mla_database
+ * @var \Database\DBExistaroo $dbExistaroo
+ */
+
 if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
     // Handle alert dismiss POST actions
     if (
