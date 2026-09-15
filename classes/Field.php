@@ -10,8 +10,7 @@ class Field
 {
     public static function int(mixed $from, string $key, int $default = 0): int
     {
-        $value = self::scalar($from, $key);
-        return $value === null ? $default : (int) $value;
+        return self::toInt(self::scalar($from, $key), $default);
     }
 
     public static function intOrNull(mixed $from, string $key): ?int
@@ -22,8 +21,25 @@ class Field
 
     public static function string(mixed $from, string $key, string $default = ''): string
     {
-        $value = self::scalar($from, $key);
-        return $value === null ? $default : (string) $value;
+        return self::toString(self::scalar($from, $key), $default);
+    }
+
+    /**
+     * Casts one untyped value like (int), or gives the default for null or a
+     * non-scalar.
+     */
+    public static function toInt(mixed $value, int $default = 0): int
+    {
+        return is_scalar($value) ? (int) $value : $default;
+    }
+
+    /**
+     * Casts one untyped value like (string), or gives the default for null or
+     * a non-scalar.
+     */
+    public static function toString(mixed $value, string $default = ''): string
+    {
+        return is_scalar($value) ? (string) $value : $default;
     }
 
     /**

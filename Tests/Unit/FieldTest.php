@@ -81,6 +81,34 @@ class FieldTest extends Unit
         $this->assertSame('normal', \Field::string(null, 'k', 'normal'));
     }
 
+    // === toInt() / toString() ===
+
+    public function testToIntCastsScalarsAndDefaultsTheRest(): void
+    {
+        $this->assertSame(42, \Field::toInt('42'));
+        $this->assertSame(3, \Field::toInt(3.9));
+        $this->assertSame(1, \Field::toInt(true));
+        $this->assertSame(0, \Field::toInt('abc'));
+        $this->assertSame(0, \Field::toInt(null));
+        $this->assertSame(7, \Field::toInt(null, 7));
+        $this->assertSame(7, \Field::toInt(['1'], 7));
+    }
+
+    public function testToStringCastsScalarsAndDefaultsTheRest(): void
+    {
+        $this->assertSame(' a ', \Field::toString(' a '));
+        $this->assertSame('5', \Field::toString(5));
+        $this->assertSame('1', \Field::toString(true));
+        $this->assertSame('', \Field::toString(null));
+        $this->assertSame('UTC', \Field::toString(null, 'UTC'));
+        $this->assertSame('UTC', \Field::toString(['x'], 'UTC'));
+    }
+
+    public function testToIntWorksAsAnArrayMapCallback(): void
+    {
+        $this->assertSame([1, 2, 0], array_map(\Field::toInt(...), ['1', 2, 'x']));
+    }
+
     // === jsonArray() ===
 
     public function testJsonArrayDecodesObjectsAndLists(): void
