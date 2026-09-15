@@ -33,8 +33,11 @@ class SessionKeyTest extends Unit
             $key = $this->sessionKey->generateSessionKey();
             for ($j = 0; $j < strlen($key); $j++) {
                 $char = $key[$j];
-                $this->assertStringContainsString($char, $validChars,
-                    "Character '$char' should be valid base64url");
+                $this->assertStringContainsString(
+                    $char,
+                    $validChars,
+                    "Character '$char' should be valid base64url"
+                );
             }
         }
     }
