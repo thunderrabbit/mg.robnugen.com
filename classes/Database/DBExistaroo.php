@@ -4,7 +4,8 @@ namespace Database;
 
 class DBExistaroo
 {
-    private $automaticSchemaPrefixes = [
+    /** @var list<string> */
+    private array $automaticSchemaPrefixes = [
         "00",
         "01",
     ];
@@ -24,6 +25,9 @@ class DBExistaroo
     ) {
     }
 
+    /**
+     * @return list<string>
+     */
     public function checkaroo(): array
     {
         $errors = [];
@@ -161,6 +165,9 @@ class DBExistaroo
         return $this->hasAnyUsers();
     }
 
+    /**
+     * @return list<string>
+     */
     public function getPendingMigrations(): array
     {
         $pending = [];
@@ -190,6 +197,9 @@ class DBExistaroo
         return $pending;
     }
 
+    /**
+     * @return list<string>
+     */
     private function getAppliedVersions(): array
     {
         $versions = [];

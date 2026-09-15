@@ -6,10 +6,10 @@ const CONFIG_DATABASE_OUTPUT_ENCODING = "utf8mb4";
 
 class Base
 {
-    private static $pdo;
+    private static ?\PDO $pdo = null;
 
     // Modern database access using native PDO interface
-    private static function initDB(\Config $config)
+    private static function initDB(\Config $config): \PDO
     {
         /** START - Database **/
         if (empty(self::$pdo)) {
@@ -59,12 +59,12 @@ class Base
             }
         }
         /** END - Database **/
+        return self::$pdo;
     }
 
     public static function getPDO(\Config $config): \PDO
     {
-        self::initDB($config);
-        return self::$pdo;
+        return self::initDB($config);
     }
 
     /**
