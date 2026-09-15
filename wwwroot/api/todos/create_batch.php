@@ -49,6 +49,7 @@ try {
     $pdo->beginTransaction();
 
     foreach ($todosToCreate as $index => $todoData) {
+        $todoData = is_array($todoData) ? $todoData : [];
         // Basic validation
         if (empty($todoData['title'])) {
             $errors[] = "Row " . ($index + 1) . ": Title is required.";
@@ -57,7 +58,7 @@ try {
 
         // Prepare data for creation
         // Todo::createTodo signature: string $title, int $user_id, array $options = []
-        $title = trim($todoData['title']);
+        $title = trim(\Field::string($todoData, 'title'));
 
         $options = [];
 

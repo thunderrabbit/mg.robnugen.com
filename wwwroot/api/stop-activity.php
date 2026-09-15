@@ -46,7 +46,7 @@ if (!empty($session_key)) {
     }
 } else {
     // Fall back to ak_id from input or session
-    $ak_id = (int)($input['ak_id'] ?? $_SESSION['active_ak_id'] ?? 0);
+    $ak_id = \Field::toInt($input['ak_id'] ?? $_SESSION['active_ak_id'] ?? 0);
 }
 
 $actual_sec = \Field::int($input, 'actual_sec');

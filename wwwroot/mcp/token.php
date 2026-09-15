@@ -83,9 +83,9 @@ $pdo        = \Database\Base::getPDO($config);
 // ── Authorization Code + PKCE ─────────────────────────────────────────────────
 
 if ($grant_type === 'authorization_code') {
-    $raw_code     = $body['code']          ?? '';
-    $code_verifier = $body['code_verifier'] ?? '';
-    $redirect_uri  = $body['redirect_uri']  ?? '';
+    $raw_code     = \Field::string($body, 'code');
+    $code_verifier = \Field::string($body, 'code_verifier');
+    $redirect_uri  = \Field::string($body, 'redirect_uri');
 
     if (!$raw_code || !$code_verifier || !$redirect_uri) {
         http_response_code(400);
@@ -110,7 +110,7 @@ if ($grant_type === 'authorization_code') {
     }
 
     // Verify redirect_uri matches
-    if ($code_row['redirect_uri'] !== $redirect_uri) {
+    if (\Field::string($code_row, 'redirect_uri') !== $redirect_uri) {
         http_response_code(400);
         echo json_encode(['error' => 'invalid_grant', 'error_description' => 'redirect_uri mismatch']);
         exit;
@@ -118,7 +118,7 @@ if ($grant_type === 'authorization_code') {
 
     // Verify PKCE S256: base64url(SHA-256(code_verifier)) == stored code_challenge
     $computed_challenge = rtrim(strtr(base64_encode(hash('sha256', $code_verifier, true)), '+/', '-_'), '=');
-    if (!hash_equals($code_row['code_challenge'], $computed_challenge)) {
+    if (!hash_equals(\Field::string($code_row, 'code_challenge'), $computed_challenge)) {
         http_response_code(400);
         echo json_encode(['error' => 'invalid_grant', 'error_description' => 'PKCE verification failed']);
         exit;
@@ -126,7 +126,7 @@ if ($grant_type === 'authorization_code') {
 
     // Mark code used (single-use)
     $pdo->prepare("UPDATE oauth_auth_codes SET used_at_utc = NOW() WHERE code_id = ?")
-        ->execute([$code_row['code_id']]);
+        ->execute([\Field::int($code_row, 'code_id')]);
 
     $aiu_id           = \Field::int($code_row, 'aiu_id');
     $auth_user_id     = \Field::int($code_row, 'user_id');
@@ -134,7 +134,7 @@ if ($grant_type === 'authorization_code') {
 
     // ── Refresh Token (silent renewal) ───────────────────────────────────────────
 } elseif ($grant_type === 'refresh_token') {
-    $raw_refresh = $body['refresh_token'] ?? '';
+    $raw_refresh = \Field::string($body, 'refresh_token');
 
     if (!$raw_refresh) {
         http_response_code(400);
@@ -164,7 +164,7 @@ if ($grant_type === 'authorization_code') {
 
     // ── Client Credentials (fallback) ────────────────────────────────────────────
 } elseif ($grant_type === 'client_credentials') {
-    $client_secret = $body['client_secret'] ?? '';
+    $client_secret = \Field::string($body, 'client_secret');
 
     // Also accept Basic auth header
     $auth_header = \Field::string($_SERVER, 'HTTP_AUTHORIZATION');

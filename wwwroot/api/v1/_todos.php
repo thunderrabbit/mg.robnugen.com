@@ -113,7 +113,7 @@ if ($todos_path === '/list') {
 
         if ($isFullyCompletedForToday && !empty($completions)) {
             $lastCompletion = end($completions);
-            $lastCompletedAt = new \DateTime($lastCompletion['date_logged'], $tz);
+            $lastCompletedAt = new \DateTime(\Field::string($lastCompletion, 'date_logged'), $tz);
 
             if ($lastCompletedAt < $oneMinuteAgo) {
                 continue;
@@ -129,7 +129,7 @@ if ($todos_path === '/list') {
             $deadlineStr = $today . ' 22:00:00';
             $deadline = new \DateTime($deadlineStr, $tz);
 
-            $originalTimeStr = $today . ' ' . $todo['do_time'];
+            $originalTimeStr = $today . ' ' . \Field::string($todo, 'do_time');
             $originalTime = new \DateTime($originalTimeStr, $tz);
 
             $totalWindow = $deadline->getTimestamp() - $originalTime->getTimestamp();
@@ -373,7 +373,7 @@ if ($todos_path === '/list') {
     // Field-specific validation (same as cookie endpoint)
     switch ($field) {
         case 'title':
-            $value = trim((string) $value);
+            $value = trim(\Field::toString($value));
             if ($value === '') {
                 http_response_code(400);
                 echo json_encode(['error' => 'Title cannot be empty']);
@@ -383,7 +383,7 @@ if ($todos_path === '/list') {
 
         case 'do_time':
             if ($value !== null && $value !== '') {
-                if (!preg_match('/^([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/', $value)) {
+                if (!preg_match('/^([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/', \Field::toString($value))) {
                     http_response_code(400);
                     echo json_encode(['error' => 'Invalid time format (HH:MM or HH:MM:SS)']);
                     return;
@@ -395,7 +395,7 @@ if ($todos_path === '/list') {
 
         case 'due_date':
             if ($value !== null && $value !== '') {
-                $d = \DateTime::createFromFormat('Y-m-d', $value);
+                $d = \DateTime::createFromFormat('Y-m-d', \Field::toString($value));
                 if (!($d && $d->format('Y-m-d') === $value)) {
                     http_response_code(400);
                     echo json_encode(['error' => 'Invalid date format (YYYY-MM-DD)']);

@@ -37,7 +37,7 @@ if (empty($input['todo_id']) || empty($input['field'])) {
 }
 
 $todo_id = \Field::int($input, 'todo_id');
-$field = $input['field'];
+$field = \Field::string($input, 'field');
 $value = $input['value'] ?? null;
 
 // Allowlist of editable fields
@@ -51,7 +51,7 @@ if (!in_array($field, $allowed_fields)) {
 // Validation per field
 switch ($field) {
     case 'title':
-        $value = trim((string)$value);
+        $value = trim(\Field::toString($value));
         if ($value === '') {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Title cannot be empty']);
@@ -62,7 +62,7 @@ switch ($field) {
     case 'do_time':
         // Allow empty to clear time? For now, simplistic validation.
         if ($value !== null && $value !== '') {
-            if (!preg_match('/^([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/', $value)) {
+            if (!preg_match('/^([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/', \Field::toString($value))) {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Invalid time format']);
                 exit;
@@ -74,7 +74,7 @@ switch ($field) {
 
     case 'due_date':
         if ($value !== null && $value !== '') {
-            $d = DateTime::createFromFormat('Y-m-d', $value);
+            $d = DateTime::createFromFormat('Y-m-d', \Field::toString($value));
             if (!($d && $d->format('Y-m-d') === $value)) {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Invalid date format (YYYY-MM-DD required)']);

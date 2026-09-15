@@ -124,8 +124,8 @@ if (!isset($msg['method'])) {
 }
 
 $id     = $msg['id']     ?? null;
-$method = $msg['method'];
-$params = $msg['params'] ?? [];
+$method = \Field::string($msg, 'method');
+$params = \Field::array($msg, 'params');
 
 // ── JSON-RPC helpers ──────────────────────────────────────────────────────────
 
@@ -159,7 +159,7 @@ function mcp_tool_result(mixed $id, mixed $data): array
 switch ($method) {
     case 'initialize':
         // Negotiate protocol version — accept any 2025-x spec, respond with highest we support
-        $client_version = $params['protocolVersion'] ?? '2025-03-26';
+        $client_version = \Field::string($params, 'protocolVersion', '2025-03-26');
         $proto = version_compare($client_version, '2025-06-18', '>=') ? '2025-06-18' : '2025-03-26';
         // Mcp-Session-Id is required by the Streamable-HTTP spec; we use the token hash as stable ID
         header('Mcp-Session-Id: ' . hash('sha256', $raw_token));
@@ -180,8 +180,8 @@ switch ($method) {
         break;
 
     case 'tools/call':
-        $tool = $params['name']      ?? '';
-        $args = $params['arguments'] ?? [];
+        $tool = \Field::string($params, 'name');
+        $args = \Field::array($params, 'arguments');
 
         try {
             $result = exterm_dispatch($exterm, $issues, $auth_user_id, $caller_aiu, $tool, $args);
@@ -204,7 +204,7 @@ switch ($method) {
 // ── Tool dispatch ─────────────────────────────────────────────────────────────
 
 /**
- * @param array<string, mixed> $a
+ * @param array<mixed> $a
  */
 function exterm_dispatch(\Exterm\Items $exterm, \Issues\Issues $issues, int $user_id, int $caller_aiu, string $tool, array $a): mixed
 {
@@ -263,7 +263,7 @@ function exterm_dispatch(\Exterm\Items $exterm, \Issues\Issues $issues, int $use
 
         case 'issue_comment_add':
             $iid  = \Field::int($a, 'issue_id');
-            $body = $a['body'] ?? '';
+            $body = \Field::string($a, 'body');
             if (!$iid) {
                 throw new \Issues\ValidationException("issue_id is required");
             }
@@ -277,7 +277,7 @@ function exterm_dispatch(\Exterm\Items $exterm, \Issues\Issues $issues, int $use
             return $issues->listComments($iid, $user_id, $caller_aiu, $a);
 
         case 'exterm_search_items':
-            $query      = $a['query']      ?? '';
+            $query      = \Field::string($a, 'query');
             $project_id = \Field::intOrNull($a, 'project_id');
             $limit      = \Field::int($a, 'limit', 20);
             return $exterm->searchItems($user_id, $caller_aiu, $query, $project_id, $limit);

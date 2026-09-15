@@ -74,7 +74,7 @@ try {
                 // Optionally check the 1-minute rule if we want it to disappear fast,
                 // but user requested "keep them briefly visible"
                  $lastCompletion = end($completions);
-                 $lastCompletedAt = new \DateTime($lastCompletion['date_logged'], $tz);
+                 $lastCompletedAt = new \DateTime(\Field::string($lastCompletion, 'date_logged'), $tz);
 
                  // If completed very recently (e.g. today), we keep it.
                  // The existing code below handles the "1 minute ago" logic for 'fully completed' items,
@@ -111,7 +111,7 @@ try {
             } else {
                 // Never completed: start recurring from due_date, not today
                 $start = (!empty($todo['due_date']))
-                    ? (new \DateTime($todo['due_date'], $tz))->format('Y-m-d')
+                    ? (new \DateTime(\Field::string($todo, 'due_date'), $tz))->format('Y-m-d')
                     : $today;
                 if ($start > $today) {
                     $todo['next_due_date'] = $start;
@@ -131,7 +131,7 @@ try {
         if ($isFullyCompletedForToday && !empty($completions)) {
             // Get the most recent completion timestamp
             $lastCompletion = end($completions);
-            $lastCompletedAt = new \DateTime($lastCompletion['date_logged'], $tz);
+            $lastCompletedAt = new \DateTime(\Field::string($lastCompletion, 'date_logged'), $tz);
 
             // Skip if completed more than 1 minute ago
             if ($lastCompletedAt < $oneMinuteAgo) {
@@ -152,7 +152,7 @@ try {
             $deadline = new \DateTime($deadlineStr, $tz);
 
             // Parse original start time
-            $originalTimeStr = $today . ' ' . $todo['do_time'];
+            $originalTimeStr = $today . ' ' . \Field::string($todo, 'do_time');
             $originalTime = new \DateTime($originalTimeStr, $tz);
 
             // Calculate total window in seconds

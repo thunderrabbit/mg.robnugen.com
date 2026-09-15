@@ -28,7 +28,7 @@ if (!$is_logged_in->isLoggedIn()) {
 
 // Validate input
 $input = \Field::jsonArray((string) file_get_contents('php://input'));
-if (!isset($input['activity_name']) || empty(trim($input['activity_name']))) {
+if (!isset($input['activity_name']) || empty(trim(\Field::string($input, 'activity_name')))) {
     http_response_code(400);
     echo json_encode(['error' => 'Activity name is required']);
     exit;
@@ -41,8 +41,8 @@ try {
     $activityHelper = new \ActivityTracking\Activity($pdo);
     $activity_id = $activityHelper->createUserActivity(
         $user_id,
-        $input['activity_name'],
-        $input['description'] ?? null
+        \Field::string($input, 'activity_name'),
+        isset($input['description']) ? \Field::string($input, 'description') : null
     );
 
     if ($activity_id === false) {
@@ -54,7 +54,7 @@ try {
     echo json_encode([
         'success' => true,
         'activity_id' => $activity_id,
-        'activity_name' => trim($input['activity_name'])
+        'activity_name' => trim(\Field::string($input, 'activity_name'))
     ]);
 } catch (\Exception $e) {
     http_response_code(500);

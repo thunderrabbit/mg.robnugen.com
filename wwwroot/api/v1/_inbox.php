@@ -172,7 +172,7 @@ if ($method === 'GET' && $sub === '/list') {
     $input = \Field::jsonArray((string) file_get_contents('php://input'));
     $message   = trim(\Field::string($input, 'message'));
     $priority  = trim(\Field::string($input, 'priority', 'normal'));
-    $show_date = isset($input['show_date']) ? trim($input['show_date']) : null;
+    $show_date = isset($input['show_date']) ? trim(\Field::string($input, 'show_date')) : null;
     $sender_timezone = trim(\Field::string($input, 'sender_timezone'));
     $recipient_aiu = \Field::intOrNull($input, 'recipient_aiu');
     // Validate IANA timezone — stored for Carrie (and future agents) to determine
@@ -196,7 +196,7 @@ if ($method === 'GET' && $sub === '/list') {
         );
         $send_stmt->execute([$sender_aiu, $recipient_aiu]);
         $send_row = $send_stmt->fetch(\PDO::FETCH_ASSOC);
-        if (!$send_row || !$send_row['can_send']) {
+        if (!\Field::int($send_row, 'can_send')) {
             http_response_code(403);
             echo json_encode(['error' => 'Not authorized to send to this recipient']);
             return;
@@ -348,8 +348,8 @@ if ($method === 'GET' && $sub === '/list') {
     // ── Edit a message ───────────────────────────────────────────────────
     $input = \Field::jsonArray((string) file_get_contents('php://input'));
     $message_id = \Field::int($input, 'message_id');
-    $message       = isset($input['message']) ? trim($input['message']) : null;
-    $priority      = isset($input['priority']) ? trim($input['priority']) : null;
+    $message       = isset($input['message']) ? trim(\Field::string($input, 'message')) : null;
+    $priority      = isset($input['priority']) ? trim(\Field::string($input, 'priority')) : null;
     $show_date     = array_key_exists('show_date', $input) ? $input['show_date'] : 'NOT_SET';
     $recipient_aiu = isset($input['recipient_aiu']) ? (int) $input['recipient_aiu'] : null;
 
@@ -421,7 +421,7 @@ if ($method === 'GET' && $sub === '/list') {
             );
             $send_stmt->execute([$sender_aiu, $recipient_aiu]);
             $send_row = $send_stmt->fetch(\PDO::FETCH_ASSOC);
-            if (!$send_row || !$send_row['can_send']) {
+            if (!\Field::int($send_row, 'can_send')) {
                 http_response_code(403);
                 echo json_encode(['error' => 'Not authorized to send to this recipient']);
                 return;

@@ -254,7 +254,7 @@ if ($method === 'POST' && $sub === '/keys') {
 
     $apiKeyHelper = new \Auth\ApiKey($pdo);
     try {
-        $raw_key = $apiKeyHelper->generateKey($auth_user_id, $label ?: $agent['name'], $aiu_id);
+        $raw_key = $apiKeyHelper->generateKey($auth_user_id, $label ?: \Field::string($agent, 'name'), $aiu_id);
     } catch (\RuntimeException $e) {
         http_response_code(409);
         echo json_encode(['error' => $e->getMessage()]);
@@ -265,7 +265,7 @@ if ($method === 'POST' && $sub === '/keys') {
     echo json_encode([
         'api_key'  => $raw_key,
         'aiu_id'   => $aiu_id,
-        'label'    => $label ?: $agent['name'],
+        'label'    => $label ?: \Field::string($agent, 'name'),
         'warning'  => 'Store this key securely — it cannot be retrieved again',
     ]);
     exit;

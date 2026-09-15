@@ -264,7 +264,7 @@ class Items
         $params = [];
 
         if (array_key_exists('title', $data) && $data['title'] !== null) {
-            $t = trim($data['title']);
+            $t = trim(\Field::string($data, 'title'));
             if (!$t) {
                 throw new ValidationException("title cannot be empty");
             }

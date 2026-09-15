@@ -146,9 +146,9 @@ class Issues
      */
     public function updateIssue(int $issue_id, int $user_id, int $caller_aiu, array $data): array
     {
-        $title_in       = array_key_exists('title', $data) ? trim((string)$data['title']) : null;
-        $description_in = array_key_exists('description', $data) ? (string)$data['description'] : 'NOT_SET';
-        $priority_in    = array_key_exists('priority', $data) ? trim((string)$data['priority']) : null;
+        $title_in       = array_key_exists('title', $data) ? trim(\Field::string($data, 'title')) : null;
+        $description_in = array_key_exists('description', $data) ? \Field::string($data, 'description') : 'NOT_SET';
+        $priority_in    = array_key_exists('priority', $data) ? trim(\Field::string($data, 'priority')) : null;
 
         if ($title_in === null && $description_in === 'NOT_SET' && $priority_in === null) {
             throw new ValidationException("provide at least one field to update: title, description, or priority");
@@ -314,7 +314,7 @@ class Issues
     {
         $project_id  = \Field::int($data, 'project_id');
         $title       = trim(\Field::string($data, 'title'));
-        $description = array_key_exists('description', $data) ? (string)$data['description'] : null;
+        $description = array_key_exists('description', $data) ? \Field::string($data, 'description') : null;
         $priority    = trim(\Field::string($data, 'priority', 'normal'));
 
         if ($project_id <= 0) {

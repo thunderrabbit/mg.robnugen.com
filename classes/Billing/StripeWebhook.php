@@ -54,7 +54,7 @@ class StripeWebhook
      */
     public function handle(array $event): void
     {
-        $object = $event['data']['object'] ?? [];
+        $object = \Field::array(\Field::array($event, 'data'), 'object');
 
         match ($event['type'] ?? '') {
             'checkout.session.completed' => $this->handleCheckoutComplete($object),
@@ -75,7 +75,7 @@ class StripeWebhook
     {
         $user_id     = \Field::int($session, 'client_reference_id');
         $customer_id = $session['customer'] ?? '';
-        $plan        = $session['metadata']['plan'] ?? 'developer';
+        $plan        = \Field::string(\Field::array($session, 'metadata'), 'plan', 'developer');
 
         if (!$user_id || !$customer_id) {
             return;
@@ -151,7 +151,7 @@ class StripeWebhook
         }
 
         $user_id = \Field::int($row, 'user_id');
-        $plan    = $invoice['subscription_details']['metadata']['plan'] ?? 'developer';
+        $plan    = \Field::string(\Field::array(\Field::array($invoice, 'subscription_details'), 'metadata'), 'plan', 'developer');
 
         $stmt = $this->pdo->prepare("UPDATE users SET role = 'paid' WHERE user_id = ? AND role != 'admin'");
         $stmt->execute([$user_id]);

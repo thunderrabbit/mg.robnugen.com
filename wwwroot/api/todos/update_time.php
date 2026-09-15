@@ -41,7 +41,7 @@ $do_time = $input['do_time'] ?? null;
 // Validate time format (HH:MM or HH:MM:SS) if provided
 if ($do_time !== null) {
     // Simple regex check
-    if (!preg_match('/^([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/', $do_time)) {
+    if (!preg_match('/^([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/', \Field::toString($do_time))) {
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => 'Invalid time format']);
         exit;
