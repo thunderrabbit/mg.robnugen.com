@@ -35,7 +35,11 @@ class Issues
     {
     }
 
-    /** Check project membership or throw. Returns ['can_read','can_write']. */
+    /**
+     * Check project membership or throw. Returns ['can_read','can_write'].
+     *
+     * @return array<string, mixed>
+     */
     private function projectAccess(int $project_id, int $user_id, int $caller_aiu): array
     {
         $stmt = $this->pdo->prepare(
@@ -57,6 +61,9 @@ class Issues
      * List issues for a project the caller can read. Optional status slug filter.
      * Terminal (done) issues are excluded unless include_terminal is truthy or a
      * specific status slug is requested.
+     *
+     * @param array<string, mixed> $filters
+     * @return list<array<string, mixed>>
      */
     public function listIssues(int $user_id, int $caller_aiu, int $project_id, array $filters = []): array
     {
@@ -103,7 +110,11 @@ class Issues
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
-    /** Fetch one issue (with status detail) the caller can read, or throw. */
+    /**
+     * Fetch one issue (with status detail) the caller can read, or throw.
+     *
+     * @return array<string, mixed>
+     */
     public function getIssue(int $issue_id, int $user_id, int $caller_aiu): array
     {
         $stmt = $this->pdo->prepare(
@@ -129,6 +140,9 @@ class Issues
      * Update an issue's title, description, and/or priority. Status changes are
      * intentionally excluded from the phone MCP path — laptop agents own status
      * transitions. Returns the updated issue row.
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
      */
     public function updateIssue(int $issue_id, int $user_id, int $caller_aiu, array $data): array
     {
@@ -191,7 +205,11 @@ class Issues
         return $this->getIssue($issue_id, $user_id, $caller_aiu);
     }
 
-    /** Append a comment to an issue the caller can write. Returns the new comment row. */
+    /**
+     * Append a comment to an issue the caller can write. Returns the new comment row.
+     *
+     * @return array<string, mixed>
+     */
     public function addComment(int $issue_id, int $user_id, int $caller_aiu, string $body): array
     {
         $body = trim($body);
@@ -232,7 +250,12 @@ class Issues
         ];
     }
 
-    /** List comments on an issue the caller can read, oldest first. */
+    /**
+     * List comments on an issue the caller can read, oldest first.
+     *
+     * @param array<string, mixed> $filters
+     * @return array<string, mixed>
+     */
     public function listComments(int $issue_id, int $user_id, int $caller_aiu, array $filters = []): array
     {
         $limit  = max(1, min(200, (int)($filters['limit']  ?? 100)));
@@ -283,6 +306,9 @@ class Issues
      * description, and priority (low|normal|high, default normal). Status defaults
      * to the issue_statuses row flagged is_default. author_aiu = caller (never
      * trusted from input).
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
      */
     public function createIssue(int $user_id, int $caller_aiu, array $data): array
     {
