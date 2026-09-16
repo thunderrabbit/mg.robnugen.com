@@ -30,28 +30,24 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$issue_id = \Field::int($_POST, 'issue_id');
-if ($issue_id <= 0) {
-    header("Location: /projects/?msg=issue_not_found");
-    exit;
-}
-
 $user_id = $is_logged_in->loggedInID();
-$pdo = \Database\Base::getPDO($config);
+$pdo     = \Database\Base::getPDO($config);
+$store   = new \Issues\PdoIssueStore($pdo);
+$service = new \Issues\IssueService($store);
 
-$aiu_stmt = $pdo->prepare(
-    "SELECT aiu_id FROM agent_inbox_user
-     WHERE user_id = ? AND actor_type = 'human' LIMIT 1"
-);
-$aiu_stmt->execute([$user_id]);
-$human_aiu = (int) $aiu_stmt->fetchColumn();
-if ($human_aiu <= 0) {
+$caller = $store->humanCaller($user_id);
+if ($caller === null) {
     header("Location: /projects/?msg=issue_not_found");
     exit;
 }
 
-$service = new \Issues\IssueService(new \Issues\PdoIssueStore($pdo));
-$caller  = new \Issues\Caller(userId: $user_id, aiu: $human_aiu, isHuman: true);
+// Read the issue on its own, so a rejected status still knows where to go back to.
+try {
+    $issue_id = \Input\Input::positiveId($_POST, 'issue_id');
+} catch (\Input\InvalidInput) {
+    header("Location: /projects/?msg=issue_not_found");
+    exit;
+}
 
 try {
     $service->update($caller, \Issues\Command\UpdateIssue::fromInput([

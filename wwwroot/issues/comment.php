@@ -2,8 +2,9 @@
 
 /**
  * Post an issue comment.
- * Accepts POST only. Validates issue membership + can_write. On success,
- * inserts to issue_comments and redirects back to /issues/view.php?issue_id=N.
+ * Accepts POST only. IssueService checks that this account's human actor may
+ * write to the issue, then stores the comment with that actor as its author.
+ * On success, redirects back to /issues/view.php?issue_id=N#comments.
  */
 
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
@@ -29,61 +30,35 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$issue_id = \Field::int($_POST, 'issue_id');
-$body     = trim(\Field::string($_POST, 'body'));
-
-if ($issue_id <= 0) {
-    header("Location: /projects/?msg=issue_not_found");
-    exit;
-}
-if ($body === '') {
-    // Client-side `required` should prevent this; silent redirect is fine.
-    header("Location: /issues/view.php?issue_id={$issue_id}");
-    exit;
-}
-if (strlen($body) > 65535) {
-    header("Location: /issues/view.php?issue_id={$issue_id}");
-    exit;
-}
-
 $user_id = $is_logged_in->loggedInID();
-$pdo = \Database\Base::getPDO($config);
+$pdo     = \Database\Base::getPDO($config);
+$store   = new \Issues\PdoIssueStore($pdo);
+$service = new \Issues\IssueService($store);
 
-$aiu_stmt = $pdo->prepare(
-    "SELECT aiu_id FROM agent_inbox_user
-     WHERE user_id = ? AND actor_type = 'human' LIMIT 1"
-);
-$aiu_stmt->execute([$user_id]);
-$human_aiu = (int) $aiu_stmt->fetchColumn();
-if ($human_aiu <= 0) {
+$caller = $store->humanCaller($user_id);
+if ($caller === null) {
     header("Location: /projects/?msg=issue_not_found");
     exit;
 }
 
-$perm_stmt = $pdo->prepare(
-    "SELECT pm.can_write
-     FROM issues i
-     JOIN projects p         ON p.project_id = i.project_id
-     JOIN project_members pm ON pm.project_id = i.project_id AND pm.member_aiu = ?
-     WHERE i.issue_id = ? AND p.user_id = ?
-     LIMIT 1"
-);
-$perm_stmt->execute([$human_aiu, $issue_id, $user_id]);
-$perm = $perm_stmt->fetch(\PDO::FETCH_ASSOC);
-
-if (!$perm) {
+// Read the issue on its own, so a rejected body still knows where to go back to.
+try {
+    $issue_id = \Input\Input::positiveId($_POST, 'issue_id');
+} catch (\Input\InvalidInput) {
     header("Location: /projects/?msg=issue_not_found");
     exit;
 }
-if (!\Field::int($perm, 'can_write')) {
+
+try {
+    $service->addComment($caller, \Issues\Command\AddComment::fromInput($_POST));
+    header("Location: /issues/view.php?issue_id={$issue_id}#comments");
+} catch (\Input\InvalidInput) {
+    // An empty or overlong body; the form's required and maxlength prevent both,
+    // so a silent trip back to the issue is enough.
+    header("Location: /issues/view.php?issue_id={$issue_id}");
+} catch (\Issues\AccessException) {
     header("Location: /projects/?msg=no_write_access");
-    exit;
+} catch (\Issues\NotFoundException) {
+    header("Location: /projects/?msg=issue_not_found");
 }
-
-$ins = $pdo->prepare(
-    "INSERT INTO issue_comments (issue_id, author_aiu, body) VALUES (?, ?, ?)"
-);
-$ins->execute([$issue_id, $human_aiu, $body]);
-
-header("Location: /issues/view.php?issue_id={$issue_id}#comments");
 exit;
