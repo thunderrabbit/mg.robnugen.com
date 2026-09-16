@@ -21,11 +21,11 @@
  * Note tools (Exterm\Items): exterm_list_projects, exterm_list_items,
  *   exterm_get_item, exterm_create_item, exterm_update_item, exterm_delete_item,
  *   exterm_search_items.
- * Issue tools (Issues\Issues): issue_list, issue_get, issue_create, issue_update,
+ * Issue tools (Issues\IssueService): issue_list, issue_get, issue_create, issue_update,
  *   issue_comment_add, issue_comment_list — concrete task state; ET notes are the
  *   loose capture layer. Status changes stay on the laptop path.
  *
- * SQL delegated to \Exterm\Items and \Issues\Issues.
+ * SQL delegated to \Exterm\Items and \Issues\IssueService.
  *
  * Phone connector setup
  * ---------------------
@@ -110,7 +110,6 @@ $actor_stmt->execute([$auth_aiu_id]);
 $auth_actor  = $actor_stmt->fetch(\PDO::FETCH_ASSOC);
 $caller_aiu  = \Field::int($auth_actor, 'aiu_id');
 $exterm      = new \Exterm\Items($pdo);
-$issues      = new \Issues\Issues($pdo);
 
 $issue_service = new \Issues\IssueService(new \Issues\PdoIssueStore($pdo));
 $issue_caller  = new \Issues\Caller(
@@ -193,7 +192,6 @@ switch ($method) {
         try {
             $result = exterm_dispatch(
                 $exterm,
-                $issues,
                 $issue_service,
                 $issue_caller,
                 $auth_user_id,
@@ -224,7 +222,6 @@ switch ($method) {
  */
 function exterm_dispatch(
     \Exterm\Items $exterm,
-    \Issues\Issues $issues,
     \Issues\IssueService $issueService,
     \Issues\Caller $caller,
     int $user_id,
@@ -265,8 +262,7 @@ function exterm_dispatch(
 
         // ── Jikan issues (concrete task state) ────────────────────────────────
         case 'issue_list':
-            $project_id = \Field::int($a, 'project_id');
-            return $issues->listIssues($user_id, $caller_aiu, $project_id, $a);
+            return $issueService->listIssues($caller, \Issues\Command\ListIssues::fromInput($a))->items;
 
         case 'issue_get':
             return mcp_issue_json($issueService->view($caller, \Input\Input::positiveId($a, 'issue_id')));
@@ -288,19 +284,20 @@ function exterm_dispatch(
             return mcp_issue_json($issueService->view($caller, $updated->issueId));
 
         case 'issue_comment_add':
-            $iid  = \Field::int($a, 'issue_id');
-            $body = \Field::string($a, 'body');
-            if (!$iid) {
-                throw new \Issues\ValidationException("issue_id is required");
-            }
-            return $issues->addComment($iid, $user_id, $caller_aiu, $body);
+            return $issueService->addComment($caller, \Issues\Command\AddComment::fromInput($a));
 
         case 'issue_comment_list':
-            $iid = \Field::int($a, 'issue_id');
-            if (!$iid) {
-                throw new \Issues\ValidationException("issue_id is required");
-            }
-            return $issues->listComments($iid, $user_id, $caller_aiu, $a);
+            $comments = $issueService->comments(
+                $caller,
+                \Input\Input::positiveId($a, 'issue_id'),
+                \Issues\Command\Paging::fromInput($a, 100, 200),
+            );
+            return [
+                'comments' => $comments->items,
+                'total'    => $comments->total,
+                'limit'    => $comments->limit,
+                'offset'   => $comments->offset,
+            ];
 
         case 'exterm_search_items':
             $query      = \Field::string($a, 'query');
