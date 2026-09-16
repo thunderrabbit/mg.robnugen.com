@@ -61,12 +61,16 @@ class Utilities
 
     public static function renderMarkdown(string $text): string
     {
+        /** @var \Parsedown|null $parsedown */
         static $parsedown = null;
         if ($parsedown === null) {
             $parsedown = new \Parsedown();
             $parsedown->setSafeMode(true);
             $parsedown->setBreaksEnabled(true);
         }
-        return $parsedown->text($text);
+        // Parsedown is vendored and unanalysed, so text() answers mixed.
+        $html = $parsedown->text($text);
+
+        return is_string($html) ? $html : '';
     }
 }
