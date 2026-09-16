@@ -19,12 +19,13 @@
  * @var int $auth_user_id
  * @var int $auth_key_id
  * @var string $method
+ * @var array<mixed> $auth_actor
  */
 
 // ── Supervisor check ─────────────────────────────────────────────────────────
 // Only supervisors (inbox_visibility row with peer=NULL, can_read=1) can manage agents.
 
-$caller_aiu = $auth_actor['aiu_id'] ?? null;
+$caller_aiu = \Field::intOrNull($auth_actor, 'aiu_id');
 if (!$caller_aiu) {
     http_response_code(403);
     echo json_encode(['error' => 'API key has no actor identity']);
