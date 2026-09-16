@@ -8,7 +8,15 @@ use Codeception\Test\Unit;
 use Db\Enum\IssuePriority;
 use Input\Absent;
 use Input\InvalidInput;
+use Issues\Command\AddComment;
+use Issues\Command\AddCommit;
 use Issues\Command\CreateIssue;
+use Issues\Command\EditComment;
+use Issues\Command\EditTimerNote;
+use Issues\Command\ListCommits;
+use Issues\Command\ListIssues;
+use Issues\Command\ListTimers;
+use Issues\Command\StartTimer;
 use Issues\Command\UpdateIssue;
 
 /**
@@ -63,6 +71,168 @@ final class IssueCommandsTest extends Unit
             'title is required',
             static fn() => UpdateIssue::fromInput(['issue_id' => 5, 'title' => '  ']),
         );
+    }
+
+    // === ListIssues ===
+
+    public function testListIssuesDefaultsToTheOpenIssuesOfOnePage(): void
+    {
+        $query = ListIssues::fromInput(['project_id' => '7']);
+
+        $this->assertSame(7, $query->projectId);
+        $this->assertNull($query->statusSlug);
+        $this->assertFalse($query->includeTerminal);
+        $this->assertSame(Absent::Field, $query->assigneeAiu);
+        $this->assertSame(Absent::Field, $query->parentIssueId);
+        $this->assertSame(100, $query->paging->limit);
+        $this->assertSame(0, $query->paging->offset);
+    }
+
+    public function testListIssuesReadsAnUnassignedOrTopLevelFilterAsNull(): void
+    {
+        $query = ListIssues::fromInput([
+            'project_id'      => 7,
+            'assignee_aiu'    => 0,
+            'parent_issue_id' => 'null',
+            'status'          => ' in_progress ',
+            'include_terminal' => '1',
+        ]);
+
+        $this->assertNull($query->assigneeAiu);
+        $this->assertNull($query->parentIssueId);
+        $this->assertSame('in_progress', $query->statusSlug);
+        $this->assertTrue($query->includeTerminal);
+    }
+
+    public function testListIssuesHoldsTheLimitInsideItsCeiling(): void
+    {
+        $this->assertSame(200, ListIssues::fromInput(['project_id' => 7, 'limit' => 9999])->paging->limit);
+        $this->assertSame(1, ListIssues::fromInput(['project_id' => 7, 'limit' => 0])->paging->limit);
+        $this->assertSame(0, ListIssues::fromInput(['project_id' => 7, 'offset' => -5])->paging->offset);
+    }
+
+    public function testListIssuesRejectsAFlagThatIsNotOneOrZero(): void
+    {
+        $this->assertInvalid(
+            'include_terminal must be 1 or 0',
+            static fn() => ListIssues::fromInput(['project_id' => 7, 'include_terminal' => 'yes']),
+        );
+    }
+
+    // === Comments ===
+
+    public function testAddCommentTrimsTheBody(): void
+    {
+        $add = AddComment::fromInput(['issue_id' => '4', 'body' => "  Progress note  "]);
+
+        $this->assertSame(4, $add->issueId);
+        $this->assertSame('Progress note', $add->body);
+    }
+
+    public function testAddCommentHoldsTheBodyToTheSameBytesAsBefore(): void
+    {
+        $this->assertInvalid(
+            'body is required',
+            static fn() => AddComment::fromInput(['issue_id' => 4, 'body' => '   ']),
+        );
+        $this->assertInvalid(
+            'body must be 65535 bytes or fewer',
+            static fn() => AddComment::fromInput(['issue_id' => 4, 'body' => str_repeat('a', 65_536)]),
+        );
+    }
+
+    public function testEditCommentNeedsTheCommentAndABody(): void
+    {
+        $edit = EditComment::fromInput(['issue_comment_id' => 9, 'body' => 'Reworded']);
+        $this->assertSame(9, $edit->issueCommentId);
+        $this->assertSame('Reworded', $edit->body);
+
+        $this->assertInvalid(
+            'issue_comment_id is required',
+            static fn() => EditComment::fromInput(['body' => 'x']),
+        );
+    }
+
+    // === Timers ===
+
+    public function testStartTimerTrimsANoteAndTreatsAnEmptyOneAsNone(): void
+    {
+        $this->assertSame('Batch run', StartTimer::fromInput(['issue_id' => 4, 'note' => ' Batch run '])->note);
+        $this->assertNull(StartTimer::fromInput(['issue_id' => 4, 'note' => '  '])->note);
+        $this->assertNull(StartTimer::fromInput(['issue_id' => 4])->note);
+    }
+
+    public function testStartTimerHoldsTheNoteTo255Characters(): void
+    {
+        $this->assertInvalid(
+            'note must be 255 characters or fewer',
+            static fn() => StartTimer::fromInput(['issue_id' => 4, 'note' => str_repeat('n', 256)]),
+        );
+    }
+
+    public function testEditTimerNoteClearsTheNoteWhenNoneIsSent(): void
+    {
+        $this->assertNull(EditTimerNote::fromInput(['issue_timer_id' => 3])->note);
+        $this->assertSame('Rewritten', EditTimerNote::fromInput([
+            'issue_timer_id' => 3,
+            'note'           => 'Rewritten',
+        ])->note);
+    }
+
+    public function testListTimersReadsWorkerZeroAsEveryWorker(): void
+    {
+        $query = ListTimers::fromInput(['issue_id' => 4, 'worker_aiu' => 0, 'running_only' => 1]);
+
+        $this->assertSame(4, $query->issueId);
+        $this->assertNull($query->workerAiu);
+        $this->assertTrue($query->runningOnly);
+        $this->assertSame(200, $query->paging->limit);
+        $this->assertSame(500, ListTimers::fromInput(['issue_id' => 4, 'limit' => 9999])->paging->limit);
+    }
+
+    // === Commits ===
+
+    public function testAddCommitTakesARepoAndAHash(): void
+    {
+        $add = AddCommit::fromInput([
+            'issue_id'    => 4,
+            'repo_id'     => '4',
+            'commit_hash' => ' f8cbf42 ',
+            'note'        => '',
+        ]);
+
+        $this->assertSame(4, $add->repoId);
+        $this->assertSame('f8cbf42', $add->commitHash);
+        $this->assertNull($add->note);
+    }
+
+    public function testAddCommitRejectsAMissingOrOverlongHash(): void
+    {
+        $this->assertInvalid(
+            'commit_hash is required',
+            static fn() => AddCommit::fromInput(['issue_id' => 4, 'repo_id' => 4]),
+        );
+        $this->assertInvalid(
+            'commit_hash must be 64 characters or fewer',
+            static fn() => AddCommit::fromInput([
+                'issue_id'    => 4,
+                'repo_id'     => 4,
+                'commit_hash' => str_repeat('f', 65),
+            ]),
+        );
+    }
+
+    public function testListCommitsLeavesUnsentFiltersOff(): void
+    {
+        $query = ListCommits::fromInput(['issue_id' => 4]);
+
+        $this->assertNull($query->repoId);
+        $this->assertNull($query->commitHash);
+        $this->assertSame(200, $query->paging->limit);
+
+        $filtered = ListCommits::fromInput(['issue_id' => 4, 'repo_id' => 4, 'commit_hash' => ' abc123 ']);
+        $this->assertSame(4, $filtered->repoId);
+        $this->assertSame('abc123', $filtered->commitHash);
     }
 
     private function assertInvalid(string $message, \Closure $build): void
