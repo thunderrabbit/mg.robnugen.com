@@ -141,7 +141,7 @@ class Items
      * the caller's most-recently-touched notes across every project they can
      * read (powers "what was I thinking about?" recall on the phone).
      *
-     * @param array<string, mixed> $filters
+     * @param array<mixed> $filters
      * @return array<int, array<string, mixed>>
      */
     public function listItems(int $user_id, int $caller_aiu, array $filters): array
@@ -216,7 +216,7 @@ class Items
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param array<mixed> $data
      * @return array<mixed>
      */
     public function createItem(int $user_id, int $caller_aiu, array $data): array
@@ -250,7 +250,7 @@ class Items
      * another project — e.g. promoting a greenfield idea). Re-filing requires
      * write access on the destination project.
      *
-     * @param array<string, mixed> $data
+     * @param array<mixed> $data
      * @return array<mixed>
      */
     public function updateItem(int $user_id, int $caller_aiu, int $exterm_item_id, array $data): array
