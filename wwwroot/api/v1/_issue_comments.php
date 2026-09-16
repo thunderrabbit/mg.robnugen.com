@@ -3,197 +3,70 @@
 /**
  * Issue comments — included from _issues.php.
  *
- * Scope from _issues.php: $pdo, $auth_user_id, $auth_key_id, $auth_actor,
- *                         $method, $caller_aiu, $is_human, $csub
+ * The rules live in Issues\IssueService: reading a comment needs read access to
+ * its issue, adding one needs write access, and changing or removing one is for
+ * its author or a human on the account. Anyone else gets a 403 rather than the
+ * silently empty answer this endpoint used to give.
+ *
+ * Scope from _issues.php: $method, $csub, $issue_service, $issue_caller
  */
 
 /**
  * Set up by index.php and _issues.php, which includes this file.
  *
- * @var \PDO $pdo
- * @var int $auth_user_id
- * @var int $auth_key_id
  * @var string $method
- * @var int $caller_aiu
- * @var bool $is_human
  * @var string $csub
+ * @var \Issues\IssueService $issue_service
+ * @var \Issues\Caller $issue_caller
  */
 
 // ─── GET /issues/comments/list ──────────────────────────────────────────────
 
 if ($method === 'GET' && $csub === '/list') {
-    $issue_id = \Field::int($_GET, 'issue_id');
-    $limit    = max(1, min(200, \Field::int($_GET, 'limit', 100)));
-    $offset   = max(0, \Field::int($_GET, 'offset'));
-
-    if ($issue_id <= 0) {
-        http_response_code(400);
-        echo json_encode(['error' => 'issue_id is required']);
-        return;
-    }
-
-    $access = issue_with_access($pdo, $issue_id, $auth_user_id, $caller_aiu);
-    if (!$access || !$access['role']['can_read']) {
-        http_response_code(404);
-        echo json_encode(['error' => 'Issue not found or no access']);
-        return;
-    }
-
-    $stmt = $pdo->prepare(
-        "SELECT c.issue_comment_id, c.issue_id, c.author_aiu, c.body,
-                c.created_at_utc, c.updated_at_utc,
-                a.name AS author_name
-         FROM issue_comments c
-         JOIN agent_inbox_user a ON a.aiu_id = c.author_aiu
-         WHERE c.issue_id = ?
-         ORDER BY c.created_at_utc ASC
-         LIMIT ? OFFSET ?"
-    );
-    $stmt->execute([$issue_id, $limit, $offset]);
-
-    $count_stmt = $pdo->prepare("SELECT COUNT(*) FROM issue_comments WHERE issue_id = ?");
-    $count_stmt->execute([$issue_id]);
-
-    echo json_encode([
-        'comments' => $stmt->fetchAll(\PDO::FETCH_ASSOC),
-        'total'    => (int)$count_stmt->fetchColumn(),
-        'limit'    => $limit,
-        'offset'   => $offset,
-    ]);
+    issues_api(static function () use ($issue_service, $issue_caller): void {
+        echo json_encode(issues_page('comments', $issue_service->comments(
+            $issue_caller,
+            \Input\Input::positiveId($_GET, 'issue_id'),
+            \Issues\Command\Paging::fromInput($_GET, 100, 200),
+        )));
+    });
     return;
 }
 
 // ─── POST /issues/comments/add ──────────────────────────────────────────────
 
 if ($method === 'POST' && $csub === '/add') {
-    $input    = \Field::jsonArray((string) file_get_contents('php://input'));
-    $issue_id = \Field::int($input, 'issue_id');
-    $body     = \Field::string($input, 'body');
+    issues_api(static function () use ($issue_service, $issue_caller): void {
+        $input   = \Input\Input::json((string) file_get_contents('php://input'));
+        $comment = $issue_service->addComment($issue_caller, \Issues\Command\AddComment::fromInput($input));
 
-    if ($issue_id <= 0) {
-        http_response_code(400);
-        echo json_encode(['error' => 'issue_id is required']);
-        return;
-    }
-    if (trim($body) === '') {
-        http_response_code(400);
-        echo json_encode(['error' => 'body is required']);
-        return;
-    }
-    if (strlen($body) > 65535) {
-        http_response_code(400);
-        echo json_encode(['error' => 'body exceeds 65535 byte limit']);
-        return;
-    }
-
-    $access = issue_with_access($pdo, $issue_id, $auth_user_id, $caller_aiu);
-    if (!$access) {
-        http_response_code(404);
-        echo json_encode(['error' => 'Issue not found or no access']);
-        return;
-    }
-    if (!$access['role']['can_write']) {
-        http_response_code(403);
-        echo json_encode(['error' => 'No write access to this project']);
-        return;
-    }
-
-    require_credit($pdo, $auth_user_id, $auth_key_id, 'issues/comments/add');
-
-    $stmt = $pdo->prepare(
-        "INSERT INTO issue_comments (issue_id, author_aiu, body) VALUES (?, ?, ?)"
-    );
-    $stmt->execute([$issue_id, $caller_aiu, $body]);
-    $comment_id = (int) $pdo->lastInsertId();
-
-    http_response_code(201);
-    echo json_encode([
-        'comment' => [
-            'issue_comment_id' => $comment_id,
-            'issue_id'         => $issue_id,
-            'author_aiu'       => $caller_aiu,
-            'body'             => $body,
-        ],
-    ]);
+        http_response_code(201);
+        echo json_encode(['comment' => $comment]);
+    });
     return;
 }
 
 // ─── PATCH /issues/comments/edit ────────────────────────────────────────────
 
 if ($method === 'PATCH' && $csub === '/edit') {
-    $input      = \Field::jsonArray((string) file_get_contents('php://input'));
-    $comment_id = \Field::int($input, 'issue_comment_id');
-    $body       = \Field::string($input, 'body');
+    issues_api(static function () use ($issue_service, $issue_caller): void {
+        $input   = \Input\Input::json((string) file_get_contents('php://input'));
+        $comment = $issue_service->editComment($issue_caller, \Issues\Command\EditComment::fromInput($input));
 
-    if ($comment_id <= 0) {
-        http_response_code(400);
-        echo json_encode(['error' => 'issue_comment_id is required']);
-        return;
-    }
-    if (trim($body) === '') {
-        http_response_code(400);
-        echo json_encode(['error' => 'body is required']);
-        return;
-    }
-    if (strlen($body) > 65535) {
-        http_response_code(400);
-        echo json_encode(['error' => 'body exceeds 65535 byte limit']);
-        return;
-    }
-
-    require_credit($pdo, $auth_user_id, $auth_key_id, 'issues/comments/edit');
-
-    // Permission: author = caller OR human. Account scope enforced via JOIN to projects.
-    $where_auth = $is_human ? '' : ' AND c.author_aiu = ?';
-    $sql =
-        "UPDATE issue_comments c
-         JOIN issues i   ON i.issue_id = c.issue_id
-         JOIN projects p ON p.project_id = i.project_id
-         SET c.body = ?
-         WHERE c.issue_comment_id = ? AND p.user_id = ?" . $where_auth;
-
-    $params = [$body, $comment_id, $auth_user_id];
-    if (!$is_human) {
-        $params[] = $caller_aiu;
-    }
-
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
-
-    echo json_encode(['updated' => $stmt->rowCount()]);
+        echo json_encode(['updated' => 1, 'comment' => $comment]);
+    });
     return;
 }
 
 // ─── DELETE /issues/comments/delete ─────────────────────────────────────────
 
 if ($method === 'DELETE' && $csub === '/delete') {
-    $input      = \Field::jsonArray((string) file_get_contents('php://input'));
-    $comment_id = \Field::int($input, 'issue_comment_id');
+    issues_api(static function () use ($issue_service, $issue_caller): void {
+        $input = \Input\Input::json((string) file_get_contents('php://input'));
+        $issue_service->deleteComment($issue_caller, \Input\Input::positiveId($input, 'issue_comment_id'));
 
-    if ($comment_id <= 0) {
-        http_response_code(400);
-        echo json_encode(['error' => 'issue_comment_id is required']);
-        return;
-    }
-
-    require_credit($pdo, $auth_user_id, $auth_key_id, 'issues/comments/delete');
-
-    $where_auth = $is_human ? '' : ' AND c.author_aiu = ?';
-    $sql =
-        "DELETE c FROM issue_comments c
-         JOIN issues i   ON i.issue_id = c.issue_id
-         JOIN projects p ON p.project_id = i.project_id
-         WHERE c.issue_comment_id = ? AND p.user_id = ?" . $where_auth;
-
-    $params = [$comment_id, $auth_user_id];
-    if (!$is_human) {
-        $params[] = $caller_aiu;
-    }
-
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
-
-    echo json_encode(['deleted' => $stmt->rowCount()]);
+        echo json_encode(['deleted' => 1]);
+    });
     return;
 }
 

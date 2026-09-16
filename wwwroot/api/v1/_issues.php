@@ -33,9 +33,12 @@
  *                                           repo.user_id must equal project.user_id
  *   DELETE /issues/commits/delete    1    — added_by = caller OR human
  *
- * get, create and update go through Issues\IssueService, which owns the issue rules
- * (access, assignee and parent checks, statuses, the running-timer block on
- * terminal statuses). The rest are still inline here.
+ * Every route goes through Issues\IssueService, which owns the rules: who may
+ * read or write, which assignees, parents and statuses fit a project, the
+ * running-timer block on terminal statuses, and who may change a comment, timer
+ * or commit link once it exists. Each request is a typed command, so a mistyped
+ * field is a 400 naming it. A credit is charged only once every check has
+ * passed, so a refused request is not billed.
  *
  * Variables from index.php: $pdo, $auth_user_id, $auth_key_id, $auth_actor, $method, $path
  */
@@ -51,11 +54,13 @@
  * @var string $path
  */
 
-$sub        = preg_replace('#^/issues#', '', $path) ?: '/';
-$caller_aiu = \Field::int($auth_actor, 'aiu_id');
-$is_human   = ($auth_actor['actor_type'] ?? '') === 'human';
+$sub = preg_replace('#^/issues#', '', $path) ?: '/';
 
-$issue_caller  = new \Issues\Caller(userId: $auth_user_id, aiu: $caller_aiu, isHuman: $is_human);
+$issue_caller  = new \Issues\Caller(
+    userId: $auth_user_id,
+    aiu: \Input\Input::positiveId($auth_actor, 'aiu_id'),
+    isHuman: ($auth_actor['actor_type'] ?? '') === 'human',
+);
 $issue_service = new \Issues\IssueService(
     new \Issues\PdoIssueStore($pdo),
     beforeWrite: static fn(string $action) => require_credit($pdo, $auth_user_id, $auth_key_id, $action),
@@ -81,55 +86,27 @@ function issues_api(\Closure $call): void
     } catch (\Issues\AccessException $e) {
         http_response_code(403);
         echo json_encode(['error' => $e->getMessage()]);
+    } catch (\Issues\ConflictException $e) {
+        http_response_code(409);
+        echo json_encode(['error' => $e->getMessage()]);
     }
 }
 
 /**
- * Load an issue and the caller's membership on its project in one query.
- * Returns ['issue' => row, 'role' => ['can_read','can_write']] or null if no access / not found.
- * Null is returned both for "not found" and "not a member"; caller should 404/403 uniformly
- * to avoid leaking project existence to non-members.
+ * The envelope every list read answers with.
  *
- * @return array{issue: array<mixed>, role: array{can_read: int, can_write: int}}|null
+ * @template T of \JsonSerializable
+ * @param \Issues\Page<T> $page
+ * @return array<string, mixed>
  */
-function issue_with_access(\PDO $pdo, int $issue_id, int $user_id, int $caller_aiu): ?array
+function issues_page(string $key, \Issues\Page $page): array
 {
-    $stmt = $pdo->prepare(
-        "SELECT i.*, pm.can_read, pm.can_write
-         FROM issues i
-         JOIN projects p        ON p.project_id = i.project_id
-         JOIN project_members pm ON pm.project_id = i.project_id AND pm.member_aiu = ?
-         WHERE i.issue_id = ? AND p.user_id = ?
-         LIMIT 1"
-    );
-    $stmt->execute([$caller_aiu, $issue_id, $user_id]);
-    $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-    if (!is_array($row)) {
-        return null;
-    }
     return [
-        'issue' => $row,
-        'role'  => ['can_read' => \Field::int($row, 'can_read'), 'can_write' => \Field::int($row, 'can_write')],
+        $key     => $page->items,
+        'total'  => $page->total,
+        'limit'  => $page->limit,
+        'offset' => $page->offset,
     ];
-}
-
-/**
- * Return running timers on an issue (stopped_at_utc IS NULL).
- * Used in the 409 answer when a status change to is_terminal is blocked.
- *
- * @return array<int, array<string, mixed>>
- */
-function running_timers(\PDO $pdo, int $issue_id): array
-{
-    $stmt = $pdo->prepare(
-        "SELECT issue_timer_id, worker_aiu, started_at_utc,
-                TIMESTAMPDIFF(MICROSECOND, started_at_utc, NOW(6)) / 1000.0 AS elapsed_ms
-         FROM issue_timers
-         WHERE issue_id = ? AND stopped_at_utc IS NULL
-         ORDER BY started_at_utc ASC"
-    );
-    $stmt->execute([$issue_id]);
-    return $stmt->fetchAll(\PDO::FETCH_ASSOC);
 }
 
 // ─── Sub-route selector ──────────────────────────────────────────────────────
@@ -157,98 +134,19 @@ if ($is_commits) {
 // ─── GET /issues/statuses ────────────────────────────────────────────────────
 
 if ($method === 'GET' && $sub === '/statuses') {
-    $stmt = $pdo->prepare(
-        "SELECT status_id, slug, label, sort_order, is_terminal, is_default
-         FROM issue_statuses ORDER BY sort_order ASC"
-    );
-    $stmt->execute();
-    echo json_encode(['statuses' => $stmt->fetchAll(\PDO::FETCH_ASSOC)]);
+    echo json_encode(['statuses' => $issue_service->statuses()]);
     return;
 }
 
 // ─── GET /issues/list ────────────────────────────────────────────────────────
 
 if ($method === 'GET' && $sub === '/list') {
-    $project_id       = \Field::int($_GET, 'project_id');
-    $status_slug      = trim(\Field::string($_GET, 'status'));
-    $assignee_aiu     = \Field::intOrNull($_GET, 'assignee_aiu');
-    $include_terminal = \Field::int($_GET, 'include_terminal');
-    $parent_filter    = isset($_GET['parent_issue_id']) ? $_GET['parent_issue_id'] : null;
-    $limit            = max(1, min(200, \Field::int($_GET, 'limit', 100)));
-    $offset           = max(0, \Field::int($_GET, 'offset'));
-
-    if ($project_id <= 0) {
-        http_response_code(400);
-        echo json_encode(['error' => 'project_id is required']);
-        return;
-    }
-
-    $role = project_membership($pdo, $project_id, $auth_user_id, $caller_aiu);
-    if (!$role || !$role['can_read']) {
-        http_response_code(403);
-        echo json_encode(['error' => 'No read access to this project']);
-        return;
-    }
-
-    $where  = ['i.project_id = ?', 'p.user_id = ?'];
-    $params = [$project_id, $auth_user_id];
-
-    if ($status_slug !== '') {
-        $where[] = 's.slug = ?';
-        $params[] = $status_slug;
-    }
-    if (!$include_terminal && $status_slug === '') {
-        $where[] = 's.is_terminal = 0';
-    }
-    if ($assignee_aiu !== null) {
-        if ($assignee_aiu === 0) {
-            $where[] = 'i.assignee_aiu IS NULL';
-        } else {
-            $where[] = 'i.assignee_aiu = ?';
-            $params[] = $assignee_aiu;
-        }
-    }
-    if ($parent_filter !== null) {
-        if ($parent_filter === '' || $parent_filter === '0' || $parent_filter === 'null') {
-            $where[] = 'i.parent_issue_id IS NULL';
-        } else {
-            $where[] = 'i.parent_issue_id = ?';
-            $params[] = \Field::toInt($parent_filter);
-        }
-    }
-
-    $where_sql = implode(' AND ', $where);
-
-    $stmt = $pdo->prepare(
-        "SELECT i.issue_id, i.priority, i.project_id, i.parent_issue_id,
-                i.author_aiu, i.assignee_aiu,
-                i.status_id, s.slug AS status_slug, s.label AS status_label, s.is_terminal,
-                i.title, i.created_at_utc, i.updated_at_utc, i.done_at_utc
-         FROM issues i
-         JOIN projects p       ON p.project_id = i.project_id
-         JOIN issue_statuses s ON s.status_id = i.status_id
-         WHERE {$where_sql}
-         ORDER BY FIELD(i.priority, 'high', 'normal', 'low'), i.updated_at_utc DESC
-         LIMIT ? OFFSET ?"
-    );
-    $params[] = $limit;
-    $params[] = $offset;
-    $stmt->execute($params);
-
-    $count_stmt = $pdo->prepare(
-        "SELECT COUNT(*) FROM issues i
-         JOIN projects p ON p.project_id = i.project_id
-         JOIN issue_statuses s ON s.status_id = i.status_id
-         WHERE {$where_sql}"
-    );
-    $count_stmt->execute(array_slice($params, 0, -2));
-
-    echo json_encode([
-        'issues' => $stmt->fetchAll(\PDO::FETCH_ASSOC),
-        'total'  => (int)$count_stmt->fetchColumn(),
-        'limit'  => $limit,
-        'offset' => $offset,
-    ]);
+    issues_api(static function () use ($issue_service, $issue_caller): void {
+        echo json_encode(issues_page(
+            'issues',
+            $issue_service->listIssues($issue_caller, \Issues\Command\ListIssues::fromInput($_GET)),
+        ));
+    });
     return;
 }
 
@@ -288,7 +186,7 @@ if ($method === 'GET' && $sub === '/get') {
 
 if ($method === 'POST' && $sub === '/create') {
     issues_api(static function () use ($issue_service, $issue_caller): void {
-        $input = \Field::jsonArray((string) file_get_contents('php://input'));
+        $input = \Input\Input::json((string) file_get_contents('php://input'));
         $issue = $issue_service->create($issue_caller, \Issues\Command\CreateIssue::fromInput($input));
 
         http_response_code(201);
@@ -300,8 +198,8 @@ if ($method === 'POST' && $sub === '/create') {
 // ─── PATCH /issues/update ────────────────────────────────────────────────────
 
 if ($method === 'PATCH' && $sub === '/update') {
-    issues_api(static function () use ($issue_service, $issue_caller, $pdo): void {
-        $input  = \Field::jsonArray((string) file_get_contents('php://input'));
+    issues_api(static function () use ($issue_service, $issue_caller): void {
+        $input  = \Input\Input::json((string) file_get_contents('php://input'));
         $update = \Issues\Command\UpdateIssue::fromInput($input);
 
         try {
@@ -310,7 +208,7 @@ if ($method === 'PATCH' && $sub === '/update') {
             http_response_code(409);
             echo json_encode([
                 'error'          => $e->getMessage(),
-                'running_timers' => running_timers($pdo, $update->issueId),
+                'running_timers' => $issue_service->runningTimers($issue_caller, $update->issueId),
                 'hint'           => 'Stop timers via PATCH /issues/timers/stop, then retry',
             ]);
             return;
@@ -324,30 +222,13 @@ if ($method === 'PATCH' && $sub === '/update') {
 // ─── DELETE /issues/delete ───────────────────────────────────────────────────
 
 if ($method === 'DELETE' && $sub === '/delete') {
-    if (!$is_human) {
-        http_response_code(403);
-        echo json_encode(['error' => 'Only humans can delete issues; use status=done instead']);
-        return;
-    }
+    issues_api(static function () use ($issue_service, $issue_caller): void {
+        $input = \Input\Input::json((string) file_get_contents('php://input'));
 
-    $input    = \Field::jsonArray((string) file_get_contents('php://input'));
-    $issue_id = \Field::int($input, 'issue_id');
-    if ($issue_id <= 0) {
-        http_response_code(400);
-        echo json_encode(['error' => 'issue_id is required']);
-        return;
-    }
-
-    require_credit($pdo, $auth_user_id, $auth_key_id, 'issues/delete');
-
-    $stmt = $pdo->prepare(
-        "DELETE i FROM issues i
-         JOIN projects p ON p.project_id = i.project_id
-         WHERE i.issue_id = ? AND p.user_id = ?"
-    );
-    $stmt->execute([$issue_id, $auth_user_id]);
-
-    echo json_encode(['deleted' => $stmt->rowCount()]);
+        echo json_encode([
+            'deleted' => $issue_service->delete($issue_caller, \Input\Input::positiveId($input, 'issue_id')),
+        ]);
+    });
     return;
 }
 
