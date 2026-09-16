@@ -91,12 +91,12 @@ class IsLoggedIn
         ";
         $stmt = $this->di_pdo->prepare($sql);
         $stmt->execute([$user_id]);
-        $result = $stmt->fetchAll();
+        $row = \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC))[0] ?? null;
 
-        if (count($result) > 0) {
-            $this->loggedInUsername = $result[0]['username'] ?? 'ummmmmm wtf';
-            $this->siteTitle = $result[0]['site_title'] ?? '';
-            $this->siteSubtitle = $result[0]['site_subtitle'] ?? '';
+        if ($row !== null) {
+            $this->loggedInUsername = \Db\RowValue::stringOrNull($row, 'username') ?? 'ummmmmm wtf';
+            $this->siteTitle = \Db\RowValue::stringOrNull($row, 'site_title') ?? '';
+            $this->siteSubtitle = \Db\RowValue::stringOrNull($row, 'site_subtitle') ?? '';
         }
     }
 
@@ -127,10 +127,10 @@ class IsLoggedIn
 
         $stmt = $this->di_pdo->prepare("SELECT `role` FROM `users` WHERE `user_id` = ? LIMIT 1");
         $stmt->execute([$this->who_is_logged_in]);
-        $result = $stmt->fetchAll();
+        $row = \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC))[0] ?? null;
 
-        if (count($result) > 0) {
-            return $result[0]['role'] ?? '';
+        if ($row !== null) {
+            return \Db\RowValue::stringOrNull($row, 'role') ?? '';
         }
         return '';
     }
@@ -174,20 +174,15 @@ class IsLoggedIn
 
 
     /**
-     * @return array<string, mixed> The user_id and password_hash row, or [] when no such user
+     * @return array<mixed> The user_id and password_hash row, or [] when no such user
      */
     private function getIDandPHPHashedPasswordForUsername(string $username): array
     {
         // get password hash
         $stmt = $this->di_pdo->prepare("SELECT `user_id`, `password_hash` FROM `users` WHERE LOWER(`username`) = LOWER(?) LIMIT 1");
         $stmt->execute([$username]);
-        $result = $stmt->fetchAll();
 
-        if (count($result) > 0) {
-            return $result[0];
-        } else {
-            return [];
-        }
+        return \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC))[0] ?? [];
     }
     /**
      * Looks up hashed password for username, and checks it against the password provided
@@ -223,19 +218,19 @@ class IsLoggedIn
         // Validate cookie and user agent match
         $stmt = $this->di_pdo->prepare("SELECT `user_id` FROM `cookies` WHERE `cookie` = ? AND `user_agent_md5` = ? LIMIT 1");
         $stmt->execute([$cookie, md5($user_agent)]);
-        $result = $stmt->fetchAll();
+        $row = \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC))[0] ?? null;
 
-        if (count($result) > 0) {
-            return $result[0]['user_id'];
+        if ($row !== null) {
+            return \Db\RowValue::int($row, 'user_id');
         } else {
             // Log why authentication failed
             $stmt2 = $this->di_pdo->prepare("SELECT `user_id` FROM `cookies` WHERE `cookie` = ? LIMIT 1");
             $stmt2->execute([$cookie]);
-            $result2 = $stmt2->fetchAll();
+            $row2 = \Db\Rows::all($stmt2->fetchAll(\PDO::FETCH_ASSOC))[0] ?? null;
 
-            if (count($result2) > 0) {
+            if ($row2 !== null) {
                 // Cookie exists but user agent doesn't match
-                $user_id = $result2[0]['user_id'];
+                $user_id = \Db\RowValue::int($row2, 'user_id');
                 $current_ip = \Field::string($_SERVER, 'REMOTE_ADDR', 'unknown');
                 $this->logAuth("user_id: {$user_id}, IP: {$current_ip} - Cookie USER AGENT MISMATCH");
             } else {
