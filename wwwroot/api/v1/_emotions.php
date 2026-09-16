@@ -104,18 +104,19 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
             'SELECT my_id, state FROM my_ids_for_my_users_state WHERE api_key_id = ?'
         );
         $stmt->execute([$auth_key_id]);
-        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $rows = \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
 
         $vocab = [];
         foreach ($rows as $row) {
-            $decrypted = $ledger->decrypt($row['state']);
+            $my_id = \Field::int($row, 'my_id');
+            $decrypted = $ledger->decrypt(\Field::string($row, 'state'));
             if ($decrypted === false) {
-                print_roblog("Decrypt failed for my_id={$row['my_id']} api_key_id=$auth_key_id", 'emotional/vocab');
+                print_roblog("Decrypt failed for my_id={$my_id} api_key_id=$auth_key_id", 'emotional/vocab');
                 http_response_code(500);
                 echo json_encode(['error' => 'Decryption failure']);
                 return;
             }
-            $vocab[] = ['my_id' => (int) $row['my_id'], 'state' => $decrypted];
+            $vocab[] = ['my_id' => $my_id, 'state' => $decrypted];
         }
         echo json_encode($vocab);
     } elseif ($method === 'PATCH') {
@@ -305,22 +306,23 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
 
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
-        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $rows = \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
 
         $events = [];
         foreach ($rows as $row) {
-            $decrypted = $ledger->decrypt($row['encrypted_content']);
+            $event_id = \Field::int($row, 'event_id');
+            $decrypted = $ledger->decrypt(\Field::string($row, 'encrypted_content'));
             if ($decrypted === false) {
-                print_roblog("Decrypt failed for event_id={$row['event_id']} api_key_id=$auth_key_id", 'emotional/events');
+                print_roblog("Decrypt failed for event_id={$event_id} api_key_id=$auth_key_id", 'emotional/events');
                 continue; // skip corrupted row
             }
             $events[] = [
-                'event_id'        => (int) $row['event_id'],
-                'session_id'      => (int) $row['session_id'],
-                'sequence_num'    => (int) $row['sequence_num'],
+                'event_id'        => $event_id,
+                'session_id'      => \Field::int($row, 'session_id'),
+                'sequence_num'    => \Field::int($row, 'sequence_num'),
                 'event_timestamp' => $row['event_timestamp'],
                 'event_type'      => $row['event_type'],
-                'my_id'           => $row['my_id'] !== null ? (int) $row['my_id'] : null,
+                'my_id'           => \Field::intOrNull($row, 'my_id'),
                 'content'         => $decrypted,
             ];
         }
@@ -355,7 +357,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         if (array_key_exists('content', $body)) {
             $ledger = new \Emotional\Ledger($pdo, $raw_key, $auth_key_id, $auth_user_id);
             $sets[] = 'encrypted_content = ?';
-            $params[] = $ledger->encrypt($body['content']);
+            $params[] = $ledger->encrypt(\Field::string($body, 'content'));
         }
 
         if (array_key_exists('my_id', $body)) {
@@ -364,7 +366,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
                 $stmt = $pdo->prepare(
                     'SELECT mifmus_id FROM my_ids_for_my_users_state WHERE api_key_id = ? AND my_id = ?'
                 );
-                $stmt->execute([$auth_key_id, (int) $my_id]);
+                $stmt->execute([$auth_key_id, \Field::toInt($my_id)]);
                 $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                 if (!$row) {
                     http_response_code(400);
@@ -399,7 +401,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         }
         $my_id_result = 'unchanged';
         if (array_key_exists('my_id', $body)) {
-            $my_id_result = $body['my_id'] !== null ? (int) $body['my_id'] : null;
+            $my_id_result = \Field::intOrNull($body, 'my_id');
         }
         echo json_encode(['event_id' => \Field::toInt($event_id), 'my_id' => $my_id_result]);
     } else {
@@ -447,16 +449,16 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
-    $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    $rows = \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
 
     $sessions = [];
     foreach ($rows as $row) {
         $sessions[] = [
-            'session_id'      => (int) $row['session_id'],
+            'session_id'      => \Field::int($row, 'session_id'),
             'start_time'      => $row['start_time'],
             'last_event_time' => $row['last_event_time'],
-            'duration_minutes' => (int) $row['duration_minutes'],
-            'event_count'     => (int) $row['event_count'],
+            'duration_minutes' => \Field::int($row, 'duration_minutes'),
+            'event_count'     => \Field::int($row, 'event_count'),
         ];
     }
     echo json_encode($sessions);
