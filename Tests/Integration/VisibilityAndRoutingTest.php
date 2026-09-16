@@ -142,7 +142,7 @@ class VisibilityAndRoutingTest extends Unit
     /**
      * @param non-empty-string $method
      * @param array<string, mixed> $payload
-     * @return array{status: int, body: array<string, mixed>}
+     * @return array{status: int, body: array<mixed>}
      */
     private static function rawRequest(string $apiKey, string $method, string $path, array $payload = []): array
     {
@@ -181,7 +181,7 @@ class VisibilityAndRoutingTest extends Unit
     /**
      * POST /inbox/send and track the message_id for cleanup.
      *
-     * @return array{status: int, body: array<string, mixed>}
+     * @return array{status: int, body: array<mixed>}
      */
     private static function send(string $key, string $message, ?int $recipientAiu = null): array
     {
@@ -206,7 +206,7 @@ class VisibilityAndRoutingTest extends Unit
      * GET /inbox/list with optional query params.
      *
      * @param array<string, mixed> $params
-     * @return array{status: int, body: array<string, mixed>}
+     * @return array{status: int, body: array<mixed>}
      */
     private function listInbox(string $key, array $params = []): array
     {
@@ -216,7 +216,7 @@ class VisibilityAndRoutingTest extends Unit
     /**
      * Extract message_ids from a list response.
      *
-     * @param array{status: int, body: array<string, mixed>} $result
+     * @param array{status: int, body: array<mixed>} $result
      * @return array<int, mixed>
      */
     private function extractIds(array $result): array
@@ -225,7 +225,7 @@ class VisibilityAndRoutingTest extends Unit
     }
 
     /**
-     * @param array{status: int, body: array<string, mixed>} $result
+     * @param array{status: int, body: array<mixed>} $result
      */
     private static function assertSetupOk(array $result, string $label): void
     {

@@ -46,7 +46,7 @@ class InboxMessageLimitTest extends Unit
      *
      * @param non-empty-string $method
      * @param array<string, mixed> $payload
-     * @return array{status: int, body: array<string, mixed>}
+     * @return array{status: int, body: array<mixed>}
      */
     private function apiRequest(string $method, string $subPath, array $payload = []): array
     {
@@ -77,7 +77,7 @@ class InboxMessageLimitTest extends Unit
     /**
      * POST /send and track the message_id for cleanup.
      *
-     * @return array{status: int, body: array<string, mixed>}
+     * @return array{status: int, body: array<mixed>}
      */
     private function sendMessage(string $message, string $priority = 'normal'): array
     {
