@@ -4,67 +4,21 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Issues;
 
-use Codeception\Test\Unit;
 use Db\Enum\IssuePriority;
-use Db\Row\IssueRow;
+use Db\Row\IssueStatusRow;
 use Issues\AccessException;
-use Issues\Caller;
 use Issues\Command\CreateIssue;
 use Issues\Command\UpdateIssue;
 use Issues\ConflictException;
 use Issues\IssueService;
 use Issues\NotFoundException;
-use Issues\ValidationException;
 
 /**
  * The issue rules the API, the MCP tools and the web pages each used to
  * re-implement, checked once against an in-memory store.
  */
-final class IssueServiceTest extends Unit
+final class IssueServiceTest extends IssueCase
 {
-    private FakeIssueStore $store;
-    private IssueService $service;
-    private Caller $writer;
-    private Caller $reader;
-    private Caller $stranger;
-
-    protected function _before(): void
-    {
-        $this->store = new FakeIssueStore();
-        $this->store->addStatus(1, 'open', isTerminal: false, isDefault: true);
-        $this->store->addStatus(4, 'done', isTerminal: true, isDefault: false);
-        $this->store->addMember(projectId: 7, aiu: 35, canRead: true, canWrite: true);
-        $this->store->addMember(projectId: 7, aiu: 36, canRead: true, canWrite: false);
-        $this->store->addMember(projectId: 8, aiu: 35, canRead: true, canWrite: true);
-
-        $this->writer = new Caller(userId: 1, aiu: 35, isHuman: false);
-        $this->reader = new Caller(userId: 1, aiu: 36, isHuman: false);
-        $this->stranger = new Caller(userId: 1, aiu: 99, isHuman: false);
-        $this->service = new IssueService($this->store);
-    }
-
-    /**
-     * @param array<string, mixed> $fields
-     */
-    private function create(array $fields = [], ?Caller $caller = null): IssueRow
-    {
-        return $this->service->create(
-            $caller ?? $this->writer,
-            CreateIssue::fromInput(['project_id' => 7, 'title' => 'Typed issues', ...$fields]),
-        );
-    }
-
-    /**
-     * @param array<string, mixed> $fields
-     */
-    private function update(IssueRow $issue, array $fields, ?Caller $caller = null): IssueRow
-    {
-        return $this->service->update(
-            $caller ?? $this->writer,
-            UpdateIssue::fromInput(['issue_id' => $issue->issueId, ...$fields]),
-        );
-    }
-
     // === create() ===
 
     public function testCreateUsesTheDefaultStatusAndTheCallerAsAuthor(): void
@@ -166,6 +120,17 @@ final class IssueServiceTest extends Unit
         $this->assertThrows(NotFoundException::class, fn() => $this->update($issue, ['title' => 'x'], $this->stranger));
     }
 
+    // === delete() ===
+
+    public function testOnlyAHumanMayDeleteAnIssue(): void
+    {
+        $issue = $this->create();
+
+        $this->assertThrows(AccessException::class, fn() => $this->service->delete($this->writer, $issue->issueId));
+        $this->assertSame(1, $this->service->delete($this->human, $issue->issueId));
+        $this->assertSame(0, $this->service->delete($this->human, $issue->issueId));
+    }
+
     // === beforeWrite ===
 
     public function testBeforeWriteRunsOnlyAfterTheChecksPass(): void
@@ -184,6 +149,22 @@ final class IssueServiceTest extends Unit
         $issue = $service->create($this->writer, CreateIssue::fromInput(['project_id' => 7, 'title' => 'x']));
         $service->update($this->writer, UpdateIssue::fromInput(['issue_id' => $issue->issueId, 'title' => 'y']));
         $this->assertSame(['issues/create', 'issues/update'], $charged);
+    }
+
+    public function testADeleteAnAgentIsRefusedIsNeverBilled(): void
+    {
+        $charged = [];
+        $service = new IssueService($this->store, beforeWrite: static function (string $action) use (&$charged): void {
+            $charged[] = $action;
+        });
+        $issue = $this->create();
+
+        try {
+            $service->delete($this->writer, $issue->issueId);
+        } catch (AccessException) {
+        }
+
+        $this->assertSame([], $charged);
     }
 
     // === view() ===
@@ -213,26 +194,35 @@ final class IssueServiceTest extends Unit
         $this->assertThrows(NotFoundException::class, fn() => $this->service->get($this->writer, 12345));
     }
 
-    /**
-     * @param class-string<\Throwable> $class
-     */
-    private function assertThrows(string $class, \Closure $action): void
+    // === detail() ===
+
+    public function testDetailFlattensWhatTheIssuePagePrints(): void
     {
-        try {
-            $action();
-            $this->fail("Expected {$class}");
-        } catch (\Throwable $e) {
-            $this->assertInstanceOf($class, $e);
-        }
+        $issue = $this->create(['assignee_aiu' => 36, 'description' => 'A body']);
+
+        $detail = $this->service->detail($this->writer, $issue->issueId);
+
+        $this->assertSame($issue->issueId, $detail->issueId);
+        $this->assertSame('jikan', $detail->projectName);
+        $this->assertSame('Typed issues', $detail->title);
+        $this->assertSame('A body', $detail->description);
+        $this->assertSame('Open', $detail->statusLabel);
+        $this->assertSame('mgClaude', $detail->authorName);
+        $this->assertSame(36, $detail->assigneeAiu);
+        $this->assertSame('Boss Claude', $detail->assigneeName);
+        $this->assertTrue($detail->canWrite);
+
+        $readerSees = $this->service->detail($this->reader, $issue->issueId);
+        $this->assertFalse($readerSees->canWrite);
+        $this->assertThrows(NotFoundException::class, fn() => $this->service->detail($this->stranger, $issue->issueId));
     }
 
-    private function assertValidation(string $message, \Closure $action): void
+    // === statuses() ===
+
+    public function testStatusesComeBackInSortOrder(): void
     {
-        try {
-            $action();
-            $this->fail("Expected ValidationException: {$message}");
-        } catch (ValidationException $e) {
-            $this->assertSame($message, $e->getMessage());
-        }
+        $slugs = array_map(static fn(IssueStatusRow $status): string => $status->slug, $this->service->statuses());
+
+        $this->assertSame(['open', 'in_progress', 'done'], $slugs);
     }
 }
