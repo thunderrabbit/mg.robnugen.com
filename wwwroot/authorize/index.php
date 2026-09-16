@@ -123,7 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Verify chosen aiu belongs to this user
     $valid = false;
     foreach ($agent_choices as $a) {
-        if ((int)$a['aiu_id'] === $chosen_aiu) {
+        if (\Field::int($a, 'aiu_id') === $chosen_aiu) {
             $valid = true;
             break;
         }
