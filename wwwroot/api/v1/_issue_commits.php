@@ -3,191 +3,56 @@
 /**
  * Issue → commit links. Included from _issues.php.
  *
- * Scope from _issues.php: $pdo, $auth_user_id, $auth_key_id, $auth_actor,
- *                         $method, $caller_aiu, $is_human, $xsub
+ * The rules live in Issues\IssueService: linking a commit needs write access to
+ * the issue and a repository in the same account, and removing a link is for
+ * whoever added it or a human on the account.
+ *
+ * Scope from _issues.php: $method, $xsub, $issue_service, $issue_caller
  */
 
 /**
  * Set up by index.php and _issues.php, which includes this file.
  *
- * @var \PDO $pdo
- * @var int $auth_user_id
- * @var int $auth_key_id
  * @var string $method
- * @var int $caller_aiu
- * @var bool $is_human
  * @var string $xsub
+ * @var \Issues\IssueService $issue_service
+ * @var \Issues\Caller $issue_caller
  */
 
 // ─── GET /issues/commits/list ───────────────────────────────────────────────
 
 if ($method === 'GET' && $xsub === '/list') {
-    $issue_id    = \Field::int($_GET, 'issue_id');
-    $repo_id     = \Field::intOrNull($_GET, 'repo_id');
-    $commit_hash = trim(\Field::string($_GET, 'commit_hash'));
-    $limit       = max(1, min(500, \Field::int($_GET, 'limit', 200)));
-    $offset      = max(0, \Field::int($_GET, 'offset'));
-
-    if ($issue_id <= 0) {
-        http_response_code(400);
-        echo json_encode(['error' => 'issue_id is required']);
-        return;
-    }
-
-    $access = issue_with_access($pdo, $issue_id, $auth_user_id, $caller_aiu);
-    if (!$access || !$access['role']['can_read']) {
-        http_response_code(404);
-        echo json_encode(['error' => 'Issue not found or no access']);
-        return;
-    }
-
-    $where = ['c.issue_id = ?'];
-    $params = [$issue_id];
-    if ($repo_id !== null && $repo_id > 0) {
-        $where[] = 'c.repo_id = ?';
-        $params[] = $repo_id;
-    }
-    if ($commit_hash !== '') {
-        $where[] = 'c.commit_hash = ?';
-        $params[] = $commit_hash;
-    }
-    $where_sql = implode(' AND ', $where);
-
-    $stmt = $pdo->prepare(
-        "SELECT c.issue_commit_id, c.issue_id, c.repo_id, c.commit_hash, c.note,
-                c.added_by_aiu, c.created_at_utc,
-                r.name AS repo_name, r.url AS repo_url,
-                a.name AS added_by_name
-         FROM issue_commits c
-         JOIN repositories r     ON r.repo_id = c.repo_id
-         JOIN agent_inbox_user a ON a.aiu_id = c.added_by_aiu
-         WHERE {$where_sql}
-         ORDER BY c.created_at_utc ASC
-         LIMIT ? OFFSET ?"
-    );
-    $params_final = $params;
-    $params_final[] = $limit;
-    $params_final[] = $offset;
-    $stmt->execute($params_final);
-
-    $count_stmt = $pdo->prepare("SELECT COUNT(*) FROM issue_commits c WHERE {$where_sql}");
-    $count_stmt->execute($params);
-
-    echo json_encode([
-        'commits' => $stmt->fetchAll(\PDO::FETCH_ASSOC),
-        'total'   => (int)$count_stmt->fetchColumn(),
-        'limit'   => $limit,
-        'offset'  => $offset,
-    ]);
+    issues_api(static function () use ($issue_service, $issue_caller): void {
+        echo json_encode(issues_page(
+            'commits',
+            $issue_service->commits($issue_caller, \Issues\Command\ListCommits::fromInput($_GET)),
+        ));
+    });
     return;
 }
 
 // ─── POST /issues/commits/add ───────────────────────────────────────────────
 
 if ($method === 'POST' && $xsub === '/add') {
-    $input       = \Field::jsonArray((string) file_get_contents('php://input'));
-    $issue_id    = \Field::int($input, 'issue_id');
-    $repo_id     = \Field::int($input, 'repo_id');
-    $commit_hash = trim(\Field::string($input, 'commit_hash'));
-    $note        = array_key_exists('note', $input) ? trim((string)$input['note']) : null;
+    issues_api(static function () use ($issue_service, $issue_caller): void {
+        $input  = \Input\Input::json((string) file_get_contents('php://input'));
+        $commit = $issue_service->addCommit($issue_caller, \Issues\Command\AddCommit::fromInput($input));
 
-    if ($issue_id <= 0 || $repo_id <= 0) {
-        http_response_code(400);
-        echo json_encode(['error' => 'issue_id and repo_id are required']);
-        return;
-    }
-    if ($commit_hash === '') {
-        http_response_code(400);
-        echo json_encode(['error' => 'commit_hash is required']);
-        return;
-    }
-    if (mb_strlen($commit_hash) > 64) {
-        http_response_code(400);
-        echo json_encode(['error' => 'commit_hash must be 64 characters or fewer']);
-        return;
-    }
-    if ($note !== null && mb_strlen($note) > 255) {
-        http_response_code(400);
-        echo json_encode(['error' => 'note must be 255 characters or fewer']);
-        return;
-    }
-
-    $access = issue_with_access($pdo, $issue_id, $auth_user_id, $caller_aiu);
-    if (!$access) {
-        http_response_code(404);
-        echo json_encode(['error' => 'Issue not found or no access']);
-        return;
-    }
-    if (!$access['role']['can_write']) {
-        http_response_code(403);
-        echo json_encode(['error' => 'No write access to this project']);
-        return;
-    }
-
-    // Single-account invariant: repo must belong to this account
-    $r = $pdo->prepare(
-        "SELECT 1 FROM repositories WHERE repo_id = ? AND user_id = ?"
-    );
-    $r->execute([$repo_id, $auth_user_id]);
-    if (!$r->fetch()) {
-        http_response_code(400);
-        echo json_encode(['error' => 'repo_id does not belong to this account']);
-        return;
-    }
-
-    require_credit($pdo, $auth_user_id, $auth_key_id, 'issues/commits/add');
-
-    $stmt = $pdo->prepare(
-        "INSERT INTO issue_commits (issue_id, repo_id, commit_hash, note, added_by_aiu)
-         VALUES (?, ?, ?, ?, ?)"
-    );
-    $stmt->execute([$issue_id, $repo_id, $commit_hash, ($note === '' ? null : $note), $caller_aiu]);
-    $commit_row_id = (int) $pdo->lastInsertId();
-
-    http_response_code(201);
-    echo json_encode([
-        'commit' => [
-            'issue_commit_id' => $commit_row_id,
-            'issue_id'        => $issue_id,
-            'repo_id'         => $repo_id,
-            'commit_hash'     => $commit_hash,
-            'note'            => $note,
-            'added_by_aiu'    => $caller_aiu,
-        ],
-    ]);
+        http_response_code(201);
+        echo json_encode(['commit' => $commit]);
+    });
     return;
 }
 
 // ─── DELETE /issues/commits/delete ──────────────────────────────────────────
 
 if ($method === 'DELETE' && $xsub === '/delete') {
-    $input            = \Field::jsonArray((string) file_get_contents('php://input'));
-    $issue_commit_id  = \Field::int($input, 'issue_commit_id');
+    issues_api(static function () use ($issue_service, $issue_caller): void {
+        $input = \Input\Input::json((string) file_get_contents('php://input'));
+        $issue_service->deleteCommit($issue_caller, \Input\Input::positiveId($input, 'issue_commit_id'));
 
-    if ($issue_commit_id <= 0) {
-        http_response_code(400);
-        echo json_encode(['error' => 'issue_commit_id is required']);
-        return;
-    }
-
-    require_credit($pdo, $auth_user_id, $auth_key_id, 'issues/commits/delete');
-
-    $where_auth = $is_human ? '' : ' AND c.added_by_aiu = ?';
-    $sql =
-        "DELETE c FROM issue_commits c
-         JOIN issues i   ON i.issue_id = c.issue_id
-         JOIN projects p ON p.project_id = i.project_id
-         WHERE c.issue_commit_id = ? AND p.user_id = ?" . $where_auth;
-
-    $params = [$issue_commit_id, $auth_user_id];
-    if (!$is_human) {
-        $params[] = $caller_aiu;
-    }
-
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
-
-    echo json_encode(['deleted' => $stmt->rowCount()]);
+        echo json_encode(['deleted' => 1]);
+    });
     return;
 }
 

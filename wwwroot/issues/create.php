@@ -27,26 +27,25 @@ if (!$is_logged_in->isAdmin() && !$is_logged_in->isPaid()) {
 }
 
 $user_id = $is_logged_in->loggedInID();
-$pdo = \Database\Base::getPDO($config);
+$pdo     = \Database\Base::getPDO($config);
+$store   = new \Issues\PdoIssueStore($pdo);
+$service = new \Issues\IssueService($store);
 
-$project_id = \Field::int($_REQUEST, 'project_id');
-if ($project_id <= 0) {
+$caller = $store->humanCaller($user_id);
+if ($caller === null) {
     header("Location: /projects/?msg=project_not_found");
     exit;
 }
 
-$aiu_stmt = $pdo->prepare(
-    "SELECT aiu_id FROM agent_inbox_user
-     WHERE user_id = ? AND actor_type = 'human' LIMIT 1"
-);
-$aiu_stmt->execute([$user_id]);
-$human_aiu = (int) $aiu_stmt->fetchColumn();
-
-if ($human_aiu <= 0) {
+try {
+    $project_id = \Input\Input::positiveId($_REQUEST, 'project_id');
+} catch (\Input\InvalidInput) {
     header("Location: /projects/?msg=project_not_found");
     exit;
 }
 
+// The project's own row, for the heading; IssueService checks write access again
+// when the form is submitted.
 $mem_stmt = $pdo->prepare(
     "SELECT pm.can_write, p.name
      FROM project_members pm
@@ -54,18 +53,18 @@ $mem_stmt = $pdo->prepare(
      WHERE pm.project_id = ? AND pm.member_aiu = ? AND p.user_id = ?
      LIMIT 1"
 );
-$mem_stmt->execute([$project_id, $human_aiu, $user_id]);
+$mem_stmt->execute([$project_id, $caller->aiu, $user_id]);
 $mem = $mem_stmt->fetch(\PDO::FETCH_ASSOC);
 
-if (!$mem) {
+if (!is_array($mem)) {
     header("Location: /projects/?msg=project_not_found");
     exit;
 }
-if (!\Field::int($mem, 'can_write')) {
+if (!\Db\RowValue::bool($mem, 'can_write')) {
     header("Location: /projects/?msg=no_write_access");
     exit;
 }
-$project_name = \Field::string($mem, 'name');
+$project_name = \Db\RowValue::string($mem, 'name');
 
 // Candidate assignees: project members of this project.
 $assignee_stmt = $pdo->prepare(
@@ -81,14 +80,11 @@ $assignee_choices = $assignee_stmt->fetchAll(\PDO::FETCH_ASSOC);
 $error = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $service = new \Issues\IssueService(new \Issues\PdoIssueStore($pdo));
-    $caller  = new \Issues\Caller(userId: $user_id, aiu: $human_aiu, isHuman: true);
-
     try {
         $issue = $service->create($caller, \Issues\Command\CreateIssue::fromInput([
             'project_id'   => $project_id,
             'title'        => $_POST['title'] ?? null,
-            'description'  => trim(\Field::string($_POST, 'description')),
+            'description'  => $_POST['description'] ?? null,
             'priority'     => $_POST['priority'] ?? null,
             'assignee_aiu' => $_POST['assignee_aiu'] ?? null,
         ]));

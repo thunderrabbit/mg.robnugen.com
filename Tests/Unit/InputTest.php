@@ -136,6 +136,21 @@ final class InputTest extends Unit
         );
     }
 
+    // === json() ===
+
+    public function testJsonReadsTheFieldsOfABody(): void
+    {
+        $this->assertSame(['issue_id' => 4, 'body' => 'noted'], Input::json('{"issue_id":4,"body":"noted"}'));
+        $this->assertSame([], Input::json('{}'));
+    }
+
+    public function testJsonRefusesABodyThatCarriesNoFields(): void
+    {
+        foreach (['', '   ', 'null', '4', '"text"', 'true', '{"broken"'] as $bad) {
+            $this->assertInvalid('a JSON object body is required', static fn() => Input::json($bad));
+        }
+    }
+
     private function assertInvalid(string $message, \Closure $read): void
     {
         try {

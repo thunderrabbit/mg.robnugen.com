@@ -1,10 +1,22 @@
+<?php
+
+/**
+ * Issue detail.
+ *
+ * @var \Issues\IssueDetail $issue
+ * @var list<\Issues\CommentView> $comments
+ * @var list<\Db\Row\IssueStatusRow> $statuses
+ * @var string $msg
+ */
+
+?>
 <div class="dashboard-container">
     <header class="dashboard-header">
-        <a href="/projects/view.php?project_id=<?= (int)$issue['project_id'] ?>" class="btn-sm btn-back">← Back to <?= htmlspecialchars($issue['project_name']) ?></a>
-        <h1><span class="issue-id">#<?= (int)$issue['issue_id'] ?></span> <?= htmlspecialchars($issue['title']) ?></h1>
-        <?php if (!empty($issue['can_write'])): ?>
+        <a href="/projects/view.php?project_id=<?= $issue->projectId ?>" class="btn-sm btn-back">← Back to <?= htmlspecialchars($issue->projectName) ?></a>
+        <h1><span class="issue-id">#<?= $issue->issueId ?></span> <?= htmlspecialchars($issue->title) ?></h1>
+        <?php if ($issue->canWrite): ?>
             <div class="header-actions">
-                <a href="/issues/edit.php?issue_id=<?= (int)$issue['issue_id'] ?>" class="btn-sm">Edit</a>
+                <a href="/issues/edit.php?issue_id=<?= $issue->issueId ?>" class="btn-sm">Edit</a>
             </div>
         <?php endif; ?>
     </header>
@@ -22,34 +34,34 @@
 
     <div class="card">
         <div class="issue-meta">
-            <?php if (!empty($issue['can_write'])): ?>
+            <?php if ($issue->canWrite): ?>
                 <form method="POST" action="/issues/status.php" class="issue-status-form">
-                    <input type="hidden" name="issue_id" value="<?= (int)$issue['issue_id'] ?>">
+                    <input type="hidden" name="issue_id" value="<?= $issue->issueId ?>">
                     <label for="status-picker" class="visually-hidden">Status</label>
                     <select id="status-picker" name="status_id">
-                        <?php foreach ($statuses as $s): ?>
-                            <option value="<?= (int)$s['status_id'] ?>"
-                                <?= (int)$s['status_id'] === (int)$issue['status_id'] ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($s['label']) ?>
+                        <?php foreach ($statuses as $status): ?>
+                            <option value="<?= $status->statusId ?>"
+                                <?= $status->statusId === $issue->statusId ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($status->label) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
                     <button type="submit" class="btn-sm">Change status</button>
                 </form>
             <?php else: ?>
-                <span class="issue-status"><?= htmlspecialchars($issue['status_label']) ?></span>
+                <span class="issue-status"><?= htmlspecialchars($issue->statusLabel) ?></span>
             <?php endif; ?>
-            <span class="issue-author">Opened by <?= htmlspecialchars($issue['author_name']) ?></span>
-            <?php if (!empty($issue['assignee_name'])): ?>
-                <span class="issue-assignee">assigned to <?= htmlspecialchars($issue['assignee_name']) ?></span>
+            <span class="issue-author">Opened by <?= htmlspecialchars($issue->authorName) ?></span>
+            <?php if ($issue->assigneeName !== null): ?>
+                <span class="issue-assignee">assigned to <?= htmlspecialchars($issue->assigneeName) ?></span>
             <?php else: ?>
                 <span class="issue-assignee">unassigned</span>
             <?php endif; ?>
         </div>
 
-        <?php if (!empty($issue['description'])): ?>
+        <?php if (($issue->description ?? '') !== ''): ?>
             <div class="issue-description">
-                <?= Utilities::renderMarkdown($issue['description']) ?>
+                <?= Utilities::renderMarkdown((string) $issue->description) ?>
             </div>
         <?php else: ?>
             <p class="empty-state"><em>No description.</em></p>
@@ -58,27 +70,27 @@
 
     <div class="card" id="comments">
         <h2>Comments</h2>
-        <?php if (empty($comments)): ?>
+        <?php if ($comments === []): ?>
             <p class="empty-state"><em>No comments yet.</em></p>
         <?php else: ?>
             <ul class="comment-list">
-                <?php foreach ($comments as $comment): ?>
+                <?php foreach ($comments as $view): ?>
                     <li class="comment-item">
                         <div class="comment-meta">
-                            <strong class="comment-author"><?= htmlspecialchars($comment['author_name']) ?></strong>
-                            <span class="comment-date"><?= htmlspecialchars($comment['created_at_utc']) ?></span>
+                            <strong class="comment-author"><?= htmlspecialchars($view->authorName) ?></strong>
+                            <span class="comment-date"><?= htmlspecialchars($view->comment->createdAtUtc->format(\Db\RowValue::DATETIME_FORMAT)) ?></span>
                         </div>
                         <div class="comment-body">
-                            <?= Utilities::renderMarkdown($comment['body']) ?>
+                            <?= Utilities::renderMarkdown($view->comment->body) ?>
                         </div>
                     </li>
                 <?php endforeach; ?>
             </ul>
         <?php endif; ?>
 
-        <?php if (!empty($issue['can_write'])): ?>
+        <?php if ($issue->canWrite): ?>
             <form method="POST" action="/issues/comment.php" class="comment-form">
-                <input type="hidden" name="issue_id" value="<?= (int)$issue['issue_id'] ?>">
+                <input type="hidden" name="issue_id" value="<?= $issue->issueId ?>">
                 <div class="form-field">
                     <label for="comment-body">Add a comment</label>
                     <textarea id="comment-body" name="body" rows="3" required maxlength="65535"></textarea>
