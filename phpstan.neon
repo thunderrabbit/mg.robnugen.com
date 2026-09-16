@@ -1,7 +1,7 @@
 # Static analysis, run in Docker by ~/work/rob/standards-mcp/run-phpstan.sh
-# and by .githooks/pre-commit. Raised a rung at a time toward level 10 (mg #505).
+# and by .githooks/pre-commit. Raised a rung at a time to level 10, the top (mg #505).
 parameters:
-    level: 9
+    level: 10
     # mg's production PHP. Analyse as 8.5 even if run on an older PHP.
     phpVersion: 80500
     paths:
