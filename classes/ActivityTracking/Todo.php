@@ -25,7 +25,7 @@ class Todo
      * @param string $dayOfWeek Day name (Sun, Mon, Tue, Wed, Thu, Fri, Sat)
      * @param int $dayOfMonth Day of month (1-31)
      * @param string $todayDate Full date (Y-m-d)
-     * @return array<int, array<string, mixed>> Array of todos with completion status
+     * @return list<array<mixed>> Array of todos with completion status
      */
     public function getTodaysTodos(int $user_id, string $dayOfWeek, int $dayOfMonth, string $todayDate): array
     {
@@ -80,7 +80,7 @@ class Todo
         ");
 
         $stmt->execute([$user_id, $dayOfWeek, $dayOfMonth, $todayDate, $todayDate, $todayDate, $todayDate, $todayDate]);
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        return \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     /**
@@ -109,7 +109,7 @@ class Todo
      *
      * @param int $todo_id
      * @param string $date Date in Y-m-d format
-     * @return array<int, array<string, mixed>> Array of completion records
+     * @return list<array<mixed>> Array of completion records
      */
     public function getCompletionsForDate(int $todo_id, string $date): array
     {
@@ -122,7 +122,7 @@ class Todo
         ");
 
         $stmt->execute([$todo_id, $date]);
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        return \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     /**
@@ -280,7 +280,7 @@ class Todo
      * Get all active todos for a user
      *
      * @param int $user_id
-     * @return array<int, array<string, mixed>>
+     * @return list<array<mixed>>
      */
     public function getAllTodos(int $user_id): array
     {
@@ -296,7 +296,7 @@ class Todo
         ");
 
         $stmt->execute([$user_id]);
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        return \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     /**
@@ -452,7 +452,7 @@ class Todo
      * Get all archived (inactive) todos for a user
      *
      * @param int $user_id
-     * @return array<int, array<string, mixed>>
+     * @return list<array<mixed>>
      */
     public function getArchivedTodos(int $user_id): array
     {
@@ -468,7 +468,7 @@ class Todo
         ");
 
         $stmt->execute([$user_id]);
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        return \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     /**
@@ -499,7 +499,7 @@ class Todo
      * @param int $user_id
      * @param int $limit
      * @param int $offset
-     * @return array<int, array<string, mixed>>
+     * @return list<array<mixed>>
      */
     public function getCompletedHistory(int $user_id, int $limit = 50, int $offset = 0): array
     {
@@ -518,7 +518,7 @@ class Todo
         ");
 
         $stmt->execute([$user_id, $limit, $offset]);
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        return \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     /**
@@ -528,7 +528,7 @@ class Todo
      * @param string $todayDate Y-m-d
      * @param int $limit
      * @param int $offset
-     * @return array<int, array<string, mixed>>
+     * @return list<array<mixed>>
      */
     public function getUpcomingTodos(int $user_id, string $todayDate, int $limit = 50, int $offset = 0): array
     {
@@ -551,14 +551,14 @@ class Todo
         ");
 
         $stmt->execute([$user_id, $todayDate, $todayDate, $limit, $offset]);
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        return \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
     /**
      * Get days-between todos with their computed next-due dates
      *
      * @param int $user_id
      * @param string $todayDate Y-m-d
-     * @return array<int, array<string, mixed>> Todos with next_due_date computed from last completion
+     * @return list<array<mixed>> Todos with next_due_date computed from last completion
      */
     public function getDaysBetweenTodos(int $user_id, string $todayDate): array
     {
@@ -579,16 +579,18 @@ class Todo
         ");
 
         $stmt->execute([$user_id]);
-        $todos = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $todos = \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
 
         foreach ($todos as &$todo) {
-            $n = (int) $todo['do_every_n_days'];
-            if ($todo['last_completed_date']) {
-                $todo['next_due_date'] = date('Y-m-d', (int) strtotime($todo['last_completed_date'] . " + {$n} days"));
+            $n = \Db\RowValue::int($todo, 'do_every_n_days');
+            $last_completed = \Db\RowValue::stringOrNull($todo, 'last_completed_date');
+            if ($last_completed !== null) {
+                $todo['next_due_date'] = date('Y-m-d', (int) strtotime("{$last_completed} + {$n} days"));
             } else {
                 // Never completed: start recurring from due_date, not today
-                $start = !empty($todo['due_date'])
-                    ? date('Y-m-d', strtotime($todo['due_date']))
+                $due_date = \Db\RowValue::stringOrNull($todo, 'due_date');
+                $start = ($due_date !== null && $due_date !== '')
+                    ? date('Y-m-d', (int) strtotime($due_date))
                     : $todayDate;
                 $todo['next_due_date'] = ($start > $todayDate) ? $start : $todayDate;
             }
@@ -603,7 +605,7 @@ class Todo
      * @param int $user_id
      * @param int $limit
      * @param int $offset
-     * @return array<int, array<string, mixed>>
+     * @return list<array<mixed>>
      */
     public function getFullyCompletedHistory(int $user_id, int $limit = 50, int $offset = 0): array
     {
@@ -634,6 +636,6 @@ class Todo
         ");
 
         $stmt->execute([$user_id, $limit, $offset]);
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        return \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 }

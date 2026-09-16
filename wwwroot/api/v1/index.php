@@ -99,7 +99,7 @@ function require_credit(\PDO $pdo, int $user_id, int $key_id, string $endpoint):
 // GET → can_read_project; everything else (POST/PATCH/DELETE) → can_write_project.
 // Fine-grained access within the subsystem continues to flow through project_members.
 /**
- * @param array<string, mixed> $auth_actor
+ * @param array<mixed> $auth_actor
  */
 function require_project_perm(array $auth_actor, string $method): void
 {

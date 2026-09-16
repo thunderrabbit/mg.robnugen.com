@@ -17,11 +17,12 @@
  * @var \Config $config
  * @var string $method
  * @var string $path
+ * @var array<mixed> $auth_actor
  */
 
 $sub = preg_replace('#^/notify#', '', $path) ?: '/';
 
-if (empty($auth_actor['can_ping_phone'])) {
+if (!\Field::int($auth_actor, 'can_ping_phone')) {
     http_response_code(403);
     echo json_encode(['error' => 'This API key does not have permission (can_ping_phone)']);
     return;
@@ -48,7 +49,7 @@ if ($method === 'POST' && $sub === '/send') {
         return;
     }
 
-    $result = (new \Notify($config))->pingPhone($auth_actor['name'], $message, $type);
+    $result = (new \Notify($config))->pingPhone(\Field::string($auth_actor, 'name'), $message, $type);
     if (empty($result['ok'])) {
         http_response_code(502);
         echo json_encode(['error' => 'telegram send failed', 'detail' => $result['error'] ?? null]);

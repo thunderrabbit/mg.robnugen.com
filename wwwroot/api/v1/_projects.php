@@ -179,8 +179,8 @@ if ($method === 'PATCH' && $sub === '/update') {
 
     $input      = \Field::jsonArray((string) file_get_contents('php://input'));
     $project_id = \Field::int($input, 'project_id');
-    $name        = array_key_exists('name', $input) ? trim((string)$input['name']) : null;
-    $description = array_key_exists('description', $input) ? trim((string)$input['description']) : 'NOT_SET';
+    $name        = array_key_exists('name', $input) ? trim(\Field::string($input, 'name')) : null;
+    $description = array_key_exists('description', $input) ? trim(\Field::string($input, 'description')) : 'NOT_SET';
     $is_archived = array_key_exists('is_archived', $input) ? (int)(bool)$input['is_archived'] : null;
 
     if ($project_id <= 0) {

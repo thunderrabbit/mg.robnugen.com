@@ -46,7 +46,7 @@ class Timezone
     /**
      * Get all active timezones (for dropdowns)
      *
-     * @return array<int, array<string, mixed>> Array of timezones with id, iana_name, display_name
+     * @return list<array<mixed>> Array of timezones with id, iana_name, display_name
      */
     public function getAllTimezones(): array
     {
@@ -57,7 +57,7 @@ class Timezone
             ORDER BY display_name
         ");
         $stmt->execute();
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        return \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     /**

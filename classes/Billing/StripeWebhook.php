@@ -50,7 +50,7 @@ class StripeWebhook
     // ── Event dispatch ────────────────────────────────────────────────────────
 
     /**
-     * @param array<string, mixed> $event
+     * @param array<mixed> $event
      */
     public function handle(array $event): void
     {
@@ -69,7 +69,7 @@ class StripeWebhook
     // metadata[plan]       = 'developer' or 'growth' (set during checkout session creation)
 
     /**
-     * @param array<string, mixed> $session
+     * @param array<mixed> $session
      */
     private function handleCheckoutComplete(array $session): void
     {
@@ -127,7 +127,7 @@ class StripeWebhook
     // subscription_details.metadata[plan] carries the plan name set at checkout.
 
     /**
-     * @param array<string, mixed> $invoice
+     * @param array<mixed> $invoice
      */
     private function handleInvoicePayment(array $invoice): void
     {

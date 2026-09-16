@@ -110,7 +110,7 @@ class ApiKey
      * Returns all active keys for a user: key_id, label, created_at, last_used.
      * Does NOT return the raw api_key value — only show it once at generation time.
      *
-     * @return array<int, array<string, mixed>>
+     * @return list<array<mixed>>
      */
     public function getKeysForUser(int $user_id): array
     {
@@ -122,6 +122,6 @@ class ApiKey
         );
         $stmt->execute([$user_id]);
 
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        return \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 }

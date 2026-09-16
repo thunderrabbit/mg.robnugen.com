@@ -70,7 +70,7 @@ if (!empty($date_rows)) {
         $prev   = new DateTime($first);
 
         for ($i = 1; $i < count($date_rows); $i++) {
-            $curr     = new DateTime($date_rows[$i]);
+            $curr     = new DateTime(\Field::toString($date_rows[$i]));
             $expected = (clone $prev)->modify('-1 day')->format('Y-m-d');
 
             if ($curr->format('Y-m-d') === $expected) {

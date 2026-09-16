@@ -76,7 +76,7 @@ class ActivityKai
         ");
 
         $stmt->execute([$user_id]);
-        $expiredSessions = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $expiredSessions = \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
 
         if (empty($expiredSessions)) {
             return 0;
@@ -91,7 +91,7 @@ class ActivityKai
             $checkStmt = $this->pdo->prepare("
                 SELECT 1 FROM todo_logs WHERE ak_id = ?
             ");
-            $checkStmt->execute([$session['ak_id']]);
+            $checkStmt->execute([\Db\RowValue::int($session, 'ak_id')]);
 
             if ($checkStmt->fetchColumn()) {
                 continue; // Already processed
@@ -99,12 +99,12 @@ class ActivityKai
 
             // Fetch timezone string
             $tzStmt = $this->pdo->prepare("SELECT iana_name FROM timezones WHERE timezone_id = ?");
-            $tzStmt->execute([$session['timezone_id']]);
+            $tzStmt->execute([\Db\RowValue::int($session, 'timezone_id')]);
             $tz_name = $tzStmt->fetchColumn();
             $timezone = is_string($tz_name) && $tz_name !== '' ? $tz_name : 'UTC';
 
             // Mark todo as complete
-            $todo_id = (int)$session['todo_id'];
+            $todo_id = \Db\RowValue::int($session, 'todo_id');
 
             // Log date calculation
             $date_logged = date('Y-m-d H:i:s');
@@ -125,8 +125,8 @@ class ActivityKai
                 $nth,
                 $date_logged,
                 $timezone,
-                (int)$session['intended_sec'],
-                (int)$session['ak_id']
+                \Db\RowValue::int($session, 'intended_sec'),
+                \Db\RowValue::int($session, 'ak_id')
             );
 
             $count++;
@@ -200,7 +200,7 @@ class ActivityKai
      *
      * @param int $user_id
      * @param int $limit Number of sessions to retrieve
-     * @return array<int, array<string, mixed>> Array of session records
+     * @return list<array<mixed>> Array of session records
      */
     public function getUserSessions(int $user_id, int $limit = 10): array
     {
@@ -224,7 +224,7 @@ class ActivityKai
         ");
 
         $stmt->execute([$user_id, $limit]);
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        return \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     /**

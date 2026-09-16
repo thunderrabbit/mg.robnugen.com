@@ -114,7 +114,7 @@ class PermissionGuardsTest extends Unit
     /**
      * @param non-empty-string $method
      * @param array<string, mixed> $payload
-     * @return array{status: int, body: array<string, mixed>}
+     * @return array{status: int, body: array<mixed>}
      */
     private static function rawRequest(string $apiKey, string $method, string $path, array $payload = []): array
     {
@@ -154,7 +154,7 @@ class PermissionGuardsTest extends Unit
     // ── Endpoint helpers ─────────────────────────────────────────────────
 
     /**
-     * @return array{status: int, body: array<string, mixed>}
+     * @return array{status: int, body: array<mixed>}
      */
     private function readInbox(string $key): array
     {
@@ -162,7 +162,7 @@ class PermissionGuardsTest extends Unit
     }
 
     /**
-     * @return array{status: int, body: array<string, mixed>}
+     * @return array{status: int, body: array<mixed>}
      */
     private function writeInbox(string $key): array
     {
@@ -177,7 +177,7 @@ class PermissionGuardsTest extends Unit
     }
 
     /**
-     * @return array{status: int, body: array<string, mixed>}
+     * @return array{status: int, body: array<mixed>}
      */
     private function readTodos(string $key): array
     {
@@ -185,7 +185,7 @@ class PermissionGuardsTest extends Unit
     }
 
     /**
-     * @return array{status: int, body: array<string, mixed>}
+     * @return array{status: int, body: array<mixed>}
      */
     private function writeTodos(string $key): array
     {
@@ -199,7 +199,7 @@ class PermissionGuardsTest extends Unit
     }
 
     /**
-     * @return array{status: int, body: array<string, mixed>}
+     * @return array{status: int, body: array<mixed>}
      */
     private function readSessions(string $key): array
     {
@@ -207,7 +207,7 @@ class PermissionGuardsTest extends Unit
     }
 
     /**
-     * @return array{status: int, body: array<string, mixed>}
+     * @return array{status: int, body: array<mixed>}
      */
     private function writeSessions(string $key): array
     {
@@ -222,7 +222,7 @@ class PermissionGuardsTest extends Unit
     }
 
     /**
-     * @return array{status: int, body: array<string, mixed>}
+     * @return array{status: int, body: array<mixed>}
      */
     private function readEmotions(string $key): array
     {
@@ -230,7 +230,7 @@ class PermissionGuardsTest extends Unit
     }
 
     /**
-     * @return array{status: int, body: array<string, mixed>}
+     * @return array{status: int, body: array<mixed>}
      */
     private function writeEmotions(string $key): array
     {
@@ -246,7 +246,7 @@ class PermissionGuardsTest extends Unit
     // ── Assertion helpers ────────────────────────────────────────────────
 
     /**
-     * @param array{status: int, body: array<string, mixed>} $result
+     * @param array{status: int, body: array<mixed>} $result
      */
     private function assertAllowed(array $result, string $context): void
     {
@@ -258,7 +258,7 @@ class PermissionGuardsTest extends Unit
     }
 
     /**
-     * @param array{status: int, body: array<string, mixed>} $result
+     * @param array{status: int, body: array<mixed>} $result
      */
     private function assertDenied(array $result, string $expectedError, string $context): void
     {

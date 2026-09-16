@@ -21,10 +21,10 @@ class PasswordRepository
     {
         $stmt = $this->pdo->prepare("SELECT `password_hash` FROM `users` WHERE `user_id` = ? LIMIT 1");
         $stmt->execute([$user_id]);
-        $result = $stmt->fetchAll();
+        $row = \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC))[0] ?? null;
 
-        if (count($result) > 0) {
-            return $result[0]['password_hash'];
+        if ($row !== null) {
+            return \Db\RowValue::stringOrNull($row, 'password_hash');
         }
 
         return null;

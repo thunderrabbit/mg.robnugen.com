@@ -351,7 +351,7 @@ if ($method === 'GET' && $sub === '/list') {
     $message       = isset($input['message']) ? trim(\Field::string($input, 'message')) : null;
     $priority      = isset($input['priority']) ? trim(\Field::string($input, 'priority')) : null;
     $show_date     = array_key_exists('show_date', $input) ? $input['show_date'] : 'NOT_SET';
-    $recipient_aiu = isset($input['recipient_aiu']) ? (int) $input['recipient_aiu'] : null;
+    $recipient_aiu = \Field::intOrNull($input, 'recipient_aiu');
 
     if ($message_id <= 0) {
         http_response_code(400);
@@ -391,7 +391,7 @@ if ($method === 'GET' && $sub === '/list') {
     }
     if ($show_date !== 'NOT_SET') {
         if ($show_date !== null && $show_date !== '') {
-            $show_date = trim($show_date);
+            $show_date = trim(\Field::toString($show_date));
             $d = \DateTime::createFromFormat('Y-m-d', $show_date);
             if (!$d || $d->format('Y-m-d') !== $show_date) {
                 http_response_code(400);

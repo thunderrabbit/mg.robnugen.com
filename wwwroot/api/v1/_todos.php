@@ -321,7 +321,7 @@ if ($todos_path === '/list') {
 
     // Validate do_every_n_days range
     if (isset($data['do_every_n_days'])) {
-        $n = (int) $data['do_every_n_days'];
+        $n = \Field::int($data, 'do_every_n_days');
         if ($n < 1 || $n > 65535) {
             http_response_code(400);
             echo json_encode(['error' => 'do_every_n_days must be 1-65535']);

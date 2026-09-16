@@ -98,7 +98,7 @@ class InboxListCest
             'recipient_aiu' => (int) getenv('MG_TEST_AIU_ALPHA'),
         ], JSON_THROW_ON_ERROR));
         $I->seeResponseCodeIs(201);
-        $raw = $I->grabResponse();
+        $raw = \Field::toString($I->grabResponse());
         $decoded = \Field::jsonArray($raw);
         $id = \Field::int($decoded, 'message_id');
         if ($id <= 0) {
@@ -120,7 +120,7 @@ class InboxListCest
         $I->haveHttpHeader('X-API-Key', (string) getenv('MG_TEST_KEY_ALPHA'));
         $I->sendGET('/api/v1/inbox/list?' . $query);
         $I->seeResponseCodeIs(200);
-        $decoded = \Field::jsonArray($I->grabResponse());
+        $decoded = \Field::jsonArray(\Field::toString($I->grabResponse()));
         $ids = [];
         foreach (\Field::array($decoded, 'messages') as $m) {
             if (str_contains(\Field::string($m, 'message'), $this->marker)) {

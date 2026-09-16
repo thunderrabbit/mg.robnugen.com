@@ -23,10 +23,11 @@
  * @var int $auth_key_id
  * @var string $method
  * @var string $path
+ * @var array<mixed> $auth_actor
  */
 
 $sub = preg_replace('#^/repositories#', '', $path) ?: '/';
-$is_human = ($auth_actor['actor_type'] ?? '') === 'human';
+$is_human = \Field::string($auth_actor, 'actor_type') === 'human';
 
 // ── GET /repositories/list ───────────────────────────────────────────────────
 
@@ -127,9 +128,9 @@ if ($method === 'PATCH' && $sub === '/update') {
 
     $input          = \Field::jsonArray((string) file_get_contents('php://input'));
     $repo_id        = \Field::int($input, 'repo_id');
-    $name           = array_key_exists('name', $input)           ? trim((string)$input['name'])           : null;
-    $url            = array_key_exists('url', $input)            ? trim((string)$input['url'])            : 'NOT_SET';
-    $default_branch = array_key_exists('default_branch', $input) ? trim((string)$input['default_branch']) : null;
+    $name           = array_key_exists('name', $input)           ? trim(\Field::string($input, 'name'))           : null;
+    $url            = array_key_exists('url', $input)            ? trim(\Field::string($input, 'url'))            : 'NOT_SET';
+    $default_branch = array_key_exists('default_branch', $input) ? trim(\Field::string($input, 'default_branch')) : null;
 
     if ($repo_id <= 0) {
         http_response_code(400);

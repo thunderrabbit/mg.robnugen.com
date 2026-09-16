@@ -23,7 +23,7 @@ class Notify
      * @param string $from_name Sending agent's display name (agent_inbox_user.name)
      * @param string $text      The message body
      * @param string $type      'done' | 'blocked' | 'alert'
-     * @return array<string, mixed> Telegram's decoded JSON response, or ['ok'=>false,'error'=>...]
+     * @return array<mixed> Telegram's decoded JSON response, or ['ok'=>false,'error'=>...]
      */
     public function pingPhone(string $from_name, string $text, string $type = 'done'): array
     {

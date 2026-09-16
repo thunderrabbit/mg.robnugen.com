@@ -22,6 +22,8 @@ if (!$is_logged_in->isLoggedIn()) {
 
 $error_message = '';
 $success_message = '';
+/** @var list<string> $errors Validation errors, read by both POST branches below. */
+$errors = [];
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -36,7 +38,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $confirm_password = $_POST['confirm_password'] ?? '';
 
         // Validate input
-        $errors = [];
         if (empty($current_password)) {
             $errors[] = "Current password is required.";
         }
@@ -65,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $errors[] = $result['message'];
                 }
             } catch (\Exception $e) {
-                error_log("changePassword failed for user " . ($user_id ?? 'unknown') . ": " . $e->getMessage());
+                error_log("changePassword failed for user " . \Field::toString($user_id ?? 'unknown') . ": " . $e->getMessage());
                 $errors[] = "An error occurred while changing password. Please try again.";
             }
         }
