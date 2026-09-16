@@ -118,7 +118,7 @@ class Items
     // ── Projects ─────────────────────────────────────────────────────────────
 
     /**
-     * @return array<int, array<string, mixed>>
+     * @return list<array<mixed>>
      */
     public function listProjects(int $user_id, int $caller_aiu): array
     {
@@ -131,7 +131,7 @@ class Items
              ORDER BY p.name ASC"
         );
         $stmt->execute([$caller_aiu, $user_id]);
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        return \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     // ── CRUD ─────────────────────────────────────────────────────────────────
@@ -142,7 +142,7 @@ class Items
      * read (powers "what was I thinking about?" recall on the phone).
      *
      * @param array<mixed> $filters
-     * @return array<int, array<string, mixed>>
+     * @return list<array<mixed>>
      */
     public function listItems(int $user_id, int $caller_aiu, array $filters): array
     {
@@ -186,7 +186,7 @@ class Items
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        return \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     /**
@@ -310,7 +310,7 @@ class Items
     }
 
     /**
-     * @return array<int, array<string, mixed>>
+     * @return list<array<mixed>>
      */
     public function searchItems(int $user_id, int $caller_aiu, string $query, ?int $project_id = null, int $limit = 20): array
     {
@@ -346,6 +346,6 @@ class Items
              LIMIT ?"
         );
         $stmt->execute($params);
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        return \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 }
