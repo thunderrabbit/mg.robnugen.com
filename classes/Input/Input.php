@@ -16,6 +16,23 @@ namespace Input;
 final class Input
 {
     /**
+     * A request body as the fields it carries. Anything that isn't a JSON object
+     * — empty, malformed, or a bare scalar — is rejected here rather than read
+     * as "no fields sent", which used to turn a broken body into a complaint
+     * about whichever field was looked for first.
+     *
+     * @return array<mixed>
+     */
+    public static function json(string $body): array
+    {
+        $decoded = json_decode($body, true);
+        if (!is_array($decoded)) {
+            throw new InvalidInput('a JSON object body is required');
+        }
+        return $decoded;
+    }
+
+    /**
      * @param array<mixed> $in
      * @return positive-int
      */
