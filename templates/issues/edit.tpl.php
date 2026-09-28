@@ -8,6 +8,7 @@
  * @var string $error
  * @var mixed $form_title
  * @var mixed $form_description
+ * @var mixed $form_priority
  * @var mixed $form_assignee_aiu
  */
 
@@ -51,6 +52,16 @@
                             <?= htmlspecialchars($choice['name']) ?> (<?= htmlspecialchars($choice['actor_type']) ?>)
                         </option>
                     <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div class="form-field">
+                <label for="priority">Priority</label>
+                <?php $sel = $form_priority ?? $issue->priority->value; ?>
+                <select id="priority" name="priority">
+                    <option value="low"<?= $sel === 'low' ? ' selected' : '' ?>>Low</option>
+                    <option value="normal"<?= $sel === 'normal' ? ' selected' : '' ?>>Normal</option>
+                    <option value="high"<?= $sel === 'high' ? ' selected' : '' ?>>High</option>
                 </select>
             </div>
 

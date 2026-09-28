@@ -3,7 +3,7 @@
 /**
  * Edit Issue Page
  * Loads an issue's title + description, pre-fills a form on GET, and on POST
- * updates title, description and assignee through IssueService.
+ * updates title, description, priority and assignee through IssueService.
  * Gated on admin/paid + project_members.can_write.
  */
 
@@ -68,6 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'issue_id'     => $issue_id,
             'title'        => $_POST['title'] ?? null,
             'description'  => $_POST['description'] ?? null,
+            'priority'     => $_POST['priority'] ?? null,
             'assignee_aiu' => $_POST['assignee_aiu'] ?? '',
         ]));
         header("Location: /issues/view.php?issue_id={$issue_id}");
@@ -99,6 +100,9 @@ if (isset($_POST['title'])) {
 }
 if (isset($_POST['description'])) {
     $inner->set("form_description", $_POST['description']);
+}
+if (isset($_POST['priority'])) {
+    $inner->set("form_priority", $_POST['priority']);
 }
 if (isset($_POST['assignee_aiu'])) {
     $inner->set("form_assignee_aiu", $_POST['assignee_aiu']);
