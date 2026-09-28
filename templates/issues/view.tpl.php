@@ -16,6 +16,7 @@
         <h1><span class="issue-id">#<?= $issue->issueId ?></span> <?= htmlspecialchars($issue->title) ?></h1>
         <?php if ($issue->canWrite): ?>
             <div class="header-actions">
+                <a href="/issues/create.php?project_id=<?= $issue->projectId ?>" class="btn-sm">+ New Issue</a>
                 <a href="/issues/edit.php?issue_id=<?= $issue->issueId ?>" class="btn-sm">Edit</a>
             </div>
         <?php endif; ?>
