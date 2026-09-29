@@ -88,15 +88,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// Most-used actors first: how many projects each is already a member of.
+// Those in at least half of the account's projects come pre-checked; test_*
+// and auto_* actors go behind "show all".
+$total_stmt = $pdo->prepare("SELECT COUNT(*) FROM projects WHERE user_id = ? AND is_archived = 0");
+$total_stmt->execute([$user_id]);
+$total_projects = \Field::toInt($total_stmt->fetchColumn());
+
 $avail_stmt = $pdo->prepare(
-    "SELECT aiu_id, name, actor_type
-     FROM agent_inbox_user
-     WHERE user_id = ?
-       AND aiu_id NOT IN (SELECT member_aiu FROM project_members WHERE project_id = ?)
-     ORDER BY name ASC"
+    "SELECT a.aiu_id, a.name, a.actor_type,
+            (SELECT COUNT(*) FROM project_members pm WHERE pm.member_aiu = a.aiu_id) AS memberships
+     FROM agent_inbox_user a
+     WHERE a.user_id = ?
+       AND a.aiu_id NOT IN (SELECT member_aiu FROM project_members WHERE project_id = ?)
+     ORDER BY memberships DESC, a.name ASC"
 );
 $avail_stmt->execute([$user_id, $project_id]);
-$available = $avail_stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+$available = [];
+$hidden    = [];
+foreach ($avail_stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+    $name = \Field::string($row, 'name');
+    $row = [
+        'aiu_id'     => \Field::int($row, 'aiu_id'),
+        'name'       => $name,
+        'actor_type' => \Field::string($row, 'actor_type'),
+        'precheck'   => $total_projects > 0 && \Field::int($row, 'memberships') * 2 >= $total_projects,
+    ];
+    if (str_starts_with($name, 'test_') || str_starts_with($name, 'auto_')) {
+        $hidden[] = $row;
+    } else {
+        $available[] = $row;
+    }
+}
 
 $page = new \Template($config, $is_logged_in);
 $page->setTemplate("layout/base.tpl.php");
@@ -106,6 +130,7 @@ $inner = new \Template($config, $is_logged_in);
 $inner->setTemplate("projects/add-member.tpl.php");
 $inner->set("project", $project);
 $inner->set("available", $available);
+$inner->set("hidden", $hidden);
 if ($error !== null) {
     $inner->set("error", $error);
 }

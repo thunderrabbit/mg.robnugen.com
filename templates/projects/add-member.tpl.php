@@ -1,3 +1,15 @@
+<?php
+
+/**
+ * Pick actors to add to a project.
+ *
+ * @var array<string, mixed> $project
+ * @var list<array{aiu_id: int, name: string, actor_type: string, precheck: bool}> $available Shown up front, most-used first.
+ * @var list<array{aiu_id: int, name: string, actor_type: string, precheck: bool}> $hidden test_* / auto_* actors behind "show all".
+ * @var string $error
+ */
+
+?>
 <div class="dashboard-container">
     <header class="dashboard-header">
         <a href="/projects/view.php?project_id=<?= (int)$project['project_id'] ?>" class="btn-sm btn-back">← Back to <?= htmlspecialchars($project['name']) ?></a>
@@ -9,7 +21,7 @@
             <div class="alert-error"><?= htmlspecialchars($error) ?></div>
         <?php endif; ?>
 
-        <?php if (empty($available)): ?>
+        <?php if (empty($available) && empty($hidden)): ?>
             <p class="empty-state"><em>No actors in your account are available to add — everyone is already a member of this project.</em></p>
         <?php else: ?>
             <form method="POST" action="/projects/add-member.php">
@@ -20,11 +32,24 @@
                     <div class="member-pick-list">
                         <?php foreach ($available as $a): ?>
                             <label class="member-pick">
-                                <input type="checkbox" name="member_aiu[]" value="<?= (int)$a['aiu_id'] ?>">
+                                <input type="checkbox" name="member_aiu[]" value="<?= (int)$a['aiu_id'] ?>"<?= $a['precheck'] ? ' checked' : '' ?>>
                                 <?= htmlspecialchars($a['name']) ?> (<?= htmlspecialchars($a['actor_type']) ?>)
                             </label>
                         <?php endforeach; ?>
                     </div>
+                    <?php if (!empty($hidden)): ?>
+                        <details>
+                            <summary>Show all (<?= count($hidden) ?> more: test_ and auto_ actors)</summary>
+                            <div class="member-pick-list">
+                                <?php foreach ($hidden as $a): ?>
+                                    <label class="member-pick">
+                                        <input type="checkbox" name="member_aiu[]" value="<?= (int)$a['aiu_id'] ?>">
+                                        <?= htmlspecialchars($a['name']) ?> (<?= htmlspecialchars($a['actor_type']) ?>)
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                        </details>
+                    <?php endif; ?>
                 </div>
 
                 <div class="form-field">
