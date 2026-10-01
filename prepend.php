@@ -7,6 +7,18 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
+# Before anything needs them: name a missing extension instead of dying later
+# with "Call to undefined function". The autoloader isn't registered yet.
+require_once __DIR__ . '/classes/Startup/RequiredExtensions.php';
+$missing_extensions = \Startup\RequiredExtensions::missing(
+    \Startup\RequiredExtensions::REQUIRED,
+    extension_loaded(...),
+);
+if ($missing_extensions !== []) {
+    http_response_code(500);
+    exit(\Startup\RequiredExtensions::message($missing_extensions));
+}
+
 session_start();
 
 if (empty($_SESSION['csrf_token'])) {
