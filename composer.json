@@ -1,4 +1,12 @@
 {
+    "require": {
+        "php": ">=8.5",
+        "ext-curl": "*",
+        "ext-mbstring": "*",
+        "ext-pdo_mysql": "*",
+        "ext-session": "*",
+        "ext-sodium": "*"
+    },
     "require-dev": {
         "codeception/codeception": "^5.0",
         "codeception/module-webdriver": "^4.0",
