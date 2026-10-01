@@ -114,7 +114,7 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
 
 ## Development Notes
 
-- No runtime dependencies — pure PHP with custom autoloader. `composer.json` holds dev tools only (Codeception, phpcs, PHPStan); `vendor/` is never deployed
+- No runtime dependencies — pure PHP with custom autoloader. `composer.json` holds dev tools (Codeception, phpcs, PHPStan) plus the platform requirement (PHP 8.5 and the extensions in `Startup\RequiredExtensions`; `prepend.php` fails by name if one is missing, so keep the two lists in step); `vendor/` is never deployed
 - `?debug=1` URL parameter enables debug output; `print_rob($var)` echoes `<pre>` dump and exits; `print_roblog($var, $label)` appends to `~/rob.log`
 
 ### Including prepend.php
