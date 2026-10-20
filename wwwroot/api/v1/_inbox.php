@@ -22,6 +22,10 @@
  *   PATCH  /inbox/edit        — edit message text and/or priority
  *   PATCH  /inbox/archive    — archive a message (soft-hide)
  *   DELETE /inbox/delete      — delete a message permanently
+ *
+ * send, edit and mark-done take an optional `encoding` ('base64' or 'gzip+base64') for the
+ * `message` or `response` text, so source code gets past the request firewall. mg stores the
+ * decoded text; the byte limit applies to it. Default 'plain'. See Auth\Guards::decodedText.
  */
 
 /**
@@ -170,7 +174,13 @@ if ($method === 'GET' && $sub === '/list') {
 } elseif ($method === 'POST' && $sub === '/send') {
     // ── Send a message to the inbox (costs 1 credit) ─────────────────────
     $input = \Field::jsonArray((string) file_get_contents('php://input'));
-    $message   = trim(\Field::string($input, 'message'));
+    $message   = $guards->decodedText($input, 'message');
+    if (is_array($message)) {
+        http_response_code($message['code']);
+        echo json_encode(['error' => $message['error']]);
+        return;
+    }
+    $message   = trim($message);
     $priority  = trim(\Field::string($input, 'priority', 'normal'));
     $show_date = isset($input['show_date']) ? trim(\Field::string($input, 'show_date')) : null;
     $sender_timezone = trim(\Field::string($input, 'sender_timezone'));
@@ -276,7 +286,13 @@ if ($method === 'GET' && $sub === '/list') {
     // ── Mark message as done ─────────────────────────────────────────────
     $input = \Field::jsonArray((string) file_get_contents('php://input'));
     $message_id = \Field::int($input, 'message_id');
-    $response   = trim(\Field::string($input, 'response'));
+    $response   = $guards->decodedText($input, 'response');
+    if (is_array($response)) {
+        http_response_code($response['code']);
+        echo json_encode(['error' => $response['error']]);
+        return;
+    }
+    $response   = trim($response);
 
     if ($message_id <= 0) {
         http_response_code(400);
@@ -348,7 +364,16 @@ if ($method === 'GET' && $sub === '/list') {
     // ── Edit a message ───────────────────────────────────────────────────
     $input = \Field::jsonArray((string) file_get_contents('php://input'));
     $message_id = \Field::int($input, 'message_id');
-    $message       = isset($input['message']) ? trim(\Field::string($input, 'message')) : null;
+    $message       = null;
+    if (isset($input['message'])) {
+        $decoded = $guards->decodedText($input, 'message');
+        if (is_array($decoded)) {
+            http_response_code($decoded['code']);
+            echo json_encode(['error' => $decoded['error']]);
+            return;
+        }
+        $message = trim($decoded);
+    }
     $priority      = isset($input['priority']) ? trim(\Field::string($input, 'priority')) : null;
     $show_date     = array_key_exists('show_date', $input) ? $input['show_date'] : 'NOT_SET';
     $recipient_aiu = \Field::intOrNull($input, 'recipient_aiu');

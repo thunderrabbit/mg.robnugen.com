@@ -54,4 +54,33 @@ class Guards
         }
         return null;
     }
+
+    /**
+     * The text of a request field, decoded per the request's optional
+     * `encoding` ('base64' or 'gzip+base64'; default plain).
+     *
+     * A caller behind the request firewall posts source code encoded, because
+     * the firewall refuses it as plain text; this turns it back into the text
+     * the endpoint would have been sent. Plain text comes back exactly as
+     * before, untrimmed, '' when the field is missing, so an endpoint's own
+     * trim, empty and byte-limit checks run unchanged on the result. A gzip
+     * body may not inflate past MAX_MESSAGE_BYTES, so the byte limit cannot be
+     * dodged by compressing.
+     *
+     * @param array<mixed> $input Decoded JSON request body.
+     * @param string $field Field to read, e.g. 'message' or 'response'.
+     * @return array{code: int, error: string}|string the text, or a 400 verdict.
+     */
+    public function decodedText(array $input, string $field): array|string
+    {
+        try {
+            return \Input\Input::encoding($input, 'encoding')->decode(
+                \Field::string($input, $field),
+                self::MAX_MESSAGE_BYTES,
+                $field,
+            );
+        } catch (\Input\InvalidInput $e) {
+            return ['code' => 400, 'error' => $e->getMessage()];
+        }
+    }
 }
