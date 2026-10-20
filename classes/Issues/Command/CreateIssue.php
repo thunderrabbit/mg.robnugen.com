@@ -37,7 +37,9 @@ final readonly class CreateIssue
 
     /**
      * From a JSON body, form post or MCP arguments. An assignee, parent or
-     * status of 0 or null means none.
+     * status of 0 or null means none. The description may arrive base64 or
+     * gzip+base64 encoded, named by `encoding`, to get source code past the
+     * request firewall; see {@see \Input\BodyEncoding}.
      *
      * @param array<mixed> $in
      */
@@ -45,7 +47,7 @@ final readonly class CreateIssue
     {
         $projectId = Input::positiveId($in, 'project_id');
         $title = Input::text($in, 'title', 255);
-        $description = Input::optionalText($in, 'description', 16_777_215, Length::Bytes);
+        $description = Input::encodedOptionalText($in, 'description', 'encoding', 16_777_215, Length::Bytes);
         $priority = Input::enum($in, 'priority', IssuePriority::class);
         $assigneeAiu = Input::nullableId($in, 'assignee_aiu');
         $parentIssueId = Input::nullableId($in, 'parent_issue_id');
