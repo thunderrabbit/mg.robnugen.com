@@ -7,6 +7,7 @@ namespace Tests\Unit;
 use Codeception\Test\Unit;
 use Db\Enum\IssuePriority;
 use Input\Absent;
+use Input\BodyEncoding;
 use Input\Input;
 use Input\InvalidInput;
 use Input\Length;
@@ -205,6 +206,27 @@ final class InputTest extends Unit
         );
     }
 
+    public function testEncodedTextRefusesAGzipBombBeforeInflatingIt(): void
+    {
+        $bomb = base64_encode((string) gzencode(str_repeat('A', 5_000_000), 9));
+        $this->assertInvalid(
+            'body is larger than 255 bytes once decompressed',
+            static fn() => Input::encodedText(
+                ['body' => $bomb, 'encoding' => 'gzip+base64'],
+                'body',
+                'encoding',
+                255,
+                Length::Bytes,
+            ),
+        );
+    }
+
+    public function testByteCeilingAllowsFourBytesPerCharacter(): void
+    {
+        $this->assertSame(255, Length::Bytes->byteCeiling(255));
+        $this->assertSame(1020, Length::Characters->byteCeiling(255));
+    }
+
     public function testEncodedTextReportsABadEncodingName(): void
     {
         $this->assertInvalid(
@@ -218,6 +240,99 @@ final class InputTest extends Unit
         $this->assertInvalid(
             'body is not valid base64',
             static fn() => Input::encodedText(['body' => '***', 'encoding' => 'base64'], 'body', 'encoding', 255),
+        );
+    }
+
+    // === encoding() ===
+
+    public function testEncodingDefaultsToPlainAndReadsANamedOne(): void
+    {
+        $this->assertSame(BodyEncoding::Plain, Input::encoding([], 'encoding'));
+        $this->assertSame(BodyEncoding::Plain, Input::encoding(['encoding' => 'plain'], 'encoding'));
+        $this->assertSame(BodyEncoding::Base64, Input::encoding(['encoding' => 'base64'], 'encoding'));
+        $this->assertSame(BodyEncoding::GzipBase64, Input::encoding(['encoding' => 'gzip+base64'], 'encoding'));
+        $this->assertInvalid(
+            "encoding must be 'plain', 'base64', or 'gzip+base64'",
+            static fn() => Input::encoding(['encoding' => 'rot13'], 'encoding'),
+        );
+    }
+
+    // === encodedOptionalText() ===
+
+    public function testEncodedOptionalTextSeparatesAbsentClearedAndSet(): void
+    {
+        $read = static fn(array $in) => Input::encodedOptionalText($in, 'description', 'encoding', 100, Length::Bytes);
+
+        $this->assertSame(Absent::Field, $read([]));
+        $this->assertSame(Absent::Field, $read(['encoding' => 'base64']));
+        $this->assertNull($read(['description' => null]));
+        $this->assertNull($read(['description' => '']));
+        $this->assertNull($read(['description' => '', 'encoding' => 'base64']));
+        $this->assertSame('   ', $read(['description' => base64_encode('   '), 'encoding' => 'base64']));
+    }
+
+    public function testEncodedOptionalTextKeepsPlainBehaviourExactly(): void
+    {
+        $this->assertSame(
+            " keep\n",
+            Input::encodedOptionalText(['description' => " keep\n"], 'description', 'encoding', 100),
+        );
+        $this->assertInvalid(
+            'description must be 3 characters or fewer',
+            static fn() => Input::encodedOptionalText(['description' => 'four'], 'description', 'encoding', 3),
+        );
+        $this->assertInvalid(
+            'description must be a string',
+            static fn() => Input::encodedOptionalText(['description' => 5], 'description', 'encoding', 3),
+        );
+    }
+
+    public function testEncodedOptionalTextDecodesWithoutTrimmingAndLimitsTheDecodedText(): void
+    {
+        $source = "  if (n < 0) { drop(it); }\n";
+        $this->assertSame(
+            $source,
+            Input::encodedOptionalText(
+                ['description' => base64_encode($source), 'encoding' => 'base64'],
+                'description',
+                'encoding',
+                100,
+                Length::Bytes,
+            ),
+        );
+        $this->assertSame(
+            $source,
+            Input::encodedOptionalText(
+                ['description' => base64_encode((string) gzencode($source)), 'encoding' => 'gzip+base64'],
+                'description',
+                'encoding',
+                100,
+                Length::Bytes,
+            ),
+        );
+        $this->assertInvalid(
+            'description must be 10 bytes or fewer',
+            static fn() => Input::encodedOptionalText(
+                ['description' => base64_encode($source), 'encoding' => 'base64'],
+                'description',
+                'encoding',
+                10,
+                Length::Bytes,
+            ),
+        );
+    }
+
+    public function testEncodedOptionalTextRefusesAGzipBomb(): void
+    {
+        $this->assertInvalid(
+            'description is larger than 100 bytes once decompressed',
+            static fn() => Input::encodedOptionalText(
+                ['description' => base64_encode((string) gzencode(str_repeat('A', 5_000_000), 9)), 'encoding' => 'gzip+base64'],
+                'description',
+                'encoding',
+                100,
+                Length::Bytes,
+            ),
         );
     }
 

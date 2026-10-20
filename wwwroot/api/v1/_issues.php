@@ -8,11 +8,15 @@
  *                                           include_terminal, parent_issue_id, limit, offset
  *   GET    /issues/get               free — ?issue_id
  *   POST   /issues/create            1    — body: {project_id, title, description?, priority?,
- *                                                  assignee_aiu?, parent_issue_id?, status_id?}
+ *                                                  assignee_aiu?, parent_issue_id?, status_id?, encoding?}
  *   PATCH  /issues/update            1    — body: {issue_id, title?, description?, priority?,
- *                                                  assignee_aiu?, parent_issue_id?, status_id?}
+ *                                                  assignee_aiu?, parent_issue_id?, status_id?, encoding?}
  *   DELETE /issues/delete            1    — human only
  *   GET    /issues/statuses          free — static 4-row lookup
+ *
+ * `encoding` ('base64' or 'gzip+base64') says the description arrives encoded, so source code
+ * gets past the request firewall; mg stores the decoded text. Default 'plain'. Comments take
+ * it for `body` the same way. See \Input\BodyEncoding.
  *
  * Comment routes:
  *   GET    /issues/comments/list     free — ?issue_id required

@@ -98,4 +98,57 @@ class GuardsTest extends Unit
         // One fewer multibyte char (10239 bytes) is under the cap.
         $this->assertNull($this->guards->byteLimit('message', str_repeat("\u{3042}", 3413)));
     }
+
+    // === decodedText() ===
+
+    public function testDecodedTextReturnsPlainTextExactlyAsSent(): void
+    {
+        $this->assertSame("  as typed\n", $this->guards->decodedText(['message' => "  as typed\n"], 'message'));
+        $this->assertSame('', $this->guards->decodedText([], 'message'));
+        $this->assertSame('plain, spelled out', $this->guards->decodedText(
+            ['message' => 'plain, spelled out', 'encoding' => 'plain'],
+            'message',
+        ));
+    }
+
+    public function testDecodedTextDecodesBase64AndGzipBase64(): void
+    {
+        $source = "if (n < 0) { drop(it); } -- a message about code";
+        $this->assertSame($source, $this->guards->decodedText(
+            ['message' => base64_encode($source), 'encoding' => 'base64'],
+            'message',
+        ));
+        $this->assertSame($source, $this->guards->decodedText(
+            ['response' => base64_encode((string) gzencode($source)), 'encoding' => 'gzip+base64'],
+            'response',
+        ));
+    }
+
+    public function testDecodedTextRejectsBadInputWithAFourHundredVerdictNamingTheField(): void
+    {
+        $this->assertSame(
+            ['code' => 400, 'error' => 'message is not valid base64'],
+            $this->guards->decodedText(['message' => '*** nope ***', 'encoding' => 'base64'], 'message'),
+        );
+        $this->assertSame(
+            ['code' => 400, 'error' => 'response is not valid gzip data'],
+            $this->guards->decodedText(
+                ['response' => base64_encode('not gzip'), 'encoding' => 'gzip+base64'],
+                'response',
+            ),
+        );
+        $this->assertSame(
+            ['code' => 400, 'error' => "encoding must be 'plain', 'base64', or 'gzip+base64'"],
+            $this->guards->decodedText(['message' => 'x', 'encoding' => 'rot13'], 'message'),
+        );
+    }
+
+    public function testDecodedTextRefusesAGzipBombAtTheMessageLimit(): void
+    {
+        $bomb = base64_encode((string) gzencode(str_repeat('A', 5_000_000), 9));
+        $this->assertSame(
+            ['code' => 400, 'error' => 'message is larger than 10240 bytes once decompressed'],
+            $this->guards->decodedText(['message' => $bomb, 'encoding' => 'gzip+base64'], 'message'),
+        );
+    }
 }

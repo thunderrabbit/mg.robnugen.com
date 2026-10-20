@@ -43,7 +43,7 @@ final readonly class UpdateIssue
         $update = new self(
             issueId: Input::positiveId($in, 'issue_id'),
             title: array_key_exists('title', $in) ? Input::text($in, 'title', 255) : Absent::Field,
-            description: Input::optionalText($in, 'description', 16_777_215, Length::Bytes),
+            description: Input::encodedOptionalText($in, 'description', 'encoding', 16_777_215, Length::Bytes),
             priority: Input::enum($in, 'priority', IssuePriority::class),
             assigneeAiu: Input::nullableId($in, 'assignee_aiu'),
             parentIssueId: Input::nullableId($in, 'parent_issue_id'),

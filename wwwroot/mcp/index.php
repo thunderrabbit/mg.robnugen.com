@@ -271,7 +271,7 @@ function exterm_dispatch(
             // The phone path doesn't set assignees, parents or statuses; laptop agents own those.
             $created = $issueService->create(
                 $caller,
-                \Issues\Command\CreateIssue::fromInput(mcp_only($a, ['project_id', 'title', 'description', 'priority'])),
+                \Issues\Command\CreateIssue::fromInput(mcp_only($a, ['project_id', 'title', 'description', 'encoding', 'priority'])),
             );
             return mcp_issue_json($issueService->view($caller, $created->issueId));
 
@@ -279,7 +279,7 @@ function exterm_dispatch(
             // Status changes stay with laptop agents, so only these fields are accepted here.
             $updated = $issueService->update(
                 $caller,
-                \Issues\Command\UpdateIssue::fromInput(mcp_only($a, ['issue_id', 'title', 'description', 'priority'])),
+                \Issues\Command\UpdateIssue::fromInput(mcp_only($a, ['issue_id', 'title', 'description', 'encoding', 'priority'])),
             );
             return mcp_issue_json($issueService->view($caller, $updated->issueId));
 
@@ -345,6 +345,14 @@ function mcp_only(array $a, array $keys): array
 function exterm_tool_defs(): array
 {
     $item_id_prop = ['type' => 'integer', 'description' => 'exterm_item_id of the note'];
+    // Only for text the server's firewall refuses (source code in a description
+    // or comment): the caller encodes the text and says how. Omit it otherwise.
+    $encoding_prop = [
+        'type'        => 'string',
+        'enum'        => ['plain', 'base64', 'gzip+base64'],
+        'default'     => 'plain',
+        'description' => 'Optional. How the text field is encoded. Leave out unless a plain post is refused: then base64 (or gzip then base64) the text and set this.',
+    ];
 
     return [
         [
@@ -458,6 +466,7 @@ function exterm_tool_defs(): array
                     'project_id'  => ['type' => 'integer'],
                     'title'       => ['type' => 'string'],
                     'description' => ['type' => 'string', 'description' => 'Markdown body (optional)'],
+                    'encoding'    => $encoding_prop,
                     'priority'    => ['type' => 'string', 'enum' => ['low','normal','high'], 'default' => 'normal'],
                 ],
                 'required' => ['project_id','title'],
@@ -472,6 +481,7 @@ function exterm_tool_defs(): array
                     'issue_id'    => ['type' => 'integer'],
                     'title'       => ['type' => 'string', 'description' => '1-255 characters'],
                     'description' => ['type' => 'string', 'description' => 'Markdown body; pass empty string to clear'],
+                    'encoding'    => $encoding_prop,
                     'priority'    => ['type' => 'string', 'enum' => ['low','normal','high']],
                 ],
                 'required' => ['issue_id'],
@@ -485,6 +495,7 @@ function exterm_tool_defs(): array
                 'properties' => [
                     'issue_id' => ['type' => 'integer'],
                     'body'     => ['type' => 'string', 'description' => 'Markdown comment body'],
+                    'encoding' => $encoding_prop,
                 ],
                 'required' => ['issue_id','body'],
             ],

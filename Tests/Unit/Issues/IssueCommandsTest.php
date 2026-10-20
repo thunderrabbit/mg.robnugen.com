@@ -119,6 +119,66 @@ final class IssueCommandsTest extends Unit
         );
     }
 
+    public function testCreateIssueDecodesAnEncodedDescription(): void
+    {
+        $source = "Reproduce: if (n < 0) { crash(); }\n";
+        $create = CreateIssue::fromInput([
+            'project_id'  => 7,
+            'title'       => 'Crash on negative n',
+            'description' => base64_encode($source),
+            'encoding'    => 'base64',
+        ]);
+        $this->assertSame($source, $create->description);
+        $this->assertSame('Crash on negative n', $create->title);
+    }
+
+    public function testCreateIssueLeavesAPlainDescriptionAlone(): void
+    {
+        $create = CreateIssue::fromInput(['project_id' => 7, 'title' => 'x', 'description' => "  as typed\n"]);
+        $this->assertSame("  as typed\n", $create->description);
+    }
+
+    public function testUpdateIssueDecodesAnEncodedDescription(): void
+    {
+        $source = "SELECT * FROM t WHERE a < b; -- a note, not an attack";
+        $update = UpdateIssue::fromInput([
+            'issue_id'    => 4,
+            'description' => base64_encode((string) gzencode($source)),
+            'encoding'    => 'gzip+base64',
+        ]);
+        $this->assertSame($source, $update->description);
+    }
+
+    public function testAnEncodingAloneChangesNothing(): void
+    {
+        $this->assertInvalid(
+            'provide at least one field to update',
+            static fn() => UpdateIssue::fromInput(['issue_id' => 4, 'encoding' => 'base64']),
+        );
+    }
+
+    public function testAnEncodedDescriptionThatInflatesPastTheLimitIsRefused(): void
+    {
+        $bomb = base64_encode((string) gzencode(str_repeat('A', 20_000_000), 9));
+        $this->assertInvalid(
+            'description is larger than 16777215 bytes once decompressed',
+            static fn() => CreateIssue::fromInput([
+                'project_id'  => 7,
+                'title'       => 'x',
+                'description' => $bomb,
+                'encoding'    => 'gzip+base64',
+            ]),
+        );
+    }
+
+    public function testAnUnknownEncodingIsNamedInTheError(): void
+    {
+        $this->assertInvalid(
+            "encoding must be 'plain', 'base64', or 'gzip+base64'",
+            static fn() => CreateIssue::fromInput(['project_id' => 7, 'title' => 'x', 'description' => 'y', 'encoding' => 'rot13']),
+        );
+    }
+
     // === Comments ===
 
     public function testAddCommentTrimsTheBody(): void
