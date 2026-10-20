@@ -205,6 +205,27 @@ final class InputTest extends Unit
         );
     }
 
+    public function testEncodedTextRefusesAGzipBombBeforeInflatingIt(): void
+    {
+        $bomb = base64_encode((string) gzencode(str_repeat('A', 5_000_000), 9));
+        $this->assertInvalid(
+            'body is larger than 255 bytes once decompressed',
+            static fn() => Input::encodedText(
+                ['body' => $bomb, 'encoding' => 'gzip+base64'],
+                'body',
+                'encoding',
+                255,
+                Length::Bytes,
+            ),
+        );
+    }
+
+    public function testByteCeilingAllowsFourBytesPerCharacter(): void
+    {
+        $this->assertSame(255, Length::Bytes->byteCeiling(255));
+        $this->assertSame(1020, Length::Characters->byteCeiling(255));
+    }
+
     public function testEncodedTextReportsABadEncodingName(): void
     {
         $this->assertInvalid(

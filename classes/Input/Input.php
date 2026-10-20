@@ -139,7 +139,7 @@ final class Input
             throw new InvalidInput("{$bodyKey} must be a string");
         }
 
-        $text = trim($encoding->decode($value ?? ''));
+        $text = trim($encoding->decode($value ?? '', $length->byteCeiling($max), $bodyKey));
         if ($text === '') {
             throw new InvalidInput("{$bodyKey} is required");
         }
