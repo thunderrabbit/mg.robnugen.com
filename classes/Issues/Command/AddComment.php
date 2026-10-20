@@ -13,6 +13,11 @@ use Input\Length;
  *
  * The body column is MEDIUMTEXT, but the API and the comment form have always
  * held comments to 65535 bytes; that stays the limit.
+ *
+ * An optional `encoding` field ('base64' or 'gzip+base64') lets a caller behind
+ * a request firewall post source code whose syntax would otherwise trip the
+ * WAF; mg decodes it to plain text before storing, and the 65535-byte limit is
+ * on that decoded text. See {@see \Input\BodyEncoding}.
  */
 final readonly class AddComment
 {
@@ -33,7 +38,7 @@ final readonly class AddComment
     {
         return new self(
             issueId: Input::positiveId($in, 'issue_id'),
-            body: Input::text($in, 'body', 65_535, Length::Bytes),
+            body: Input::encodedText($in, 'body', 'encoding', 65_535, Length::Bytes),
         );
     }
 }

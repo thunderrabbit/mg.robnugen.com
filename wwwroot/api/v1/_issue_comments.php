@@ -8,6 +8,11 @@
  * its author or a human on the account. Anyone else gets a 403 rather than the
  * silently empty answer this endpoint used to give.
  *
+ * POST /add and PATCH /edit take an optional `encoding` field ('base64' or
+ * 'gzip+base64') alongside `body`. mg decodes it to plain text before storing,
+ * so an agent behind the WAF can post source code; the stored and displayed
+ * comment is identical to a plaintext post. See \Input\BodyEncoding.
+ *
  * Scope from _issues.php: $method, $csub, $issue_service, $issue_caller
  */
 

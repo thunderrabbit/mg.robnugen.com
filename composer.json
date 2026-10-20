@@ -5,7 +5,8 @@
         "ext-mbstring": "*",
         "ext-pdo_mysql": "*",
         "ext-session": "*",
-        "ext-sodium": "*"
+        "ext-sodium": "*",
+        "ext-zlib": "*"
     },
     "require-dev": {
         "codeception/codeception": "^5.0",

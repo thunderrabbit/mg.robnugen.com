@@ -136,6 +136,91 @@ final class InputTest extends Unit
         );
     }
 
+    // === encodedText() ===
+
+    public function testEncodedTextDefaultsToPlain(): void
+    {
+        $this->assertSame(
+            'Fix it',
+            Input::encodedText(['body' => "  Fix it \n"], 'body', 'encoding', 255),
+        );
+    }
+
+    public function testEncodedTextDecodesBase64ThenAppliesTheLimit(): void
+    {
+        $source = "if (x < 0) { drop(it); }";
+        $this->assertSame(
+            $source,
+            Input::encodedText(
+                ['body' => base64_encode($source), 'encoding' => 'base64'],
+                'body',
+                'encoding',
+                255,
+                Length::Bytes,
+            ),
+        );
+    }
+
+    public function testEncodedTextDecodesGzipBase64(): void
+    {
+        $source = "SELECT 1; -- code, not an attack";
+        $this->assertSame(
+            $source,
+            Input::encodedText(
+                ['body' => base64_encode((string) gzencode($source)), 'encoding' => 'gzip+base64'],
+                'body',
+                'encoding',
+                255,
+                Length::Bytes,
+            ),
+        );
+    }
+
+    public function testEncodedTextLimitsTheDecodedLengthNotTheWire(): void
+    {
+        // 300 plain bytes base64-encode to ~400 wire bytes; the limit is on the
+        // decoded text, so a 255-byte limit must reject the 300-byte body.
+        $source = str_repeat('a', 300);
+        $this->assertInvalid(
+            'body must be 255 bytes or fewer',
+            static fn() => Input::encodedText(
+                ['body' => base64_encode($source), 'encoding' => 'base64'],
+                'body',
+                'encoding',
+                255,
+                Length::Bytes,
+            ),
+        );
+    }
+
+    public function testEncodedTextRejectsAnEmptyDecodedBody(): void
+    {
+        $this->assertInvalid(
+            'body is required',
+            static fn() => Input::encodedText(['body' => base64_encode('   '), 'encoding' => 'base64'], 'body', 'encoding', 255),
+        );
+        $this->assertInvalid(
+            'body is required',
+            static fn() => Input::encodedText([], 'body', 'encoding', 255),
+        );
+    }
+
+    public function testEncodedTextReportsABadEncodingName(): void
+    {
+        $this->assertInvalid(
+            "encoding must be 'plain', 'base64', or 'gzip+base64'",
+            static fn() => Input::encodedText(['body' => 'x', 'encoding' => 'rot13'], 'body', 'encoding', 255),
+        );
+    }
+
+    public function testEncodedTextReportsBadBase64(): void
+    {
+        $this->assertInvalid(
+            'body is not valid base64',
+            static fn() => Input::encodedText(['body' => '***', 'encoding' => 'base64'], 'body', 'encoding', 255),
+        );
+    }
+
     // === json() ===
 
     public function testJsonReadsTheFieldsOfABody(): void
