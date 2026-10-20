@@ -11,7 +11,7 @@ namespace Startup;
  */
 final class RequiredExtensions
 {
-    public const REQUIRED = ['session', 'pdo_mysql', 'mbstring', 'curl', 'sodium'];
+    public const REQUIRED = ['session', 'pdo_mysql', 'mbstring', 'curl', 'sodium', 'zlib'];
 
     /**
      * @param list<string>         $required
