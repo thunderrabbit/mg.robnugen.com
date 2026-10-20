@@ -111,6 +111,43 @@ final class Input
     }
 
     /**
+     * A required text body that may arrive transport-encoded. The optional
+     * `$encodingKey` field names a {@see BodyEncoding} ('base64' or
+     * 'gzip+base64'); mg decodes the body so a caller behind a request
+     * firewall can post source code whose syntax would trip the WAF. The limit
+     * and the returned value are the DECODED text, so the stored body is the
+     * same whether it arrived plain or encoded. Absent encoding means plain,
+     * matching {@see text()} exactly.
+     *
+     * @param array<mixed> $in
+     * @return non-empty-string
+     */
+    public static function encodedText(
+        array $in,
+        string $bodyKey,
+        string $encodingKey,
+        int $max,
+        Length $length = Length::Characters,
+    ): string {
+        $encoding = self::enum($in, $encodingKey, BodyEncoding::class);
+        if ($encoding instanceof Absent) {
+            $encoding = BodyEncoding::Plain;
+        }
+
+        $value = $in[$bodyKey] ?? null;
+        if ($value !== null && !is_string($value)) {
+            throw new InvalidInput("{$bodyKey} must be a string");
+        }
+
+        $text = trim($encoding->decode($value ?? ''));
+        if ($text === '') {
+            throw new InvalidInput("{$bodyKey} is required");
+        }
+        self::checkLength($bodyKey, $text, $max, $length);
+        return $text;
+    }
+
+    /**
      * Optional or PATCH text. An empty string means "clear it", like null.
      *
      * @param array<mixed> $in
