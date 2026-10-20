@@ -153,6 +153,28 @@ final class IssueCommandsTest extends Unit
         );
     }
 
+    public function testAddCommentDecodesAnEncodedBody(): void
+    {
+        $source = "#include <stdio.h>\nint main(){ if (n < 0) return 1; }";
+        $add    = AddComment::fromInput([
+            'issue_id' => 4,
+            'body'     => base64_encode($source),
+            'encoding' => 'base64',
+        ]);
+        $this->assertSame($source, $add->body);
+    }
+
+    public function testEditCommentDecodesAnEncodedBody(): void
+    {
+        $source = "DROP TABLE legacy; -- describing a migration, not attacking";
+        $edit   = EditComment::fromInput([
+            'issue_comment_id' => 9,
+            'body'             => base64_encode((string) gzencode($source)),
+            'encoding'         => 'gzip+base64',
+        ]);
+        $this->assertSame($source, $edit->body);
+    }
+
     // === Timers ===
 
     public function testStartTimerTrimsANoteAndTreatsAnEmptyOneAsNone(): void

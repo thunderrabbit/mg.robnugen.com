@@ -30,7 +30,7 @@ final readonly class EditComment
     {
         return new self(
             issueCommentId: Input::positiveId($in, 'issue_comment_id'),
-            body: Input::text($in, 'body', 65_535, Length::Bytes),
+            body: Input::encodedText($in, 'body', 'encoding', 65_535, Length::Bytes),
         );
     }
 }
