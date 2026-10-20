@@ -129,10 +129,7 @@ final class Input
         int $max,
         Length $length = Length::Characters,
     ): string {
-        $encoding = self::enum($in, $encodingKey, BodyEncoding::class);
-        if ($encoding instanceof Absent) {
-            $encoding = BodyEncoding::Plain;
-        }
+        $encoding = self::encoding($in, $encodingKey);
 
         $value = $in[$bodyKey] ?? null;
         if ($value !== null && !is_string($value)) {
@@ -142,6 +139,56 @@ final class Input
         $text = trim($encoding->decode($value ?? '', $length->byteCeiling($max), $bodyKey));
         if ($text === '') {
             throw new InvalidInput("{$bodyKey} is required");
+        }
+        self::checkLength($bodyKey, $text, $max, $length);
+        return $text;
+    }
+
+    /**
+     * The request's body encoding: `plain` when the field is absent, otherwise
+     * the named {@see BodyEncoding}.
+     *
+     * @param array<mixed> $in
+     */
+    public static function encoding(array $in, string $key): BodyEncoding
+    {
+        $encoding = self::enum($in, $key, BodyEncoding::class);
+        return $encoding instanceof Absent ? BodyEncoding::Plain : $encoding;
+    }
+
+    /**
+     * Optional or PATCH text that may arrive transport-encoded, for issue
+     * descriptions. Behaves like {@see optionalText()} on the DECODED text:
+     * absent is {@see Absent::Field}, and null or an empty string is "clear
+     * it". The limit applies to the decoded text, and a gzip body that would
+     * inflate past it is refused while decoding.
+     *
+     * @param array<mixed> $in
+     * @return non-empty-string|null|Absent
+     */
+    public static function encodedOptionalText(
+        array $in,
+        string $bodyKey,
+        string $encodingKey,
+        int $max,
+        Length $length = Length::Characters,
+        bool $trim = false,
+    ): string|null|Absent {
+        if (!array_key_exists($bodyKey, $in)) {
+            return Absent::Field;
+        }
+        $value = $in[$bodyKey];
+        if ($value === null) {
+            return null;
+        }
+        if (!is_string($value)) {
+            throw new InvalidInput("{$bodyKey} must be a string");
+        }
+
+        $decoded = self::encoding($in, $encodingKey)->decode($value, $length->byteCeiling($max), $bodyKey);
+        $text = $trim ? trim($decoded) : $decoded;
+        if ($text === '') {
+            return null;
         }
         self::checkLength($bodyKey, $text, $max, $length);
         return $text;
