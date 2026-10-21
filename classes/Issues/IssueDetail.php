@@ -14,6 +14,7 @@ final readonly class IssueDetail
     public function __construct(
         public int $issueId,
         public int $projectId,
+        public ?int $parentIssueId,
         public string $projectName,
         public string $title,
         public \Db\Enum\IssuePriority $priority,
@@ -32,6 +33,7 @@ final readonly class IssueDetail
         return new self(
             issueId: $view->issue->issueId,
             projectId: $view->issue->projectId,
+            parentIssueId: $view->issue->parentIssueId,
             projectName: $names->projectName,
             title: $view->issue->title,
             priority: $view->issue->priority,
