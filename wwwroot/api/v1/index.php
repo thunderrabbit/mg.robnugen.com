@@ -12,6 +12,8 @@
  * All other endpoints are free (reads).
  */
 
+declare(strict_types=1);
+
 header('Content-Type: application/json');
 
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);

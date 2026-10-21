@@ -16,6 +16,8 @@
  * Scope from _issues.php: $method, $csub, $issue_service, $issue_caller
  */
 
+declare(strict_types=1);
+
 /**
  * Set up by index.php and _issues.php, which includes this file.
  *

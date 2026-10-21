@@ -11,6 +11,8 @@
  * silently drop a blocked/alert ping.
  */
 
+declare(strict_types=1);
+
 /**
  * Set up by index.php, which includes this file.
  *
