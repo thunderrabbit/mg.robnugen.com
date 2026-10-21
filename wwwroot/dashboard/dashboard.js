@@ -1,5 +1,17 @@
 // Dashboard JavaScript for Active Sessions and Todos
 
+// Every value from the API goes through this before it is put into an HTML
+// string. Todo titles and activity names are written by agents, so an
+// unescaped one runs as script in Rob's browser.
+function escapeHtml(value) {
+	return String(value === null || value === undefined ? '' : value)
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#39;');
+}
+
 // ===== TODOS SECTION =====
 
 // Create checkbox HTML for a todo
@@ -13,7 +25,7 @@ function createTodoCheckboxes(todo) {
 		var checkedAttr = isChecked ? 'checked' : '';
 		var checkedClass = isChecked ? 'checked' : '';
 		checkboxes += '<label class="todo-checkbox ' + checkedClass + '">' +
-			'<input type="checkbox" ' + checkedAttr + ' data-todo-id="' + todo.todo_id + '" data-nth="' + i + '">' +
+			'<input type="checkbox" ' + checkedAttr + ' data-todo-id="' + escapeHtml(todo.todo_id) + '" data-nth="' + i + '">' +
 			'<span class="checkbox-mark"></span>' +
 			(targetCount > 1 ? '<span class="nth-label">' + i + '</span>' : '') +
 			'</label>';
@@ -41,24 +53,24 @@ function createTodoWidget(todo) {
 
     	var timeDisplay = '';
 	if (todo.do_time) {
-		timeDisplay = '<span class="todo-time editable" data-field="do_time" data-value="' + todo.do_time + '">' + todo.do_time.substring(0, 5) + '</span>';
+		timeDisplay = '<span class="todo-time editable" data-field="do_time" data-value="' + escapeHtml(todo.do_time) + '">' + escapeHtml(todo.do_time.substring(0, 5)) + '</span>';
 	} else if (todo.due_date) {
-		timeDisplay = '<span class="todo-date editable" data-field="due_date" data-value="' + todo.due_date + '">' + formatTodoDate(todo.due_date) + '</span>';
+		timeDisplay = '<span class="todo-date editable" data-field="due_date" data-value="' + escapeHtml(todo.due_date) + '">' + escapeHtml(formatTodoDate(todo.due_date)) + '</span>';
 	}
 
 	var durationDisplay = '';
 	if (isTimer && todo.target_duration_seconds) {
-		durationDisplay = '<span class="todo-duration editable" data-field="target_duration_seconds" data-value="' + todo.target_duration_seconds + '">' + formatDuration(parseInt(todo.target_duration_seconds)) + '</span>';
+		durationDisplay = '<span class="todo-duration editable" data-field="target_duration_seconds" data-value="' + escapeHtml(todo.target_duration_seconds) + '">' + formatDuration(parseInt(todo.target_duration_seconds)) + '</span>';
 	}
 
 	var startButton = '';
 	if (isTimer && hasActivityId) {
-		startButton = '<a href="/mg/?activity_id=' + todo.activity_id +
-			(todo.target_duration_seconds ? '&duration=' + todo.target_duration_seconds : '') +
-			'&todo_id=' + todo.todo_id + '" class="btn-start-timer">START</a>';
+		startButton = '<a href="/mg/?activity_id=' + encodeURIComponent(todo.activity_id) +
+			(todo.target_duration_seconds ? '&duration=' + encodeURIComponent(todo.target_duration_seconds) : '') +
+			'&todo_id=' + encodeURIComponent(todo.todo_id) + '" class="btn-start-timer">START</a>';
 	} else if (isTimer) {
-		startButton = '<a href="/mg/?todo_id=' + todo.todo_id +
-			(todo.target_duration_seconds ? '&duration=' + todo.target_duration_seconds : '') +
+		startButton = '<a href="/mg/?todo_id=' + encodeURIComponent(todo.todo_id) +
+			(todo.target_duration_seconds ? '&duration=' + encodeURIComponent(todo.target_duration_seconds) : '') +
 			'" class="btn-start-timer">START</a>';
 	}
 
@@ -80,8 +92,8 @@ function createTodoWidget(todo) {
 		'html': '<div class="todo-header">' +
 				sortHandle +
 				timeDisplay +
-				'<span class="todo-title editable" data-field="title">' + todo.title + '</span>' +
-				'<a href="/todos/create.php?todo_id=' + todo.todo_id + '" class="todo-edit-icon" title="Edit">✎</a>' +
+				'<span class="todo-title editable" data-field="title">' + escapeHtml(todo.title) + '</span>' +
+				'<a href="/todos/create.php?todo_id=' + encodeURIComponent(todo.todo_id) + '" class="todo-edit-icon" title="Edit">✎</a>' +
 				durationDisplay +
 				progressText +
 				'</div>' +
@@ -511,17 +523,17 @@ function createSessionWidget(session) {
 	var statusText = isBonus ? '🟢 Bonus Time' : '🟡 Counting Down';
 
 	// Build the URL - use session_key if available, otherwise go to /mg/
-	var sessionUrl = session.session_key ? '/mg/' + session.session_key : '/mg/';
+	var sessionUrl = session.session_key ? '/mg/' + encodeURIComponent(session.session_key) : '/mg/';
 
 	// Build delete button data attribute
-	var deleteData = session.session_key ? 'data-session-key="' + session.session_key + '"' : 'data-ak-id="' + session.ak_id + '"';
+	var deleteData = session.session_key ? 'data-session-key="' + escapeHtml(session.session_key) + '"' : 'data-ak-id="' + escapeHtml(session.ak_id) + '"';
 
 	var widget = $('<div>', {
 		'class': 'session-widget-container',
 		'html': '<a href="' + sessionUrl + '" class="session-widget ' + statusClass + '">' +
-				'<div class="activity-name">' + session.activity_name + '</div>' +
+				'<div class="activity-name">' + escapeHtml(session.activity_name) + '</div>' +
 				'<div class="intended-time">Intended: ' + formatDuration(session.intended_sec) + '</div>' +
-				'<div class="elapsed-time" data-start="' + session.start_local_dt + '">' +
+				'<div class="elapsed-time" data-start="' + escapeHtml(session.start_local_dt) + '">' +
 				'  Elapsed: <span class="elapsed-value">' + formatElapsed(elapsedSec) + '</span>' +
 				'</div>' +
 				'<div class="status-indicator">' + statusText + '</div>' +
@@ -1023,14 +1035,14 @@ function createCompletedSessionWidget(session) {
 
 	var deleteBtn = '';
     if (session.ak_id) {
-         deleteBtn = '<button class="delete-session-btn" data-ak-id="' + session.ak_id + '" title="Delete session">✕</button>';
+         deleteBtn = '<button class="delete-session-btn" data-ak-id="' + escapeHtml(session.ak_id) + '" title="Delete session">✕</button>';
     }
 
 	// Build the URL - link to todo? or activity?
     // If it has a session key (not in new API yet), we linked to /mg/.
     // New API doesn't return session_key.
     // Let's link to the todo edit page.
-    var linkUrl = '/todos/create.php?todo_id=' + session.todo_id;
+    var linkUrl = '/todos/create.php?todo_id=' + encodeURIComponent(session.todo_id);
 
     // Use date_logged (local time string from DB)
     // We need to parse it carefully or display as is if it's Y-m-d H:i:s
@@ -1050,11 +1062,11 @@ function createCompletedSessionWidget(session) {
 		'html': '<a href="' + linkUrl + '" class="session-widget completed">' +
                 '<div class="completed-task">' +
                 '  <span class="completed-check">✅</span> ' +
-                '  <span class="completed-title">' + title + '</span>' +
-                (activityName ? '<span class="completed-activity-name"><small>' + activityName + '</small></span>' : '') +
+                '  <span class="completed-title">' + escapeHtml(title) + '</span>' +
+                (activityName ? '<span class="completed-activity-name"><small>' + escapeHtml(activityName) + '</small></span>' : '') +
                 '</div>' +
 				'<div class="completion-details">' +
-                '  <span class="completion-date">' + dateDisplay + '</span>' +
+                '  <span class="completion-date">' + escapeHtml(dateDisplay) + '</span>' +
 				  durationDisplay +
                 '</div>' +
 				'</a>' +
