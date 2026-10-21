@@ -54,12 +54,22 @@ $code_challenge         = \Field::string($_REQUEST, 'code_challenge');
 $code_challenge_method  = \Field::string($_REQUEST, 'code_challenge_method');
 $state                  = \Field::string($_REQUEST, 'state');
 
+// The only clients are Claude's connectors. Without this list any site could
+// send Rob a link whose redirect_uri is its own, and one click on Approve
+// would hand it a code it can redeem with its own PKCE verifier.
+$allowed_redirect_uris = [
+    'https://claude.ai/api/mcp/auth_callback',
+    'https://claude.com/api/mcp/auth_callback',
+];
+
 // Validate required params; show a plain error (don't redirect — redirect_uri may be bad)
 $oauth_error = null;
 if ($response_type !== 'code') {
     $oauth_error = "unsupported_response_type";
 } elseif (!$redirect_uri) {
     $oauth_error = "invalid_request: missing redirect_uri";
+} elseif (!in_array($redirect_uri, $allowed_redirect_uris, true)) {
+    $oauth_error = "invalid_request: redirect_uri is not registered";
 } elseif (!$code_challenge) {
     $oauth_error = "invalid_request: missing code_challenge";
 } elseif ($code_challenge_method !== 'S256') {
