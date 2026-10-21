@@ -5,6 +5,8 @@
  * Handles display and submission of the create todo form
  */
 
+declare(strict_types=1);
+
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
 

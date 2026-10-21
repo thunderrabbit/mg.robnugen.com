@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 # Must include here because DH runs FastCGI
 # Extract DreamHost project root: /home/username/domain.com
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);

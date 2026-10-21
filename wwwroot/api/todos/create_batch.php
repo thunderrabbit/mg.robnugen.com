@@ -5,6 +5,8 @@
  * Expects JSON: { "todos": [ { "title": "...", "do_time": "...", ... }, ... ] }
  */
 
+declare(strict_types=1);
+
 header('Content-Type: application/json');
 
 // Bootstrap

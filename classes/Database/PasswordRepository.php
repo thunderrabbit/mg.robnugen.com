@@ -1,14 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database;
 
 class PasswordRepository
 {
-    private \PDO $pdo;
-
-    public function __construct(\PDO $pdo)
+    public function __construct(private \PDO $pdo)
     {
-        $this->pdo = $pdo;
     }
 
     /**

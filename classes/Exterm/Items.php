@@ -60,6 +60,8 @@
  *   ~/.claude/projects/.../memory/project_exterminal.md
  */
 
+declare(strict_types=1);
+
 namespace Exterm;
 
 class Items

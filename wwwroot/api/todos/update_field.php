@@ -5,6 +5,8 @@
  * Expects JSON: { "todo_id": 123, "field": "title", "value": "New Title" }
  */
 
+declare(strict_types=1);
+
 header('Content-Type: application/json');
 
 // Bootstrap

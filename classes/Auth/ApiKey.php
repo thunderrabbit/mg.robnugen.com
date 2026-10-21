@@ -5,6 +5,8 @@
  * Follows the same constructor pattern as Auth\IsLoggedIn.
  */
 
+declare(strict_types=1);
+
 namespace Auth;
 
 class ApiKey

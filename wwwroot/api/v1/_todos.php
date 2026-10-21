@@ -10,6 +10,8 @@
  * @var string $path
  */
 
+declare(strict_types=1);
+
 // Todo sub-dispatcher
 //
 // Variables in scope from index.php:

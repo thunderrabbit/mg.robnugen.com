@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Reads one scalar field from an untyped source: decoded JSON, a PDO row, a
  * superglobal. A scalar is cast the way (int) or (string) would cast it; a

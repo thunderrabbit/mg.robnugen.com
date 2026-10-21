@@ -12,6 +12,8 @@
  * @var string $path
  */
 
+declare(strict_types=1);
+
 // Emotional Interaction Ledger sub-dispatcher
 //
 // Variables in scope from index.php:

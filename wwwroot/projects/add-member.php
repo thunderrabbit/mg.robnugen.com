@@ -6,6 +6,8 @@
  * POST inserts a project_members row. Admin/paid only; project must be in account.
  */
 
+declare(strict_types=1);
+
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
 

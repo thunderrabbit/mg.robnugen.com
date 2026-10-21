@@ -7,6 +7,8 @@
  * Auto-joins the creator's human actor as RW member (matching the API's create flow).
  */
 
+declare(strict_types=1);
+
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
 

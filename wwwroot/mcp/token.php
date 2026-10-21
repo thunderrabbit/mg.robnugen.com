@@ -41,6 +41,8 @@
  * @see wwwroot/mcp/index.php        — validates tokens issued here
  */
 
+declare(strict_types=1);
+
 header('Content-Type: application/json');
 header('Cache-Control: no-store');
 header('Access-Control-Allow-Origin: *');

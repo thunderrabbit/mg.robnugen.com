@@ -5,6 +5,8 @@
  * Returns todos for the current day with completion status
  */
 
+declare(strict_types=1);
+
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
 

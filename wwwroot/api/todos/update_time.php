@@ -5,6 +5,8 @@
  * Expects JSON: { "todo_id": 123, "do_time": "14:30" }
  */
 
+declare(strict_types=1);
+
 header('Content-Type: application/json');
 
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);

@@ -32,6 +32,8 @@
  * See ~/.claude/projects/.../memory/project_exterminal.md § Phone connector setup.
  */
 
+declare(strict_types=1);
+
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Headers: Authorization, Content-Type, Mcp-Session-Id');

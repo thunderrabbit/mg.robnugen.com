@@ -13,6 +13,8 @@
  * Variables from index.php: $pdo, $auth_user_id, $method, $path
  */
 
+declare(strict_types=1);
+
 /**
  * Set up by index.php, which includes this file.
  *

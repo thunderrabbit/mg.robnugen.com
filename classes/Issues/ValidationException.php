@@ -14,6 +14,8 @@
  * @see \Issues\IssueService
  */
 
+declare(strict_types=1);
+
 namespace Issues;
 
 class ValidationException extends \Exception

@@ -28,6 +28,8 @@
  * decoded text; the byte limit applies to it. Default 'plain'. See Auth\Guards::decodedText.
  */
 
+declare(strict_types=1);
+
 /**
  * Set up by index.php, which includes this file.
  *
