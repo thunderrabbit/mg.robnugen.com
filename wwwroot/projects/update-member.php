@@ -5,6 +5,8 @@
  * POST only. Admin/paid + project must be in the user's account.
  */
 
+declare(strict_types=1);
+
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
 

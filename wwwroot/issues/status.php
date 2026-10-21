@@ -7,6 +7,8 @@
  * Redirects back to /issues/view.php?issue_id=N on success or error.
  */
 
+declare(strict_types=1);
+
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
 

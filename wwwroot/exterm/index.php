@@ -14,6 +14,8 @@
  * issues, not here. Uses direct SQL scoped to projects the user owns.
  */
 
+declare(strict_types=1);
+
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 include_once $matches[1] . '/prepend.php';
 

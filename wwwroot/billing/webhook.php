@@ -14,6 +14,8 @@
  *   invoice.payment_succeeded
  */
 
+declare(strict_types=1);
+
 // Bootstrap without prepend.php (same pattern as login/register.php)
 preg_match('#^(/home/[^/]+/[^/]+)#', __DIR__, $matches);
 $project_root = $matches[1];
