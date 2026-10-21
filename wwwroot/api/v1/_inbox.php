@@ -461,8 +461,20 @@ if ($method === 'GET' && $sub === '/list') {
     $set_sql = implode(', ', $sets);
     $params[] = $message_id;
     $params[] = $auth_user_id;
+    // Only the sender, or a supervisor (a NULL-peer visibility row), may edit:
+    // otherwise any agent with can_write_inbox could rewrite a message that
+    // still shows Rob or Boss Claude as its sender.
+    $caller_aiu = \Field::int($auth_actor, 'aiu_id');
+    $params[] = $caller_aiu;
+    $params[] = $caller_aiu;
 
-    $stmt = $pdo->prepare("UPDATE agent_inbox SET {$set_sql} WHERE message_id = ? AND user_id = ?");
+    $stmt = $pdo->prepare(
+        "UPDATE agent_inbox SET {$set_sql}
+         WHERE message_id = ? AND user_id = ?
+           AND (sender_aiu = ? OR EXISTS (
+                SELECT 1 FROM inbox_visibility
+                WHERE inbox_user_aiu_id = ? AND inbox_peer_aiu_id IS NULL AND can_read = 1))"
+    );
     $stmt->execute($params);
 
     echo json_encode(['updated' => $stmt->rowCount()]);
