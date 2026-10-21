@@ -11,62 +11,50 @@ class Base
     private static ?\PDO $pdo = null;
 
     // Modern database access using native PDO interface
-    private static function initDB(\Config $config): \PDO
-    {
-        /** START - Database **/
-        if (empty(self::$pdo)) {
-            $dsn = "mysql:host={$config->dbHost}";
-            if (!empty($config->dbName)) {
-                $dsn .= ";dbname={$config->dbName}";
-            }
-            $dsn .= ";charset=" . CONFIG_DATABASE_OUTPUT_ENCODING;
-
-            $options = [
-                \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
-                \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
-                \PDO::ATTR_EMULATE_PREPARES => false,
-            ];
-
-            try {
-                self::$pdo = new \PDO($dsn, $config->dbUser, $config->dbPass, $options);
-
-                // Set timezone
-                $now = new \DateTime();
-                $mins = $now->getOffset() / 60;
-                $sgn = ($mins < 0 ? -1 : 1);
-                $mins = abs($mins);
-                $hrs = floor($mins / 60);
-                $mins -= $hrs * 60;
-                $offset = '+00:00'; // Always UTC — was: sprintf('%+d:%02d', $hrs*$sgn, $mins);
-                $stmt = self::$pdo->prepare("SET time_zone = ?");
-                $stmt->execute([$offset]);
-            } catch (\PDOException $e) {
-                // Try once more with a sleep (mimic original behavior)
-                sleep(1);
-                try {
-                    self::$pdo = new \PDO($dsn, $config->dbUser, $config->dbPass, $options);
-                    // Set timezone again
-                    $now = new \DateTime();
-                    $mins = $now->getOffset() / 60;
-                    $sgn = ($mins < 0 ? -1 : 1);
-                    $mins = abs($mins);
-                    $hrs = floor($mins / 60);
-                    $mins -= $hrs * 60;
-                    $offset = '+00:00'; // Always UTC — was: sprintf('%+d:%02d', $hrs*$sgn, $mins);
-                    $stmt = self::$pdo->prepare("SET time_zone = ?");
-                    $stmt->execute([$offset]);
-                } catch (\PDOException $e2) {
-                    throw new \Database\EDatabaseException("Could not connect to server after trying with 1s sleep: " . $e2->getMessage());
-                }
-            }
-        }
-        /** END - Database **/
-        return self::$pdo;
-    }
-
     public static function getPDO(\Config $config): \PDO
     {
-        return self::initDB($config);
+        return self::$pdo ??= self::connect($config);
+    }
+
+    /**
+     * Connects, trying once more after a second's sleep.
+     */
+    private static function connect(\Config $config): \PDO
+    {
+        $dsn = "mysql:host={$config->dbHost}";
+        if (!empty($config->dbName)) {
+            $dsn .= ";dbname={$config->dbName}";
+        }
+        $dsn .= ";charset=" . CONFIG_DATABASE_OUTPUT_ENCODING;
+
+        try {
+            return self::open($dsn, $config);
+        } catch (\PDOException) {
+            sleep(1);
+            try {
+                return self::open($dsn, $config);
+            } catch (\PDOException $e) {
+                throw new \Database\EDatabaseException(
+                    "Could not connect to server after trying with 1s sleep: " . $e->getMessage()
+                );
+            }
+        }
+    }
+
+    /**
+     * Opens a connection whose session time zone is always UTC, whatever
+     * PHP's time zone is: mg's *_utc columns rely on it.
+     */
+    private static function open(string $dsn, \Config $config): \PDO
+    {
+        $pdo = new \PDO($dsn, $config->dbUser, $config->dbPass, [
+            \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+            \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+            \PDO::ATTR_EMULATE_PREPARES => false,
+        ]);
+        $pdo->exec("SET time_zone = '+00:00'");
+
+        return $pdo;
     }
 
     /**
