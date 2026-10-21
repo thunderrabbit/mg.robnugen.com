@@ -66,6 +66,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = \Auth\PasswordPolicy::problem($password);
     }
 
+    $signup_throttle = new \Auth\SignupThrottle($mla_database);
+    $signup_ip = \Field::string($_SERVER, 'REMOTE_ADDR');
+    if (empty($errors) && $signup_throttle->isThrottled($signup_ip)) {
+        $errors[] = "Too many new accounts were created recently. Please try again in "
+            . intdiv(\Auth\SignupThrottle::WINDOW_SECONDS, 60) . " minutes.";
+    }
+
     // If errors, redisplay form with errors
     if (!empty($errors)) {
         echo "<h1>Registration Errors</h1><ul>";
@@ -90,6 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             "INSERT INTO api_credits (user_id, credits_remaining) VALUES (?, 100)"
         );
         $trial_stmt->execute([$new_user_id]);
+        $signup_throttle->recordSignup($signup_ip);
 
         // Redirect to login page with success message
         header("Location: /login/?registered=1");
