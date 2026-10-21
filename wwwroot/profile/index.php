@@ -54,9 +54,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 $user_id = $is_logged_in->loggedInID();
 
-                // Use PasswordRepository to handle password change
-                $passwordRepository = new \Database\PasswordRepository($mla_database);
-                $result = $passwordRepository->changePassword($user_id, $current_password, $new_password);
+                // The current-password check is a password guess like any
+                // login, so it shares the login throttle: a stolen cookie
+                // must not buy unlimited guesses at the real password.
+                $throttle = new \Auth\LoginThrottle($mla_database);
+                $throttle_name = $is_logged_in->getLoggedInUsername();
+                $throttle_ip = \Field::string($_SERVER, 'REMOTE_ADDR', 'unknown');
+                if ($throttle->isThrottled($throttle_name, $throttle_ip)) {
+                    $result = ['success' => false, 'message' => 'Too many failed attempts. Wait '
+                        . intdiv(\Auth\LoginThrottle::WINDOW_SECONDS, 60) . ' minutes and try again.'];
+                } else {
+                    $throttle->recordFailure($throttle_name, $throttle_ip);
+                    // Use PasswordRepository to handle password change
+                    $passwordRepository = new \Database\PasswordRepository($mla_database);
+                    $result = $passwordRepository->changePassword($user_id, $current_password, $new_password);
+                    if ($result['success']) {
+                        $throttle->clearFailures($throttle_name);
+                    }
+                }
 
                 if ($result['success']) {
                     // Anyone holding an old session is signed out; this browser stays in.
