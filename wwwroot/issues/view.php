@@ -62,6 +62,16 @@ try {
     exit;
 }
 
+// A parent the caller can't read just isn't linked; the issue itself still shows.
+$parent = null;
+if ($issue->parentIssueId !== null) {
+    try {
+        $parent = $service->detail($caller, $issue->parentIssueId);
+    } catch (\Issues\NotFoundException | \Issues\AccessException) {
+        $parent = null;
+    }
+}
+
 $page = new \Template($config, $is_logged_in);
 $page->setTemplate("layout/base.tpl.php");
 $page->set("page_title", $issue->title . " - Meiso Gambare");
@@ -71,6 +81,7 @@ $inner_page->setTemplate("issues/view.tpl.php");
 $inner_page->set("issue", $issue);
 $inner_page->set("comments", $comments);
 $inner_page->set("children", $children);
+$inner_page->set("parent", $parent);
 $inner_page->set("statuses", $service->statuses());
 if (isset($_GET['msg']) && is_string($_GET['msg'])) {
     $inner_page->set("msg", $_GET['msg']);
