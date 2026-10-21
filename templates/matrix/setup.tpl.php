@@ -24,7 +24,7 @@
     <button type="submit" class="btn btn-primary" id="submit-btn">Create My Matrix</button>
 </form>
 
-<script src="/js/dm_crypto.js"></script>
+<script src="/js/<?= SEMVER ?>/dm_crypto.js"></script>
 <script>
 document.getElementById('setup-form').addEventListener('submit', async function(e) {
     e.preventDefault();
