@@ -236,3 +236,53 @@ a:visited {
 .issue-priority-normal { background-color: var(--border-light); color: var(--text-secondary); }
 .issue-priority-high   { background-color: var(--alert-warn-bg, #fee); color: var(--alert-warn-text, #900); }
 
+.sub-issue-count {
+    color: var(--text-faint);
+    font-weight: normal;
+    font-size: 0.8em;
+}
+
+.sub-issue-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9em;
+}
+
+.sub-issue-table th,
+.sub-issue-table td {
+    text-align: left;
+    padding: 0.4em 0.6em;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.sub-issue-table td.issue-date {
+    margin-left: 0;
+    white-space: nowrap;
+}
+
+.sub-issue-table th button {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.sub-issue-table th[aria-sort="ascending"] button::after  { content: " ▲"; }
+.sub-issue-table th[aria-sort="descending"] button::after { content: " ▼"; }
+
+.sub-issue-table tr.sub-issue-closed td {
+    color: var(--text-faint);
+}
+
+@media (max-width: 600px) {
+    .sub-issue-table th:nth-child(4),
+    .sub-issue-table td:nth-child(4),
+    .sub-issue-table th:nth-child(5),
+    .sub-issue-table td:nth-child(5) {
+        display: none;
+    }
+}
+
