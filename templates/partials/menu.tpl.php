@@ -44,7 +44,14 @@ if (isset($is_logged_in) && is_object($is_logged_in) && method_exists($is_logged
             <a href="/profile/">Profile ▾</a>
             <div class="dropdown-menu">
                 <a href="/settings/">Settings</a>
-                <a href="/logout/">Logout</a>
+                <?php if (function_exists('csrf_field')) : ?>
+                    <form method="POST" action="/logout/" class="menu-logout-form">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="menu-link-button">Logout</button>
+                    </form>
+                <?php else : ?>
+                    <a href="/logout/">Logout</a>
+                <?php endif; ?>
             </div>
         </div>
 
