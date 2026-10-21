@@ -126,9 +126,16 @@ if ($grant_type === 'authorization_code') {
         exit;
     }
 
-    // Mark code used (single-use)
-    $pdo->prepare("UPDATE oauth_auth_codes SET used_at_utc = NOW() WHERE code_id = ?")
-        ->execute([\Field::int($code_row, 'code_id')]);
+    // Mark code used (single-use). The used_at_utc IS NULL condition makes
+    // the claim atomic: of two requests racing with the same code, only the
+    // one whose UPDATE changes the row gets a token.
+    $use_stmt = $pdo->prepare("UPDATE oauth_auth_codes SET used_at_utc = NOW() WHERE code_id = ? AND used_at_utc IS NULL");
+    $use_stmt->execute([\Field::int($code_row, 'code_id')]);
+    if ($use_stmt->rowCount() !== 1) {
+        http_response_code(400);
+        echo json_encode(['error' => 'invalid_grant', 'error_description' => 'Authorization code already used']);
+        exit;
+    }
 
     $aiu_id           = \Field::int($code_row, 'aiu_id');
     $auth_user_id     = \Field::int($code_row, 'user_id');
@@ -163,6 +170,7 @@ if ($grant_type === 'authorization_code') {
     $aiu_id            = \Field::int($refresh_row, 'aiu_id');
     $auth_user_id      = \Field::int($refresh_row, 'user_id');
     $existing_token_id = \Field::int($refresh_row, 'token_id');
+    $old_refresh_hash  = $refresh_hash;
 
     // ── Client Credentials (fallback) ────────────────────────────────────────────
 } elseif ($grant_type === 'client_credentials') {
@@ -221,13 +229,21 @@ if ($issue_refresh) {
 }
 
 if ($existing_token_id) {
-    // Rotation: reuse the row, replace both tokens.
-    $pdo->prepare(
+    // Rotation: reuse the row, replace both tokens. Matching the old refresh
+    // hash makes the swap atomic: if two requests race with the same refresh
+    // token, only the first rotates and the second is refused.
+    $rotate_stmt = $pdo->prepare(
         "UPDATE mcp_tokens
          SET token_hash = ?, expires_at_utc = DATE_ADD(NOW(), INTERVAL ? SECOND),
              refresh_token_hash = ?, refresh_expires_at_utc = DATE_ADD(NOW(), INTERVAL ? DAY)
-         WHERE token_id = ?"
-    )->execute([$token_hash, $expires_in, $refresh_hash, $refresh_ttl_days, $existing_token_id]);
+         WHERE token_id = ? AND refresh_token_hash = ?"
+    );
+    $rotate_stmt->execute([$token_hash, $expires_in, $refresh_hash, $refresh_ttl_days, $existing_token_id, $old_refresh_hash]);
+    if ($rotate_stmt->rowCount() !== 1) {
+        http_response_code(400);
+        echo json_encode(['error' => 'invalid_grant', 'error_description' => 'Refresh token already rotated']);
+        exit;
+    }
 } else {
     $pdo->prepare(
         "INSERT INTO mcp_tokens (aiu_id, user_id, token_hash, expires_at_utc, refresh_token_hash, refresh_expires_at_utc)

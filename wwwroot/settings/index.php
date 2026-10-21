@@ -106,6 +106,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_key_action'])) {
             $stmt->execute([$aiu_id, $key_id, $user_id]);
             $success_message = 'Actor assigned to key.';
         }
+    } elseif ($_POST['api_key_action'] === 'revoke_connection') {
+        $token_id = \Field::int($_POST, 'token_id');
+        if ($token_id > 0 && (new \Auth\ConnectedApps($mla_database))->revoke($user_id, $token_id)) {
+            $success_message = 'Connection revoked. That app must be authorized again.';
+        } else {
+            $errors[] = 'Could not revoke that connection.';
+        }
     } elseif ($_POST['api_key_action'] === 'revoke') {
         $key_id = \Field::int($_POST, 'key_id');
         if ($key_id > 0 && $apiKeyHelper->revokeKey($key_id, $user_id)) {
@@ -122,6 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_key_action'])) {
 
 $apiKeyHelper     = new \Auth\ApiKey($mla_database);
 $api_keys         = $apiKeyHelper->getKeysForUser($user_id);
+$connected_apps   = (new \Auth\ConnectedApps($mla_database))->listForUser($user_id);
 
 // Fetch actors for this user (for agent management + key assignment dropdowns)
 $actors_stmt = $mla_database->prepare(
@@ -142,6 +150,7 @@ $page->set('error_message', $error_message);
 $page->set('success_message', $success_message);
 $page->set('new_api_key', $new_api_key);
 $page->set('api_keys', $api_keys);
+$page->set('connected_apps', $connected_apps);
 $page->set('credits_remaining', $credits_remaining);
 $page->set('actors', $actors);
 $inner = $page->grabTheGoods();

@@ -198,6 +198,15 @@ switch ($method) {
         $tool = \Field::string($params, 'name');
         $args = \Field::array($params, 'arguments');
 
+        // Every tool reaches the project subsystem, so the same bits REST
+        // checks with require_project_perm() apply: reading tools need
+        // can_read_project, the rest can_write_project.
+        $needs = mcp_tool_reads_only($tool) ? 'can_read_project' : 'can_write_project';
+        if (!\Field::int($auth_actor, $needs)) {
+            echo json_encode(mcp_error($id, -32603, "This connection's agent lacks {$needs}"));
+            break;
+        }
+
         try {
             $result = exterm_dispatch(
                 $exterm,
@@ -225,6 +234,23 @@ switch ($method) {
 }
 
 // ── Tool dispatch ─────────────────────────────────────────────────────────────
+
+/**
+ * True for the tools that only read. Anything not listed counts as a write,
+ * so a new tool is gated on can_write_project until it is added here.
+ */
+function mcp_tool_reads_only(string $tool): bool
+{
+    return in_array($tool, [
+        'exterm_list_projects',
+        'exterm_list_items',
+        'exterm_get_item',
+        'exterm_search_items',
+        'issue_list',
+        'issue_get',
+        'issue_comment_list',
+    ], true);
+}
 
 /**
  * @param array<mixed> $a

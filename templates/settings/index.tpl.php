@@ -202,3 +202,39 @@
         API documentation: <a href="/api/v1/openapi.yaml">openapi.yaml</a>
     </p>
 </div>
+
+<div class="PagePanel">
+    <div class="head"><h5>Connected apps</h5></div>
+    <p style="color: var(--text-faint);">Apps you authorized through OAuth, such as the Claude phone connector. Revoking one signs it out; it must be authorized again. Changing your password revokes all of them.</p>
+    <?php if (!empty($connected_apps)): ?>
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <th style="text-align: left; padding: 6px; border-bottom: 1px solid var(--border-light);">Acts as</th>
+                    <th style="text-align: left; padding: 6px; border-bottom: 1px solid var(--border-light);">Connected (UTC)</th>
+                    <th style="text-align: left; padding: 6px; border-bottom: 1px solid var(--border-light);">Expires unless used (UTC)</th>
+                    <th style="padding: 6px; border-bottom: 1px solid var(--border-light);"></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($connected_apps as $app): ?>
+                <tr>
+                    <td style="padding: 6px;"><?= htmlspecialchars($app['agent_name']) ?></td>
+                    <td style="padding: 6px;"><?= htmlspecialchars(substr($app['created_at_utc'], 0, 16)) ?></td>
+                    <td style="padding: 6px;"><?= htmlspecialchars(substr($app['refresh_expires_at_utc'], 0, 16)) ?></td>
+                    <td style="padding: 6px;">
+                        <form action="/settings/" method="POST" style="display:inline;" onsubmit="return confirm('Revoke this connection? The app will have to be authorized again.');">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="api_key_action" value="revoke_connection">
+                            <input type="hidden" name="token_id" value="<?= (int)$app['token_id'] ?>">
+                            <input type="submit" value="Revoke" class="greyishBtn" style="background: var(--danger); color: var(--text-on-accent);">
+                        </form>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    <?php else: ?>
+        <p style="color: var(--text-faint);">No connected apps.</p>
+    <?php endif; ?>
+</div>
