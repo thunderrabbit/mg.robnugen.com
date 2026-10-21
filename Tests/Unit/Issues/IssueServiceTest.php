@@ -7,6 +7,8 @@ namespace Tests\Unit\Issues;
 use Db\Enum\IssuePriority;
 use Db\Row\IssueStatusRow;
 use Issues\AccessException;
+use Issues\Command\AddComment;
+use Issues\Command\AddCommit;
 use Issues\Command\CreateIssue;
 use Issues\Command\UpdateIssue;
 use Issues\ConflictException;
@@ -181,6 +183,33 @@ final class IssueServiceTest extends IssueCase
         $this->assertTrue($view->membership->canRead);
         $this->assertFalse($view->membership->canWrite);
         $this->assertThrows(NotFoundException::class, fn() => $this->service->view($this->stranger, $issue->issueId));
+    }
+
+    // === counts() ===
+
+    public function testCountsAreThisIssuesOwnAndKeepTheApiKeys(): void
+    {
+        $issue = $this->create();
+        $other = $this->create();
+        foreach ([$issue, $issue, $other] as $target) {
+            $this->service->addComment($this->writer, AddComment::fromInput(['issue_id' => $target->issueId, 'body' => 'Note']));
+        }
+        $this->store->stopTimer($this->store->startTimer($issue->issueId));
+        $this->store->startTimer($issue->issueId);
+        $this->service->addCommit($this->writer, AddCommit::fromInput([
+            'issue_id' => $issue->issueId, 'repo_id' => 4, 'commit_hash' => 'f8cbf42',
+        ]));
+
+        $counts = $this->service->counts($this->service->view($this->reader, $issue->issueId));
+
+        $this->assertSame(
+            ['comments' => 2, 'timers' => 2, 'running_timers' => 1, 'commits' => 1],
+            $counts->jsonSerialize(),
+        );
+        $this->assertSame(
+            ['comments' => 1, 'timers' => 0, 'running_timers' => 0, 'commits' => 0],
+            $this->service->counts($this->service->view($this->reader, $other->issueId))->jsonSerialize(),
+        );
     }
 
     // === get() ===
