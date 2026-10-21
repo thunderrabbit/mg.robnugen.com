@@ -16,11 +16,7 @@ include_once $matches[1] . '/prepend.php';
 
 if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
     // Handle alert dismiss POST actions
-    if (
-        $_SERVER['REQUEST_METHOD'] === 'POST'
-        && isset($_POST['csrf_token'])
-        && hash_equals(\Field::string($_SESSION, 'csrf_token'), \Field::string($_POST, 'csrf_token'))
-    ) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $action = $_POST['action'] ?? '';
         if ($action === 'dismiss_alerts') {
             \Admin\OmgAlerts::dismissAll($mla_database);

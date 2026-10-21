@@ -48,11 +48,6 @@ $success_message = '';
 
 // Handle form POST: send a new message
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
-    if (!isset($_POST['csrf_token']) || !hash_equals(\Field::string($_SESSION, 'csrf_token'), \Field::string($_POST, 'csrf_token'))) {
-        http_response_code(403);
-        die('Invalid CSRF token');
-    }
-
     if ($_POST['inbox_action'] === 'send') {
         $message   = trim(\Field::string($_POST, 'message'));
         $priority  = trim(\Field::string($_POST, 'priority', 'normal'));
@@ -271,11 +266,6 @@ $actors_stmt = $mla_database->prepare(
 );
 $actors_stmt->execute([$user_id]);
 $inbox_actors = $actors_stmt->fetchAll(\PDO::FETCH_ASSOC);
-
-// CSRF token
-if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
 
 $page = new \Template(config: $config, is_logged_in: $is_logged_in);
 $page->setTemplate('inbox/index.tpl.php');
