@@ -78,6 +78,17 @@ class IsLoggedIn
     public function attemptPasswordLogin(string $username, string $password): LoginResult
     {
         $current_ip = \Field::string($_SERVER, 'REMOTE_ADDR', 'unknown');
+        // Only plain ASCII can name an account (Auth\Username). Anything else
+        // is refused before the lookup, where the accent-insensitive collation
+        // would match "ádmin" to "admin" under a throttle bucket of its own.
+        // It still counts against the IP. The raw value never reaches the log,
+        // where a newline in it could forge lines.
+        if (!Username::isValid($username)) {
+            $this->di_throttle->recordFailure('', $current_ip);
+            $this->logAuth("user_id: N/A, IP: {$current_ip} - Password login FAILED (username not ASCII)");
+            return LoginResult::BadCredentials;
+        }
+
         if ($this->di_throttle->isThrottled($username, $current_ip)) {
             // Do not even look at the password: a throttled guess must cost
             // the attacker nothing in information and us nothing in bcrypt.
@@ -85,9 +96,13 @@ class IsLoggedIn
             return LoginResult::Throttled;
         }
 
+        // Count the attempt before the slow bcrypt check, not after it, so a
+        // burst of parallel requests cannot all pass isThrottled() first.
+        // A correct password clears it again below.
+        $this->di_throttle->recordFailure($username, $current_ip);
+
         $user_id = $this->checkPHPHashedPassword($username, $password);
         if ($user_id <= 0) {
-            $this->di_throttle->recordFailure($username, $current_ip);
             $this->logAuth("user_id: N/A, IP: {$current_ip} - Password login FAILED (username: {$username})");
             return LoginResult::BadCredentials;
         }
