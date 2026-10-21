@@ -63,19 +63,22 @@ function csrf_token(): string
 // Exempt: callers that are not browsers and never use the session cookie.
 // Each authenticates the request itself, so a forged cross-site request has
 // nothing to ride on.
-//   /api/v1/   API key in the Authorization header
-//   /mcp/      OAuth bearer token; /mcp/token.php issues them
+//   api/v1/index.php  API key in the Authorization header
+//   mcp/index.php     OAuth bearer token
+//   mcp/token.php     issues those tokens (client secret or PKCE)
 // billing/webhook.php (Stripe, signed) and login/register.php never load
 // this file, so the check does not reach them.
-$csrf_exempt_prefixes = ['/api/v1/', '/mcp/'];
-$request_path = parse_url(\Field::string($_SERVER, 'REQUEST_URI'), PHP_URL_PATH);
-$request_path = is_string($request_path) ? $request_path : '';
-$csrf_exempt = false;
-foreach ($csrf_exempt_prefixes as $prefix) {
-    if (str_starts_with($request_path, $prefix)) {
-        $csrf_exempt = true;
-    }
-}
+// Match on the script that is actually running, never on the URL: Apache
+// resolves /mcp/%2e%2e/login/ to the login page while the raw URL still
+// starts with /mcp/.
+$csrf_exempt_scripts = [
+    __DIR__ . '/wwwroot/api/v1/index.php',
+    __DIR__ . '/wwwroot/mcp/index.php',
+    __DIR__ . '/wwwroot/mcp/token.php',
+];
+$running_script = realpath(\Field::string($_SERVER, 'SCRIPT_FILENAME'));
+$csrf_exempt = $running_script !== false
+    && in_array($running_script, array_map('realpath', $csrf_exempt_scripts), true);
 if (!$csrf_exempt && !$csrfProtect->validateRequest()) {
     http_response_code(403);
     echo "<h1>Request rejected</h1>"
