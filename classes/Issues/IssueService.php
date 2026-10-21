@@ -73,6 +73,15 @@ final class IssueService
         return new IssueView(issue: $issue, status: $status, membership: $role);
     }
 
+    /**
+     * What hangs off an issue. Takes the view rather than an id, so the access
+     * check view() made is the one this answers under.
+     */
+    public function counts(IssueView $view): IssueCounts
+    {
+        return $this->store->counts($view->issue->issueId);
+    }
+
     public function get(Caller $caller, int $issueId): IssueRow
     {
         return $this->view($caller, $issueId)->issue;
