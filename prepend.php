@@ -21,15 +21,37 @@ if ($missing_extensions !== []) {
 
 session_start();
 
-if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
 require_once __DIR__ . '/classes/Mlaphp/Autoloader.php';
 // create autoloader instance and register the method with SPL
 $autoloader = new \Mlaphp\Autoloader();
 spl_autoload_register(array($autoloader, 'load'));
 
 $mla_request = new \Mlaphp\Request();
+$csrfProtect = new \Security\CSRFProtectaroo($mla_request);
+// Mint it now: older pages still read $_SESSION['csrf_token'] directly.
+$csrfProtect->getToken();
+
+/**
+ * The hidden CSRF input for any POST form. Templates write <?= csrf_field() ?>
+ * inside the <form>; no page-level set() is needed.
+ */
+function csrf_field(): string
+{
+    /** @var \Security\CSRFProtectaroo $csrfProtect */
+    global $csrfProtect;
+    return $csrfProtect->field();
+}
+
+/**
+ * The bare token, for JavaScript that sends it as the X-CSRF-Token header.
+ * Always json_encode() it into JS or htmlspecialchars() it into an attribute.
+ */
+function csrf_token(): string
+{
+    /** @var \Security\CSRFProtectaroo $csrfProtect */
+    global $csrfProtect;
+    return $csrfProtect->getToken();
+}
 
 function print_roblog(mixed $message, string $label = ''): void
 {
