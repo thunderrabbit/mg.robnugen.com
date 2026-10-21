@@ -47,6 +47,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if ($new_password !== $confirm_password) {
             $errors[] = "New passwords do not match.";
+        } elseif ($new_password !== '' && \Auth\PasswordPolicy::problem($new_password) !== '') {
+            $errors[] = \Auth\PasswordPolicy::problem($new_password);
         }
 
         // If no validation errors, proceed with password change

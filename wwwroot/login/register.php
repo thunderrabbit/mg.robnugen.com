@@ -15,7 +15,11 @@ $autoloader = new \Mlaphp\Autoloader();
 spl_autoload_register(array($autoloader, 'load'));
 
 
+\Startup\Session::start();
 $mla_request = new \Mlaphp\Request();
+// prepend.php's CSRF gate never runs here, so check the token ourselves:
+// otherwise any site could create accounts in a visitor's browser.
+$csrfProtect = new \Security\CSRFProtectaroo($mla_request);
 
 try {
     $config = new \Config();
@@ -35,6 +39,14 @@ $dbExistaroo = new \Database\DBExistaroo(
 
 $creating_admin_user = !$dbExistaroo->firstUserExistBool();
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$csrfProtect->validateRequest()) {
+    http_response_code(403);
+    echo "<h1>Request rejected</h1>"
+        . "<p>The form's security token was missing or has expired. "
+        . "Go back, reload the page, and try again.</p>";
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // handle form submission...
     $mla_database = \Database\Base::getPDO($config);
@@ -50,6 +62,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if (empty($password)) {
         $errors[] = "Password is required.";
+    } elseif (\Auth\PasswordPolicy::problem($password) !== '') {
+        $errors[] = \Auth\PasswordPolicy::problem($password);
+    }
+
+    $signup_throttle = new \Auth\SignupThrottle($mla_database);
+    $signup_ip = \Field::string($_SERVER, 'REMOTE_ADDR');
+    if (empty($errors) && $signup_throttle->isThrottled($signup_ip)) {
+        $errors[] = "Too many new accounts were created recently. Please try again in "
+            . intdiv(\Auth\SignupThrottle::WINDOW_SECONDS, 60) . " minutes.";
     }
 
     // If errors, redisplay form with errors
@@ -76,6 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             "INSERT INTO api_credits (user_id, credits_remaining) VALUES (?, 100)"
         );
         $trial_stmt->execute([$new_user_id]);
+        $signup_throttle->recordSignup($signup_ip);
 
         // Redirect to login page with success message
         header("Location: /login/?registered=1");
@@ -104,6 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Get the inner content
     $inner_page = new \Template(config: $config, is_logged_in: $is_logged_in);
     $inner_page->setTemplate("login/register_content.tpl.php");
+    $inner_page->set("csrf_field", $csrfProtect->field());
     $page->set("page_content", $inner_page->grabTheGoods());
 
     $page->echoToScreen();
