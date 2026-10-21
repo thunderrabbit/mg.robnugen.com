@@ -78,6 +78,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($result['success']) {
                     // Anyone holding an old session is signed out; this browser stays in.
                     $is_logged_in->revokeOtherSessions();
+                    // OAuth connections (the phone connector) are credentials
+                    // too: a leaked refresh token must not outlive the password.
+                    (new \Auth\ConnectedApps($mla_database))->revokeAll($user_id);
                     $success_message = $result['message'];
                 } else {
                     $errors[] = $result['message'];
