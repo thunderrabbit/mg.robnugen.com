@@ -5,6 +5,11 @@
             ✓ Account created successfully! Please log in with your new credentials.
         </div>
     <?php endif; ?>
+    <?php if (!empty($login_error)): ?>
+        <div style="background-color: var(--alert-error-bg); border: 1px solid var(--alert-error-border); color: var(--alert-error-text); padding: 12px; border-radius: 4px; margin-bottom: 20px;">
+            <?= htmlspecialchars($login_error) ?>
+        </div>
+    <?php endif; ?>
     <form action="" method="POST">
         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
         <div class="form-row">

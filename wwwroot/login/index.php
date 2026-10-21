@@ -10,7 +10,36 @@ include_once $matches[1] . '/prepend.php';
  *
  * @var \Config $config
  * @var \Auth\IsLoggedIn $is_logged_in
+ * @var \Mlaphp\Request $mla_request
  */
+
+// This page is the ONLY place credentials are checked.
+$login_error = '';
+if (!$is_logged_in->isLoggedIn() && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    $username = trim(\Field::string($mla_request->post, 'username'));
+    $password = \Field::string($mla_request->post, 'pass');
+    $post_token = \Field::string($mla_request->post, 'csrf_token');
+    $session_token = \Field::string($_SESSION, 'csrf_token');
+
+    $result = \Auth\LoginResult::BadCredentials;
+    if (!hash_equals($session_token, $post_token)) {
+        $login_error = "Your session expired. Please log in again.";
+    } elseif ($username !== '' && $password !== '') {
+        $result = $is_logged_in->attemptPasswordLogin($username, $password);
+    }
+
+    if ($login_error === '' && $result !== \Auth\LoginResult::Success) {
+        // One message for every bad credential. Saying which half was wrong
+        // tells a guesser which usernames exist. Throttling is the one thing
+        // worth naming, so a real user knows waiting will help and retyping
+        // will not.
+        $login_error = match ($result) {
+            \Auth\LoginResult::Throttled => "Too many failed logins. Wait "
+                . intdiv(\Auth\LoginThrottle::WINDOW_SECONDS, 60) . " minutes and try again.",
+            default => "Username or password incorrect.",
+        };
+    }
+}
 
 if ($is_logged_in->isLoggedIn()) {
     // We logged in.. yay!
@@ -41,6 +70,7 @@ if ($is_logged_in->isLoggedIn()) {
     // Check if user just registered
     $show_success = isset($_GET['registered']) && $_GET['registered'] === '1';
     $inner_page->set("show_success_message", $show_success);
+    $inner_page->set("login_error", $login_error);
 
     $page->set("page_content", $inner_page->grabTheGoods());
 

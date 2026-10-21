@@ -19,6 +19,7 @@ class IsLoggedIn
         private \PDO $di_pdo,
         private \Config $di_config,
         private \Database\CookieRepository $di_cookies,
+        private LoginThrottle $di_throttle,
     ) {
         // Set log file path to project root (parent of wwwroot)
         $this->log_file_path = $di_config->app_path . '/auth_log.txt';
@@ -31,45 +32,83 @@ class IsLoggedIn
         file_put_contents($this->log_file_path, $log_entry, FILE_APPEND);
     }
 
-    public function checkLogin(\Mlaphp\Request $mla_request): void
+    /**
+     * Who is this request from? Runs on EVERY request (prepend.php). It only
+     * reads the remember-me cookie and never looks at credentials: that is
+     * attemptPasswordLogin()'s job, and only the login page calls that.
+     */
+    public function resumeFromCookie(\Mlaphp\Request $mla_request): void
     {
-        $found_user_id = 0;
-        $current_ip = \Field::string($_SERVER, 'REMOTE_ADDR', 'unknown');
-
-        if (!empty($mla_request->cookie[$this->di_config->cookie_name])) {
-            $found_user_id = $this->getUserIdForCookieInDatabase(
-                cookie: \Field::string($mla_request->cookie, $this->di_config->cookie_name),
-                user_agent: \Field::string($_SERVER, 'HTTP_USER_AGENT')
-            );
-            if (empty($found_user_id)) {
-                $this->logAuth("user_id: N/A, IP: {$current_ip} - Cookie validation FAILED");
-                $this->killCookie();
-                $this->who_is_logged_in = 0;
-            } else {
-                // $this->logAuth("user_id: {$found_user_id}, IP: {$current_ip} - Cookie validation SUCCESS");
-                $this->who_is_logged_in = $found_user_id;
-            }
-        } elseif (!empty($mla_request->post['username']) && !empty($mla_request->post['pass'])) {
-            $post_token    = \Field::string($mla_request->post, 'csrf_token');
-            $session_token = \Field::string($_SESSION, 'csrf_token');
-            if (!hash_equals($session_token, $post_token)) {
-                $this->logAuth("user_id: N/A, IP: {$current_ip} - Login blocked: CSRF token mismatch");
-                return;
-            }
-            $found_user_id = $this->checkPHPHashedPassword(\Field::string($mla_request->post, 'username'), \Field::string($mla_request->post, 'pass'));
-            if (empty($found_user_id)) {
-                $this->logAuth("user_id: N/A, IP: {$current_ip} - Password login FAILED (username: " . \Field::string($mla_request->post, 'username') . ")");
-                $this->killCookie();        // bad login, so kill any cookie
-                $this->who_is_logged_in = 0;
-            } else {
-                $this->logAuth("user_id: {$found_user_id}, IP: {$current_ip} - Password login SUCCESS");
-                session_regenerate_id(true); // prevent session fixation
-                $this->setAutoLoginCookie($found_user_id);
-                $this->who_is_logged_in = $found_user_id;
-            }
+        $cookie = \Field::string($mla_request->cookie, $this->di_config->cookie_name);
+        if ($cookie === '') {
+            return;
         }
-        // set the session variable for username
-        $this->setUsernameOfLoggedInID($this->who_is_logged_in);
+
+        $found_user_id = $this->getUserIdForCookieInDatabase(
+            cookie: $cookie,
+            user_agent: \Field::string($_SERVER, 'HTTP_USER_AGENT')
+        );
+        if ($found_user_id <= 0) {
+            $current_ip = \Field::string($_SERVER, 'REMOTE_ADDR', 'unknown');
+            $this->logAuth("user_id: N/A, IP: {$current_ip} - Cookie validation FAILED");
+            $this->killCookie();
+            return;
+        }
+
+        $this->who_is_logged_in = $found_user_id;
+        $this->setUsernameOfLoggedInID($found_user_id);
+    }
+
+    /**
+     * Password login. Called by /login/ on POST and nowhere else, so a stray
+     * username/pass pair in some other form is just data, and a wrong
+     * password can no longer log a user out of an unrelated page.
+     *
+     * BadCredentials has no side effects; the caller shows one generic
+     * message for it so a guesser cannot learn which usernames exist.
+     */
+    public function attemptPasswordLogin(string $username, string $password): LoginResult
+    {
+        $current_ip = \Field::string($_SERVER, 'REMOTE_ADDR', 'unknown');
+        if ($this->di_throttle->isThrottled($username, $current_ip)) {
+            // Do not even look at the password: a throttled guess must cost
+            // the attacker nothing in information and us nothing in bcrypt.
+            $this->logAuth("user_id: N/A, IP: {$current_ip} - Password login THROTTLED (username: {$username})");
+            return LoginResult::Throttled;
+        }
+
+        $user_id = $this->checkPHPHashedPassword($username, $password);
+        if ($user_id <= 0) {
+            $this->di_throttle->recordFailure($username, $current_ip);
+            $this->logAuth("user_id: N/A, IP: {$current_ip} - Password login FAILED (username: {$username})");
+            return LoginResult::BadCredentials;
+        }
+
+        $this->di_throttle->clearFailures($username);
+
+        $this->logAuth("user_id: {$user_id}, IP: {$current_ip} - Password login SUCCESS");
+        $this->establishSession($user_id);
+        return LoginResult::Success;
+    }
+
+    /**
+     * The one way to become logged in. EVERY authentication path (password
+     * today; whatever comes next) must end by calling this and nothing else,
+     * so no path can skip the fixation guard or end up with different
+     * persistence from the others.
+     */
+    private function establishSession(int $user_id): void
+    {
+        // Fresh privilege level, fresh session id (fixation guard): a
+        // pre-set session id must not survive the authentication boundary.
+        session_regenerate_id(true);
+        // regenerate_id keeps the session data, so a CSRF token minted (or
+        // fixated) before login would survive it. Drop it; prepend.php mints
+        // a fresh one on the next request.
+        unset($_SESSION['csrf_token']);
+        $this->setAutoLoginCookie($user_id);
+        $this->who_is_logged_in = $user_id;
+        $this->setUsernameOfLoggedInID($user_id);
     }
 
     private string $siteTitle = '';
