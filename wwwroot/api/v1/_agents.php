@@ -248,12 +248,20 @@ if ($method === 'POST' && $sub === '/keys') {
     }
 
     // Verify agent belongs to this user
-    $check = $pdo->prepare("SELECT name FROM agent_inbox_user WHERE aiu_id = ? AND user_id = ?");
+    $check = $pdo->prepare("SELECT name, actor_type FROM agent_inbox_user WHERE aiu_id = ? AND user_id = ?");
     $check->execute([$aiu_id, $auth_user_id]);
     $agent = $check->fetch(\PDO::FETCH_ASSOC);
     if (!$agent) {
         http_response_code(404);
         echo json_encode(['error' => "aiu_id $aiu_id not found in your account"]);
+        exit;
+    }
+    // A key for the human actor carries Rob's own authority (project admin,
+    // broadcast, supervisor rows), which a supervisor agent must not be able
+    // to hand itself. Human keys are made on the /settings/ page, logged in.
+    if (\Field::string($agent, 'actor_type') === 'human') {
+        http_response_code(403);
+        echo json_encode(['error' => 'Keys for the human actor can only be created on the settings page']);
         exit;
     }
 
