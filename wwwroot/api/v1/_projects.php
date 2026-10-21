@@ -4,7 +4,7 @@
  * Projects + project members + dashboard.
  *
  * Routes (all writes cost 1 credit):
- *   GET    /projects/list               free — projects where caller is a member
+ *   GET    /projects/list               free — projects where caller is a member; ?include_archived=1
  *   GET    /projects/get                free — details for one project (member required)
  *   POST   /projects/create             1    — human only; auto-adds creator as RW member
  *   PATCH  /projects/update             1    — human only; rename/description/archive
@@ -15,12 +15,10 @@
  *   DELETE /projects/remove-member      1    — human only
  *   GET    /projects/dashboard          free — my assigned + unassigned queue, all projects
  *
- * Permission model:
- *   Content ops (read project/members/issues):
- *       project_members row with can_read=1. No bypass — humans also need to be members.
- *   Admin ops (project/member CRUD):
- *       actor_type='human' AND project.user_id = caller's user_id.
- *       Humans can admin any project in their account without being a member.
+ * Every route goes through Projects\ProjectService, which owns the permission
+ * model: reading a project's content needs can_read on a project_members row
+ * (humans too), and administering projects and members is for the account's
+ * human, member or not. A credit is charged only once every check has passed.
  *
  * Variables from index.php: $pdo, $auth_user_id, $auth_key_id, $auth_actor, $method, $path
  */
@@ -39,461 +37,181 @@ declare(strict_types=1);
  */
 
 $sub = preg_replace('#^/projects#', '', $path) ?: '/';
-$caller_aiu = \Field::int($auth_actor, 'aiu_id');
-$is_human   = ($auth_actor['actor_type'] ?? '') === 'human';
 
-// ── GET /projects/list ───────────────────────────────────────────────────────
+$project_caller  = new \Issues\Caller(
+    userId: $auth_user_id,
+    aiu: \Input\Input::positiveId($auth_actor, 'aiu_id'),
+    isHuman: ($auth_actor['actor_type'] ?? '') === 'human',
+);
+$project_service = new \Projects\ProjectService(
+    new \Projects\PdoProjectStore($pdo),
+    beforeWrite: static fn(string $action) => require_credit($pdo, $auth_user_id, $auth_key_id, $action),
+);
+
+/**
+ * Runs one ProjectService call, answering its errors with the API's usual codes.
+ *
+ * @param \Closure(): void $call
+ */
+function projects_api(\Closure $call): void
+{
+    try {
+        $call();
+    } catch (\Input\InvalidInput | \Issues\ValidationException $e) {
+        http_response_code(400);
+        echo json_encode(['error' => $e->getMessage()]);
+    } catch (\Issues\NotFoundException $e) {
+        http_response_code(404);
+        echo json_encode(['error' => $e->getMessage()]);
+    } catch (\Issues\AccessException $e) {
+        http_response_code(403);
+        echo json_encode(['error' => $e->getMessage()]);
+    } catch (\Issues\ConflictException $e) {
+        http_response_code(409);
+        echo json_encode(['error' => $e->getMessage()]);
+    }
+}
+
+/**
+ * The decoded JSON body of a write.
+ *
+ * @return array<mixed>
+ */
+function projects_body(): array
+{
+    return \Input\Input::json((string) file_get_contents('php://input'));
+}
+
+// ─── GET /projects/list ─────────────────────────────────────────────────────
 
 if ($method === 'GET' && $sub === '/list') {
-    $include_archived = \Field::int($_GET, 'include_archived');
-
-    $where = ['p.user_id = ?', 'pm.member_aiu = ?'];
-    $params = [$auth_user_id, $caller_aiu];
-    if (!$include_archived) {
-        $where[] = 'p.is_archived = 0';
-    }
-    $where_sql = implode(' AND ', $where);
-
-    $stmt = $pdo->prepare(
-        "SELECT p.project_id, p.name, p.description, p.is_archived,
-                p.created_at_utc, p.updated_at_utc,
-                pm.can_read AS my_can_read, pm.can_write AS my_can_write
-         FROM projects p
-         JOIN project_members pm ON pm.project_id = p.project_id
-         WHERE {$where_sql}
-         ORDER BY p.name ASC"
-    );
-    $stmt->execute($params);
-
-    echo json_encode(['projects' => $stmt->fetchAll(\PDO::FETCH_ASSOC)]);
+    projects_api(static function () use ($project_service, $project_caller): void {
+        $include_archived = isset($_GET['include_archived']) && \Input\Input::flag($_GET, 'include_archived');
+        echo json_encode(['projects' => $project_service->list($project_caller, $include_archived)]);
+    });
     return;
 }
 
-// ── GET /projects/get ────────────────────────────────────────────────────────
+// ─── GET /projects/get ──────────────────────────────────────────────────────
 
 if ($method === 'GET' && $sub === '/get') {
-    $project_id = \Field::int($_GET, 'project_id');
-    if ($project_id <= 0) {
-        http_response_code(400);
-        echo json_encode(['error' => 'project_id is required']);
-        return;
-    }
-
-    $role = project_membership($pdo, $project_id, $auth_user_id, $caller_aiu);
-    if (!$role || !$role['can_read']) {
-        http_response_code(403);
-        echo json_encode(['error' => 'No read access to this project']);
-        return;
-    }
-
-    $stmt = $pdo->prepare(
-        "SELECT project_id, name, description, is_archived, created_at_utc, updated_at_utc
-         FROM projects WHERE project_id = ? AND user_id = ?"
-    );
-    $stmt->execute([$project_id, $auth_user_id]);
-    $project = $stmt->fetch(\PDO::FETCH_ASSOC);
-    if (!is_array($project)) {
-        http_response_code(404);
-        echo json_encode(['error' => 'Project not found']);
-        return;
-    }
-    $project['my_can_read']  = $role['can_read'];
-    $project['my_can_write'] = $role['can_write'];
-
-    echo json_encode(['project' => $project]);
+    projects_api(static function () use ($project_service, $project_caller): void {
+        $project_id = \Input\Input::positiveId($_GET, 'project_id');
+        echo json_encode(['project' => $project_service->get($project_caller, $project_id)]);
+    });
     return;
 }
 
-// ── POST /projects/create ────────────────────────────────────────────────────
+// ─── POST /projects/create ──────────────────────────────────────────────────
 
 if ($method === 'POST' && $sub === '/create') {
-    if (!$is_human) {
-        http_response_code(403);
-        echo json_encode(['error' => 'Only humans can create projects']);
-        return;
-    }
-
-    $input = \Field::jsonArray((string) file_get_contents('php://input'));
-    $name  = trim(\Field::string($input, 'name'));
-    $desc  = trim(\Field::string($input, 'description')) ?: null;
-
-    if ($name === '') {
-        http_response_code(400);
-        echo json_encode(['error' => 'name is required']);
-        return;
-    }
-    if (mb_strlen($name) > 100) {
-        http_response_code(400);
-        echo json_encode(['error' => 'name must be 100 characters or fewer']);
-        return;
-    }
-
-    $dup = $pdo->prepare("SELECT project_id FROM projects WHERE user_id = ? AND name = ?");
-    $dup->execute([$auth_user_id, $name]);
-    if ($dup->fetch()) {
-        http_response_code(409);
-        echo json_encode(['error' => "Project '$name' already exists"]);
-        return;
-    }
-
-    require_credit($pdo, $auth_user_id, $auth_key_id, 'projects/create');
-
-    $pdo->beginTransaction();
-    try {
-        $ins = $pdo->prepare(
-            "INSERT INTO projects (user_id, name, description) VALUES (?, ?, ?)"
+    projects_api(static function () use ($project_service, $project_caller): void {
+        $project = $project_service->create(
+            $project_caller,
+            \Projects\Command\CreateProject::fromInput(projects_body()),
         );
-        $ins->execute([$auth_user_id, $name, $desc]);
-        $project_id = (int) $pdo->lastInsertId();
-
-        // Auto-add creator as RW member (humans still need membership for content ops)
-        $mem = $pdo->prepare(
-            "INSERT INTO project_members (project_id, member_aiu, can_read, can_write)
-             VALUES (?, ?, 1, 1)"
-        );
-        $mem->execute([$project_id, $caller_aiu]);
-
-        $pdo->commit();
-    } catch (\Exception $e) {
-        $pdo->rollBack();
-        throw $e;
-    }
-
-    http_response_code(201);
-    echo json_encode([
-        'project' => [
-            'project_id'  => $project_id,
-            'name'        => $name,
-            'description' => $desc,
-        ],
-    ]);
+        http_response_code(201);
+        echo json_encode([
+            'project' => [
+                'project_id'  => $project->projectId,
+                'name'        => $project->name,
+                'description' => $project->description,
+            ],
+        ]);
+    });
     return;
 }
 
-// ── PATCH /projects/update ───────────────────────────────────────────────────
+// ─── PATCH /projects/update ─────────────────────────────────────────────────
 
 if ($method === 'PATCH' && $sub === '/update') {
-    if (!$is_human) {
-        http_response_code(403);
-        echo json_encode(['error' => 'Only humans can update projects']);
-        return;
-    }
-
-    $input      = \Field::jsonArray((string) file_get_contents('php://input'));
-    $project_id = \Field::int($input, 'project_id');
-    $name        = array_key_exists('name', $input) ? trim(\Field::string($input, 'name')) : null;
-    $description = array_key_exists('description', $input) ? trim(\Field::string($input, 'description')) : 'NOT_SET';
-    $is_archived = array_key_exists('is_archived', $input) ? (int)(bool)$input['is_archived'] : null;
-
-    if ($project_id <= 0) {
-        http_response_code(400);
-        echo json_encode(['error' => 'project_id is required']);
-        return;
-    }
-    if ($name === null && $description === 'NOT_SET' && $is_archived === null) {
-        http_response_code(400);
-        echo json_encode(['error' => 'provide name, description, and/or is_archived to update']);
-        return;
-    }
-
-    $sets = [];
-    $params = [];
-    if ($name !== null) {
-        if ($name === '') {
-            http_response_code(400);
-            echo json_encode(['error' => 'name cannot be empty']);
-            return;
-        }
-        if (mb_strlen($name) > 100) {
-            http_response_code(400);
-            echo json_encode(['error' => 'name must be 100 characters or fewer']);
-            return;
-        }
-        $sets[] = 'name = ?';
-        $params[] = $name;
-    }
-    if ($description !== 'NOT_SET') {
-        $sets[] = 'description = ?';
-        $params[] = ($description === '') ? null : $description;
-    }
-    if ($is_archived !== null) {
-        $sets[] = 'is_archived = ?';
-        $params[] = $is_archived;
-    }
-
-    require_credit($pdo, $auth_user_id, $auth_key_id, 'projects/update');
-
-    $params[] = $project_id;
-    $params[] = $auth_user_id;
-    $set_sql = implode(', ', $sets);
-    $stmt = $pdo->prepare("UPDATE projects SET {$set_sql} WHERE project_id = ? AND user_id = ?");
-    $stmt->execute($params);
-
-    echo json_encode(['updated' => $stmt->rowCount()]);
+    projects_api(static function () use ($project_service, $project_caller): void {
+        $changes = \Projects\Command\UpdateProject::fromInput(projects_body());
+        echo json_encode(['updated' => $project_service->update($project_caller, $changes)]);
+    });
     return;
 }
 
-// ── DELETE /projects/delete ──────────────────────────────────────────────────
+// ─── DELETE /projects/delete ────────────────────────────────────────────────
 
 if ($method === 'DELETE' && $sub === '/delete') {
-    if (!$is_human) {
-        http_response_code(403);
-        echo json_encode(['error' => 'Only humans can delete projects']);
-        return;
-    }
-
-    $input      = \Field::jsonArray((string) file_get_contents('php://input'));
-    $project_id = \Field::int($input, 'project_id');
-
-    if ($project_id <= 0) {
-        http_response_code(400);
-        echo json_encode(['error' => 'project_id is required']);
-        return;
-    }
-
-    require_credit($pdo, $auth_user_id, $auth_key_id, 'projects/delete');
-
-    $stmt = $pdo->prepare("DELETE FROM projects WHERE project_id = ? AND user_id = ?");
-    $stmt->execute([$project_id, $auth_user_id]);
-
-    echo json_encode(['deleted' => $stmt->rowCount()]);
+    projects_api(static function () use ($project_service, $project_caller): void {
+        $project_id = \Input\Input::positiveId(projects_body(), 'project_id');
+        echo json_encode(['deleted' => $project_service->delete($project_caller, $project_id)]);
+    });
     return;
 }
 
-// ── GET /projects/members ────────────────────────────────────────────────────
+// ─── GET /projects/members ──────────────────────────────────────────────────
 
 if ($method === 'GET' && $sub === '/members') {
-    $project_id = \Field::int($_GET, 'project_id');
-    if ($project_id <= 0) {
-        http_response_code(400);
-        echo json_encode(['error' => 'project_id is required']);
-        return;
-    }
-
-    $role = project_membership($pdo, $project_id, $auth_user_id, $caller_aiu);
-    if (!$role || !$role['can_read']) {
-        http_response_code(403);
-        echo json_encode(['error' => 'No read access to this project']);
-        return;
-    }
-
-    $stmt = $pdo->prepare(
-        "SELECT pm.member_aiu, pm.can_read, pm.can_write, pm.granted_at_utc,
-                a.name, a.description, a.actor_type
-         FROM project_members pm
-         JOIN agent_inbox_user a ON a.aiu_id = pm.member_aiu
-         JOIN projects p ON p.project_id = pm.project_id
-         WHERE pm.project_id = ? AND p.user_id = ?
-         ORDER BY a.name ASC"
-    );
-    $stmt->execute([$project_id, $auth_user_id]);
-
-    echo json_encode(['members' => $stmt->fetchAll(\PDO::FETCH_ASSOC)]);
+    projects_api(static function () use ($project_service, $project_caller): void {
+        $project_id = \Input\Input::positiveId($_GET, 'project_id');
+        echo json_encode(['members' => $project_service->members($project_caller, $project_id)]);
+    });
     return;
 }
 
-// ── POST /projects/add-member ────────────────────────────────────────────────
+// ─── POST /projects/add-member ──────────────────────────────────────────────
 
 if ($method === 'POST' && $sub === '/add-member') {
-    if (!$is_human) {
-        http_response_code(403);
-        echo json_encode(['error' => 'Only humans can manage project members']);
-        return;
-    }
-
-    $input      = \Field::jsonArray((string) file_get_contents('php://input'));
-    $project_id = \Field::int($input, 'project_id');
-    $member_aiu = \Field::int($input, 'member_aiu');
-    $can_read   = isset($input['can_read'])  ? (int)(bool)$input['can_read']  : 1;
-    $can_write  = isset($input['can_write']) ? (int)(bool)$input['can_write'] : 0;
-
-    if ($project_id <= 0 || $member_aiu <= 0) {
-        http_response_code(400);
-        echo json_encode(['error' => 'project_id and member_aiu are required']);
-        return;
-    }
-
-    // Project must belong to this account
-    $proj = $pdo->prepare("SELECT 1 FROM projects WHERE project_id = ? AND user_id = ?");
-    $proj->execute([$project_id, $auth_user_id]);
-    if (!$proj->fetch()) {
-        http_response_code(404);
-        echo json_encode(['error' => 'Project not found']);
-        return;
-    }
-
-    // Single-account invariant: member_aiu must belong to the same account
-    $aiu = $pdo->prepare("SELECT 1 FROM agent_inbox_user WHERE aiu_id = ? AND user_id = ?");
-    $aiu->execute([$member_aiu, $auth_user_id]);
-    if (!$aiu->fetch()) {
-        http_response_code(400);
-        echo json_encode(['error' => 'member_aiu does not belong to this account']);
-        return;
-    }
-
-    // Duplicate check (UNIQUE KEY would reject but explicit 409 is friendlier)
-    $dup = $pdo->prepare(
-        "SELECT 1 FROM project_members WHERE project_id = ? AND member_aiu = ?"
-    );
-    $dup->execute([$project_id, $member_aiu]);
-    if ($dup->fetch()) {
-        http_response_code(409);
-        echo json_encode(['error' => 'Agent is already a member of this project']);
-        return;
-    }
-
-    require_credit($pdo, $auth_user_id, $auth_key_id, 'projects/add-member');
-
-    $ins = $pdo->prepare(
-        "INSERT INTO project_members (project_id, member_aiu, can_read, can_write)
-         VALUES (?, ?, ?, ?)"
-    );
-    $ins->execute([$project_id, $member_aiu, $can_read, $can_write]);
-
-    http_response_code(201);
-    echo json_encode([
-        'member' => [
-            'project_id' => $project_id,
-            'member_aiu' => $member_aiu,
-            'can_read'   => $can_read,
-            'can_write'  => $can_write,
-        ],
-    ]);
+    projects_api(static function () use ($project_service, $project_caller): void {
+        $member = \Projects\Command\AddMember::fromInput(projects_body());
+        $project_service->addMember($project_caller, $member);
+        http_response_code(201);
+        echo json_encode([
+            'member' => [
+                'project_id' => $member->projectId,
+                'member_aiu' => $member->memberAiu,
+                'can_read'   => (int) $member->canRead,
+                'can_write'  => (int) $member->canWrite,
+            ],
+        ]);
+    });
     return;
 }
 
-// ── PATCH /projects/update-member ────────────────────────────────────────────
+// ─── PATCH /projects/update-member ──────────────────────────────────────────
 
 if ($method === 'PATCH' && $sub === '/update-member') {
-    if (!$is_human) {
-        http_response_code(403);
-        echo json_encode(['error' => 'Only humans can manage project members']);
-        return;
-    }
-
-    $input      = \Field::jsonArray((string) file_get_contents('php://input'));
-    $project_id = \Field::int($input, 'project_id');
-    $member_aiu = \Field::int($input, 'member_aiu');
-    $can_read   = array_key_exists('can_read', $input)  ? (int)(bool)$input['can_read']  : null;
-    $can_write  = array_key_exists('can_write', $input) ? (int)(bool)$input['can_write'] : null;
-
-    if ($project_id <= 0 || $member_aiu <= 0) {
-        http_response_code(400);
-        echo json_encode(['error' => 'project_id and member_aiu are required']);
-        return;
-    }
-    if ($can_read === null && $can_write === null) {
-        http_response_code(400);
-        echo json_encode(['error' => 'provide can_read and/or can_write to update']);
-        return;
-    }
-
-    $sets = [];
-    $params = [];
-    if ($can_read !== null) {
-        $sets[] = 'can_read = ?';
-        $params[] = $can_read;
-    }
-    if ($can_write !== null) {
-        $sets[] = 'can_write = ?';
-        $params[] = $can_write;
-    }
-
-    require_credit($pdo, $auth_user_id, $auth_key_id, 'projects/update-member');
-
-    $params[] = $project_id;
-    $params[] = $member_aiu;
-    $params[] = $auth_user_id;
-    $set_sql = implode(', ', $sets);
-    $stmt = $pdo->prepare(
-        "UPDATE project_members pm
-         JOIN projects p ON p.project_id = pm.project_id
-         SET {$set_sql}
-         WHERE pm.project_id = ? AND pm.member_aiu = ? AND p.user_id = ?"
-    );
-    $stmt->execute($params);
-
-    echo json_encode(['updated' => $stmt->rowCount()]);
+    projects_api(static function () use ($project_service, $project_caller): void {
+        $changes = \Projects\Command\UpdateMember::fromInput(projects_body());
+        echo json_encode(['updated' => $project_service->updateMember($project_caller, $changes)]);
+    });
     return;
 }
 
-// ── DELETE /projects/remove-member ───────────────────────────────────────────
+// ─── DELETE /projects/remove-member ─────────────────────────────────────────
 
 if ($method === 'DELETE' && $sub === '/remove-member') {
-    if (!$is_human) {
-        http_response_code(403);
-        echo json_encode(['error' => 'Only humans can manage project members']);
-        return;
-    }
-
-    $input      = \Field::jsonArray((string) file_get_contents('php://input'));
-    $project_id = \Field::int($input, 'project_id');
-    $member_aiu = \Field::int($input, 'member_aiu');
-
-    if ($project_id <= 0 || $member_aiu <= 0) {
-        http_response_code(400);
-        echo json_encode(['error' => 'project_id and member_aiu are required']);
-        return;
-    }
-
-    require_credit($pdo, $auth_user_id, $auth_key_id, 'projects/remove-member');
-
-    $stmt = $pdo->prepare(
-        "DELETE pm FROM project_members pm
-         JOIN projects p ON p.project_id = pm.project_id
-         WHERE pm.project_id = ? AND pm.member_aiu = ? AND p.user_id = ?"
-    );
-    $stmt->execute([$project_id, $member_aiu, $auth_user_id]);
-
-    echo json_encode(['deleted' => $stmt->rowCount()]);
+    projects_api(static function () use ($project_service, $project_caller): void {
+        $input = projects_body();
+        $removed = $project_service->removeMember(
+            $project_caller,
+            \Input\Input::positiveId($input, 'project_id'),
+            \Input\Input::positiveId($input, 'member_aiu'),
+        );
+        echo json_encode(['deleted' => $removed]);
+    });
     return;
 }
 
-// ── GET /projects/dashboard ──────────────────────────────────────────────────
-// My assigned issues across all projects + unassigned queue across my projects.
-// Both exclude terminal statuses. Scoped to projects where caller is a member.
+// ─── GET /projects/dashboard ────────────────────────────────────────────────
+// My assigned issues across all projects + unassigned queue across my
+// projects. Both exclude terminal statuses and need can_read.
 
 if ($method === 'GET' && $sub === '/dashboard') {
-    // My assigned issues (across all projects I'm a member of).
-    // Sort high-priority first, then by recency.
-    $mine_stmt = $pdo->prepare(
-        "SELECT i.issue_id, i.priority, i.project_id, p.name AS project_name,
-                i.title, i.status_id, s.slug AS status_slug, s.label AS status_label,
-                i.assignee_aiu, i.author_aiu, i.parent_issue_id,
-                i.created_at_utc, i.updated_at_utc
-         FROM issues i
-         JOIN projects p         ON p.project_id = i.project_id
-         JOIN issue_statuses s   ON s.status_id = i.status_id
-         JOIN project_members pm ON pm.project_id = i.project_id AND pm.member_aiu = ? AND pm.can_read = 1
-         WHERE i.assignee_aiu = ? AND s.is_terminal = 0 AND p.user_id = ?
-         ORDER BY FIELD(i.priority, 'high', 'normal', 'low'), i.updated_at_utc DESC"
-    );
-    $mine_stmt->execute([$caller_aiu, $caller_aiu, $auth_user_id]);
-
-    // Unassigned queue (across all projects I'm a member of).
-    // Sort high-priority first, then by creation order (FIFO for same priority).
-    $queue_stmt = $pdo->prepare(
-        "SELECT i.issue_id, i.priority, i.project_id, p.name AS project_name,
-                i.title, i.status_id, s.slug AS status_slug, s.label AS status_label,
-                i.author_aiu, i.parent_issue_id,
-                i.created_at_utc, i.updated_at_utc
-         FROM issues i
-         JOIN projects p         ON p.project_id = i.project_id
-         JOIN issue_statuses s   ON s.status_id = i.status_id
-         JOIN project_members pm ON pm.project_id = i.project_id AND pm.member_aiu = ? AND pm.can_read = 1
-         WHERE i.assignee_aiu IS NULL AND s.is_terminal = 0 AND p.user_id = ?
-         ORDER BY FIELD(i.priority, 'high', 'normal', 'low'), i.created_at_utc ASC"
-    );
-    $queue_stmt->execute([$caller_aiu, $auth_user_id]);
-
-    echo json_encode([
-        'my_assigned_issues' => $mine_stmt->fetchAll(\PDO::FETCH_ASSOC),
-        'unassigned_queue'   => $queue_stmt->fetchAll(\PDO::FETCH_ASSOC),
-    ]);
+    projects_api(static function () use ($project_service, $project_caller): void {
+        $dashboard = $project_service->dashboard($project_caller);
+        echo json_encode([
+            'my_assigned_issues' => $dashboard['mine'],
+            'unassigned_queue'   => $dashboard['queue'],
+        ]);
+    });
     return;
 }
 
-// ── Fallthrough ──────────────────────────────────────────────────────────────
+// ─── Fallthrough ─────────────────────────────────────────────────────────────
 
 http_response_code(404);
 echo json_encode([
