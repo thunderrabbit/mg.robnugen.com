@@ -56,6 +56,11 @@ interface IssueStore
      */
     public function issueNames(int $issueId): ?IssueNames;
 
+    /**
+     * What hangs off an issue. Called after an access check, so it isn't scoped.
+     */
+    public function counts(int $issueId): IssueCounts;
+
     public function status(int $statusId): ?IssueStatusRow;
 
     /**

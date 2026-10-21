@@ -24,6 +24,7 @@ use Issues\Command\StartTimer;
 use Issues\Command\UpdateIssue;
 use Issues\CommentView;
 use Issues\CommitView;
+use Issues\IssueCounts;
 use Issues\IssueListItem;
 use Issues\IssueNames;
 use Issues\Membership;
@@ -179,6 +180,17 @@ final class FakeIssueStore implements IssueStore
             projectName: $this->projectNames[$issue->projectId] ?? "Project {$issue->projectId}",
             authorName: $this->actorName($issue->authorAiu),
             assigneeName: $issue->assigneeAiu === null ? null : $this->actorName($issue->assigneeAiu),
+        );
+    }
+
+    #[\Override]
+    public function counts(int $issueId): IssueCounts
+    {
+        return new IssueCounts(
+            comments: count(array_filter($this->comments, static fn(IssueCommentRow $c): bool => $c->issueId === $issueId)),
+            timers: count(array_filter($this->timers, static fn(IssueTimerRow $t): bool => $t->issueId === $issueId)),
+            runningTimers: $this->runningTimerCount($issueId),
+            commits: count(array_filter($this->commits, static fn(IssueCommitRow $c): bool => $c->issueId === $issueId)),
         );
     }
 

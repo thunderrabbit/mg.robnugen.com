@@ -104,6 +104,25 @@ final class PdoIssueStore implements IssueStore
     }
 
     #[\Override]
+    public function counts(int $issueId): IssueCounts
+    {
+        $row = $this->one(
+            "SELECT
+                (SELECT COUNT(*) FROM issue_comments WHERE issue_id = ?) AS comments,
+                (SELECT COUNT(*) FROM issue_timers   WHERE issue_id = ?) AS timers,
+                (SELECT COUNT(*) FROM issue_timers   WHERE issue_id = ? AND stopped_at_utc IS NULL) AS running_timers,
+                (SELECT COUNT(*) FROM issue_commits  WHERE issue_id = ?) AS commits",
+            [$issueId, $issueId, $issueId, $issueId],
+        ) ?? throw new \LogicException('A row of sub-selects always answers one row');
+        return new IssueCounts(
+            comments: RowValue::int($row, 'comments'),
+            timers: RowValue::int($row, 'timers'),
+            runningTimers: RowValue::int($row, 'running_timers'),
+            commits: RowValue::int($row, 'commits'),
+        );
+    }
+
+    #[\Override]
     public function status(int $statusId): ?IssueStatusRow
     {
         $row = $this->one("SELECT * FROM issue_statuses WHERE status_id = ? LIMIT 1", [$statusId]);
