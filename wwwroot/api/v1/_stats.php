@@ -24,11 +24,19 @@ declare(strict_types=1);
  * @var int $auth_key_id
  * @var string $method
  * @var string $path
+ * @var array<mixed> $auth_actor
  */
 
 if ($method !== 'GET') {
     http_response_code(405);
     echo json_encode(['error' => 'Method not allowed']);
+    exit;
+}
+
+// Session totals, streaks and the account's credits are session data.
+if (!\Field::int($auth_actor, 'can_read_sessions')) {
+    http_response_code(403);
+    echo json_encode(['error' => 'This API key does not have permission to read sessions']);
     exit;
 }
 

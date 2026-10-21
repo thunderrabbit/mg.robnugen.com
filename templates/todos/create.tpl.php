@@ -52,14 +52,14 @@
                         <label for="target_duration_seconds">Ideal Duration (Optional)</label>
                         <div class="duration-input-group">
                             <input type="number" id="target_duration_minutes" class="form-control" placeholder="Minutes" value="<?= isset($todo['target_duration_seconds']) ? floor($todo['target_duration_seconds'] / 60) : '' ?>">
-                            <input type="hidden" name="target_duration_seconds" id="target_duration_seconds" value="<?= $todo['target_duration_seconds'] ?? '' ?>">
+                            <input type="hidden" name="target_duration_seconds" id="target_duration_seconds" value="<?= htmlspecialchars((string) ($todo['target_duration_seconds'] ?? '')) ?>">
                         </div>
                         <small class="help-text">Minutes of timed activity</small>
                     </div>
 
                     <div class="form-group">
                         <label for="target_count">How many per day?</label>
-                        <input type="number" id="target_count" name="target_count" value="<?= $todo['target_count'] ?? 1 ?>" min="1" class="form-control">
+                        <input type="number" id="target_count" name="target_count" value="<?= htmlspecialchars((string) ($todo['target_count'] ?? 1)) ?>" min="1" class="form-control">
                         <small class="help-text">Default is 1 (checkbox style)</small>
                     </div>
                 </div>

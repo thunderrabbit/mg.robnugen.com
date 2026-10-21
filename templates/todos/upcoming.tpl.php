@@ -29,7 +29,7 @@
                                     } elseif ($todo['due_date']) {
                                         echo 'Due: ' . date('M j, Y', strtotime($todo['due_date']));
                                     } elseif ($todo['do_dates']) {
-                                        echo 'Planned: ' . $todo['do_dates'];
+                                        echo 'Planned: ' . htmlspecialchars((string) $todo['do_dates']);
                                     } else {
                                         echo 'Future';
                                     }
@@ -42,7 +42,7 @@
                                 <?php
                                 $schedule = [];
                                 if (!empty($todo['do_every_n_days'])) $schedule[] = 'Every ' . (int) $todo['do_every_n_days'] . ' days';
-                                if ($todo['do_days']) $schedule[] = $todo['do_days'];
+                                if ($todo['do_days']) $schedule[] = htmlspecialchars((string) $todo['do_days']);
                                 if ($todo['do_time']) $schedule[] = date('g:ia', strtotime($todo['do_time']));
                                 echo implode(', ', $schedule);
                                 ?>

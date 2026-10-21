@@ -90,10 +90,10 @@
                                 } else {
                                     $schedule = [];
                                     if (!empty($todo['do_every_n_days'])) $schedule[] = 'Every ' . (int) $todo['do_every_n_days'] . ' days';
-                                    if ($todo['do_days']) $schedule[] = $todo['do_days'];
-                                    if ($todo['do_dates']) $schedule[] = 'Dates: ' . $todo['do_dates'];
+                                    if ($todo['do_days']) $schedule[] = htmlspecialchars((string) $todo['do_days']);
+                                    if ($todo['do_dates']) $schedule[] = 'Dates: ' . htmlspecialchars((string) $todo['do_dates']);
                                     if ($todo['do_time']) $schedule[] = 'At: ' . date('g:ia', strtotime($todo['do_time']));
-                                    if ($todo['due_date']) $schedule[] = 'Due: ' . $todo['due_date'];
+                                    if ($todo['due_date']) $schedule[] = 'Due: ' . htmlspecialchars((string) $todo['due_date']);
 
                                     echo !empty($schedule) ? implode('<br>', $schedule) : 'Anytime';
                                 }

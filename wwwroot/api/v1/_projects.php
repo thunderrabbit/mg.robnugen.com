@@ -464,7 +464,7 @@ if ($method === 'GET' && $sub === '/dashboard') {
          FROM issues i
          JOIN projects p         ON p.project_id = i.project_id
          JOIN issue_statuses s   ON s.status_id = i.status_id
-         JOIN project_members pm ON pm.project_id = i.project_id AND pm.member_aiu = ?
+         JOIN project_members pm ON pm.project_id = i.project_id AND pm.member_aiu = ? AND pm.can_read = 1
          WHERE i.assignee_aiu = ? AND s.is_terminal = 0 AND p.user_id = ?
          ORDER BY FIELD(i.priority, 'high', 'normal', 'low'), i.updated_at_utc DESC"
     );
@@ -480,7 +480,7 @@ if ($method === 'GET' && $sub === '/dashboard') {
          FROM issues i
          JOIN projects p         ON p.project_id = i.project_id
          JOIN issue_statuses s   ON s.status_id = i.status_id
-         JOIN project_members pm ON pm.project_id = i.project_id AND pm.member_aiu = ?
+         JOIN project_members pm ON pm.project_id = i.project_id AND pm.member_aiu = ? AND pm.can_read = 1
          WHERE i.assignee_aiu IS NULL AND s.is_terminal = 0 AND p.user_id = ?
          ORDER BY FIELD(i.priority, 'high', 'normal', 'low'), i.created_at_utc ASC"
     );
