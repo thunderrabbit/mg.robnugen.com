@@ -1,6 +1,7 @@
 <div class="form-container">
     <h2 style="margin-top: 0;">Create Account</h2>
     <form action="" method="POST">
+        <?= $csrf_field ?? '' ?>
         <div class="form-row">
             <label for="username">Username:</label>
             <input type="text" name="username" id="username" required minlength="3" maxlength="64" pattern="[!-~]+" title="3 to 64 characters of plain ASCII, no spaces">

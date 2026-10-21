@@ -15,7 +15,11 @@ $autoloader = new \Mlaphp\Autoloader();
 spl_autoload_register(array($autoloader, 'load'));
 
 
+\Startup\Session::start();
 $mla_request = new \Mlaphp\Request();
+// prepend.php's CSRF gate never runs here, so check the token ourselves:
+// otherwise any site could create accounts in a visitor's browser.
+$csrfProtect = new \Security\CSRFProtectaroo($mla_request);
 
 try {
     $config = new \Config();
@@ -34,6 +38,14 @@ $dbExistaroo = new \Database\DBExistaroo(
 );
 
 $creating_admin_user = !$dbExistaroo->firstUserExistBool();
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$csrfProtect->validateRequest()) {
+    http_response_code(403);
+    echo "<h1>Request rejected</h1>"
+        . "<p>The form's security token was missing or has expired. "
+        . "Go back, reload the page, and try again.</p>";
+    exit;
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // handle form submission...
@@ -106,6 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Get the inner content
     $inner_page = new \Template(config: $config, is_logged_in: $is_logged_in);
     $inner_page->setTemplate("login/register_content.tpl.php");
+    $inner_page->set("csrf_field", $csrfProtect->field());
     $page->set("page_content", $inner_page->grabTheGoods());
 
     $page->echoToScreen();
