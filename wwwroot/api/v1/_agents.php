@@ -105,6 +105,10 @@ if ($method === 'POST' && $sub === '') {
     foreach ($perm_fields as $p) {
         $perms[$p] = isset($input[$p]) ? ($input[$p] ? 1 : 0) : ($p === 'can_read_inbox' ? 1 : 0);
     }
+    // Pings go to Rob's own phone, so only an admin account may grant them.
+    if (!\Auth\AccountRole::isAdmin($pdo, $auth_user_id)) {
+        $perms['can_ping_phone'] = 0;
+    }
 
     require_credit($pdo, $auth_user_id, $auth_key_id, 'POST /agents');
 

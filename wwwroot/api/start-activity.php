@@ -61,6 +61,19 @@ try {
     $user_id = $is_logged_in->loggedInID();
     $is_admin = $is_logged_in->isAdmin();
 
+    // The expired-timer sweep logs a completion of the linked todo and the
+    // history pages show its title, so both ids must be the caller's own.
+    if ($todo_id !== null && !(new \ActivityTracking\Todo($pdo))->verifyOwnership($todo_id, $user_id)) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'error' => 'Todo not found']);
+        exit;
+    }
+    if (!(new \ActivityTracking\Activity($pdo))->userMayUse($activity_id, $user_id)) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'error' => 'Activity not found']);
+        exit;
+    }
+
     // Get or create timezone
     $timezoneHelper = new \ActivityTracking\Timezone($pdo);
     $timezone_id = $timezoneHelper->getTimezoneId($timezone_iana);

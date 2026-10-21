@@ -107,9 +107,16 @@ if (!$auth_user_id) {
     exit;
 }
 
-$actor_stmt = $pdo->prepare("SELECT * FROM agent_inbox_user WHERE aiu_id = ? LIMIT 1");
-$actor_stmt->execute([$auth_aiu_id]);
+// The agent must belong to the token's account: a key or token bound to
+// another account's agent would otherwise act with that agent's identity.
+$actor_stmt = $pdo->prepare("SELECT * FROM agent_inbox_user WHERE aiu_id = ? AND user_id = ? LIMIT 1");
+$actor_stmt->execute([$auth_aiu_id, $auth_user_id]);
 $auth_actor  = $actor_stmt->fetch(\PDO::FETCH_ASSOC);
+if (!is_array($auth_actor)) {
+    http_response_code(403);
+    echo json_encode(mcp_error(null, -32600, 'This token is not bound to an agent in its account'));
+    exit;
+}
 $caller_aiu  = \Field::int($auth_actor, 'aiu_id');
 $exterm      = new \Exterm\Items($pdo);
 

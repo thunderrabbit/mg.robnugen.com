@@ -143,6 +143,11 @@ if ($method === 'POST' && $is_backfill) {
 
     $input        = \Field::jsonArray((string) file_get_contents('php://input'));
     $activity_id  = \Field::int($input, 'activity_id', 1);
+    if (!(new \ActivityTracking\Activity($pdo))->userMayUse($activity_id, $auth_user_id)) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Activity not found or access denied']);
+        exit;
+    }
     $timezone_str = trim(\Field::string($input, 'timezone', 'UTC'));
     $start_time   = trim(\Field::string($input, 'start_time'));
     $end_time     = trim(\Field::string($input, 'end_time'));
@@ -223,6 +228,11 @@ if ($method === 'POST' && $ak_id === null) {
 
     $input        = \Field::jsonArray((string) file_get_contents('php://input'));
     $activity_id  = \Field::int($input, 'activity_id', 1);
+    if (!(new \ActivityTracking\Activity($pdo))->userMayUse($activity_id, $auth_user_id)) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Activity not found or access denied']);
+        exit;
+    }
     $timezone_str = trim(\Field::string($input, 'timezone', 'UTC'));
     $intended_sec = \Field::int($input, 'intended_sec');
 

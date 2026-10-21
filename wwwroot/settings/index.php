@@ -47,6 +47,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_key_action'])) {
             foreach (['can_read_inbox','can_write_inbox','can_read_todos','can_write_todos','can_read_sessions','can_write_sessions','can_read_emotions','can_write_emotions','can_ping_phone'] as $p) {
                 $perms[$p] = isset($_POST[$p]) ? 1 : 0;
             }
+            // Pings go to Rob's own phone, so only an admin may grant them.
+            if (!$is_logged_in->isAdmin()) {
+                $perms['can_ping_phone'] = 0;
+            }
             $stmt = $mla_database->prepare(
                 "INSERT INTO agent_inbox_user (user_id, name, description, actor_type,
                  can_read_inbox, can_write_inbox, can_read_todos, can_write_todos,
@@ -78,7 +82,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_key_action'])) {
                 );
                 foreach ($send_to as $peer_aiu_id) {
                     $peer_aiu_id = \Field::toInt($peer_aiu_id);
-                    if ($peer_aiu_id > 0 && $peer_aiu_id !== $new_aiu_id) {
+                    if (
+                        $peer_aiu_id > 0
+                        && $peer_aiu_id !== $new_aiu_id
+                        && $apiKeyHelper->aiuBelongsToUser($peer_aiu_id, $user_id)
+                    ) {
                         $send_stmt->execute([$new_aiu_id, $peer_aiu_id]);
                     }
                 }
@@ -89,7 +97,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_key_action'])) {
     } elseif ($_POST['api_key_action'] === 'assign_actor') {
         $key_id = \Field::int($_POST, 'key_id');
         $aiu_id = \Field::int($_POST, 'aiu_id');
-        if ($key_id > 0 && $aiu_id > 0) {
+        if ($key_id > 0 && $aiu_id > 0 && !$apiKeyHelper->aiuBelongsToUser($aiu_id, $user_id)) {
+            $errors[] = 'That agent is not one of yours.';
+        } elseif ($key_id > 0 && $aiu_id > 0) {
             $stmt = $mla_database->prepare(
                 "UPDATE api_keys SET aiu_id = ? WHERE key_id = ? AND user_id = ?"
             );

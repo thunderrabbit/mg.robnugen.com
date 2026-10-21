@@ -69,6 +69,10 @@ class ApiKey
             );
             $stmt->execute([$user_id]);
             $aiu_id = (int) $stmt->fetchColumn();
+        } elseif (!$this->aiuBelongsToUser($aiu_id, $user_id)) {
+            // A key carries its agent's permission bits and identity, so it
+            // must never be bound to an agent from another account.
+            throw new \RuntimeException("Agent aiu_id $aiu_id is not one of your agents.");
         }
 
         // Enforce max 2 active keys per agent (like AWS IAM)
@@ -92,6 +96,18 @@ class ApiKey
         $stmt->execute([$user_id, $aiu_id, $key_hash, $label]);
 
         return $raw_key;
+    }
+
+    /**
+     * True when the agent identity belongs to this account.
+     */
+    public function aiuBelongsToUser(int $aiu_id, int $user_id): bool
+    {
+        $stmt = $this->di_pdo->prepare(
+            "SELECT 1 FROM agent_inbox_user WHERE aiu_id = ? AND user_id = ? LIMIT 1"
+        );
+        $stmt->execute([$aiu_id, $user_id]);
+        return $stmt->fetchColumn() !== false;
     }
 
     /**
