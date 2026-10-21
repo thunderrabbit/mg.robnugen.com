@@ -119,6 +119,28 @@ class LoginFunnelTest extends Unit
         $this->assertFalse($auth->isLoggedIn());
     }
 
+    public function testAccentedSpellingIsRefusedBeforeTheLookup(): void
+    {
+        // MySQL's accent-insensitive collation would match this to Alice;
+        // SQLite would not, so what this pins is the refusal and its count.
+        $auth = $this->isLoggedIn();
+        $this->assertSame(\Auth\LoginResult::BadCredentials, $auth->attemptPasswordLogin('Álice', 'right horse'));
+        $this->assertFalse($auth->isLoggedIn());
+        $this->assertSame(1, $this->failures(), 'counted against the IP');
+    }
+
+    public function testAccentedSpellingsDoNotEscapeTheThrottle(): void
+    {
+        $auth = $this->isLoggedIn();
+        for ($i = 0; $i < \Auth\LoginThrottle::MAX_FAILURES_PER_USERNAME; $i++) {
+            $auth->attemptPasswordLogin('alice', 'wrong');
+        }
+        foreach (['Álice', 'àlice', 'ålice'] as $variant) {
+            $this->assertSame(\Auth\LoginResult::BadCredentials, $auth->attemptPasswordLogin($variant, 'right horse'));
+        }
+        $this->assertSame(\Auth\LoginResult::Throttled, $auth->attemptPasswordLogin('Alice', 'right horse'));
+    }
+
     public function testResumeFromCookieLogsInTheCookiesOwner(): void
     {
         (new \Database\CookieRepository($this->pdo))->issue(7, hash('sha256', 'tok-123'), md5(self::UA), 3600);

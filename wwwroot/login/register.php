@@ -45,6 +45,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $errors = [];
     if (empty($username)) {
         $errors[] = "Username is required.";
+    } elseif (\Auth\Username::problem($username) !== '') {
+        $errors[] = \Auth\Username::problem($username);
     }
     if (empty($password)) {
         $errors[] = "Password is required.";
