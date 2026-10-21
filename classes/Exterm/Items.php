@@ -117,6 +117,17 @@ class Items
         return $row;
     }
 
+    /**
+     * Membership alone is not enough to list or search a project's notes:
+     * the member row must also grant can_read.
+     */
+    private function requireRead(int $project_id, int $user_id, int $caller_aiu): void
+    {
+        if (!\Field::int($this->projectAccess($project_id, $user_id, $caller_aiu), 'can_read')) {
+            throw new AccessException("No read access to project {$project_id}");
+        }
+    }
+
     // ── Projects ─────────────────────────────────────────────────────────────
 
     /**
@@ -156,7 +167,7 @@ class Items
         $params = [$user_id];
 
         if ($project_id) {
-            $this->projectAccess($project_id, $user_id, $caller_aiu);
+            $this->requireRead($project_id, $user_id, $caller_aiu);
             $where[]     = "ei.project_id = ?";
             $params[]    = $project_id;
             $member_join = "";
@@ -326,7 +337,7 @@ class Items
         $params = [$user_id, $like, $like];
 
         if ($project_id) {
-            $this->projectAccess($project_id, $user_id, $caller_aiu);
+            $this->requireRead($project_id, $user_id, $caller_aiu);
             $where[] = "ei.project_id = ?";
             $params[] = $project_id;
             $member_join = "";
