@@ -21,7 +21,7 @@ use Mlaphp\Request;
  * prepend.php instantiates this once and calls validateRequest() before any
  * page code runs, so a handler cannot forget the check. Templates emit the
  * hidden field with csrf_field(); fetch() callers send the X-CSRF-Token
- * header instead; templates/layout/csrf_head.tpl.php adds it to every
+ * header instead; templates/partials/csrf_head.tpl.php adds it to every
  * same-origin fetch and XHR.
  */
 class CSRFProtectaroo

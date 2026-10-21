@@ -91,6 +91,11 @@ document.getElementById('evidence-form').addEventListener('submit', async functi
     input.name = 'encrypted_evidence';
     input.value = encrypted;
     form.appendChild(input);
+    const csrf = document.createElement('input');
+    csrf.type = 'hidden';
+    csrf.name = 'csrf_token';
+    csrf.value = <?= json_encode(csrf_token()) ?>;
+    form.appendChild(csrf);
 
     const actionInput = document.createElement('input');
     actionInput.type = 'hidden';

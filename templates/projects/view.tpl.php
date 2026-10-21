@@ -140,6 +140,7 @@
                             <?php endif; ?>
                         </span>
                         <form method="POST" action="/projects/update-member.php" class="member-perms-form">
+                            <?= csrf_field() ?>
                             <input type="hidden" name="project_id" value="<?= (int)$project['project_id'] ?>">
                             <input type="hidden" name="member_aiu" value="<?= (int)$member['member_aiu'] ?>">
                             <label>
@@ -153,6 +154,7 @@
                             <button type="submit" class="btn-sm">Update perms</button>
                         </form>
                         <form method="POST" action="/projects/remove-member.php" class="member-remove-form">
+                            <?= csrf_field() ?>
                             <input type="hidden" name="project_id" value="<?= (int)$project['project_id'] ?>">
                             <input type="hidden" name="member_aiu" value="<?= (int)$member['member_aiu'] ?>">
                             <button type="submit" class="btn-sm">Remove</button>

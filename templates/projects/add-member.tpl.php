@@ -25,6 +25,7 @@
             <p class="empty-state"><em>No actors in your account are available to add — everyone is already a member of this project.</em></p>
         <?php else: ?>
             <form method="POST" action="/projects/add-member.php">
+                <?= csrf_field() ?>
                 <input type="hidden" name="project_id" value="<?= (int)$project['project_id'] ?>">
 
                 <div class="form-field">
