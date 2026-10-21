@@ -61,6 +61,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $result = $passwordRepository->changePassword($user_id, $current_password, $new_password);
 
                 if ($result['success']) {
+                    // Anyone holding an old session is signed out; this browser stays in.
+                    $is_logged_in->revokeOtherSessions();
                     $success_message = $result['message'];
                 } else {
                     $errors[] = $result['message'];
