@@ -81,5 +81,8 @@
 
 <div class="PagePanel">
     <p>Logged in as: <strong><?= htmlspecialchars($username) ?></strong></p>
-    <a href="/logout/">Logout</a>
+    <form method="POST" action="/logout/" class="menu-logout-form">
+        <?= csrf_field() ?>
+        <button type="submit" class="menu-link-button">Logout</button>
+    </form>
 </div>
