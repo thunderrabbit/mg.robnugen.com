@@ -72,7 +72,9 @@
                     <label><input type="checkbox" name="can_write_sessions"> Write Sessions</label>
                     <label><input type="checkbox" name="can_read_emotions"> Read Notebook</label>
                     <label><input type="checkbox" name="can_write_emotions"> Write Notebook</label>
-                    <label><input type="checkbox" name="can_ping_phone"> Ping Phone</label>
+                    <?php if (isset($is_logged_in) && $is_logged_in->isAdmin()): ?>
+                        <label><input type="checkbox" name="can_ping_phone"> Ping Phone</label>
+                    <?php endif; ?>
                 </div>
                 <div class="fix"></div>
             </div>

@@ -47,6 +47,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_key_action'])) {
             foreach (['can_read_inbox','can_write_inbox','can_read_todos','can_write_todos','can_read_sessions','can_write_sessions','can_read_emotions','can_write_emotions','can_ping_phone'] as $p) {
                 $perms[$p] = isset($_POST[$p]) ? 1 : 0;
             }
+            // Pings go to Rob's own phone, so only an admin may grant them.
+            if (!$is_logged_in->isAdmin()) {
+                $perms['can_ping_phone'] = 0;
+            }
             $stmt = $mla_database->prepare(
                 "INSERT INTO agent_inbox_user (user_id, name, description, actor_type,
                  can_read_inbox, can_write_inbox, can_read_todos, can_write_todos,

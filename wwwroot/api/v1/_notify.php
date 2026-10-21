@@ -20,11 +20,15 @@ declare(strict_types=1);
  * @var string $method
  * @var string $path
  * @var array<mixed> $auth_actor
+ * @var \PDO $pdo
+ * @var int $auth_user_id
  */
 
 $sub = preg_replace('#^/notify#', '', $path) ?: '/';
 
-if (!\Field::int($auth_actor, 'can_ping_phone')) {
+// Every ping lands on Rob's phone (one global chat), so the bit only counts
+// on an admin account: an agent created elsewhere cannot reach him.
+if (!\Field::int($auth_actor, 'can_ping_phone') || !\Auth\AccountRole::isAdmin($pdo, $auth_user_id)) {
     http_response_code(403);
     echo json_encode(['error' => 'This API key does not have permission (can_ping_phone)']);
     return;
