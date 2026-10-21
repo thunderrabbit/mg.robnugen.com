@@ -45,9 +45,31 @@ try {
     $issue    = $service->detail($caller, $issue_id);
     // The page shows every comment it loads; no issue here is anywhere near 500.
     $comments = $service->comments($caller, $issue_id, new \Issues\Command\Paging(limit: 500))->items;
+    // Done children too: the table is how you see what an umbrella issue finished.
+    if ($issue->projectId < 1) {
+        throw new \Issues\NotFoundException("Issue {$issue_id} has no project");
+    }
+    $children = $service->listIssues($caller, new \Issues\Command\ListIssues(
+        projectId: $issue->projectId,
+        parentIssueId: $issue_id,
+        includeTerminal: true,
+        paging: new \Issues\Command\Paging(limit: 200),
+    ))->items;
+    // The table opens sorted by id, as its header says.
+    usort($children, fn ($a, $b) => $a->issue->issueId <=> $b->issue->issueId);
 } catch (\Input\InvalidInput | \Issues\NotFoundException | \Issues\AccessException) {
     header("Location: /projects/?msg=issue_not_found");
     exit;
+}
+
+// A parent the caller can't read just isn't linked; the issue itself still shows.
+$parent = null;
+if ($issue->parentIssueId !== null) {
+    try {
+        $parent = $service->detail($caller, $issue->parentIssueId);
+    } catch (\Issues\NotFoundException | \Issues\AccessException) {
+        $parent = null;
+    }
 }
 
 $page = new \Template($config, $is_logged_in);
@@ -58,6 +80,8 @@ $inner_page = new \Template($config, $is_logged_in);
 $inner_page->setTemplate("issues/view.tpl.php");
 $inner_page->set("issue", $issue);
 $inner_page->set("comments", $comments);
+$inner_page->set("children", $children);
+$inner_page->set("parent", $parent);
 $inner_page->set("statuses", $service->statuses());
 if (isset($_GET['msg']) && is_string($_GET['msg'])) {
     $inner_page->set("msg", $_GET['msg']);

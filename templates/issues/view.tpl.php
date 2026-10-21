@@ -5,12 +5,21 @@
  *
  * @var \Issues\IssueDetail $issue
  * @var list<\Issues\CommentView> $comments
+ * @var list<\Issues\IssueListItem> $children
+ * @var \Issues\IssueDetail|null $parent
  * @var list<\Db\Row\IssueStatusRow> $statuses
  * @var string $msg
  */
 
 ?>
 <div class="dashboard-container">
+    <?php if ($parent !== null): ?>
+        <p class="issue-parent">
+            ↑ Sub-issue of
+            <a href="/issues/view.php?issue_id=<?= $parent->issueId ?>">#<?= $parent->issueId ?> <?= htmlspecialchars($parent->title) ?></a>
+            <span class="issue-parent-status">(<?= htmlspecialchars($parent->statusLabel) ?>)</span>
+        </p>
+    <?php endif; ?>
     <header class="dashboard-header">
         <a href="/projects/view.php?project_id=<?= $issue->projectId ?>" class="btn-sm btn-back">← Back to <?= htmlspecialchars($issue->projectName) ?></a>
         <h1><span class="issue-id">#<?= $issue->issueId ?></span> <?= htmlspecialchars($issue->title) ?></h1>
@@ -69,6 +78,97 @@
             <p class="empty-state"><em>No description.</em></p>
         <?php endif; ?>
     </div>
+
+    <?php if ($children !== []): ?>
+        <?php
+        $priority_rank = ['high' => 0, 'normal' => 1, 'low' => 2];
+        $fmt = \Db\RowValue::DATETIME_FORMAT;
+        // One filter box per status the children use, in status order.
+        $child_statuses = [];
+        foreach ($children as $child) {
+            $id = $child->status->statusId;
+            $child_statuses[$id] ??= ['status' => $child->status, 'count' => 0];
+            $child_statuses[$id]['count']++;
+        }
+        uasort($child_statuses, fn ($a, $b) => $a['status']->sortOrder <=> $b['status']->sortOrder);
+        ?>
+        <div class="card" id="sub-issues">
+            <h2>Sub-issues <span class="sub-issue-count">(<span class="sub-issue-shown"><?= count($children) ?></span> of <?= count($children) ?>)</span></h2>
+            <div class="sub-issue-filter">
+                <?php foreach ($child_statuses as $id => $entry): ?>
+                    <label>
+                        <input type="checkbox" value="<?= $id ?>" <?= $entry['status']->isTerminal ? '' : 'checked' ?>>
+                        <?= htmlspecialchars($entry['status']->label) ?> (<?= $entry['count'] ?>)
+                    </label>
+                <?php endforeach; ?>
+            </div>
+            <p class="empty-state sub-issue-none" hidden><em>No sub-issues with the ticked statuses.</em></p>
+            <table class="issue-table sortable-table">
+                <thead>
+                    <tr>
+                        <th aria-sort="ascending"><button type="button" data-col="0" data-type="num">#</button></th>
+                        <th><button type="button" data-col="1" data-type="text">Title</button></th>
+                        <th><button type="button" data-col="2" data-type="num">Status</button></th>
+                        <th class="hide-narrow"><button type="button" data-col="3" data-type="num">Priority</button></th>
+                        <th class="hide-narrow"><button type="button" data-col="4" data-type="text" data-first="desc">Created</button></th>
+                        <th><button type="button" data-col="5" data-type="text" data-first="desc">Done</button></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($children as $child): ?>
+                        <?php
+                        $row      = $child->issue;
+                        $created  = $row->createdAtUtc->format($fmt);
+                        $done     = $row->doneAtUtc?->format($fmt) ?? '';
+                        $priority = $row->priority->value;
+                        ?>
+                        <tr class="<?= $child->status->isTerminal ? 'issue-row-closed' : '' ?>" data-status="<?= $child->status->statusId ?>">
+                            <td data-sort="<?= $row->issueId ?>" class="issue-id">#<?= $row->issueId ?></td>
+                            <td data-sort="<?= htmlspecialchars(mb_strtolower($row->title)) ?>">
+                                <a href="/issues/view.php?issue_id=<?= $row->issueId ?>"><?= htmlspecialchars($row->title) ?></a>
+                            </td>
+                            <td data-sort="<?= $child->status->sortOrder ?>">
+                                <?= htmlspecialchars($child->status->label) ?>
+                            </td>
+                            <td data-sort="<?= $priority_rank[$priority] ?? 9 ?>" class="hide-narrow">
+                                <span class="issue-priority issue-priority-<?= htmlspecialchars($priority) ?>"><?= htmlspecialchars($priority) ?></span>
+                            </td>
+                            <td data-sort="<?= htmlspecialchars($created) ?>" class="issue-date hide-narrow" title="<?= htmlspecialchars($created) ?> UTC">
+                                <?= htmlspecialchars(substr($created, 0, 16)) ?>
+                            </td>
+                            <td data-sort="<?= htmlspecialchars($done) ?>" class="issue-date"<?= $done !== '' ? ' title="' . htmlspecialchars($done) . ' UTC"' : '' ?>>
+                                <?= $done !== '' ? htmlspecialchars(substr($done, 0, 16)) : '—' ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+        <script src="/js/<?= SEMVER ?>/sortable-table.js"></script>
+        <script>
+            // Show only rows whose status is ticked. Terminal statuses start unticked.
+            document.querySelectorAll('#sub-issues').forEach(function (card) {
+                var boxes = card.querySelectorAll('.sub-issue-filter input');
+                var table = card.querySelector('.issue-table');
+                function applyFilter() {
+                    var shown = {};
+                    boxes.forEach(function (box) { shown[box.value] = box.checked; });
+                    var visible = 0;
+                    Array.prototype.forEach.call(table.tBodies[0].rows, function (row) {
+                        row.hidden = !shown[row.dataset.status];
+                        if (!row.hidden) {
+                            visible++;
+                        }
+                    });
+                    table.hidden = visible === 0;
+                    card.querySelector('.sub-issue-none').hidden = visible !== 0;
+                    card.querySelector('.sub-issue-shown').textContent = visible;
+                }
+                boxes.forEach(function (box) { box.addEventListener('change', applyFilter); });
+                applyFilter();
+            });
+        </script>
+    <?php endif; ?>
 
     <div class="card" id="comments">
         <h2>Comments</h2>

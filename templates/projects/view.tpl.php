@@ -31,55 +31,61 @@
             </div>
         </header>
         <?php
-            $sort_cols = [
-                ['key' => 'updated',  'label' => 'Updated',  'default_dir' => 'desc'],
-                ['key' => 'created',  'label' => 'Created',  'default_dir' => 'desc'],
-                ['key' => 'status',   'label' => 'Status',   'default_dir' => 'asc'],
-                ['key' => 'title',    'label' => 'Title',    'default_dir' => 'asc'],
-                ['key' => 'priority', 'label' => 'Priority', 'default_dir' => 'desc'],
-            ];
-            $base_q = '?project_id=' . (int)$project['project_id']
-                . (!empty($show_done) ? '&amp;show_done=1' : '');
+        $priority_rank = ['high' => 0, 'normal' => 1, 'low' => 2];
+        // One table for open and done issues; done ones swap Updated for Done.
+        $issue_table = function (array $rows, bool $done) use ($priority_rank): void {
+            $last = $done ? 'done_at_utc' : 'updated_at_utc';
+            ?>
+            <table class="issue-table sortable-table">
+                <thead>
+                    <tr>
+                        <th><button type="button" data-col="0" data-type="num" data-first="desc">#</button></th>
+                        <th><button type="button" data-col="1" data-type="text">Title</button></th>
+                        <th><button type="button" data-col="2" data-type="num">Status</button></th>
+                        <th class="hide-narrow"><button type="button" data-col="3" data-type="num">Priority</button></th>
+                        <th><button type="button" data-col="4" data-type="num" data-first="desc" title="Open sub-issues">Open subs</button></th>
+                        <th class="hide-narrow"><button type="button" data-col="5" data-type="text">Assignee</button></th>
+                        <th class="hide-narrow"><button type="button" data-col="6" data-type="text" data-first="desc">Created</button></th>
+                        <th aria-sort="descending"><button type="button" data-col="7" data-type="text" data-first="desc"><?= $done ? 'Done' : 'Updated' ?></button></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($rows as $issue): ?>
+                        <?php
+                        $created = (string) $issue['created_at_utc'];
+                        $when    = (string) ($issue[$last] ?? '');
+                        $subs    = (int) $issue['open_children'];
+                        ?>
+                        <tr<?= $done ? ' class="issue-row-closed"' : '' ?>>
+                            <td data-sort="<?= (int) $issue['issue_id'] ?>" class="issue-id">#<?= (int) $issue['issue_id'] ?></td>
+                            <td data-sort="<?= htmlspecialchars(mb_strtolower($issue['title'])) ?>">
+                                <a href="/issues/view.php?issue_id=<?= (int) $issue['issue_id'] ?>"><?= htmlspecialchars($issue['title']) ?></a>
+                            </td>
+                            <td data-sort="<?= (int) $issue['status_order'] ?>"><?= htmlspecialchars($issue['status_label']) ?></td>
+                            <td data-sort="<?= $priority_rank[$issue['priority']] ?? 9 ?>" class="hide-narrow">
+                                <span class="issue-priority issue-priority-<?= htmlspecialchars($issue['priority']) ?>"><?= htmlspecialchars($issue['priority']) ?></span>
+                            </td>
+                            <td data-sort="<?= $subs ?>" class="issue-subs"><?= $subs > 0 ? $subs : '' ?></td>
+                            <td data-sort="<?= htmlspecialchars(mb_strtolower((string) ($issue['assignee_name'] ?? ''))) ?>" class="hide-narrow">
+                                <?= htmlspecialchars((string) ($issue['assignee_name'] ?? '')) ?>
+                            </td>
+                            <td data-sort="<?= htmlspecialchars($created) ?>" class="issue-date hide-narrow" title="<?= htmlspecialchars($created) ?> UTC">
+                                <?= htmlspecialchars(substr($created, 0, 10)) ?>
+                            </td>
+                            <td data-sort="<?= htmlspecialchars($when) ?>" class="issue-date"<?= $when !== '' ? ' title="' . htmlspecialchars($when) . ' UTC"' : '' ?>>
+                                <?= $when !== '' ? htmlspecialchars(substr($when, 0, 10)) : '—' ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+            <?php
+        };
         ?>
-        <div class="issue-list-controls">
-            <span class="sort-label">Sort by:</span>
-            <?php foreach ($sort_cols as $col): ?>
-                <?php
-                    $is_active = ($sort === $col['key']);
-                    $link_dir = $is_active
-                        ? ($dir === 'asc' ? 'desc' : 'asc')
-                        : $col['default_dir'];
-                    $arrow = $is_active ? ($dir === 'asc' ? ' ↑' : ' ↓') : '';
-                ?>
-                <a class="sort-link<?= $is_active ? ' sort-link-active' : '' ?>"
-                   href="<?= $base_q ?>&amp;sort=<?= htmlspecialchars($col['key']) ?>&amp;dir=<?= htmlspecialchars($link_dir) ?>">
-                    <?= htmlspecialchars($col['label']) ?><?= $arrow ?>
-                </a>
-            <?php endforeach; ?>
-        </div>
         <?php if (empty($issues)): ?>
             <p class="empty-state"><em>No open issues in this project.</em></p>
         <?php else: ?>
-            <ul class="issue-list">
-                <?php foreach ($issues as $issue): ?>
-                    <li class="issue-item">
-                        <span class="issue-status"><?= htmlspecialchars($issue['status_label']) ?></span>
-                        <span class="issue-priority issue-priority-<?= htmlspecialchars($issue['priority']) ?>"><?= htmlspecialchars($issue['priority']) ?></span>
-                        <span class="issue-id">#<?= (int)$issue['issue_id'] ?></span>
-                        <span class="issue-title">
-                            <a href="/issues/view.php?issue_id=<?= (int)$issue['issue_id'] ?>">
-                                <?= htmlspecialchars($issue['title']) ?>
-                            </a>
-                        </span>
-                        <span class="issue-date" title="Created <?= htmlspecialchars($issue['created_at_utc']) ?> UTC">
-                            <?= htmlspecialchars(substr($issue['created_at_utc'], 0, 10)) ?>
-                        </span>
-                        <?php if (!empty($issue['assignee_name'])): ?>
-                            <span class="issue-assignee">→ <?= htmlspecialchars($issue['assignee_name']) ?></span>
-                        <?php endif; ?>
-                    </li>
-                <?php endforeach; ?>
-            </ul>
+            <?php $issue_table($issues, false); ?>
         <?php endif; ?>
     </div>
 
@@ -91,29 +97,11 @@
             <?php if (empty($done_issues)): ?>
                 <p class="empty-state"><em>No done issues in this project.</em></p>
             <?php else: ?>
-                <ul class="issue-list issue-list-done">
-                    <?php foreach ($done_issues as $issue): ?>
-                        <li class="issue-item issue-item-done">
-                            <span class="issue-status"><?= htmlspecialchars($issue['status_label']) ?></span>
-                            <span class="issue-priority issue-priority-<?= htmlspecialchars($issue['priority']) ?>"><?= htmlspecialchars($issue['priority']) ?></span>
-                            <span class="issue-id">#<?= (int)$issue['issue_id'] ?></span>
-                            <span class="issue-title">
-                                <a href="/issues/view.php?issue_id=<?= (int)$issue['issue_id'] ?>">
-                                    <?= htmlspecialchars($issue['title']) ?>
-                                </a>
-                            </span>
-                            <span class="issue-date" title="Created <?= htmlspecialchars($issue['created_at_utc']) ?> UTC">
-                                <?= htmlspecialchars(substr($issue['created_at_utc'], 0, 10)) ?>
-                            </span>
-                            <?php if (!empty($issue['assignee_name'])): ?>
-                                <span class="issue-assignee">→ <?= htmlspecialchars($issue['assignee_name']) ?></span>
-                            <?php endif; ?>
-                        </li>
-                    <?php endforeach; ?>
-                </ul>
+                <?php $issue_table($done_issues, true); ?>
             <?php endif; ?>
         </div>
     <?php endif; ?>
+    <script src="/js/<?= SEMVER ?>/sortable-table.js"></script>
 
     <div class="card">
         <header class="dashboard-header">

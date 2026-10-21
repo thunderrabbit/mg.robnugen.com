@@ -187,35 +187,6 @@ a:visited {
     align-items: center;
 }
 
-.issue-list-controls {
-    display: flex;
-    align-items: center;
-    gap: 0.75em;
-    margin-bottom: 1em;
-    font-size: 0.9em;
-    color: var(--text-faint);
-}
-
-.issue-list-controls .sort-label {
-    font-weight: 600;
-}
-
-.issue-list-controls .sort-link {
-    color: var(--text-secondary);
-    text-decoration: none;
-    padding: 0.2em 0.5em;
-    border-radius: 4px;
-}
-
-.issue-list-controls .sort-link:hover {
-    background-color: var(--border-light);
-}
-
-.issue-list-controls .sort-link-active {
-    background-color: var(--info);
-    color: var(--text-on-accent);
-}
-
 .issue-date {
     color: var(--text-faint);
     font-size: 0.85em;
@@ -235,4 +206,79 @@ a:visited {
 .issue-priority-low    { background-color: var(--border-light); color: var(--text-faint); }
 .issue-priority-normal { background-color: var(--border-light); color: var(--text-secondary); }
 .issue-priority-high   { background-color: var(--alert-warn-bg, #fee); color: var(--alert-warn-text, #900); }
+
+.sub-issue-count {
+    color: var(--text-faint);
+    font-weight: normal;
+    font-size: 0.8em;
+}
+
+.issue-parent {
+    margin: 0 0 0.6em;
+    font-size: 0.9em;
+    color: var(--text-muted);
+}
+
+.issue-parent-status {
+    color: var(--text-faint);
+}
+
+.sub-issue-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4em 1.2em;
+    margin-bottom: 0.8em;
+    font-size: 0.9em;
+    color: var(--text-muted);
+}
+
+.sub-issue-filter label {
+    cursor: pointer;
+}
+
+.issue-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9em;
+}
+
+.issue-table th,
+.issue-table td {
+    text-align: left;
+    padding: 0.4em 0.6em;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.issue-table td.issue-date {
+    margin-left: 0;
+    white-space: nowrap;
+}
+
+.sortable-table th button {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.sortable-table th[aria-sort="ascending"] button::after  { content: " ▲"; }
+.sortable-table th[aria-sort="descending"] button::after { content: " ▼"; }
+
+.issue-table td.issue-subs {
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.issue-table tr.issue-row-closed td {
+    color: var(--text-faint);
+}
+
+@media (max-width: 600px) {
+    .issue-table .hide-narrow {
+        display: none;
+    }
+}
 

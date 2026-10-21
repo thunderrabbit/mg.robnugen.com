@@ -16,39 +16,28 @@ class IssueListSortCest
         $I->seeElement('.issue-date');
     }
 
-    public function sortControlsPresent(AcceptanceTester $I): void
+    public function sortableHeadersPresent(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/projects/view.php?project_id=2');
-        $I->seeElement('.issue-list-controls');
-        $I->seeLink('Updated');
-        $I->seeLink('Created');
-        $I->seeLink('Status');
-        $I->seeLink('Title');
-        $I->seeLink('Priority');
+        $I->seeElement('table.sortable-table');
+        foreach (['#', 'Title', 'Status', 'Priority', 'Open subs', 'Assignee', 'Created', 'Updated'] as $label) {
+            $I->see($label, 'table.sortable-table th button');
+        }
     }
 
     public function defaultSortIsUpdatedDesc(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/projects/view.php?project_id=2');
-        $I->seeElement('.sort-link-active');
-        $I->see('Updated ↓', '.sort-link-active');
+        $I->see('Updated', 'table.sortable-table th[aria-sort="descending"]');
     }
 
-    public function sortByTitleAscending(AcceptanceTester $I): void
-    {
-        $I->loginAsAdmin();
-        $I->amOnPage('/projects/view.php?project_id=2&sort=title&dir=asc');
-        $I->seeElement('.sort-link-active');
-        $I->see('Title ↑', '.sort-link-active');
-    }
-
-    public function invalidSortFallsBackToUpdated(AcceptanceTester $I): void
+    public function oldSortParamsAreIgnored(AcceptanceTester $I): void
     {
         $I->loginAsAdmin();
         $I->amOnPage('/projects/view.php?project_id=2&sort=nonsense&dir=nope');
-        $I->seeElement('.sort-link-active');
-        $I->see('Updated ↓', '.sort-link-active');
+        $I->seeResponseCodeIs(200);
+        $I->see('Updated', 'table.sortable-table th[aria-sort="descending"]');
     }
 }
