@@ -21,6 +21,16 @@ if ($missing_extensions !== []) {
     exit(\Startup\RequiredExtensions::message($missing_extensions));
 }
 
+// PHPSESSID holds the CSRF token. Host-only, HTTPS-only, out of reach of
+// JavaScript, withheld from cross-site subrequests, and never adopted from an
+// id the server did not issue (strict mode blocks planting a known id).
+ini_set('session.use_strict_mode', '1');
+session_set_cookie_params([
+    'path' => '/',
+    'secure' => true,
+    'httponly' => true,
+    'samesite' => 'Lax',
+]);
 session_start();
 
 require_once __DIR__ . '/classes/Mlaphp/Autoloader.php';
