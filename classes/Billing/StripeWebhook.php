@@ -3,7 +3,7 @@
 /**
  * Handles incoming Stripe webhook events.
  *
- * Handles two event types:
+ * Each event is applied once (see handle()). Handles two event types:
  *   checkout.session.completed  — first payment; stores customer ID, sets role, adds credits
  *   invoice.payment_succeeded   — monthly renewal; looks up user by customer ID, adds credits
  *
@@ -70,17 +70,62 @@ class StripeWebhook
     // ── Event dispatch ────────────────────────────────────────────────────────
 
     /**
+     * Applies an event once. Stripe delivers each event at least once and
+     * retries after any non-2xx reply, so the event id is recorded in the
+     * same transaction as the event's effects: a redelivery finds the id and
+     * does nothing, and a failure rolls both back so the retry starts clean.
+     *
      * @param array<mixed> $event
+     * @return bool false when this event id was already applied
      */
-    public function handle(array $event): void
+    public function handle(array $event): bool
     {
         $object = \Field::array(\Field::array($event, 'data'), 'object');
+        $type   = \Field::string($event, 'type');
 
-        match ($event['type'] ?? '') {
-            'checkout.session.completed' => $this->handleCheckoutComplete($object),
-            'invoice.payment_succeeded'  => $this->handleInvoicePayment($object),
-            default                      => null,
-        };
+        $this->pdo->beginTransaction();
+        try {
+            if (!$this->claimEvent(\Field::string($event, 'id'), $type)) {
+                $this->pdo->rollBack();
+                return false;
+            }
+
+            match ($type) {
+                'checkout.session.completed' => $this->handleCheckoutComplete($object),
+                'invoice.payment_succeeded'  => $this->handleInvoicePayment($object),
+                default                      => null,
+            };
+
+            $this->pdo->commit();
+            return true;
+        } catch (\Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $e;
+        }
+    }
+
+    /**
+     * Records the event id; false when it is already there. An event with no
+     * id cannot be de-duplicated and is refused, since every real one has one.
+     */
+    private function claimEvent(string $event_id, string $type): bool
+    {
+        if ($event_id === '') {
+            return false;
+        }
+        try {
+            $this->pdo->prepare(
+                "INSERT INTO stripe_events (stripe_event_id, event_type) VALUES (?, ?)"
+            )->execute([$event_id, $type]);
+            return true;
+        } catch (\PDOException $e) {
+            if ($e->getCode() === '23000') {
+                return false;
+            }
+            throw $e;
+        }
     }
 
     // ── checkout.session.completed ────────────────────────────────────────────
@@ -98,6 +143,11 @@ class StripeWebhook
         $plan        = \Field::string(\Field::array($session, 'metadata'), 'plan', 'developer');
 
         if (!$user_id || !$customer_id) {
+            return;
+        }
+        // Completed is not the same as paid: an asynchronous payment method
+        // completes the session first and pays (or fails) later.
+        if (!in_array($session['payment_status'] ?? '', ['paid', 'no_payment_required'], true)) {
             return;
         }
 
