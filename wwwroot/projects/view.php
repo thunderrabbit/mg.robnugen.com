@@ -60,34 +60,24 @@ if (!$project) {
 
 $show_done = !empty($_GET['show_done']);
 
-// Sort whitelist: keys are safe tokens accepted from ?sort=, values are SQL expressions.
-$sort_map = [
-    'updated'  => 'i.updated_at_utc',
-    'created'  => 'i.created_at_utc',
-    'status'   => 's.sort_order',
-    'title'    => 'i.title',
-    'priority' => "FIELD(i.priority, 'low', 'normal', 'high')",
-];
-$sort = \Field::string($_GET, 'sort', 'updated');
-if (!isset($sort_map[$sort])) {
-    $sort = 'updated';
-}
-$dir = strtolower(\Field::string($_GET, 'dir', 'desc'));
-if ($dir !== 'asc') {
-    $dir = 'desc';
-}
-$order_clause = $sort_map[$sort] . ' ' . strtoupper($dir);
+// How many of each issue's sub-issues are still open. Fixed SQL, no input.
+$open_children = "(SELECT COUNT(*)
+                   FROM issues c
+                   JOIN issue_statuses cs ON cs.status_id = c.status_id
+                   WHERE c.parent_issue_id = i.issue_id AND cs.is_terminal = 0) AS open_children";
 
-// Open (non-terminal) issues in this project
+// Open (non-terminal) issues in this project, newest activity first; the
+// table's headers re-sort them in the browser.
 $issue_stmt = $pdo->prepare(
     "SELECT i.issue_id, i.title, i.priority, i.created_at_utc, i.updated_at_utc,
-            s.slug AS status_slug, s.label AS status_label,
-            i.assignee_aiu, a.name AS assignee_name
+            s.slug AS status_slug, s.label AS status_label, s.sort_order AS status_order,
+            i.assignee_aiu, a.name AS assignee_name,
+            {$open_children}
      FROM issues i
      JOIN issue_statuses s      ON s.status_id = i.status_id
      LEFT JOIN agent_inbox_user a ON a.aiu_id = i.assignee_aiu
      WHERE i.project_id = ? AND s.is_terminal = 0
-     ORDER BY {$order_clause}, i.issue_id DESC"
+     ORDER BY i.updated_at_utc DESC, i.issue_id DESC"
 );
 $issue_stmt->execute([$project_id]);
 $issues = $issue_stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -96,14 +86,15 @@ $done_issues = [];
 if ($show_done) {
     $done_stmt = $pdo->prepare(
         "SELECT i.issue_id, i.title, i.priority, i.created_at_utc, i.updated_at_utc,
-                s.slug AS status_slug, s.label AS status_label,
+                s.slug AS status_slug, s.label AS status_label, s.sort_order AS status_order,
                 i.assignee_aiu, a.name AS assignee_name,
-                i.done_at_utc
+                i.done_at_utc,
+                {$open_children}
          FROM issues i
          JOIN issue_statuses s      ON s.status_id = i.status_id
          LEFT JOIN agent_inbox_user a ON a.aiu_id = i.assignee_aiu
          WHERE i.project_id = ? AND s.is_terminal = 1
-         ORDER BY {$order_clause}, i.issue_id DESC"
+         ORDER BY i.done_at_utc DESC, i.issue_id DESC"
     );
     $done_stmt->execute([$project_id]);
     $done_issues = $done_stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -132,8 +123,6 @@ $inner_page->set("issues", $issues);
 $inner_page->set("done_issues", $done_issues);
 $inner_page->set("show_done", $show_done);
 $inner_page->set("members", $members);
-$inner_page->set("sort", $sort);
-$inner_page->set("dir", $dir);
 
 $page->set("page_content", $inner_page->grabTheGoods());
 $page->echoToScreen();
