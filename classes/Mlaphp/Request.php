@@ -28,6 +28,8 @@ use InvalidArgumentException;
  * when using Request81 as vs. the original Request.
  *
  * @package mlaphp/mlaphp
+ *
+ * @property array<mixed> $session A reference to $_SESSION, via __get().
  */
 class Request
 {
