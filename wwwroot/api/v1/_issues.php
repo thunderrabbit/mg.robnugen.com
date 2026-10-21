@@ -159,18 +159,8 @@ if ($method === 'GET' && $sub === '/list') {
 // ─── GET /issues/get ─────────────────────────────────────────────────────────
 
 if ($method === 'GET' && $sub === '/get') {
-    issues_api(static function () use ($issue_service, $issue_caller, $pdo): void {
-        $view     = $issue_service->view($issue_caller, \Input\Input::positiveId($_GET, 'issue_id'));
-        $issue_id = $view->issue->issueId;
-
-        $counts_stmt = $pdo->prepare(
-            "SELECT
-                (SELECT COUNT(*) FROM issue_comments WHERE issue_id = ?) AS comments,
-                (SELECT COUNT(*) FROM issue_timers   WHERE issue_id = ?) AS timers,
-                (SELECT COUNT(*) FROM issue_timers   WHERE issue_id = ? AND stopped_at_utc IS NULL) AS running_timers,
-                (SELECT COUNT(*) FROM issue_commits  WHERE issue_id = ?) AS commits"
-        );
-        $counts_stmt->execute([$issue_id, $issue_id, $issue_id, $issue_id]);
+    issues_api(static function () use ($issue_service, $issue_caller): void {
+        $view = $issue_service->view($issue_caller, \Input\Input::positiveId($_GET, 'issue_id'));
 
         echo json_encode([
             'issue' => $view->issue->jsonSerialize() + [
@@ -179,7 +169,7 @@ if ($method === 'GET' && $sub === '/get') {
                     'label'       => $view->status->label,
                     'is_terminal' => (int) $view->status->isTerminal,
                 ],
-                'counts' => $counts_stmt->fetch(\PDO::FETCH_ASSOC),
+                'counts' => $issue_service->counts($view),
             ],
             'my_can_read'  => (int) $view->membership->canRead,
             'my_can_write' => (int) $view->membership->canWrite,
