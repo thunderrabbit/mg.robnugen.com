@@ -30,8 +30,14 @@ if (!$is_logged_in->isLoggedIn() && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($login_error === '' && $result !== \Auth\LoginResult::Success) {
         // One message for every bad credential. Saying which half was wrong
-        // tells a guesser which usernames exist.
-        $login_error = "Username or password incorrect.";
+        // tells a guesser which usernames exist. Throttling is the one thing
+        // worth naming, so a real user knows waiting will help and retyping
+        // will not.
+        $login_error = match ($result) {
+            \Auth\LoginResult::Throttled => "Too many failed logins. Wait "
+                . intdiv(\Auth\LoginThrottle::WINDOW_SECONDS, 60) . " minutes and try again.",
+            default => "Username or password incorrect.",
+        };
     }
 }
 

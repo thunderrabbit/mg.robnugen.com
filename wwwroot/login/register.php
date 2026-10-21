@@ -90,6 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $mla_database,
         $config,
         new \Database\CookieRepository($mla_database),
+        new \Auth\LoginThrottle($mla_database),
     );
     $is_logged_in->resumeFromCookie($mla_request);
     $page = new \Template(config: $config, is_logged_in: $is_logged_in);

@@ -19,6 +19,7 @@ class IsLoggedIn
         private \PDO $di_pdo,
         private \Config $di_config,
         private \Database\CookieRepository $di_cookies,
+        private LoginThrottle $di_throttle,
     ) {
         // Set log file path to project root (parent of wwwroot)
         $this->log_file_path = $di_config->app_path . '/auth_log.txt';
@@ -69,11 +70,21 @@ class IsLoggedIn
     public function attemptPasswordLogin(string $username, string $password): LoginResult
     {
         $current_ip = \Field::string($_SERVER, 'REMOTE_ADDR', 'unknown');
+        if ($this->di_throttle->isThrottled($username, $current_ip)) {
+            // Do not even look at the password: a throttled guess must cost
+            // the attacker nothing in information and us nothing in bcrypt.
+            $this->logAuth("user_id: N/A, IP: {$current_ip} - Password login THROTTLED (username: {$username})");
+            return LoginResult::Throttled;
+        }
+
         $user_id = $this->checkPHPHashedPassword($username, $password);
         if ($user_id <= 0) {
+            $this->di_throttle->recordFailure($username, $current_ip);
             $this->logAuth("user_id: N/A, IP: {$current_ip} - Password login FAILED (username: {$username})");
             return LoginResult::BadCredentials;
         }
+
+        $this->di_throttle->clearFailures($username);
 
         $this->logAuth("user_id: {$user_id}, IP: {$current_ip} - Password login SUCCESS");
         $this->establishSession($user_id);
