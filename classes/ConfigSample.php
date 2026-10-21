@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 class Config
 {
     public string $domain_name = '';  // used for cookies

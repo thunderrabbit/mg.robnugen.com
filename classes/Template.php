@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 class Template
 {
     protected string $template_location;

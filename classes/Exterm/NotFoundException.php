@@ -10,6 +10,8 @@
  * @see \Exterm\Items
  */
 
+declare(strict_types=1);
+
 namespace Exterm;
 
 class NotFoundException extends \RuntimeException

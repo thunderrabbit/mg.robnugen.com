@@ -12,6 +12,8 @@
  *   growth     $15/mo → 25,000 credits
  */
 
+declare(strict_types=1);
+
 namespace Billing;
 
 class StripeWebhook
