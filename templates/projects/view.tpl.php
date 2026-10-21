@@ -1,17 +1,31 @@
+<?php
+
+/**
+ * One project: its description, its open (and optionally done) issues, and
+ * its members.
+ *
+ * @var \Db\Row\ProjectRow $project
+ * @var list<\Issues\BoardIssue> $issues
+ * @var list<\Issues\BoardIssue> $done_issues
+ * @var bool $show_done
+ * @var list<\Projects\MemberView> $members
+ */
+
+?>
 <div class="dashboard-container">
     <header class="dashboard-header">
         <a href="/projects/" class="btn-sm btn-back">← Back to Projects</a>
-        <h1><?= htmlspecialchars($project['name']) ?></h1>
+        <h1><?= htmlspecialchars($project->name) ?></h1>
     </header>
 
     <div class="card">
-        <?php if (!empty($project['is_archived'])): ?>
+        <?php if ($project->isArchived): ?>
             <p class="archived-notice"><em>This project is archived.</em></p>
         <?php endif; ?>
 
-        <?php if (!empty($project['description'])): ?>
+        <?php if (($project->description ?? '') !== ''): ?>
             <div class="project-description">
-                <?= nl2br(htmlspecialchars($project['description'])) ?>
+                <?= nl2br(htmlspecialchars((string) $project->description)) ?>
             </div>
         <?php else: ?>
             <p class="empty-state"><em>No description.</em></p>
@@ -22,19 +36,19 @@
         <header class="dashboard-header">
             <h2>Open Issues</h2>
             <div class="header-actions">
-                <a href="/issues/create.php?project_id=<?= (int)$project['project_id'] ?>" class="btn-new-timer">+ New Issue</a>
+                <a href="/issues/create.php?project_id=<?= $project->projectId ?>" class="btn-new-timer">+ New Issue</a>
                 <?php if (!empty($show_done)): ?>
-                    <a href="/projects/view.php?project_id=<?= (int)$project['project_id'] ?>" class="btn-sm">Hide done</a>
+                    <a href="/projects/view.php?project_id=<?= $project->projectId ?>" class="btn-sm">Hide done</a>
                 <?php else: ?>
-                    <a href="/projects/view.php?project_id=<?= (int)$project['project_id'] ?>&amp;show_done=1" class="btn-sm">Show done</a>
+                    <a href="/projects/view.php?project_id=<?= $project->projectId ?>&amp;show_done=1" class="btn-sm">Show done</a>
                 <?php endif; ?>
             </div>
         </header>
         <?php
         $priority_rank = ['high' => 0, 'normal' => 1, 'low' => 2];
+        $fmt = \Db\RowValue::DATETIME_FORMAT;
         // One table for open and done issues; done ones swap Updated for Done.
-        $issue_table = function (array $rows, bool $done) use ($priority_rank): void {
-            $last = $done ? 'done_at_utc' : 'updated_at_utc';
+        $issue_table = function (array $rows, bool $done) use ($priority_rank, $fmt): void {
             ?>
             <table class="issue-table sortable-table">
                 <thead>
@@ -50,24 +64,27 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($rows as $issue): ?>
+                    <?php foreach ($rows as $row): ?>
                         <?php
-                        $created = (string) $issue['created_at_utc'];
-                        $when    = (string) ($issue[$last] ?? '');
-                        $subs    = (int) $issue['open_children'];
+                        $issue    = $row->issue;
+                        $priority = $issue->priority->value;
+                        $created  = $issue->createdAtUtc->format($fmt);
+                        $when     = ($done ? $issue->doneAtUtc : $issue->updatedAtUtc)?->format($fmt) ?? '';
+                        $subs     = $row->openChildren;
+                        $assignee = $row->assigneeName ?? '';
                         ?>
                         <tr<?= $done ? ' class="issue-row-closed"' : '' ?>>
-                            <td data-sort="<?= (int) $issue['issue_id'] ?>" class="issue-id">#<?= (int) $issue['issue_id'] ?></td>
-                            <td data-sort="<?= htmlspecialchars(mb_strtolower($issue['title'])) ?>">
-                                <a href="/issues/view.php?issue_id=<?= (int) $issue['issue_id'] ?>"><?= htmlspecialchars($issue['title']) ?></a>
+                            <td data-sort="<?= $issue->issueId ?>" class="issue-id">#<?= $issue->issueId ?></td>
+                            <td data-sort="<?= htmlspecialchars(mb_strtolower($issue->title)) ?>">
+                                <a href="/issues/view.php?issue_id=<?= $issue->issueId ?>"><?= htmlspecialchars($issue->title) ?></a>
                             </td>
-                            <td data-sort="<?= (int) $issue['status_order'] ?>"><?= htmlspecialchars($issue['status_label']) ?></td>
-                            <td data-sort="<?= $priority_rank[$issue['priority']] ?? 9 ?>" class="hide-narrow">
-                                <span class="issue-priority issue-priority-<?= htmlspecialchars($issue['priority']) ?>"><?= htmlspecialchars($issue['priority']) ?></span>
+                            <td data-sort="<?= $row->status->sortOrder ?>"><?= htmlspecialchars($row->status->label) ?></td>
+                            <td data-sort="<?= $priority_rank[$priority] ?? 9 ?>" class="hide-narrow">
+                                <span class="issue-priority issue-priority-<?= htmlspecialchars($priority) ?>"><?= htmlspecialchars($priority) ?></span>
                             </td>
                             <td data-sort="<?= $subs ?>" class="issue-subs"><?= $subs > 0 ? $subs : '' ?></td>
-                            <td data-sort="<?= htmlspecialchars(mb_strtolower((string) ($issue['assignee_name'] ?? ''))) ?>" class="hide-narrow">
-                                <?= htmlspecialchars((string) ($issue['assignee_name'] ?? '')) ?>
+                            <td data-sort="<?= htmlspecialchars(mb_strtolower($assignee)) ?>" class="hide-narrow">
+                                <?= htmlspecialchars($assignee) ?>
                             </td>
                             <td data-sort="<?= htmlspecialchars($created) ?>" class="issue-date hide-narrow" title="<?= htmlspecialchars($created) ?> UTC">
                                 <?= htmlspecialchars(substr($created, 0, 10)) ?>
@@ -107,7 +124,7 @@
         <header class="dashboard-header">
             <h2>Members</h2>
             <div class="header-actions">
-                <a href="/projects/add-member.php?project_id=<?= (int)$project['project_id'] ?>" class="btn-new-timer">+ Add Member</a>
+                <a href="/projects/add-member.php?project_id=<?= $project->projectId ?>" class="btn-new-timer">+ Add Member</a>
             </div>
         </header>
         <?php if (empty($members)): ?>
@@ -116,12 +133,12 @@
             <ul class="member-list">
                 <?php foreach ($members as $member): ?>
                     <li class="member-item">
-                        <strong class="member-name"><?= htmlspecialchars($member['name']) ?></strong>
-                        <span class="member-type">(<?= htmlspecialchars($member['actor_type']) ?>)</span>
+                        <strong class="member-name"><?= htmlspecialchars($member->name) ?></strong>
+                        <span class="member-type">(<?= htmlspecialchars($member->actorType) ?>)</span>
                         <span class="member-perms">
-                            <?php if ($member['can_read'] && $member['can_write']): ?>
+                            <?php if ($member->member->canRead && $member->member->canWrite): ?>
                                 Read + Write
-                            <?php elseif ($member['can_read']): ?>
+                            <?php elseif ($member->member->canRead): ?>
                                 Read only
                             <?php else: ?>
                                 No access
@@ -129,22 +146,22 @@
                         </span>
                         <form method="POST" action="/projects/update-member.php" class="member-perms-form">
                             <?= csrf_field() ?>
-                            <input type="hidden" name="project_id" value="<?= (int)$project['project_id'] ?>">
-                            <input type="hidden" name="member_aiu" value="<?= (int)$member['member_aiu'] ?>">
+                            <input type="hidden" name="project_id" value="<?= $project->projectId ?>">
+                            <input type="hidden" name="member_aiu" value="<?= $member->member->memberAiu ?>">
                             <label>
-                                <input type="checkbox" name="can_read" value="1" <?= $member['can_read'] ? 'checked' : '' ?>>
+                                <input type="checkbox" name="can_read" value="1" <?= $member->member->canRead ? 'checked' : '' ?>>
                                 Read
                             </label>
                             <label>
-                                <input type="checkbox" name="can_write" value="1" <?= $member['can_write'] ? 'checked' : '' ?>>
+                                <input type="checkbox" name="can_write" value="1" <?= $member->member->canWrite ? 'checked' : '' ?>>
                                 Write
                             </label>
                             <button type="submit" class="btn-sm">Update perms</button>
                         </form>
                         <form method="POST" action="/projects/remove-member.php" class="member-remove-form">
                             <?= csrf_field() ?>
-                            <input type="hidden" name="project_id" value="<?= (int)$project['project_id'] ?>">
-                            <input type="hidden" name="member_aiu" value="<?= (int)$member['member_aiu'] ?>">
+                            <input type="hidden" name="project_id" value="<?= $project->projectId ?>">
+                            <input type="hidden" name="member_aiu" value="<?= $member->member->memberAiu ?>">
                             <button type="submit" class="btn-sm">Remove</button>
                         </form>
                     </li>

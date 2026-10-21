@@ -80,6 +80,14 @@ interface IssueStore
     public function listIssues(ListIssues $query, Caller $caller): Page;
 
     /**
+     * Every open issue in a project, latest activity first, or with $done
+     * every closed one, latest closed first. Called after an access check.
+     *
+     * @return list<BoardIssue>
+     */
+    public function board(int $projectId, bool $done): array;
+
+    /**
      * Inserts an issue already checked by IssueService and returns its id.
      */
     public function insertIssue(CreateIssue $issue, Caller $author, IssueStatusRow $status): int;

@@ -71,6 +71,34 @@ final class IssueListTest extends IssueCase
         $this->assertSame([$open->issueId, $done->issueId], $this->listedIds(['include_terminal' => 1]));
     }
 
+    public function testTheBoardSplitsOpenFromDoneAndCountsOpenSubIssues(): void
+    {
+        $parent = $this->create(['assignee_aiu' => 36]);
+        $this->create(['parent_issue_id' => $parent->issueId]);
+        $this->create(['parent_issue_id' => $parent->issueId, 'status_id' => 4]);
+        $done = $this->create(['status_id' => 4]);
+
+        $open = $this->service->board($this->reader, 7);
+        $byId = [];
+        foreach ($open as $row) {
+            $byId[$row->issue->issueId] = $row;
+        }
+
+        $this->assertCount(2, $open);
+        $this->assertSame(1, $byId[$parent->issueId]->openChildren);
+        $this->assertSame('Boss Claude', $byId[$parent->issueId]->assigneeName);
+
+        $closed = $this->service->board($this->reader, 7, done: true);
+        $this->assertCount(2, $closed);
+        $this->assertContains($done->issueId, array_map(static fn($row): int => $row->issue->issueId, $closed));
+    }
+
+    public function testTheBoardNeedsReadAccess(): void
+    {
+        $this->assertThrows(AccessException::class, fn() => $this->service->board($this->blocked, 7));
+        $this->assertThrows(NotFoundException::class, fn() => $this->service->board($this->stranger, 7));
+    }
+
     public function testAStatusSlugShowsThatStatusEvenWhenItIsTerminal(): void
     {
         $this->create();

@@ -46,38 +46,19 @@ try {
     exit;
 }
 
-// The project's own row, for the heading; IssueService checks write access again
-// when the form is submitted.
-$mem_stmt = $pdo->prepare(
-    "SELECT pm.can_write, p.name
-     FROM project_members pm
-     JOIN projects p ON p.project_id = pm.project_id
-     WHERE pm.project_id = ? AND pm.member_aiu = ? AND p.user_id = ?
-     LIMIT 1"
-);
-$mem_stmt->execute([$project_id, $caller->aiu, $user_id]);
-$mem = $mem_stmt->fetch(\PDO::FETCH_ASSOC);
-
-if (!is_array($mem)) {
+// The project heading and the assignee choices; IssueService checks write
+// access again when the form is submitted.
+$projects = new \Projects\ProjectService(new \Projects\PdoProjectStore($pdo));
+try {
+    $project_name     = $projects->forWriting($caller, $project_id)->project->name;
+    $assignee_choices = $projects->assigneeChoices($caller, $project_id);
+} catch (\Issues\NotFoundException) {
     header("Location: /projects/?msg=project_not_found");
     exit;
-}
-if (!\Db\RowValue::bool($mem, 'can_write')) {
+} catch (\Issues\AccessException) {
     header("Location: /projects/?msg=no_write_access");
     exit;
 }
-$project_name = \Db\RowValue::string($mem, 'name');
-
-// Candidate assignees: project members of this project.
-$assignee_stmt = $pdo->prepare(
-    "SELECT a.aiu_id, a.name, a.actor_type
-     FROM project_members pm
-     JOIN agent_inbox_user a ON a.aiu_id = pm.member_aiu
-     WHERE pm.project_id = ?
-     ORDER BY a.actor_type DESC, a.name ASC"
-);
-$assignee_stmt->execute([$project_id]);
-$assignee_choices = $assignee_stmt->fetchAll(\PDO::FETCH_ASSOC);
 
 $error = null;
 

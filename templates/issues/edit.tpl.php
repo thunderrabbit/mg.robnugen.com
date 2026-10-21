@@ -4,7 +4,7 @@
  * Edit one issue.
  *
  * @var \Issues\IssueDetail $issue
- * @var array<int, array<string, mixed>> $assignee_choices
+ * @var list<\Projects\Actor> $assignee_choices
  * @var string $error
  * @var mixed $form_title
  * @var mixed $form_description
@@ -49,8 +49,8 @@
                 <select id="assignee_aiu" name="assignee_aiu">
                     <option value=""<?= $selected_assignee === null ? ' selected' : '' ?>>— unassigned —</option>
                     <?php foreach ($assignee_choices as $choice): ?>
-                        <option value="<?= (int)$choice['aiu_id'] ?>"<?= $selected_assignee === (int)$choice['aiu_id'] ? ' selected' : '' ?>>
-                            <?= htmlspecialchars($choice['name']) ?> (<?= htmlspecialchars($choice['actor_type']) ?>)
+                        <option value="<?= $choice->aiu ?>"<?= $selected_assignee === $choice->aiu ? ' selected' : '' ?>>
+                            <?= htmlspecialchars($choice->name) ?> (<?= htmlspecialchars($choice->actorType) ?>)
                         </option>
                     <?php endforeach; ?>
                 </select>

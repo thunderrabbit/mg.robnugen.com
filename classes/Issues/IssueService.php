@@ -114,6 +114,22 @@ final class IssueService
         return $this->store->listIssues($query, $caller);
     }
 
+    /**
+     * A project page's issue table: every open issue, or with $done every
+     * closed one. Needs read access, as listIssues() does.
+     *
+     * @return list<BoardIssue>
+     */
+    public function board(Caller $caller, int $projectId, bool $done = false): array
+    {
+        $role = $this->store->membership($projectId, $caller)
+            ?? throw new NotFoundException("Project {$projectId} not found or no access");
+        if (!$role->canRead) {
+            throw new AccessException('No read access to this project');
+        }
+        return $this->store->board($projectId, $done);
+    }
+
     // ─── Issues ──────────────────────────────────────────────────────────────
 
     public function create(Caller $caller, CreateIssue $new): IssueRow

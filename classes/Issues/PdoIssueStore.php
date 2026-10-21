@@ -190,6 +190,42 @@ final class PdoIssueStore implements IssueStore
     }
 
     #[\Override]
+    public function board(int $projectId, bool $done): array
+    {
+        // Server-side choices, not user input, so safe to interpolate.
+        $terminal = $done ? 1 : 0;
+        $orderBy = $done ? 'i.done_at_utc DESC' : 'i.updated_at_utc DESC';
+        $statuses = $this->statusesById();
+
+        $board = [];
+        foreach (
+            $this->all(
+                "SELECT i.*, a.name AS assignee_name,
+                        (SELECT COUNT(*)
+                         FROM issues c
+                         JOIN issue_statuses cs ON cs.status_id = c.status_id
+                         WHERE c.parent_issue_id = i.issue_id AND cs.is_terminal = 0) AS open_children
+                 FROM issues i
+                 JOIN issue_statuses s        ON s.status_id = i.status_id
+                 LEFT JOIN agent_inbox_user a ON a.aiu_id = i.assignee_aiu
+                 WHERE i.project_id = ? AND s.is_terminal = {$terminal}
+                 ORDER BY {$orderBy}, i.issue_id DESC",
+                [$projectId],
+            ) as $row
+        ) {
+            $issue = IssueRow::fromRow($row);
+            $board[] = new BoardIssue(
+                $issue,
+                $statuses[$issue->statusId]
+                    ?? throw new \LogicException("Issue {$issue->issueId} points at unknown status {$issue->statusId}"),
+                RowValue::stringOrNull($row, 'assignee_name'),
+                RowValue::int($row, 'open_children'),
+            );
+        }
+        return $board;
+    }
+
+    #[\Override]
     public function insertIssue(CreateIssue $issue, Caller $author, IssueStatusRow $status): int
     {
         // Server-side choice, not user input, so safe to interpolate.

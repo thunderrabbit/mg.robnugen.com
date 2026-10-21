@@ -30,26 +30,24 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$project_id = \Field::int($_POST, 'project_id');
-$member_aiu = \Field::int($_POST, 'member_aiu');
-$can_read   = !empty($_POST['can_read'])  ? 1 : 0;
-$can_write  = !empty($_POST['can_write']) ? 1 : 0;
+$projects = new \Projects\ProjectService(new \Projects\PdoProjectStore(\Database\Base::getPDO($config)));
+$caller   = $projects->humanCaller($is_logged_in->loggedInID());
 
-if ($project_id <= 0 || $member_aiu <= 0) {
+try {
+    $changes = \Projects\Command\UpdateMember::fromInput([
+        'project_id' => $_POST['project_id'] ?? null,
+        'member_aiu' => $_POST['member_aiu'] ?? null,
+        'can_read'   => !empty($_POST['can_read']),
+        'can_write'  => !empty($_POST['can_write']),
+    ]);
+    if ($caller === null) {
+        throw new \Issues\AccessException('No human actor on this account');
+    }
+    $projects->updateMember($caller, $changes);
+} catch (\Input\InvalidInput | \Issues\AccessException) {
     header("Location: /projects/?msg=project_not_found");
     exit;
 }
 
-$user_id = $is_logged_in->loggedInID();
-$pdo = \Database\Base::getPDO($config);
-
-$upd = $pdo->prepare(
-    "UPDATE project_members pm
-     JOIN projects p ON p.project_id = pm.project_id
-     SET pm.can_read = ?, pm.can_write = ?
-     WHERE pm.project_id = ? AND pm.member_aiu = ? AND p.user_id = ?"
-);
-$upd->execute([$can_read, $can_write, $project_id, $member_aiu, $user_id]);
-
-header("Location: /projects/view.php?project_id={$project_id}");
+header("Location: /projects/view.php?project_id={$changes->projectId}");
 exit;

@@ -10,6 +10,7 @@ use Db\Row\IssueRow;
 use Db\Row\IssueStatusRow;
 use Db\Row\IssueTimerRow;
 use Input\Absent;
+use Issues\BoardIssue;
 use Issues\Caller;
 use Issues\Command\AddComment;
 use Issues\Command\AddCommit;
@@ -247,6 +248,33 @@ final class FakeIssueStore implements IssueStore
             total: count($matching),
             limit: $query->paging->limit,
             offset: $query->paging->offset,
+        );
+    }
+
+    #[\Override]
+    public function board(int $projectId, bool $done): array
+    {
+        $isClosed = fn(IssueRow $issue): bool => $this->statuses[$issue->statusId]->isTerminal ?? false;
+
+        $rows = array_values(array_filter(
+            $this->issues,
+            static fn(IssueRow $issue): bool => $issue->projectId === $projectId && $isClosed($issue) === $done,
+        ));
+        usort($rows, static fn(IssueRow $a, IssueRow $b): int => $done
+            ? [$b->doneAtUtc, $b->issueId] <=> [$a->doneAtUtc, $a->issueId]
+            : [$b->updatedAtUtc, $b->issueId] <=> [$a->updatedAtUtc, $a->issueId]);
+
+        return array_map(
+            fn(IssueRow $issue): BoardIssue => new BoardIssue(
+                $issue,
+                $this->statuses[$issue->statusId] ?? throw new \LogicException('unknown status'),
+                $issue->assigneeAiu === null ? null : $this->actorName($issue->assigneeAiu),
+                count(array_filter(
+                    $this->issues,
+                    static fn(IssueRow $child): bool => $child->parentIssueId === $issue->issueId && !$isClosed($child),
+                )),
+            ),
+            $rows,
         );
     }
 

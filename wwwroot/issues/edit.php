@@ -51,16 +51,14 @@ if (!$issue->canWrite) {
     exit;
 }
 
-// Candidate assignees: project members of this issue's project.
-$assignee_stmt = $pdo->prepare(
-    "SELECT a.aiu_id, a.name, a.actor_type
-     FROM project_members pm
-     JOIN agent_inbox_user a ON a.aiu_id = pm.member_aiu
-     WHERE pm.project_id = ?
-     ORDER BY a.actor_type DESC, a.name ASC"
-);
-$assignee_stmt->execute([$issue->projectId]);
-$assignee_choices = $assignee_stmt->fetchAll(\PDO::FETCH_ASSOC);
+// Candidate assignees: the members of this issue's project.
+$projects = new \Projects\ProjectService(new \Projects\PdoProjectStore($pdo));
+try {
+    $assignee_choices = $projects->assigneeChoices($caller, $issue->projectId);
+} catch (\Issues\NotFoundException | \Issues\AccessException) {
+    header("Location: /projects/?msg=no_write_access");
+    exit;
+}
 
 $error = null;
 
