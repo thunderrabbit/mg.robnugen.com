@@ -50,6 +50,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if (empty($password)) {
         $errors[] = "Password is required.";
+    } elseif (\Auth\PasswordPolicy::problem($password) !== '') {
+        $errors[] = \Auth\PasswordPolicy::problem($password);
     }
 
     // If errors, redisplay form with errors

@@ -58,7 +58,7 @@
             <div class="PageRow noborder">
                 <label for="new_password">New Password:</label>
                 <div class="PageInput">
-                    <input type="password" name="new_password" id="new_password" class="validate[required]" required />
+                    <input type="password" name="new_password" id="new_password" class="validate[required]" required minlength="12" title="At least 12 characters" />
                 </div>
                 <div class="fix"></div>
             </div>

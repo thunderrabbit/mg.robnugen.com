@@ -8,7 +8,7 @@
 
         <div class="form-row">
             <label for="password">Password:</label>
-            <input type="password" name="pass" id="password" required>
+            <input type="password" name="pass" id="password" required minlength="12" title="At least 12 characters">
         </div>
 
         <div class="form-row">
