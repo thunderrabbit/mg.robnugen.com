@@ -6,12 +6,20 @@
  * @var \Issues\IssueDetail $issue
  * @var list<\Issues\CommentView> $comments
  * @var list<\Issues\IssueListItem> $children
+ * @var \Issues\IssueDetail|null $parent
  * @var list<\Db\Row\IssueStatusRow> $statuses
  * @var string $msg
  */
 
 ?>
 <div class="dashboard-container">
+    <?php if ($parent !== null): ?>
+        <p class="issue-parent">
+            ↑ Sub-issue of
+            <a href="/issues/view.php?issue_id=<?= $parent->issueId ?>">#<?= $parent->issueId ?> <?= htmlspecialchars($parent->title) ?></a>
+            <span class="issue-parent-status">(<?= htmlspecialchars($parent->statusLabel) ?>)</span>
+        </p>
+    <?php endif; ?>
     <header class="dashboard-header">
         <a href="/projects/view.php?project_id=<?= $issue->projectId ?>" class="btn-sm btn-back">← Back to <?= htmlspecialchars($issue->projectName) ?></a>
         <h1><span class="issue-id">#<?= $issue->issueId ?></span> <?= htmlspecialchars($issue->title) ?></h1>

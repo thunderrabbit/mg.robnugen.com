@@ -242,6 +242,16 @@ a:visited {
     font-size: 0.8em;
 }
 
+.issue-parent {
+    margin: 0 0 0.6em;
+    font-size: 0.9em;
+    color: var(--text-muted);
+}
+
+.issue-parent-status {
+    color: var(--text-faint);
+}
+
 .sub-issue-filter {
     display: flex;
     flex-wrap: wrap;
