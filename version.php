@@ -1,6 +1,6 @@
 <?php
 
 const SENTIMENTAL_VERSION = "Exterminal phone notebook";
-const SEMVER = "0.45.0";
+const SEMVER = "0.46.0";
 
 const EMOTIONAL_SESSION_GAP_MINUTES = 30;
