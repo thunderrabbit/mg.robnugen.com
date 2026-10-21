@@ -14,6 +14,20 @@ class Activity
     }
 
     /**
+     * True when the user may start or link this activity: a shared one
+     * (no owner) or one of their own. Someone else's PRIVATE activity is not
+     * theirs to use, and using it would reveal its name back to them.
+     */
+    public function userMayUse(int $activity_id, int $user_id): bool
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT 1 FROM activities WHERE activity_id = ? AND (user_id IS NULL OR user_id = ?) LIMIT 1"
+        );
+        $stmt->execute([$activity_id, $user_id]);
+        return $stmt->fetchColumn() !== false;
+    }
+
+    /**
      * Get activities available to a user based on their role
      *
      * @param int $user_id User ID
