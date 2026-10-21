@@ -1,0 +1,10 @@
+# Asset URLs carry SEMVER (version.php) so a new version gets past
+# DreamHost's 30-day cache: /css/1.2.3/styles.css is /css/styles.css.
+# The segment is a digit, then any digits and dots: 1, 0.1, 1.3.4 all work.
+# Any version is served the current file. The URL only has to change.
+<IfModule mod_rewrite.c>
+    RewriteEngine on
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^[0-9][0-9.]*/(.+)$ $1 [L]
+</IfModule>

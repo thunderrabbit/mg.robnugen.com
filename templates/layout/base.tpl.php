@@ -28,10 +28,10 @@
         });
     })();
     </script>
-    <link rel="stylesheet" href="/css/theme.css">
-    <link rel="stylesheet" href="/css/styles.css">
-    <link rel="stylesheet" href="/css/menu.css">
-    <link rel="stylesheet" href="/css/buttons.css">
+    <link rel="stylesheet" href="/css/<?= SEMVER ?>/theme.css">
+    <link rel="stylesheet" href="/css/<?= SEMVER ?>/styles.css">
+    <link rel="stylesheet" href="/css/<?= SEMVER ?>/menu.css">
+    <link rel="stylesheet" href="/css/<?= SEMVER ?>/buttons.css">
 </head>
 <body>
     <?php include __DIR__ . '/../partials/menu.tpl.php'; ?>

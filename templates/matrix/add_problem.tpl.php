@@ -23,7 +23,7 @@
     <button type="submit" class="btn btn-primary" id="submit-btn">Next: Find the Opposite</button>
 </form>
 
-<script src="/js/dm_crypto.js"></script>
+<script src="/js/<?= SEMVER ?>/dm_crypto.js"></script>
 <script>
 const VERIFY_BLOB = <?= json_encode($verify_blob) ?>;
 let PASSPHRASE = '';

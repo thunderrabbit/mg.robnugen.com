@@ -27,7 +27,7 @@
     </div>
 </div>
 
-<script src="/js/dm_crypto.js"></script>
+<script src="/js/<?= SEMVER ?>/dm_crypto.js"></script>
 <script>
 const VERIFY_BLOB = <?= json_encode($verify_blob) ?>;
 const PROBLEMS = <?= $problems_json ?>;
