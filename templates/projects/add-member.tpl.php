@@ -3,17 +3,17 @@
 /**
  * Pick actors to add to a project.
  *
- * @var array<string, mixed> $project
- * @var list<array{aiu_id: int, name: string, actor_type: string, precheck: bool}> $available Shown up front, most-used first.
- * @var list<array{aiu_id: int, name: string, actor_type: string, precheck: bool}> $hidden test_* / auto_* actors behind "show all".
+ * @var \Db\Row\ProjectRow $project
+ * @var list<\Projects\Actor> $available Shown up front, most-used first.
+ * @var list<\Projects\Actor> $hidden test_* / auto_* actors behind "show all".
  * @var string $error
  */
 
 ?>
 <div class="dashboard-container">
     <header class="dashboard-header">
-        <a href="/projects/view.php?project_id=<?= (int)$project['project_id'] ?>" class="btn-sm btn-back">← Back to <?= htmlspecialchars($project['name']) ?></a>
-        <h1>Add Member to <?= htmlspecialchars($project['name']) ?></h1>
+        <a href="/projects/view.php?project_id=<?= $project->projectId ?>" class="btn-sm btn-back">← Back to <?= htmlspecialchars($project->name) ?></a>
+        <h1>Add Member to <?= htmlspecialchars($project->name) ?></h1>
     </header>
 
     <div class="card">
@@ -26,15 +26,15 @@
         <?php else: ?>
             <form method="POST" action="/projects/add-member.php">
                 <?= csrf_field() ?>
-                <input type="hidden" name="project_id" value="<?= (int)$project['project_id'] ?>">
+                <input type="hidden" name="project_id" value="<?= $project->projectId ?>">
 
                 <div class="form-field">
                     <label>Actors <span class="hint">(check all you want to add)</span></label>
                     <div class="member-pick-list">
                         <?php foreach ($available as $a): ?>
                             <label class="member-pick">
-                                <input type="checkbox" name="member_aiu[]" value="<?= (int)$a['aiu_id'] ?>"<?= $a['precheck'] ? ' checked' : '' ?>>
-                                <?= htmlspecialchars($a['name']) ?> (<?= htmlspecialchars($a['actor_type']) ?>)
+                                <input type="checkbox" name="member_aiu[]" value="<?= $a->aiu ?>"<?= $a->usual ? ' checked' : '' ?>>
+                                <?= htmlspecialchars($a->name) ?> (<?= htmlspecialchars($a->actorType) ?>)
                             </label>
                         <?php endforeach; ?>
                     </div>
@@ -44,8 +44,8 @@
                             <div class="member-pick-list">
                                 <?php foreach ($hidden as $a): ?>
                                     <label class="member-pick">
-                                        <input type="checkbox" name="member_aiu[]" value="<?= (int)$a['aiu_id'] ?>">
-                                        <?= htmlspecialchars($a['name']) ?> (<?= htmlspecialchars($a['actor_type']) ?>)
+                                        <input type="checkbox" name="member_aiu[]" value="<?= $a->aiu ?>">
+                                        <?= htmlspecialchars($a->name) ?> (<?= htmlspecialchars($a->actorType) ?>)
                                     </label>
                                 <?php endforeach; ?>
                             </div>
@@ -65,7 +65,7 @@
 
                 <div class="form-actions">
                     <button type="submit" class="btn-primary">Add Member</button>
-                    <a href="/projects/view.php?project_id=<?= (int)$project['project_id'] ?>" class="btn-cancel">Cancel</a>
+                    <a href="/projects/view.php?project_id=<?= $project->projectId ?>" class="btn-cancel">Cancel</a>
                 </div>
             </form>
         <?php endif; ?>

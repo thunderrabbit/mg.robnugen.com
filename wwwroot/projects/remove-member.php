@@ -30,23 +30,20 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$project_id = \Field::int($_POST, 'project_id');
-$member_aiu = \Field::int($_POST, 'member_aiu');
+$projects = new \Projects\ProjectService(new \Projects\PdoProjectStore(\Database\Base::getPDO($config)));
+$caller   = $projects->humanCaller($is_logged_in->loggedInID());
 
-if ($project_id <= 0 || $member_aiu <= 0) {
+try {
+    $project_id = \Input\Input::positiveId($_POST, 'project_id');
+    $member_aiu = \Input\Input::positiveId($_POST, 'member_aiu');
+    if ($caller === null) {
+        throw new \Issues\AccessException('No human actor on this account');
+    }
+    $projects->removeMember($caller, $project_id, $member_aiu);
+} catch (\Input\InvalidInput | \Issues\AccessException) {
     header("Location: /projects/?msg=project_not_found");
     exit;
 }
-
-$user_id = $is_logged_in->loggedInID();
-$pdo = \Database\Base::getPDO($config);
-
-$del = $pdo->prepare(
-    "DELETE pm FROM project_members pm
-     JOIN projects p ON p.project_id = pm.project_id
-     WHERE pm.project_id = ? AND pm.member_aiu = ? AND p.user_id = ?"
-);
-$del->execute([$project_id, $member_aiu, $user_id]);
 
 header("Location: /projects/view.php?project_id={$project_id}");
 exit;
