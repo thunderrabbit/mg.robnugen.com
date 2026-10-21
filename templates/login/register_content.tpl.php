@@ -3,7 +3,7 @@
     <form action="" method="POST">
         <div class="form-row">
             <label for="username">Username:</label>
-            <input type="text" name="username" id="username" required>
+            <input type="text" name="username" id="username" required minlength="3" maxlength="64" pattern="[!-~]+" title="3 to 64 characters of plain ASCII, no spaces">
         </div>
 
         <div class="form-row">
