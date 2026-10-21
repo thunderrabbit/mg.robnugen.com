@@ -41,9 +41,10 @@ class IsLoggedIn
     }
 
     /**
-     * Who is this request from? Runs on EVERY request (prepend.php). It only
-     * reads the remember-me cookie and never looks at credentials: that is
-     * attemptPasswordLogin()'s job, and only the login page calls that.
+     * Who is this request from? Runs on EVERY request (prepend.php). Its only
+     * write is, at most hourly, stamping last_access for /profile/devices/.
+     * It never looks at credentials: that is attemptPasswordLogin()'s job,
+     * and only the login page calls that.
      */
     public function resumeFromCookie(\Mlaphp\Request $mla_request): void
     {
@@ -63,6 +64,7 @@ class IsLoggedIn
             return;
         }
 
+        $this->di_cookies->touch(hash('sha256', $cookie));
         $this->who_is_logged_in = $found_user_id;
         $this->setUsernameOfLoggedInID($found_user_id);
     }
@@ -221,6 +223,7 @@ class IsLoggedIn
             cookie_hash: hash('sha256', $cookie),
             user_agent_md5: md5(\Field::string($_SERVER, 'HTTP_USER_AGENT')),
             lifetime_seconds: $this->di_config->cookie_lifetime,
+            user_agent: \Field::string($_SERVER, 'HTTP_USER_AGENT'),
         );
 
         $cookie_options = \Auth\CookieOptions::build(
@@ -311,6 +314,31 @@ class IsLoggedIn
             return 0;
         }
         return $this->di_cookies->revokeAllForUser($this->who_is_logged_in, $this->presentedCookieHash());
+    }
+
+    /**
+     * Every browser this user is signed in on, this one flagged is_current.
+     *
+     * @return list<Device>
+     */
+    public function devices(): array
+    {
+        if ($this->who_is_logged_in <= 0) {
+            return [];
+        }
+        return $this->di_cookies->listForUser($this->who_is_logged_in, $this->presentedCookieHash());
+    }
+
+    /**
+     * Sign one of this user's devices out. A cookie_id that is not theirs
+     * revokes nothing. Returns whether a device went away.
+     */
+    public function revokeDevice(int $cookie_id): bool
+    {
+        if ($this->who_is_logged_in <= 0) {
+            return false;
+        }
+        return $this->di_cookies->revokeDevice($this->who_is_logged_in, $cookie_id);
     }
 
     /**
