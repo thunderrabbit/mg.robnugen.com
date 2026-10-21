@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 // Unit test bootstrap - load project classes
 
 $projectRoot = dirname(__DIR__, 2);
