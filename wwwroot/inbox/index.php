@@ -175,11 +175,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
 // Fetch messages with sort and filter controls
 $show_archived = isset($_GET['show_archived']);
 $show_future = isset($_GET['show_future']);
-$filter_priority = $_GET['priority'] ?? '';
-$filter_status = $_GET['status'] ?? '';
-$sort_by = $_GET['sort'] ?? 'id';
-$sort_dir = ($_GET['dir'] ?? 'desc') === 'asc' ? 'ASC' : 'DESC';
-$filter_to = $_GET['to'] ?? '';      // 'me', 'broadcast', or '' (all)
+// Field::string turns ?priority[]=x and other non-strings into the default,
+// which htmlspecialchars() in inbox_url() would otherwise 500 on.
+$filter_priority = \Field::string($_GET, 'priority');
+$filter_status = \Field::string($_GET, 'status');
+$sort_by = \Field::string($_GET, 'sort', 'id');
+$sort_dir = \Field::string($_GET, 'dir', 'desc') === 'asc' ? 'ASC' : 'DESC';
+$filter_to = \Field::string($_GET, 'to');      // 'me', 'broadcast', or '' (all)
 $filter_from = \Field::int($_GET, 'from');  // sender aiu_id or 0 (all)
 $per_page = 50;
 $current_page = max(1, \Field::int($_GET, 'page', 1));
