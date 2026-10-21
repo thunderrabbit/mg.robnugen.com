@@ -98,7 +98,7 @@ $is_logged_in = new \Auth\IsLoggedIn(
     $config,
     new \Database\CookieRepository($mla_database),
 );
-$is_logged_in->checkLogin($mla_request);
+$is_logged_in->resumeFromCookie($mla_request);
 
 // Check for and finish expired activity sessions
 if ($is_logged_in->isLoggedIn()) {
