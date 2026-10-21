@@ -1,3 +1,24 @@
 # mod_alias fires in translate_name phase, before mod_dir's fixup-phase 301.
 # RedirectMatch 307 preserves POST method and body (unlike mod_dir's 301).
 RedirectMatch 307 ^/mcp$ /mcp/
+
+# Everything is served over HTTPS. Plain http only redirects, so a password
+# is never typed into a page an attacker on the network could have rewritten.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{HTTPS} !=on
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+</IfModule>
+
+# Security headers on every response, PHP pages included.
+#   HSTS: browsers that have seen mg once never try http again.
+#   frame-ancestors / X-Frame-Options: no other site may frame mg (clickjacking
+#     the OAuth consent or admin pages). The CSP sets only this directive, so
+#     the inline scripts keep working.
+<IfModule mod_headers.c>
+    Header always set Strict-Transport-Security "max-age=31536000"
+    Header always set Content-Security-Policy "frame-ancestors 'none'"
+    Header always set X-Frame-Options "DENY"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
