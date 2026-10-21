@@ -242,6 +242,19 @@ a:visited {
     font-size: 0.8em;
 }
 
+.sub-issue-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4em 1.2em;
+    margin-bottom: 0.8em;
+    font-size: 0.9em;
+    color: var(--text-muted);
+}
+
+.sub-issue-filter label {
+    cursor: pointer;
+}
+
 .sub-issue-table {
     width: 100%;
     border-collapse: collapse;
