@@ -27,26 +27,44 @@ class StripeWebhook
     {
     }
 
+    /** How old a signed event may be, as Stripe's own libraries allow. */
+    public const TOLERANCE_SECONDS = 300;
+
     // ── Signature verification ────────────────────────────────────────────────
     // Must be called before parsing the payload.
-    // Returns false if the signature is missing, malformed, or doesn't match.
+    // Returns false if the signature is missing, malformed, doesn't match, or
+    // was made more than TOLERANCE_SECONDS from now: without the time check a
+    // captured event could be replayed forever. An empty secret is refused
+    // outright, since anyone can compute an HMAC with an empty key.
 
     public static function verifySignature(
         string $payload,
         string $sig_header,
-        string $secret
+        string $secret,
+        ?int $now = null
     ): bool {
-        if (!preg_match('/t=(\d+)/', $sig_header, $t_match)) {
+        if ($secret === '') {
             return false;
         }
-        if (!preg_match('/v1=([a-f0-9]+)/', $sig_header, $v1_match)) {
+        if (!preg_match('/(?:^|,)t=(\d+)/', $sig_header, $t_match)) {
+            return false;
+        }
+        if (abs(($now ?? time()) - (int) $t_match[1]) > self::TOLERANCE_SECONDS) {
+            return false;
+        }
+        // Stripe sends one v1 per active secret while a secret is being
+        // rolled, so any of them may be the one that matches.
+        if (!preg_match_all('/(?:^|,)v1=([a-f0-9]+)/', $sig_header, $v1_matches)) {
             return false;
         }
 
-        $signed_payload = $t_match[1] . '.' . $payload;
-        $expected       = hash_hmac('sha256', $signed_payload, $secret);
-
-        return hash_equals($expected, $v1_match[1]);
+        $expected = hash_hmac('sha256', $t_match[1] . '.' . $payload, $secret);
+        foreach ($v1_matches[1] as $signature) {
+            if (hash_equals($expected, $signature)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // ── Event dispatch ────────────────────────────────────────────────────────
