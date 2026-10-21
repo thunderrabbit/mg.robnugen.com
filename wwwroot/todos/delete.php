@@ -32,8 +32,15 @@ $user_id = $is_logged_in->loggedInID();
 $pdo = \Database\Base::getPDO($config);
 $todoHelper = new \ActivityTracking\Todo($pdo);
 
-// Get todo_id from query string
-$todo_id = \Field::intOrNull($_GET, 'todo_id');
+// Get todo_id from the POST body
+// Only a POST changes anything: prepend.php checks its CSRF token, which a
+// link or an image on another site cannot carry. A GET (an old bookmark,
+// say) just goes back to the list.
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header("Location: /todos/");
+    exit;
+}
+$todo_id = \Field::intOrNull($_POST, 'todo_id');
 
 if (!$todo_id) {
     header("Location: /todos/?msg=invalid_todo");

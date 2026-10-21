@@ -104,18 +104,18 @@
                             </td>
                             <td>
                                 <?php if ($is_archived): ?>
-                                    <a href="/todos/de_archive.php?todo_id=<?= $todo['todo_id'] ?>"
+                                    <a href="/todos/" data-action="/todos/de_archive.php"
                                        class="btn-sm btn-restore action-restore"
                                        data-todo-id="<?= $todo['todo_id'] ?>">Restore</a>
-                                    <a href="/todos/delete.php?todo_id=<?= $todo['todo_id'] ?>"
+                                    <a href="/todos/" data-action="/todos/delete.php"
                                        class="btn-sm btn-hard-delete action-delete"
                                        data-todo-id="<?= $todo['todo_id'] ?>">&#x1F5D1;&#xFE0F;</a>
                                 <?php else: ?>
                                     <a href="/todos/create.php?todo_id=<?= $todo['todo_id'] ?>" class="btn-sm btn-edit">Edit</a>
-                                    <a href="/todos/archive.php?todo_id=<?= $todo['todo_id'] ?>"
+                                    <a href="/todos/" data-action="/todos/archive.php"
                                        class="btn-sm btn-delete action-archive"
                                        data-todo-id="<?= $todo['todo_id'] ?>">Archive</a>
-                                    <a href="/todos/delete.php?todo_id=<?= $todo['todo_id'] ?>"
+                                    <a href="/todos/" data-action="/todos/delete.php"
                                        class="btn-sm btn-hard-delete action-delete"
                                        data-todo-id="<?= $todo['todo_id'] ?>">&#x1F5D1;&#xFE0F;</a>
                                 <?php endif; ?>
@@ -243,11 +243,12 @@ document.addEventListener('DOMContentLoaded', function() {
             // Optimistically hide the row
             row.style.display = 'none';
 
-            fetch(this.href, {
-                method: 'GET',
+            fetch(this.dataset.action, {
+                method: 'POST',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
-                }
+                },
+                body: new URLSearchParams({ todo_id: todoId })
             })
             .then(response => response.json())
             .then(data => {
@@ -284,11 +285,12 @@ document.addEventListener('DOMContentLoaded', function() {
             // Optimistically hide the row
             row.style.display = 'none';
 
-            fetch(this.href, {
-                method: 'GET',
+            fetch(this.dataset.action, {
+                method: 'POST',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
-                }
+                },
+                body: new URLSearchParams({ todo_id: todoId })
             })
             .then(response => response.json())
             .then(data => {
@@ -319,11 +321,12 @@ document.addEventListener('DOMContentLoaded', function() {
             // Optimistically hide the row
             row.style.display = 'none';
 
-            fetch(this.href, {
-                method: 'GET',
+            fetch(this.dataset.action, {
+                method: 'POST',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
-                }
+                },
+                body: new URLSearchParams({ todo_id: todoId })
             })
             .then(response => response.json())
             .then(data => {
