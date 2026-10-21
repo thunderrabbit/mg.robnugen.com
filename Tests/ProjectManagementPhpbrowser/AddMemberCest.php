@@ -20,7 +20,7 @@ class AddMemberCest
         $I->loginAsAdmin();
         $I->amOnPage('/projects/add-member.php?project_id=2');
         $I->see('Add Member to');
-        $I->seeElement('select[name=member_aiu]');
+        $I->seeElement('input[name="member_aiu[]"]');
         $I->see('TestAgent13');
         $I->seeElement('input[name=can_read]');
         $I->seeElement('input[name=can_write]');
