@@ -25,7 +25,7 @@ class StripeWebhookEventsTest extends Unit
                 stripe_event_id TEXT PRIMARY KEY, event_type TEXT NOT NULL, received_at TEXT DEFAULT CURRENT_TIMESTAMP
             )"
         );
-        $this->pdo->exec("INSERT INTO users VALUES (7, 'user', NULL)");
+        $this->pdo->exec("INSERT INTO users VALUES (7, 'user', NULL), (8, 'paid', 'cus_paid'), (9, 'admin', 'cus_admin')");
     }
 
     /**
@@ -67,6 +67,39 @@ class StripeWebhookEventsTest extends Unit
             'metadata' => ['plan' => 'growth'],
         ]));
         $this->assertSame('user', $this->role());
+    }
+
+    private function roleOf(int $user_id): string
+    {
+        $stmt = $this->pdo->prepare("SELECT role FROM users WHERE user_id = ?");
+        $stmt->execute([$user_id]);
+        $role = $stmt->fetchColumn();
+        return is_string($role) ? $role : '';
+    }
+
+    public function testCancellationDemotesPaidToUser(): void
+    {
+        (new StripeWebhook($this->pdo))->handle(
+            $this->event('evt_10', 'customer.subscription.deleted', ['customer' => 'cus_paid'])
+        );
+        $this->assertSame('user', $this->roleOf(8));
+    }
+
+    public function testFullRefundDemotesButPartialDoesNot(): void
+    {
+        $handler = new StripeWebhook($this->pdo);
+        $handler->handle($this->event('evt_11', 'charge.refunded', ['customer' => 'cus_paid', 'refunded' => false]));
+        $this->assertSame('paid', $this->roleOf(8), 'partial refund');
+        $handler->handle($this->event('evt_12', 'charge.refunded', ['customer' => 'cus_paid', 'refunded' => true]));
+        $this->assertSame('user', $this->roleOf(8), 'full refund');
+    }
+
+    public function testAnAdminIsNeverDemoted(): void
+    {
+        (new StripeWebhook($this->pdo))->handle(
+            $this->event('evt_13', 'customer.subscription.deleted', ['customer' => 'cus_admin'])
+        );
+        $this->assertSame('admin', $this->roleOf(9));
     }
 
     public function testAFailureRollsBackTheClaimSoTheRetryRuns(): void

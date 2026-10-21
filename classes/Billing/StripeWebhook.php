@@ -3,9 +3,11 @@
 /**
  * Handles incoming Stripe webhook events.
  *
- * Each event is applied once (see handle()). Handles two event types:
- *   checkout.session.completed  — first payment; stores customer ID, sets role, adds credits
- *   invoice.payment_succeeded   — monthly renewal; looks up user by customer ID, adds credits
+ * Each event is applied once (see handle()). Handles these event types:
+ *   checkout.session.completed     — first payment; stores customer ID, sets role, adds credits
+ *   invoice.payment_succeeded      — monthly renewal; looks up user by customer ID, adds credits
+ *   customer.subscription.deleted  — cancellation; paid becomes user, credits stay
+ *   charge.refunded                — full refund only; paid becomes user, credits stay
  *
  * Credit amounts by plan:
  *   developer  $5/mo  → 5,000 credits
@@ -93,6 +95,11 @@ class StripeWebhook
             match ($type) {
                 'checkout.session.completed' => $this->handleCheckoutComplete($object),
                 'invoice.payment_succeeded'  => $this->handleInvoicePayment($object),
+                'customer.subscription.deleted' => $this->demoteCustomer(\Field::string($object, 'customer')),
+                // Only a full refund ends paid status; a partial one is a goodwill credit.
+                'charge.refunded' => ($object['refunded'] ?? false) === true
+                    ? $this->demoteCustomer(\Field::string($object, 'customer'))
+                    : null,
                 default                      => null,
             };
 
@@ -249,6 +256,21 @@ class StripeWebhook
             return $n % 100 === 0;
         }
         return                 $n % 1000 === 0;
+    }
+
+    // ── Cancellation and refund ───────────────────────────────────────────────
+    // A cancelled subscription or a fully refunded charge ends paid status.
+    // Credits already granted stay (Rob, 2026-10-21), and an admin is never
+    // demoted. A later renewal (invoice.payment_succeeded) promotes again.
+
+    private function demoteCustomer(string $customer_id): void
+    {
+        if ($customer_id === '') {
+            return;
+        }
+        $this->pdo->prepare(
+            "UPDATE users SET role = 'user' WHERE stripe_customer_id = ? AND role = 'paid'"
+        )->execute([$customer_id]);
     }
 
     // ── Credit top-up ─────────────────────────────────────────────────────────
