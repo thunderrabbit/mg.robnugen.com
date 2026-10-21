@@ -93,7 +93,11 @@ if (!empty($errors)) {
     exit;
 }
 
-$is_logged_in = new \Auth\IsLoggedIn($mla_database, $config);
+$is_logged_in = new \Auth\IsLoggedIn(
+    $mla_database,
+    $config,
+    new \Database\CookieRepository($mla_database),
+);
 $is_logged_in->checkLogin($mla_request);
 
 // Check for and finish expired activity sessions

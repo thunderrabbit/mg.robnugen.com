@@ -18,6 +18,7 @@ class IsLoggedIn
     public function __construct(
         private \PDO $di_pdo,
         private \Config $di_config,
+        private \Database\CookieRepository $di_cookies,
     ) {
         // Set log file path to project root (parent of wwwroot)
         $this->log_file_path = $di_config->app_path . '/auth_log.txt';
@@ -149,16 +150,16 @@ class IsLoggedIn
     {
         $cookie = \Utilities::randomString(32);
 
-        $record = [
-            'user_id' => $user_id,
-            'cookie' => $cookie,
-            'last_access' => date(format: "Y-m-d H:i:s"),
-            'user_agent_md5' => md5(\Field::string($_SERVER, 'HTTP_USER_AGENT'))
-        ];
-
-        // Insert using native PDO
-        $stmt = $this->di_pdo->prepare("INSERT INTO `cookies` (`user_id`, `cookie`, `last_access`, `user_agent_md5`) VALUES (?, ?, ?, ?)");
-        $stmt->execute(array_values($record));
+        // Store only the SHA-256 of the token: a leaked DB dump or backup must
+        // not contain ready-to-use session tokens. The browser holds the
+        // plaintext; lookups hash the presented value. The row carries its own
+        // expires_at, so the lifetime is enforced here and not only by the browser.
+        $this->di_cookies->issue(
+            user_id: $user_id,
+            cookie_hash: hash('sha256', $cookie),
+            user_agent_md5: md5(\Field::string($_SERVER, 'HTTP_USER_AGENT')),
+            lifetime_seconds: $this->di_config->cookie_lifetime,
+        );
 
         $cookie_options = \Auth\CookieOptions::build(
             $this->di_config->domain_name,
@@ -211,32 +212,18 @@ class IsLoggedIn
         string $cookie,
         string $user_agent
     ): int {
-        // Validate cookie and user agent match
-        $stmt = $this->di_pdo->prepare("SELECT `user_id` FROM `cookies` WHERE `cookie` = ? AND `user_agent_md5` = ? LIMIT 1");
-        $stmt->execute([$cookie, md5($user_agent)]);
-        $row = \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC))[0] ?? null;
-
-        if ($row !== null) {
-            return \Db\RowValue::int($row, 'user_id');
-        } else {
-            // Log why authentication failed
-            $stmt2 = $this->di_pdo->prepare("SELECT `user_id` FROM `cookies` WHERE `cookie` = ? LIMIT 1");
-            $stmt2->execute([$cookie]);
-            $row2 = \Db\Rows::all($stmt2->fetchAll(\PDO::FETCH_ASSOC))[0] ?? null;
-
-            if ($row2 !== null) {
-                // Cookie exists but user agent doesn't match
-                $user_id = \Db\RowValue::int($row2, 'user_id');
-                $current_ip = \Field::string($_SERVER, 'REMOTE_ADDR', 'unknown');
-                $this->logAuth("user_id: {$user_id}, IP: {$current_ip} - Cookie USER AGENT MISMATCH");
-            } else {
-                // Cookie doesn't exist at all
-                $current_ip = \Field::string($_SERVER, 'REMOTE_ADDR', 'unknown');
-                $this->logAuth("user_id: N/A, IP: {$current_ip} - Cookie NOT FOUND in database");
-            }
-            return 0;
+        $cookie_hash = hash('sha256', $cookie);
+        $user_agent_md5 = md5($user_agent);
+        $user_id = $this->di_cookies->findUserId($cookie_hash, $user_agent_md5);
+        if ($user_id <= 0) {
+            $refused = $this->di_cookies->whyRefused($cookie_hash, $user_agent_md5);
+            $who = $refused['user_id'] > 0 ? (string) $refused['user_id'] : 'N/A';
+            $current_ip = \Field::string($_SERVER, 'REMOTE_ADDR', 'unknown');
+            $this->logAuth("user_id: {$who}, IP: {$current_ip} - Cookie refused: {$refused['reason']}");
         }
+        return $user_id;
     }
+
     public function isLoggedIn(): bool
     {
         return $this->who_is_logged_in > 0;
@@ -248,8 +235,36 @@ class IsLoggedIn
     }
 
 
+    /**
+     * Sign this user out of every OTHER browser: the remember-me cookie in
+     * hand keeps working, everything else is revoked server-side. Call it
+     * whenever the password changes. Returns how many sessions were revoked.
+     */
+    public function revokeOtherSessions(): int
+    {
+        if ($this->who_is_logged_in <= 0) {
+            return 0;
+        }
+        return $this->di_cookies->revokeAllForUser($this->who_is_logged_in, $this->presentedCookieHash());
+    }
+
+    /**
+     * SHA-256 of the remember-me cookie this browser sent, or null without one.
+     */
+    private function presentedCookieHash(): ?string
+    {
+        $presented = \Field::string($_COOKIE, $this->di_config->cookie_name);
+        return $presented !== '' ? hash('sha256', $presented) : null;
+    }
+
     public function logout(): void
     {
+        // Revoke this browser's row, not only its cookie: a copied cookie
+        // value must stop working once its owner has logged out.
+        $cookie_hash = $this->presentedCookieHash();
+        if ($cookie_hash !== null) {
+            $this->di_cookies->revoke($cookie_hash);
+        }
         $this->who_is_logged_in = 0;
         $this->killCookie();
         session_destroy();
