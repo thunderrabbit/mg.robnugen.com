@@ -17,6 +17,7 @@ declare(strict_types=1);
  * @var \PDO $pdo
  * @var int $auth_user_id
  * @var string $method
+ * @var array<mixed> $auth_actor
  */
 
 $activityHelper = new \ActivityTracking\Activity($pdo);
@@ -37,6 +38,13 @@ if ($method === 'GET') {
 // ── POST /activities ──────────────────────────────────────────────────────────
 
 if ($method === 'POST') {
+    // An activity's name ends up on Rob's dashboard and timer pages, so only
+    // keys allowed to write sessions may add one.
+    if (!\Field::int($auth_actor, 'can_write_sessions')) {
+        http_response_code(403);
+        echo json_encode(['error' => 'This API key does not have permission to modify sessions']);
+        exit;
+    }
     $input = \Field::jsonArray((string) file_get_contents('php://input'));
     $name  = trim(\Field::string($input, 'activity_name'));
     $desc  = trim(\Field::string($input, 'description')) ?: null;
