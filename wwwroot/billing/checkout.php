@@ -25,11 +25,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-if (!isset($_POST['csrf_token']) || !hash_equals(\Field::string($_SESSION, 'csrf_token'), \Field::string($_POST, 'csrf_token'))) {
-    header('Location: /billing/');
-    exit;
-}
-
 $plan = $_POST['plan'] ?? '';
 if (!in_array($plan, ['developer', 'growth'], true)) {
     header('Location: /billing/');

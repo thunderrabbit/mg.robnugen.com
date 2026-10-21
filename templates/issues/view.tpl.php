@@ -37,6 +37,7 @@
         <div class="issue-meta">
             <?php if ($issue->canWrite): ?>
                 <form method="POST" action="/issues/status.php" class="issue-status-form">
+                    <?= csrf_field() ?>
                     <input type="hidden" name="issue_id" value="<?= $issue->issueId ?>">
                     <label for="status-picker" class="visually-hidden">Status</label>
                     <select id="status-picker" name="status_id">
@@ -91,6 +92,7 @@
 
         <?php if ($issue->canWrite): ?>
             <form method="POST" action="/issues/comment.php" class="comment-form">
+                <?= csrf_field() ?>
                 <input type="hidden" name="issue_id" value="<?= $issue->issueId ?>">
                 <div class="form-field">
                     <label for="comment-body">Add a comment</label>

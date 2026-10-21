@@ -30,6 +30,7 @@
         <div class="card">
             <form method="POST" action="/exterm/view.php?exterm_item_id=<?= (int)$item['exterm_item_id'] ?>"
                   onsubmit="return confirm('Delete this note permanently?')">
+                <?= csrf_field() ?>
                 <button type="submit" name="action" value="delete" class="btn-danger btn-sm">Delete note</button>
             </form>
         </div>

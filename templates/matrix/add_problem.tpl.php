@@ -67,6 +67,11 @@ document.getElementById('problem-form').addEventListener('submit', async functio
     input.name = 'encrypted_problem';
     input.value = encrypted;
     form.appendChild(input);
+    const csrf = document.createElement('input');
+    csrf.type = 'hidden';
+    csrf.name = 'csrf_token';
+    csrf.value = <?= json_encode(csrf_token()) ?>;
+    form.appendChild(csrf);
     document.body.appendChild(form);
     form.submit();
 });

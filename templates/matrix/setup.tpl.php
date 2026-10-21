@@ -59,6 +59,11 @@ document.getElementById('setup-form').addEventListener('submit', async function(
     input.name = 'verify_blob';
     input.value = verifyBlob;
     form.appendChild(input);
+    const csrf = document.createElement('input');
+    csrf.type = 'hidden';
+    csrf.name = 'csrf_token';
+    csrf.value = <?= json_encode(csrf_token()) ?>;
+    form.appendChild(csrf);
     document.body.appendChild(form);
     form.submit();
 });

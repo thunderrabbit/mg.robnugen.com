@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($page_title ?? 'Meditation Timer - Meiso Gambare') ?></title>
+    <?php include __DIR__ . '/../partials/csrf_head.tpl.php'; ?>
     <script>
     (function() {
         var saved = localStorage.getItem('theme');

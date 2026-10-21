@@ -9,6 +9,7 @@
 
     <div class="card">
         <form action="/todos/create.php" method="POST" class="create-todo-form" id="todo-form">
+            <?= csrf_field() ?>
             <?php if ($is_edit): ?>
                 <input type="hidden" name="todo_id" value="<?= $todo['todo_id'] ?>">
             <?php endif; ?>

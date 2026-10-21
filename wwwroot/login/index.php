@@ -18,17 +18,14 @@ $login_error = '';
 if (!$is_logged_in->isLoggedIn() && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim(\Field::string($mla_request->post, 'username'));
     $password = \Field::string($mla_request->post, 'pass');
-    $post_token = \Field::string($mla_request->post, 'csrf_token');
-    $session_token = \Field::string($_SESSION, 'csrf_token');
 
+    // prepend.php has already refused a POST without the CSRF token.
     $result = \Auth\LoginResult::BadCredentials;
-    if (!hash_equals($session_token, $post_token)) {
-        $login_error = "Your session expired. Please log in again.";
-    } elseif ($username !== '' && $password !== '') {
+    if ($username !== '' && $password !== '') {
         $result = $is_logged_in->attemptPasswordLogin($username, $password);
     }
 
-    if ($login_error === '' && $result !== \Auth\LoginResult::Success) {
+    if ($result !== \Auth\LoginResult::Success) {
         // One message for every bad credential. Saying which half was wrong
         // tells a guesser which usernames exist. Throttling is the one thing
         // worth naming, so a real user knows waiting will help and retyping

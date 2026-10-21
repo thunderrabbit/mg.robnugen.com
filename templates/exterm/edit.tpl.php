@@ -10,6 +10,7 @@
         <?php endif; ?>
 
         <form method="POST" action="/exterm/edit.php?exterm_item_id=<?= (int)$item['exterm_item_id'] ?>">
+            <?= csrf_field() ?>
 
             <div class="form-field">
                 <label for="title">Title</label>

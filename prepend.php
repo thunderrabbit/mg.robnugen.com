@@ -21,15 +21,66 @@ if ($missing_extensions !== []) {
 
 session_start();
 
-if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
 require_once __DIR__ . '/classes/Mlaphp/Autoloader.php';
 // create autoloader instance and register the method with SPL
 $autoloader = new \Mlaphp\Autoloader();
 spl_autoload_register(array($autoloader, 'load'));
 
 $mla_request = new \Mlaphp\Request();
+$csrfProtect = new \Security\CSRFProtectaroo($mla_request);
+// Mint it now: older pages still read $_SESSION['csrf_token'] directly.
+$csrfProtect->getToken();
+
+/**
+ * The hidden CSRF input for any POST form. Templates write <?= csrf_field() ?>
+ * inside the <form>; no page-level set() is needed.
+ */
+function csrf_field(): string
+{
+    /** @var \Security\CSRFProtectaroo $csrfProtect */
+    global $csrfProtect;
+    return $csrfProtect->field();
+}
+
+/**
+ * The bare token, for JavaScript that sends it as the X-CSRF-Token header.
+ * Always json_encode() it into JS or htmlspecialchars() it into an attribute.
+ */
+function csrf_token(): string
+{
+    /** @var \Security\CSRFProtectaroo $csrfProtect */
+    global $csrfProtect;
+    return $csrfProtect->getToken();
+}
+
+// Every state-changing browser request must carry the session's token.
+// Checked here, before any page code or DB work, so a handler cannot forget
+// it. A cross-site POST fails because the attacking page cannot read our
+// session's token.
+//
+// Exempt: callers that are not browsers and never use the session cookie.
+// Each authenticates the request itself, so a forged cross-site request has
+// nothing to ride on.
+//   /api/v1/   API key in the Authorization header
+//   /mcp/      OAuth bearer token; /mcp/token.php issues them
+// billing/webhook.php (Stripe, signed) and login/register.php never load
+// this file, so the check does not reach them.
+$csrf_exempt_prefixes = ['/api/v1/', '/mcp/'];
+$request_path = parse_url(\Field::string($_SERVER, 'REQUEST_URI'), PHP_URL_PATH);
+$request_path = is_string($request_path) ? $request_path : '';
+$csrf_exempt = false;
+foreach ($csrf_exempt_prefixes as $prefix) {
+    if (str_starts_with($request_path, $prefix)) {
+        $csrf_exempt = true;
+    }
+}
+if (!$csrf_exempt && !$csrfProtect->validateRequest()) {
+    http_response_code(403);
+    echo "<h1>Request rejected</h1>"
+        . "<p>The form's security token was missing or has expired. "
+        . "Go back, reload the page, and try again.</p>";
+    exit;
+}
 
 function print_roblog(mixed $message, string $label = ''): void
 {

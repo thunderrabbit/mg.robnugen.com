@@ -8,6 +8,7 @@
         <p>Redirecting to: <code><?= htmlspecialchars($redirect_uri) ?></code></p>
 
         <form method="POST">
+            <?= csrf_field() ?>
             <input type="hidden" name="response_type"         value="code">
             <input type="hidden" name="client_id"             value="<?= htmlspecialchars($client_id) ?>">
             <input type="hidden" name="redirect_uri"          value="<?= htmlspecialchars($redirect_uri) ?>">

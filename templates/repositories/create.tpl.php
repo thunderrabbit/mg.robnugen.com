@@ -10,6 +10,7 @@
         <?php endif; ?>
 
         <form method="POST" action="/repositories/create.php">
+            <?= csrf_field() ?>
             <div class="form-field">
                 <label for="name">Name</label>
                 <input type="text" id="name" name="name" maxlength="100" required

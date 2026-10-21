@@ -10,6 +10,7 @@
         <?php endif; ?>
 
         <form method="POST" action="/exterm/create.php">
+            <?= csrf_field() ?>
             <input type="hidden" name="project_id" value="<?= (int)$project_id ?>">
 
             <div class="form-field">
