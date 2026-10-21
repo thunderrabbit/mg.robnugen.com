@@ -51,7 +51,7 @@ if (!$auth_user_id) {
 // Available to all handler files as $auth_actor.
 $actor_stmt = $pdo->prepare(
     "SELECT a.* FROM agent_inbox_user a
-     JOIN api_keys k ON k.aiu_id = a.aiu_id
+     JOIN api_keys k ON k.aiu_id = a.aiu_id AND a.user_id = k.user_id
      WHERE k.key_id = ?"
 );
 $actor_stmt->execute([$auth_key_id]);
