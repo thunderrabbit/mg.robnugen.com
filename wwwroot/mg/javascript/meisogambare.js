@@ -3,6 +3,17 @@ var reachedGoalTime = false;
 var sessionStartTime = null; // Track when session started
 var currentAkId = null; // Track current activity session ID
 var currentActivityId = 1; // Default to Meditation, will be updated when activities load
+
+// Activity names are written through the API (agents included), so escape
+// them before they go into an HTML string.
+function escapeHtml(value) {
+	return String(value === null || value === undefined ? '' : value)
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#39;');
+}
 var currentSessionKey = null; // Track session key for admin/pro users
 var currentTodoId = null; // Track linked todo for auto-completion
 
@@ -396,7 +407,7 @@ var loadAndResumeSession = function(sessionKey) {
 				$('#activity_text_wrapper').hide();
 
 				var liveMessage = '<div class="live-session-notice" style="margin-top: 20px; padding: 15px; background: var(--bg-muted); border-radius: 8px;">' +
-					'<h3>🔴 LIVE - Someone is doing ' + session.activity_name + '</h3>' +
+					'<h3>🔴 LIVE - Someone is doing ' + escapeHtml(session.activity_name) + '</h3>' +
 					'<p style="color: var(--text-faint); font-style: italic;">This is a live session (read-only)</p>' +
 					'</div>';
 				$('.message').html(liveMessage);
@@ -436,7 +447,7 @@ var loadAndResumeSession = function(sessionKey) {
 			var bonusMinutes = Math.floor(session.bonus_sec / 60);
 			var completedMessage = '<div class="completion-summary">' +
 				'<h3>✅ Session Completed</h3>' +
-				'<p><strong>Activity:</strong> ' + session.activity_name + '</p>' +
+				'<p><strong>Activity:</strong> ' + escapeHtml(session.activity_name) + '</p>' +
 				'<p><strong>Intended:</strong> ' + Math.floor(session.intended_sec / 60) + ' minutes</p>' +
 				'<p><strong>Actual:</strong> ' + Math.floor(session.actual_sec / 60) + ' minutes</p>';
 
