@@ -103,15 +103,15 @@
                 <?php endforeach; ?>
             </div>
             <p class="empty-state sub-issue-none" hidden><em>No sub-issues with the ticked statuses.</em></p>
-            <table class="sub-issue-table">
+            <table class="issue-table sortable-table">
                 <thead>
                     <tr>
                         <th aria-sort="ascending"><button type="button" data-col="0" data-type="num">#</button></th>
                         <th><button type="button" data-col="1" data-type="text">Title</button></th>
                         <th><button type="button" data-col="2" data-type="num">Status</button></th>
-                        <th><button type="button" data-col="3" data-type="num">Priority</button></th>
-                        <th><button type="button" data-col="4" data-type="text">Created</button></th>
-                        <th><button type="button" data-col="5" data-type="text">Done</button></th>
+                        <th class="hide-narrow"><button type="button" data-col="3" data-type="num">Priority</button></th>
+                        <th class="hide-narrow"><button type="button" data-col="4" data-type="text" data-first="desc">Created</button></th>
+                        <th><button type="button" data-col="5" data-type="text" data-first="desc">Done</button></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -122,7 +122,7 @@
                         $done     = $row->doneAtUtc?->format($fmt) ?? '';
                         $priority = $row->priority->value;
                         ?>
-                        <tr class="<?= $child->status->isTerminal ? 'sub-issue-closed' : '' ?>" data-status="<?= $child->status->statusId ?>">
+                        <tr class="<?= $child->status->isTerminal ? 'issue-row-closed' : '' ?>" data-status="<?= $child->status->statusId ?>">
                             <td data-sort="<?= $row->issueId ?>" class="issue-id">#<?= $row->issueId ?></td>
                             <td data-sort="<?= htmlspecialchars(mb_strtolower($row->title)) ?>">
                                 <a href="/issues/view.php?issue_id=<?= $row->issueId ?>"><?= htmlspecialchars($row->title) ?></a>
@@ -130,10 +130,10 @@
                             <td data-sort="<?= $child->status->sortOrder ?>">
                                 <?= htmlspecialchars($child->status->label) ?>
                             </td>
-                            <td data-sort="<?= $priority_rank[$priority] ?? 9 ?>">
+                            <td data-sort="<?= $priority_rank[$priority] ?? 9 ?>" class="hide-narrow">
                                 <span class="issue-priority issue-priority-<?= htmlspecialchars($priority) ?>"><?= htmlspecialchars($priority) ?></span>
                             </td>
-                            <td data-sort="<?= htmlspecialchars($created) ?>" class="issue-date" title="<?= htmlspecialchars($created) ?> UTC">
+                            <td data-sort="<?= htmlspecialchars($created) ?>" class="issue-date hide-narrow" title="<?= htmlspecialchars($created) ?> UTC">
                                 <?= htmlspecialchars(substr($created, 0, 16)) ?>
                             </td>
                             <td data-sort="<?= htmlspecialchars($done) ?>" class="issue-date"<?= $done !== '' ? ' title="' . htmlspecialchars($done) . ' UTC"' : '' ?>>
@@ -144,37 +144,12 @@
                 </tbody>
             </table>
         </div>
+        <script src="/js/<?= SEMVER ?>/sortable-table.js"></script>
         <script>
-            // Click a header to sort by it; click again to reverse. Each cell's
-            // data-sort holds the key, so dates sort as text and ids as numbers.
-            document.querySelectorAll('.sub-issue-table').forEach(function (table) {
-                var body = table.tBodies[0];
-                var headers = table.querySelectorAll('th');
-                table.querySelectorAll('th button').forEach(function (button) {
-                    button.addEventListener('click', function () {
-                        var th = button.parentElement;
-                        var col = Number(button.dataset.col);
-                        var numeric = button.dataset.type === 'num';
-                        var dir = th.getAttribute('aria-sort') === 'ascending' ? -1 : 1;
-                        var rows = Array.prototype.slice.call(body.rows);
-                        rows.sort(function (a, b) {
-                            var x = a.cells[col].dataset.sort;
-                            var y = b.cells[col].dataset.sort;
-                            var cmp = numeric ? Number(x) - Number(y) : x.localeCompare(y);
-                            // Ties fall back to the issue id so the order is stable.
-                            return dir * (cmp || Number(a.cells[0].dataset.sort) - Number(b.cells[0].dataset.sort));
-                        });
-                        rows.forEach(function (row) { body.appendChild(row); });
-                        headers.forEach(function (h) { h.removeAttribute('aria-sort'); });
-                        th.setAttribute('aria-sort', dir === 1 ? 'ascending' : 'descending');
-                    });
-                });
-            });
-
             // Show only rows whose status is ticked. Terminal statuses start unticked.
             document.querySelectorAll('#sub-issues').forEach(function (card) {
                 var boxes = card.querySelectorAll('.sub-issue-filter input');
-                var table = card.querySelector('.sub-issue-table');
+                var table = card.querySelector('.issue-table');
                 function applyFilter() {
                     var shown = {};
                     boxes.forEach(function (box) { shown[box.value] = box.checked; });
