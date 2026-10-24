@@ -326,3 +326,26 @@ a:visited {
     font-size: 0.9em;
     color: var(--text-muted);
 }
+
+/* DreamHost inventory (mg #775): notes about what layer 2 could add. */
+.L2Note {
+    margin: 1em 0 0.5em;
+    padding: 0.6em 1em;
+    border: 2px dashed var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-muted);
+    font-size: 0.9em;
+}
+
+.L2Note::before {
+    content: "Layer 2 possibility (a note, not built)";
+    display: block;
+    font-size: 0.75em;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+.L2Mock {
+    opacity: 0.8;
+}
