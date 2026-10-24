@@ -5,9 +5,9 @@
  *
  * Routes:
  *   GET    /repositories/list         free — account-scoped, excludes deactivated by default
- *   POST   /repositories/create       1 credit, human only
- *   PATCH  /repositories/update       1 credit, human only
- *   PATCH  /repositories/deactivate   1 credit, human only (soft — preserves FKs)
+ *   POST   /repositories/create       1 credit, admin human or can_write_repos
+ *   PATCH  /repositories/update       1 credit, admin human or can_write_repos
+ *   PATCH  /repositories/deactivate   1 credit, admin human or can_write_repos (soft — preserves FKs)
  *
  * No hard delete — deactivation preserves issue_commits FK validity.
  * Hard deletes stay in the "ask Rob / mysql magic" bucket per Rob's decision.
@@ -21,15 +21,16 @@ declare(strict_types=1);
  * Set up by index.php, which includes this file.
  *
  * @var \PDO $pdo
+ * @var \Auth\Guards $guards
  * @var int $auth_user_id
  * @var int $auth_key_id
  * @var string $method
  * @var string $path
- * @var array<mixed> $auth_actor
+ * @var array<string, mixed> $auth_actor
  */
 
 $sub = preg_replace('#^/repositories#', '', $path) ?: '/';
-$is_human = \Field::string($auth_actor, 'actor_type') === 'human';
+$is_admin_account = $method !== 'GET' && \Auth\AccountRole::isAdmin($pdo, $auth_user_id);
 
 // ── GET /repositories/list ───────────────────────────────────────────────────
 
@@ -58,9 +59,9 @@ if ($method === 'GET' && $sub === '/list') {
 // ── POST /repositories/create ────────────────────────────────────────────────
 
 if ($method === 'POST' && $sub === '/create') {
-    if (!$is_human) {
-        http_response_code(403);
-        echo json_encode(['error' => 'Only humans can create repositories']);
+    if ($guard = $guards->repoWrite($auth_actor, $is_admin_account, 'create repositories')) {
+        http_response_code($guard['code']);
+        echo json_encode(['error' => $guard['error']]);
         return;
     }
 
@@ -122,9 +123,9 @@ if ($method === 'POST' && $sub === '/create') {
 // ── PATCH /repositories/update ───────────────────────────────────────────────
 
 if ($method === 'PATCH' && $sub === '/update') {
-    if (!$is_human) {
-        http_response_code(403);
-        echo json_encode(['error' => 'Only humans can update repositories']);
+    if ($guard = $guards->repoWrite($auth_actor, $is_admin_account, 'update repositories')) {
+        http_response_code($guard['code']);
+        echo json_encode(['error' => $guard['error']]);
         return;
     }
 
@@ -190,9 +191,9 @@ if ($method === 'PATCH' && $sub === '/update') {
 // ── PATCH /repositories/deactivate ───────────────────────────────────────────
 
 if ($method === 'PATCH' && $sub === '/deactivate') {
-    if (!$is_human) {
-        http_response_code(403);
-        echo json_encode(['error' => 'Only humans can deactivate repositories']);
+    if ($guard = $guards->repoWrite($auth_actor, $is_admin_account, 'deactivate repositories')) {
+        http_response_code($guard['code']);
+        echo json_encode(['error' => $guard['error']]);
         return;
     }
 

@@ -3,7 +3,8 @@
 /**
  * Create Repository Page
  * Displays the form on GET; handles creation on POST.
- * Admin/paid + human-only (matches API POST /repositories/create).
+ * Admin/paid + human-only. The API (POST /repositories/create) is narrower:
+ * a human key on an admin account, or an actor with can_write_repos.
  */
 
 declare(strict_types=1);
