@@ -23,20 +23,25 @@ include __DIR__ . '/_nav.tpl.php';
     <?php endif; ?>
 </p>
 <div class="PagePanel">
-    <table class="issue-table">
-        <tr><th>Domain</th><th>Type</th><th>Owner</th><th>PHP</th><th>HTTPS</th><th>Cert expires</th><th>Registered until</th></tr>
+    <table class="issue-table sortable-table">
+        <thead>
+            <tr><th><button type="button" data-col="0" data-type="text">Domain</button></th><th><button type="button" data-col="1" data-type="text">Type</button></th><th><button type="button" data-col="2" data-type="text">Owner</button></th><th><button type="button" data-col="3" data-type="text">PHP</button></th><th><button type="button" data-col="4" data-type="text">HTTPS</button></th><th><button type="button" data-col="5" data-type="text">Cert expires</button></th><th><button type="button" data-col="6" data-type="text">Registered until</button></th></tr>
+        </thead>
+        <tbody>
         <?php foreach ($domains as $row): ?>
             <tr>
-                <td><a href="/admin/dh/domain.php?dh_domain_id=<?= (int) $row['dh_domain_id'] ?>"><?= $h($row['domain']) ?></a></td>
-                <td><?= $h($row['type']) ?></td>
-                <td><?php if ($row['dh_user_id'] !== null): ?><a href="/admin/dh/user.php?dh_user_id=<?= (int) $row['dh_user_id'] ?>"><?= $h($row['username']) ?></a><?php endif; ?></td>
-                <td><?= $h($row['php_version']) ?></td>
-                <td><?= $h($row['https']) ?></td>
-                <td><?= $h($row['cert_expires']) ?></td>
-                <td><?= $h($row['reg_expires']) ?><?= $row['reg_expires'] !== null && !$row['auto_renew'] ? ' <strong>(no auto-renew)</strong>' : '' ?></td>
+                <td data-sort="<?= $h($row['domain']) ?>"><a href="/admin/dh/domain.php?dh_domain_id=<?= (int) $row['dh_domain_id'] ?>"><?= $h($row['domain']) ?></a></td>
+                <td data-sort="<?= $h($row['type']) ?>"><?= $h($row['type']) ?></td>
+                <td data-sort="<?= $h($row['username']) ?>"><?php if ($row['dh_user_id'] !== null): ?><a href="/admin/dh/user.php?dh_user_id=<?= (int) $row['dh_user_id'] ?>"><?= $h($row['username']) ?></a><?php endif; ?></td>
+                <td data-sort="<?= $h($row['php_version']) ?>"><?= $h($row['php_version']) ?></td>
+                <td data-sort="<?= $h($row['https']) ?>"><?= $h($row['https']) ?></td>
+                <td data-sort="<?= $h($row['cert_expires']) ?>"><?= $h($row['cert_expires']) ?></td>
+                <td data-sort="<?= $h($row['reg_expires']) ?>"><?= $h($row['reg_expires']) ?><?= $row['reg_expires'] !== null && !$row['auto_renew'] ? ' <strong>(no auto-renew)</strong>' : '' ?></td>
             </tr>
         <?php endforeach; ?>
+        </tbody>
     </table>
+    <script src="/js/<?= SEMVER ?>/sortable-table.js"></script>
     <aside class="L2Note">
         <strong>Layer 2 idea: the columns this table is missing</strong>
         <p>The panel knows how a site is hosted, not what it is. Layer 2 would add columns like these,
