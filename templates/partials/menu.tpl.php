@@ -3,7 +3,7 @@
  * Menu Partial
  *
  * Logic:
- * - Admin: Home (/), Timer (/mg/), Todos (/todos/), Projects (/projects/), Repositories (/repositories/), Profile (Dropdown), Admin (/admin/), Workers (/admin/workers)
+ * - Admin: Home (/), Timer (/mg/), Todos (/todos/), Projects (/projects/), Repositories (/repositories/), Profile (Dropdown), Admin (/admin/), DH (/admin/dh/, user 1 only), Workers (/admin/workers)
  * - Paid: Home (/), Timer (/mg/), Todos (/todos/), Projects (/projects/), Repositories (/repositories/), Profile (Dropdown)
  * - Free: Home (/), Timer (/mg/)
  *
@@ -58,6 +58,9 @@ if (isset($is_logged_in) && is_object($is_logged_in) && method_exists($is_logged
 
         <?php if ($user_is_admin): ?>
             | <a href="/admin/">Admin</a>
+            <?php if (is_object($is_logged_in) && method_exists($is_logged_in, 'loggedInID') && $is_logged_in->loggedInID() === 1): ?>
+                | <a href="/admin/dh/">DH</a>
+            <?php endif; ?>
             <span class="PhpVersion">PHP <?= PHP_VERSION ?></span>
         <?php endif; ?>
 
