@@ -35,6 +35,7 @@
     <h3>Admin Tools</h3>
     <ul>
         <li><a href="/admin/auth_log.php">View Authentication Log</a> - Monitor login activity and diagnose logout issues</li>
+        <li><a href="/admin/inventory/">DreamHost inventory</a> - Rob only: sites, PHP versions, certificates, registrations, users, databases</li>
     </ul>
 </div>
 
