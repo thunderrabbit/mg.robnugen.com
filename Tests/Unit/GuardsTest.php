@@ -64,6 +64,46 @@ class GuardsTest extends Unit
         }
     }
 
+    // === repoWrite() ===
+
+    public function testRepoWriteAllowsAHumanOnAnAdminAccount(): void
+    {
+        $this->assertNull($this->guards->repoWrite(['actor_type' => 'human'], true, 'create repositories'));
+    }
+
+    public function testRepoWriteAllowsAnyActorWithTheBit(): void
+    {
+        foreach (['agent', 'human'] as $type) {
+            foreach ([true, false] as $is_admin_account) {
+                $actor = ['actor_type' => $type, 'can_write_repos' => 1];
+                $this->assertNull($this->guards->repoWrite($actor, $is_admin_account, 'create repositories'));
+            }
+        }
+    }
+
+    public function testRepoWriteDeniesAnAgentOnAnAdminAccountWithoutTheBit(): void
+    {
+        $verdict = $this->guards->repoWrite(
+            ['actor_type' => 'agent', 'can_write_repos' => 0],
+            true,
+            'create repositories'
+        );
+        $this->assertSame(403, $verdict['code'] ?? null);
+        $this->assertSame('This API key does not have permission to create repositories', $verdict['error']);
+    }
+
+    public function testRepoWriteDeniesAHumanOnANonAdminAccountWithoutTheBit(): void
+    {
+        $verdict = $this->guards->repoWrite(['actor_type' => 'human'], false, 'update repositories');
+        $this->assertSame(403, $verdict['code'] ?? null);
+    }
+
+    public function testRepoWriteDeniesAKeyWithNoActorRow(): void
+    {
+        $verdict = $this->guards->repoWrite([], true, 'deactivate repositories');
+        $this->assertSame(403, $verdict['code'] ?? null);
+    }
+
     // === byteLimit() ===
 
     public function testByteLimitAllowsUnderAndExactlyAtCap(): void

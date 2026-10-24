@@ -39,6 +39,27 @@ class Guards
     }
 
     /**
+     * Allow repository writes for a human key on an admin account, or for
+     * any actor granted can_write_repos.
+     *
+     * Agents on an admin account do not inherit the admin's right: the
+     * account role says nothing about which of its agents to trust.
+     *
+     * @param array<string, mixed> $auth_actor       agent_inbox_user row of the key.
+     * @param bool                 $is_admin_account users.role is 'admin'.
+     * @param string               $label            Phrase for the message, e.g. 'create repositories'.
+     * @return array{code: int, error: string}|null null if permitted, else ['code'=>403,'error'=>...].
+     */
+    public function repoWrite(array $auth_actor, bool $is_admin_account, string $label): ?array
+    {
+        $is_human = ($auth_actor['actor_type'] ?? null) === 'human';
+        if (($is_human && $is_admin_account) || !empty($auth_actor['can_write_repos'])) {
+            return null;
+        }
+        return ['code' => 403, 'error' => "This API key does not have permission to $label"];
+    }
+
+    /**
      * Enforce the byte-length cap on a text field. Length is measured in BYTES
      * (strlen), so a multi-byte string counts each byte — matching the wire
      * limit the endpoints enforce.
