@@ -7,11 +7,11 @@
 ?>
 <div class="PagePanel">
     <strong>DreamHost inventory</strong> &middot;
-    <a href="/admin/inventory/">overview</a> &middot;
-    <a href="/admin/inventory/domains.php">domains</a> &middot;
-    <a href="/admin/inventory/users.php">users</a> &middot;
-    <a href="/admin/inventory/databases.php">databases</a> &middot;
-    <a href="/admin/inventory/changes.php">changes</a>
+    <a href="/admin/dh/">overview</a> &middot;
+    <a href="/admin/dh/domains.php">domains</a> &middot;
+    <a href="/admin/dh/users.php">users</a> &middot;
+    <a href="/admin/dh/databases.php">databases</a> &middot;
+    <a href="/admin/dh/changes.php">changes</a>
     <br />
     <?php if ($sweep === null): ?>
         <em>No sweep imported yet.</em>

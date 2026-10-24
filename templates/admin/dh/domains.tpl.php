@@ -16,7 +16,7 @@ include __DIR__ . '/_nav.tpl.php';
         <?= $filter_type !== '' ? 'by type <strong>' . $h($filter_type) . '</strong> ' : '' ?>
         <?= $filter_php !== '' ? 'by PHP <strong>' . $h($filter_php) . '</strong> ' : '' ?>
         <?= $filter_cert ? 'to certificate problems ' : '' ?>
-        &mdash; <a href="/admin/inventory/domains.php">show all</a>
+        &mdash; <a href="/admin/dh/domains.php">show all</a>
     <?php else: ?>
         Filters: <a href="?type=hosted">hosted</a> &middot; <a href="?type=hosted&amp;cert=problem">no real certificate</a> &middot;
         <a href="?type=dns_only">dns only</a> &middot; <a href="?type=redirect">redirects</a>
@@ -27,9 +27,9 @@ include __DIR__ . '/_nav.tpl.php';
         <tr><th>Domain</th><th>Type</th><th>Owner</th><th>PHP</th><th>HTTPS</th><th>Cert expires</th><th>Registered until</th></tr>
         <?php foreach ($domains as $row): ?>
             <tr>
-                <td><a href="/admin/inventory/domain.php?dh_domain_id=<?= (int) $row['dh_domain_id'] ?>"><?= $h($row['domain']) ?></a></td>
+                <td><a href="/admin/dh/domain.php?dh_domain_id=<?= (int) $row['dh_domain_id'] ?>"><?= $h($row['domain']) ?></a></td>
                 <td><?= $h($row['type']) ?></td>
-                <td><?php if ($row['dh_user_id'] !== null): ?><a href="/admin/inventory/user.php?dh_user_id=<?= (int) $row['dh_user_id'] ?>"><?= $h($row['username']) ?></a><?php endif; ?></td>
+                <td><?php if ($row['dh_user_id'] !== null): ?><a href="/admin/dh/user.php?dh_user_id=<?= (int) $row['dh_user_id'] ?>"><?= $h($row['username']) ?></a><?php endif; ?></td>
                 <td><?= $h($row['php_version']) ?></td>
                 <td><?= $h($row['https']) ?></td>
                 <td><?= $h($row['cert_expires']) ?></td>

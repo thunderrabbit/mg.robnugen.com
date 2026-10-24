@@ -19,9 +19,7 @@ include_once $matches[1] . '/prepend.php';
 $browse = new \Inventory\Browse($mla_database);
 $sweep = $browse->latestSweep();
 
-$filter = \Field::string($_GET, 'show');
-\Inventory\AdminPage::render($config, $is_logged_in, 'admin/inventory/users.tpl.php', 'DreamHost users', [
+\Inventory\AdminPage::render($config, $is_logged_in, 'admin/dh/databases.tpl.php', 'DreamHost databases', [
     'sweep' => $sweep,
-    'filter' => $filter,
-    'users' => $browse->users($filter === '' ? null : $filter),
+    'databases' => $browse->databases($sweep['id'] ?? null, $sweep['previous_id'] ?? null),
 ]);

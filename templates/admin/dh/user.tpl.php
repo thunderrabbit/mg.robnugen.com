@@ -22,7 +22,7 @@ include __DIR__ . '/_nav.tpl.php';
             <tr><th>Domain</th><th>PHP</th><th>Directory</th></tr>
             <?php foreach ($sites as $row): ?>
                 <tr>
-                    <td><a href="/admin/inventory/domain.php?dh_domain_id=<?= (int) $row['dh_domain_id'] ?>"><?= $h($row['domain']) ?></a></td>
+                    <td><a href="/admin/dh/domain.php?dh_domain_id=<?= (int) $row['dh_domain_id'] ?>"><?= $h($row['domain']) ?></a></td>
                     <td><?= $h($row['php_version']) ?></td>
                     <td><small><?= $h($row['web_directory']) ?></small></td>
                 </tr>

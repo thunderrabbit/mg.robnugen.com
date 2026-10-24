@@ -26,7 +26,7 @@ $span = static fn (array $row): string => $h($row['from_on']) . ' &rarr; ' . ($r
                 <tr>
                     <td><?= $span($row) ?></td>
                     <td><?= $h($row['type']) ?></td>
-                    <td><?php if ($row['dh_user_id'] !== null): ?><a href="/admin/inventory/user.php?dh_user_id=<?= (int) $row['dh_user_id'] ?>"><?= $h($row['username']) ?></a><?php endif; ?></td>
+                    <td><?php if ($row['dh_user_id'] !== null): ?><a href="/admin/dh/user.php?dh_user_id=<?= (int) $row['dh_user_id'] ?>"><?= $h($row['username']) ?></a><?php endif; ?></td>
                     <td><?= $h($row['php_version']) ?></td>
                     <td><?= $h($row['server']) ?></td>
                     <td><small><?= $h($row['web_directory']) ?></small></td>

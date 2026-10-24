@@ -8,14 +8,14 @@ $h = \Inventory\AdminPage::h(...);
 include __DIR__ . '/_nav.tpl.php';
 ?>
 <h1>Users <small>(<?= count($users) ?>)</small></h1>
-<p>Show: <a href="/admin/inventory/users.php">all</a> &middot; <a href="?show=nodomain">no domain</a> &middot; <a href="?show=shared">more than one site</a>
+<p>Show: <a href="/admin/dh/users.php">all</a> &middot; <a href="?show=nodomain">no domain</a> &middot; <a href="?show=shared">more than one site</a>
    <?= $filter !== '' ? '&mdash; now showing <strong>' . $h($filter) . '</strong>' : '' ?></p>
 <div class="PagePanel">
     <table class="issue-table">
         <tr><th>User</th><th>Access</th><th>Disk</th><th>Sites</th><th>Which</th></tr>
         <?php foreach ($users as $row): ?>
             <tr>
-                <td><a href="/admin/inventory/user.php?dh_user_id=<?= (int) $row['dh_user_id'] ?>"><?= $h($row['username']) ?></a></td>
+                <td><a href="/admin/dh/user.php?dh_user_id=<?= (int) $row['dh_user_id'] ?>"><?= $h($row['username']) ?></a></td>
                 <td><?= $h($row['access']) ?></td>
                 <td><?= \Inventory\AdminPage::bytes($row['disk_bytes']) ?></td>
                 <td><?= $h($row['sites']) ?></td>

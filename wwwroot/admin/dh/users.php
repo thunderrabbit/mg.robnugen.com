@@ -19,13 +19,9 @@ include_once $matches[1] . '/prepend.php';
 $browse = new \Inventory\Browse($mla_database);
 $sweep = $browse->latestSweep();
 
-$swept_on = $sweep['swept_on'] ?? '';
-\Inventory\AdminPage::render($config, $is_logged_in, 'admin/inventory/index.tpl.php', 'DreamHost inventory', [
+$filter = \Field::string($_GET, 'show');
+\Inventory\AdminPage::render($config, $is_logged_in, 'admin/dh/users.tpl.php', 'DreamHost users', [
     'sweep' => $sweep,
-    'counts' => $sweep === null ? [] : $browse->counts(),
-    'php_summary' => $browse->phpSummary(),
-    'cert_problems' => $browse->certProblems(),
-    'cert_expiries' => $sweep === null ? [] : $browse->certExpiries($swept_on, 8),
-    'registrations' => $sweep === null ? [] : $browse->registrations($swept_on),
-    'shared_users' => $browse->sharedUsers(),
+    'filter' => $filter,
+    'users' => $browse->users($filter === '' ? null : $filter),
 ]);

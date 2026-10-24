@@ -28,7 +28,7 @@ include __DIR__ . '/_nav.tpl.php';
         <tr><th>PHP</th><th>Sites</th><th>Which</th></tr>
         <?php foreach ($php_summary as $row): ?>
             <tr>
-                <td><a href="/admin/inventory/domains.php?type=hosted&amp;php=<?= urlencode((string) $row['php_version']) ?>"><?= $h($row['php_version']) ?></a></td>
+                <td><a href="/admin/dh/domains.php?type=hosted&amp;php=<?= urlencode((string) $row['php_version']) ?>"><?= $h($row['php_version']) ?></a></td>
                 <td><?= $h($row['sites']) ?></td>
                 <td><small><?= $h($row['domains']) ?></small></td>
             </tr>
@@ -55,7 +55,7 @@ include __DIR__ . '/_nav.tpl.php';
         <p><strong><?= count($cert_problems) ?></strong> hosted site(s) without a real certificate:</p>
         <ul>
             <?php foreach ($cert_problems as $row): ?>
-                <li><a href="/admin/inventory/domain.php?dh_domain_id=<?= (int) $row['dh_domain_id'] ?>"><?= $h($row['domain']) ?></a>
+                <li><a href="/admin/dh/domain.php?dh_domain_id=<?= (int) $row['dh_domain_id'] ?>"><?= $h($row['domain']) ?></a>
                     (<?= $h($row['https']) ?>)</li>
             <?php endforeach; ?>
         </ul>
@@ -65,7 +65,7 @@ include __DIR__ . '/_nav.tpl.php';
         <tr><th>Domain</th><th>Expires</th><th>Days</th></tr>
         <?php foreach ($cert_expiries as $row): ?>
             <tr>
-                <td><a href="/admin/inventory/domain.php?dh_domain_id=<?= (int) $row['dh_domain_id'] ?>"><?= $h($row['domain']) ?></a></td>
+                <td><a href="/admin/dh/domain.php?dh_domain_id=<?= (int) $row['dh_domain_id'] ?>"><?= $h($row['domain']) ?></a></td>
                 <td><?= $h($row['cert_expires']) ?></td>
                 <td><?= $h($row['days_left']) ?></td>
             </tr>
@@ -86,7 +86,7 @@ include __DIR__ . '/_nav.tpl.php';
         <tr><th>Domain</th><th>Expires</th><th>Days</th><th>Auto-renew</th><th>Lock</th><th>Privacy</th></tr>
         <?php foreach ($registrations as $row): ?>
             <tr>
-                <td><a href="/admin/inventory/domain.php?dh_domain_id=<?= (int) $row['dh_domain_id'] ?>"><?= $h($row['domain']) ?></a></td>
+                <td><a href="/admin/dh/domain.php?dh_domain_id=<?= (int) $row['dh_domain_id'] ?>"><?= $h($row['domain']) ?></a></td>
                 <td><?= $h($row['expires']) ?></td>
                 <td><?= $h($row['days_left']) ?></td>
                 <td><?= $row['auto_renew'] ? 'on' : '<strong>OFF</strong>' ?></td>
@@ -109,15 +109,15 @@ include __DIR__ . '/_nav.tpl.php';
         <tr><th>User</th><th>Sites</th><th>PHP</th><th>Which</th></tr>
         <?php foreach ($shared_users as $row): ?>
             <tr>
-                <td><a href="/admin/inventory/user.php?dh_user_id=<?= (int) $row['dh_user_id'] ?>"><?= $h($row['username']) ?></a></td>
+                <td><a href="/admin/dh/user.php?dh_user_id=<?= (int) $row['dh_user_id'] ?>"><?= $h($row['username']) ?></a></td>
                 <td><?= $h($row['sites']) ?></td>
                 <td><?= $h($row['php_versions']) ?></td>
                 <td><small><?= $h($row['domains']) ?></small></td>
             </tr>
         <?php endforeach; ?>
     </table>
-    <p><a href="/admin/inventory/users.php?show=nodomain">Users with no domain at all</a> &middot;
-       <a href="/admin/inventory/users.php?show=shared">only the shared ones</a></p>
+    <p><a href="/admin/dh/users.php?show=nodomain">Users with no domain at all</a> &middot;
+       <a href="/admin/dh/users.php?show=shared">only the shared ones</a></p>
     <aside class="L2Note">
         <strong>Layer 2 idea: a better way for sites to share information</strong>
         <p>Sites under one user can read each other's files, which is the only reason some of them are together.

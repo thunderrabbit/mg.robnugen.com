@@ -19,10 +19,12 @@ include_once $matches[1] . '/prepend.php';
 $browse = new \Inventory\Browse($mla_database);
 $sweep = $browse->latestSweep();
 
-$wanted = \Field::int($_GET, 'dh_sweep_id', $sweep['id'] ?? 0);
-\Inventory\AdminPage::render($config, $is_logged_in, 'admin/inventory/changes.tpl.php', 'DreamHost changes', [
+$type = \Field::string($_GET, 'type');
+$php = \Field::string($_GET, 'php');
+\Inventory\AdminPage::render($config, $is_logged_in, 'admin/dh/domains.tpl.php', 'DreamHost domains', [
     'sweep' => $sweep,
-    'sweeps' => $browse->sweeps(),
-    'chosen' => $wanted,
-    'changes' => $wanted > 0 ? $browse->changes($wanted) : [],
+    'filter_type' => $type,
+    'filter_php' => $php,
+    'filter_cert' => \Field::string($_GET, 'cert') === 'problem',
+    'domains' => $browse->domains($type === '' ? null : $type, $php === '' ? null : $php, \Field::string($_GET, 'cert') === 'problem'),
 ]);

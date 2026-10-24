@@ -19,12 +19,18 @@ include_once $matches[1] . '/prepend.php';
 $browse = new \Inventory\Browse($mla_database);
 $sweep = $browse->latestSweep();
 
-$type = \Field::string($_GET, 'type');
-$php = \Field::string($_GET, 'php');
-\Inventory\AdminPage::render($config, $is_logged_in, 'admin/inventory/domains.tpl.php', 'DreamHost domains', [
+$user = $browse->user(\Field::int($_GET, 'dh_user_id'));
+if ($user === null) {
+    http_response_code(404);
+    exit('No such user.');
+}
+$user_id = \Field::int($user, 'dh_user_id');
+\Inventory\AdminPage::render($config, $is_logged_in, 'admin/dh/user.tpl.php', 'DreamHost user', [
     'sweep' => $sweep,
-    'filter_type' => $type,
-    'filter_php' => $php,
-    'filter_cert' => \Field::string($_GET, 'cert') === 'problem',
-    'domains' => $browse->domains($type === '' ? null : $type, $php === '' ? null : $php, \Field::string($_GET, 'cert') === 'problem'),
+    'user' => $user,
+    'states' => $browse->userStates($user_id),
+    'usage' => $browse->userUsage($user_id),
+    'sites' => $browse->userSites($user_id),
+    'crons' => $browse->userCrons($user_id),
+    'clues' => $browse->userAgeClues($user_id),
 ]);
