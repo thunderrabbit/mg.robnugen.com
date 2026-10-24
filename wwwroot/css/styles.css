@@ -49,6 +49,11 @@ a:visited {
     border-radius: 6px;
 }
 
+/* The PHP the server is running (mg #759), right of the admin greeting. */
+.PagePanel .PhpVersion {
+    float: right;
+}
+
 .fix {
     font-size: 0.85em;
     text-align: right;

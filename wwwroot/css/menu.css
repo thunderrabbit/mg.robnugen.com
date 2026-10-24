@@ -88,3 +88,11 @@ body.distraction-free .NavBar {
     cursor: default;
     background-color: var(--neutral);
 }
+
+/* The PHP the server is running (mg #759), next to the Admin link for admins. */
+.NavBar .PhpVersion {
+    margin-left: 0.5em;
+    color: var(--text-muted);
+    font-weight: normal;
+    font-size: 0.8em;
+}

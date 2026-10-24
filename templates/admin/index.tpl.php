@@ -26,7 +26,7 @@
 <?php endif; ?>
 
 <div class="PagePanel">
-    What's up <?= htmlspecialchars($username) ?>? <br />
+    What's up <?= htmlspecialchars($username) ?>? <span class="PhpVersion">Running PHP <?= PHP_VERSION ?></span><br />
 </div>
 <h1>Welcome to the Meiso Gambare Admin Dashboard</h1>
 <p>This page can show numbers of workers, parts, snippets, etc</p>
