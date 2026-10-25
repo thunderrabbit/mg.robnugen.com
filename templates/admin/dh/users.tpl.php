@@ -8,7 +8,7 @@ $h = \Inventory\AdminPage::h(...);
 include __DIR__ . '/_nav.tpl.php';
 ?>
 <h1>Users <small>(<?= count($users) ?>)</small></h1>
-<p>Show: <a href="/admin/dh/users.php">all</a> &middot; <a href="?show=nodomain">no domain</a> &middot; <a href="?show=shared">more than one site</a>
+<p>Show: <a href="/admin/dh/users.php">all</a> &middot; <a href="?show=nodomain">no domain</a> &middot; <a href="?show=shared">more than one site</a> &middot; <a href="?show=nologin">no ssh alias yet</a>
    <?= $filter !== '' ? '&mdash; now showing <strong>' . $h($filter) . '</strong>' : '' ?></p>
 <div class="PagePanel">
     <table class="issue-table sortable-table">
@@ -19,7 +19,14 @@ include __DIR__ . '/_nav.tpl.php';
         <?php foreach ($users as $row): ?>
             <tr>
                 <td data-sort="<?= $h($row['username']) ?>"><a href="/admin/dh/user.php?dh_user_id=<?= (int) $row['dh_user_id'] ?>"><?= $h($row['username']) ?></a></td>
-                <td data-sort="<?= $h($row['access']) ?>"><?= $h($row['access']) ?></td>
+                <td data-sort="<?= $h($row['access']) ?>">
+                    <?php if ($row['ssh_alias'] === null): ?>
+                        <?= $h($row['access']) ?>
+                    <?php else: ?>
+                        <code style="white-space: nowrap">ssh <?= $h($row['ssh_alias']) ?></code><br />
+                        <small>(<?= $row['login_confirmed_on'] === null ? 'not confirmed' : $h($row['login_confirmed_on']) ?>)</small>
+                    <?php endif; ?>
+                </td>
                 <td data-sort="<?= $h($row['disk_bytes']) ?>"><?= \Inventory\AdminPage::bytes($row['disk_bytes']) ?></td>
                 <td data-sort="<?= $h($row['sites']) ?>"><?= $h($row['sites']) ?></td>
                 <td><small><?= $h($row['domains']) ?></small></td>

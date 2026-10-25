@@ -14,6 +14,16 @@ include __DIR__ . '/_nav.tpl.php';
 <h1><?= $h($user['username']) ?></h1>
 
 <div class="PagePanel">
+    <h3>How to log in</h3>
+    <?php if ($user['ssh_alias'] === null): ?>
+        <p>Not recorded yet. Run <code>/recover-dh-user <?= $h($user['username']) ?></code>.</p>
+    <?php else: ?>
+        <p><code>ssh <?= $h($user['ssh_alias']) ?></code>
+        &mdash; <?= $user['login_confirmed_on'] === null ? 'found in the ssh config; no login proven yet' : 'login first confirmed ' . $h($user['login_confirmed_on']) . ' and never rechecked' ?></p>
+    <?php endif; ?>
+</div>
+
+<div class="PagePanel">
     <h3>Sites this user owns now (<?= count($sites) ?>)</h3>
     <?php if ($sites === []): ?>
         <p>None. This user has no domain attached.</p>
