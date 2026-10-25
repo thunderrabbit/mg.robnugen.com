@@ -13,23 +13,22 @@ include __DIR__ . '/_nav.tpl.php';
 <div class="PagePanel">
     <table class="issue-table sortable-table">
         <thead>
-            <tr><th aria-sort="ascending"><button type="button" data-col="0" data-type="text">User</button></th><th><button type="button" data-col="1" data-type="text">Access</button></th><th><button type="button" data-col="2" data-type="num" data-first="desc">Disk</button></th><th><button type="button" data-col="3" data-type="num" data-first="desc">Sites</button></th><th><button type="button" data-col="4" data-type="text">Login</button></th><th>Which</th></tr>
+            <tr><th aria-sort="ascending"><button type="button" data-col="0" data-type="text">User</button></th><th><button type="button" data-col="1" data-type="text">Access</button></th><th><button type="button" data-col="2" data-type="num" data-first="desc">Disk</button></th><th><button type="button" data-col="3" data-type="num" data-first="desc">Sites</button></th><th>Which</th></tr>
         </thead>
         <tbody>
         <?php foreach ($users as $row): ?>
             <tr>
                 <td data-sort="<?= $h($row['username']) ?>"><a href="/admin/dh/user.php?dh_user_id=<?= (int) $row['dh_user_id'] ?>"><?= $h($row['username']) ?></a></td>
-                <td data-sort="<?= $h($row['access']) ?>"><?= $h($row['access']) ?></td>
-                <td data-sort="<?= $h($row['disk_bytes']) ?>"><?= \Inventory\AdminPage::bytes($row['disk_bytes']) ?></td>
-                <td data-sort="<?= $h($row['sites']) ?>"><?= $h($row['sites']) ?></td>
-                <td data-sort="<?= $h($row['ssh_alias']) ?>">
+                <td data-sort="<?= $h($row['access']) ?>">
                     <?php if ($row['ssh_alias'] === null): ?>
-                        <small>none yet</small>
+                        <?= $h($row['access']) ?>
                     <?php else: ?>
-                        <code>ssh <?= $h($row['ssh_alias']) ?></code><br />
+                        <code style="white-space: nowrap">ssh <?= $h($row['ssh_alias']) ?></code><br />
                         <small>(<?= $row['login_confirmed_on'] === null ? 'not confirmed' : $h($row['login_confirmed_on']) ?>)</small>
                     <?php endif; ?>
                 </td>
+                <td data-sort="<?= $h($row['disk_bytes']) ?>"><?= \Inventory\AdminPage::bytes($row['disk_bytes']) ?></td>
+                <td data-sort="<?= $h($row['sites']) ?>"><?= $h($row['sites']) ?></td>
                 <td><small><?= $h($row['domains']) ?></small></td>
             </tr>
         <?php endforeach; ?>
