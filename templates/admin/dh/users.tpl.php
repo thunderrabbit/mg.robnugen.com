@@ -8,12 +8,12 @@ $h = \Inventory\AdminPage::h(...);
 include __DIR__ . '/_nav.tpl.php';
 ?>
 <h1>Users <small>(<?= count($users) ?>)</small></h1>
-<p>Show: <a href="/admin/dh/users.php">all</a> &middot; <a href="?show=nodomain">no domain</a> &middot; <a href="?show=shared">more than one site</a>
+<p>Show: <a href="/admin/dh/users.php">all</a> &middot; <a href="?show=nodomain">no domain</a> &middot; <a href="?show=shared">more than one site</a> &middot; <a href="?show=nologin">no ssh alias yet</a>
    <?= $filter !== '' ? '&mdash; now showing <strong>' . $h($filter) . '</strong>' : '' ?></p>
 <div class="PagePanel">
     <table class="issue-table sortable-table">
         <thead>
-            <tr><th aria-sort="ascending"><button type="button" data-col="0" data-type="text">User</button></th><th><button type="button" data-col="1" data-type="text">Access</button></th><th><button type="button" data-col="2" data-type="num" data-first="desc">Disk</button></th><th><button type="button" data-col="3" data-type="num" data-first="desc">Sites</button></th><th>Which</th></tr>
+            <tr><th aria-sort="ascending"><button type="button" data-col="0" data-type="text">User</button></th><th><button type="button" data-col="1" data-type="text">Access</button></th><th><button type="button" data-col="2" data-type="num" data-first="desc">Disk</button></th><th><button type="button" data-col="3" data-type="num" data-first="desc">Sites</button></th><th><button type="button" data-col="4" data-type="text">Login</button></th><th>Which</th></tr>
         </thead>
         <tbody>
         <?php foreach ($users as $row): ?>
@@ -22,6 +22,14 @@ include __DIR__ . '/_nav.tpl.php';
                 <td data-sort="<?= $h($row['access']) ?>"><?= $h($row['access']) ?></td>
                 <td data-sort="<?= $h($row['disk_bytes']) ?>"><?= \Inventory\AdminPage::bytes($row['disk_bytes']) ?></td>
                 <td data-sort="<?= $h($row['sites']) ?>"><?= $h($row['sites']) ?></td>
+                <td data-sort="<?= $h($row['ssh_alias']) ?>">
+                    <?php if ($row['ssh_alias'] === null): ?>
+                        <small>none yet</small>
+                    <?php else: ?>
+                        <code>ssh <?= $h($row['ssh_alias']) ?></code>
+                        <small><?= $row['login_confirmed_on'] === null ? 'not confirmed' : 'confirmed ' . $h($row['login_confirmed_on']) ?></small>
+                    <?php endif; ?>
+                </td>
                 <td><small><?= $h($row['domains']) ?></small></td>
             </tr>
         <?php endforeach; ?>
