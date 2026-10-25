@@ -19,6 +19,7 @@ include_once $matches[1] . '/prepend.php';
 $browse = new \Inventory\Browse($mla_database);
 $sweep = $browse->latestSweep();
 
+$marked = $browse->markedDatabases();
 $isEmpty = static fn(array $row): bool => $row['size_bytes'] !== null && \Field::toInt($row['size_bytes']) === 0;
 $databases = $browse->databases($sweep['id'] ?? null, $sweep['previous_id'] ?? null);
 $emptyCount = count(array_filter($databases, $isEmpty));
@@ -29,7 +30,8 @@ $emptyOnly = \Field::int($_GET, 'empty') === 1;
     'databases' => $emptyOnly ? array_values(array_filter($databases, $isEmpty)) : $databases,
     'empty_count' => $emptyCount,
     'empty_only' => $emptyOnly,
-    'marked_databases' => $browse->markedDatabases(),
+    'marked_databases' => $marked,
+    'marked_summary' => \Inventory\MarkedSummary::fromRows($marked),
     'just_marked' => \Field::int($_GET, 'marked'),
     'just_refused' => \Field::int($_GET, 'refused'),
 ]);
