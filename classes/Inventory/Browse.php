@@ -238,15 +238,18 @@ final class Browse
             'shared' => ' HAVING COUNT(ds.dh_domain_state_id) > 1',
             default => '',
         };
+        $where = $filter === 'nologin' ? ' WHERE u.ssh_alias IS NULL' : '';
         return $this->rows(
-            'SELECT u.dh_user_id, u.username, st.access, us.disk_bytes, COUNT(ds.dh_domain_state_id) AS sites,'
+            'SELECT u.dh_user_id, u.username, u.ssh_alias, u.login_confirmed_on, st.access, us.disk_bytes,'
+            . ' COUNT(ds.dh_domain_state_id) AS sites,'
             . " GROUP_CONCAT(d.domain ORDER BY d.domain SEPARATOR ', ') AS domains"
             . ' FROM dh_users u JOIN dh_user_states st ON st.dh_user_id = u.dh_user_id AND st.until_sweep_id IS NULL'
             . ' LEFT JOIN dh_domain_states ds ON ds.dh_user_id = u.dh_user_id AND ds.until_sweep_id IS NULL'
             . ' LEFT JOIN dh_domains d ON d.dh_domain_id = ds.dh_domain_id'
             . ' LEFT JOIN dh_user_usage us ON us.dh_user_id = u.dh_user_id AND us.dh_sweep_id ='
-            . ' (SELECT MAX(dh_sweep_id) FROM dh_sweeps)'
-            . ' GROUP BY u.dh_user_id, u.username, st.dh_user_state_id, us.dh_user_usage_id' . $having
+            . ' (SELECT MAX(dh_sweep_id) FROM dh_sweeps)' . $where
+            . ' GROUP BY u.dh_user_id, u.username, u.ssh_alias, u.login_confirmed_on, st.dh_user_state_id,'
+            . ' us.dh_user_usage_id' . $having
             . ' ORDER BY u.username'
         );
     }
@@ -256,7 +259,10 @@ final class Browse
      */
     public function user(int $userId): ?array
     {
-        return $this->one('SELECT dh_user_id, username FROM dh_users WHERE dh_user_id = ?', [$userId]);
+        return $this->one(
+            'SELECT dh_user_id, username, ssh_alias, login_confirmed_on FROM dh_users WHERE dh_user_id = ?',
+            [$userId],
+        );
     }
 
     /**
