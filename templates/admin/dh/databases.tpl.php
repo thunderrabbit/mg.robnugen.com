@@ -5,6 +5,8 @@
  * @var int $empty_count
  * @var bool $empty_only
  * @var list<array<mixed>> $marked_databases
+ * @var \Inventory\MarkedSummary $marked_summary
+ * @var int $older_confirmed
  * @var int $just_marked
  * @var int $just_refused
  */
@@ -26,6 +28,7 @@ include __DIR__ . '/_nav.tpl.php';
     <?= $just_refused > 0 ? $just_refused . ' refused because they are not 0 bytes in the latest sweep.' : '' ?></p>
 <?php endif; ?>
 <div class="PagePanel">
+    <h2><?= $empty_only ? 'Still on DreamHost at 0 B: candidates' : 'All databases on DreamHost' ?></h2>
     <form method="post" action="/admin/dh/triage_databases.php">
     <?= csrf_field() ?>
     <input type="hidden" name="action" value="mark" />
@@ -60,45 +63,68 @@ include __DIR__ . '/_nav.tpl.php';
     </form>
     <script src="/js/<?= SEMVER ?>/sortable-table.js"></script>
     <?php if ($marked_databases !== []): ?>
-        <?php $present = array_values(array_filter($marked_databases, static fn(array $m): bool => $m['present'] === 1 || $m['present'] === '1')); ?>
-        <h2>Marked for deletion <small>(<?= count($present) ?> still listed)</small></h2>
-        <p>Delete these in the DreamHost panel yourself. The next imported sweep shows here whether each one is gone.</p>
-        <table class="issue-table">
-            <thead><tr><th>Database</th><th>Server</th><th>Marked</th><th>Now</th><th></th></tr></thead>
-            <tbody>
-            <?php foreach ($marked_databases as $row): ?>
-                <?php $listed = $row['present'] === 1 || $row['present'] === '1'; ?>
-                <tr>
-                    <td><?= $h($row['name']) ?></td>
-                    <td><small><?= $h($row['server']) ?></small></td>
-                    <td><small><?= $h($row['decided_at_utc']) ?> UTC</small></td>
-                    <td>
-                        <?php if (!$listed): ?>
-                            <strong>gone</strong> as of the sweep of <?= $h($row['gone_on']) ?>
-                        <?php elseif ($row['size_bytes'] !== null && (int) $row['size_bytes'] !== 0): ?>
-                            still listed, <strong>no longer 0 bytes</strong> (<?= \Inventory\AdminPage::bytes($row['size_bytes']) ?>): look again before deleting
-                        <?php else: ?>
-                            still listed, 0 B
-                        <?php endif; ?>
-                    </td>
-                    <td>
-                        <?php if ($listed): ?>
+        <?php
+        $stillListed = static fn(array $m): bool => \Field::toInt($m['present'] ?? null) === 1;
+        $toDelete = array_values(array_filter($marked_databases, $stillListed));
+        $confirmed = array_values(array_filter($marked_databases, static fn(array $m): bool => !$stillListed($m)));
+        ?>
+        <h2>Marked for deletion <small>(<?= $h($marked_summary->headline()) ?>)</small></h2>
+        <?php if ($toDelete === []): ?>
+            <p>All done: DreamHost no longer lists any database you marked.</p>
+        <?php else: ?>
+            <h3>Still to delete</h3>
+            <p>Delete these in the DreamHost panel yourself, then import the next sweep to confirm.</p>
+            <table class="issue-table">
+                <thead><tr><th>Database</th><th>Server</th><th>Marked</th><th>DreamHost says</th><th></th></tr></thead>
+                <tbody>
+                <?php foreach ($toDelete as $row): ?>
+                    <tr>
+                        <td><?= $h($row['name']) ?></td>
+                        <td><small><?= $h($row['server']) ?></small></td>
+                        <td><small title="<?= $h($row['decided_at_utc']) ?> UTC"><?= $h(substr(\Field::toString($row['decided_at_utc']), 0, 10)) ?></small></td>
+                        <td>
+                            <?php if ($row['size_bytes'] !== null && (int) $row['size_bytes'] !== 0): ?>
+                                still listed, <strong>no longer 0 bytes</strong> (<?= \Inventory\AdminPage::bytes($row['size_bytes']) ?>): look again before deleting
+                            <?php else: ?>
+                                still listed, 0 B
+                            <?php endif; ?>
+                        </td>
+                        <td>
                             <form method="post" action="/admin/dh/triage_databases.php">
                                 <?= csrf_field() ?>
                                 <input type="hidden" name="action" value="unmark" />
                                 <input type="hidden" name="dh_database_id[]" value="<?= $h($row['dh_database_id']) ?>" />
                                 <button type="submit">Take back</button>
                             </form>
-                        <?php endif; ?>
-                    </td>
-                </tr>
-            <?php endforeach; ?>
-            </tbody>
-        </table>
-        <?php if ($present !== []): ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
             <p>Names to copy, one per line:</p>
-            <textarea readonly rows="<?= count($present) + 1 ?>" cols="40"><?= $h(implode("\n", array_map(static fn(array $m): string => \Field::toString($m['name']), $present))) ?></textarea>
+            <textarea readonly rows="<?= count($toDelete) + 1 ?>" cols="40"><?= $h(implode("\n", array_map(static fn(array $m): string => \Field::toString($m['name']), $toDelete))) ?></textarea>
         <?php endif; ?>
+        <?php if ($confirmed !== []): ?>
+            <details<?= $toDelete === [] ? ' open' : '' ?>>
+                <summary>Confirmed gone (<?= count($confirmed) ?>)</summary>
+                <table class="issue-table">
+                    <thead><tr><th>Database</th><th>Server</th><th>Marked</th><th>DreamHost says</th></tr></thead>
+                    <tbody>
+                    <?php foreach ($confirmed as $row): ?>
+                        <tr>
+                            <td><?= $h($row['name']) ?></td>
+                            <td><small><?= $h($row['server']) ?></small></td>
+                            <td><small title="<?= $h($row['decided_at_utc']) ?> UTC"><?= $h(substr(\Field::toString($row['decided_at_utc']), 0, 10)) ?></small></td>
+                            <td><strong>gone</strong> (sweep of <?= $h($row['gone_on']) ?>)</td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </details>
+        <?php endif; ?>
+    <?php endif; ?>
+    <?php if ($older_confirmed > 0): ?>
+        <p><small><?= $older_confirmed ?> older confirmed deletion<?= $older_confirmed === 1 ? '' : 's' ?> no longer shown here; the record stays in the triage table.</small></p>
     <?php endif; ?>
     <aside class="L2Note">
         <strong>Layer 2 idea: which site uses which database</strong>
