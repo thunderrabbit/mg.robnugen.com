@@ -6,6 +6,7 @@
  * @var bool $empty_only
  * @var list<array<mixed>> $marked_databases
  * @var \Inventory\MarkedSummary $marked_summary
+ * @var int $older_confirmed
  * @var int $just_marked
  * @var int $just_refused
  */
@@ -121,6 +122,9 @@ include __DIR__ . '/_nav.tpl.php';
                 </table>
             </details>
         <?php endif; ?>
+    <?php endif; ?>
+    <?php if ($older_confirmed > 0): ?>
+        <p><small><?= $older_confirmed ?> older confirmed deletion<?= $older_confirmed === 1 ? '' : 's' ?> no longer shown here; the record stays in the triage table.</small></p>
     <?php endif; ?>
     <aside class="L2Note">
         <strong>Layer 2 idea: which site uses which database</strong>
