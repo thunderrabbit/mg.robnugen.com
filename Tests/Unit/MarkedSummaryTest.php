@@ -35,4 +35,22 @@ final class MarkedSummaryTest extends Unit
         $this->assertSame(0, $summary->total);
         $this->assertSame('all 0 confirmed gone', $summary->headline());
     }
+
+    public function testOnlyListedAndJustConfirmedRowsAreVisible(): void
+    {
+        $listed = ['name' => 'a', 'present' => 1, 'gone_on' => null];
+        $justGone = ['name' => 'b', 'present' => 0, 'gone_on' => '2026-10-25'];
+        $olderGone = ['name' => 'c', 'present' => 0, 'gone_on' => '2026-10-24'];
+
+        $visible = MarkedSummary::visible([$listed, $justGone, $olderGone], '2026-10-25');
+
+        $this->assertSame([$listed, $justGone], $visible);
+    }
+
+    public function testWithoutASweepOnlyListedRowsAreVisible(): void
+    {
+        $justGone = ['name' => 'b', 'present' => 0, 'gone_on' => '2026-10-25'];
+
+        $this->assertSame([], MarkedSummary::visible([$justGone], null));
+    }
 }
