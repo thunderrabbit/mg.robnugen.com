@@ -335,13 +335,67 @@ final class Browse
             . ' cur.size_bytes - prev.size_bytes AS growth,'
             . " (SELECT GROUP_CONCAT(u.username ORDER BY u.username SEPARATOR ', ') FROM dh_db_grants g"
             . ' JOIN dh_db_users u ON u.dh_db_user_id = g.dh_db_user_id'
-            . ' WHERE g.dh_database_id = db.dh_database_id AND g.until_sweep_id IS NULL) AS db_users'
+            . ' WHERE g.dh_database_id = db.dh_database_id AND g.until_sweep_id IS NULL) AS db_users,'
+            . ' (SELECT t.decision FROM dh_triage t WHERE t.dh_database_id = db.dh_database_id'
+            . ' ORDER BY t.decided_at_utc DESC, t.dh_triage_id DESC LIMIT 1) AS decision'
             . ' FROM dh_databases db JOIN dh_mysql_servers m ON m.dh_mysql_server_id = db.dh_mysql_server_id'
             . ' JOIN dh_database_states st ON st.dh_database_id = db.dh_database_id AND st.until_sweep_id IS NULL'
             . ' LEFT JOIN dh_database_usage cur ON cur.dh_database_id = db.dh_database_id AND cur.dh_sweep_id <=> ?'
             . ' LEFT JOIN dh_database_usage prev ON prev.dh_database_id = db.dh_database_id AND prev.dh_sweep_id <=> ?'
             . ' ORDER BY cur.size_bytes DESC, db.name',
             [$latestId, $previousId],
+        );
+    }
+
+    /**
+     * Size in bytes in one sweep, for each of these databases that is current.
+     * A database that is not current, or has no size in that sweep, is absent
+     * or null, so EmptyDatabaseRule refuses it.
+     *
+     * @param list<int> $databaseIds
+     * @return array<int, int|null>
+     */
+    public function sizesInSweep(array $databaseIds, int $sweepId): array
+    {
+        if ($databaseIds === []) {
+            return [];
+        }
+        $marks = implode(', ', array_fill(0, count($databaseIds), '?'));
+        $rows = $this->rows(
+            'SELECT db.dh_database_id, u.size_bytes FROM dh_databases db'
+            . ' JOIN dh_database_states st ON st.dh_database_id = db.dh_database_id AND st.until_sweep_id IS NULL'
+            . ' LEFT JOIN dh_database_usage u ON u.dh_database_id = db.dh_database_id AND u.dh_sweep_id = ?'
+            . " WHERE db.dh_database_id IN ({$marks})",
+            [$sweepId, ...$databaseIds],
+        );
+        $sizes = [];
+        foreach ($rows as $row) {
+            $sizes[RowValue::int($row, 'dh_database_id')] = RowValue::intOrNull($row, 'size_bytes');
+        }
+        return $sizes;
+    }
+
+    /**
+     * Databases whose latest triage call is "delete", with whether the panel
+     * still lists them: gone_on is the date of the first sweep without one.
+     *
+     * @return list<array<mixed>>
+     */
+    public function markedDatabases(): array
+    {
+        return $this->rows(
+            'SELECT db.dh_database_id, db.name, m.name AS server, t.decided_at_utc, t.note,'
+            . ' EXISTS (SELECT 1 FROM dh_database_states s WHERE s.dh_database_id = db.dh_database_id'
+            . ' AND s.until_sweep_id IS NULL) AS present,'
+            . ' (SELECT sw.swept_on FROM dh_database_states s JOIN dh_sweeps sw ON sw.dh_sweep_id = s.until_sweep_id'
+            . ' WHERE s.dh_database_id = db.dh_database_id ORDER BY s.until_sweep_id DESC LIMIT 1) AS gone_on,'
+            . ' (SELECT u.size_bytes FROM dh_database_usage u WHERE u.dh_database_id = db.dh_database_id'
+            . ' ORDER BY u.dh_sweep_id DESC LIMIT 1) AS size_bytes'
+            . ' FROM dh_triage t JOIN dh_databases db ON db.dh_database_id = t.dh_database_id'
+            . ' JOIN dh_mysql_servers m ON m.dh_mysql_server_id = db.dh_mysql_server_id'
+            . " WHERE t.decision = 'delete' AND t.dh_triage_id = (SELECT t2.dh_triage_id FROM dh_triage t2"
+            . ' WHERE t2.dh_database_id = t.dh_database_id ORDER BY t2.decided_at_utc DESC, t2.dh_triage_id DESC LIMIT 1)'
+            . ' ORDER BY present DESC, db.name',
         );
     }
 
