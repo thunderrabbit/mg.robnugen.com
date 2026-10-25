@@ -26,8 +26,8 @@ include __DIR__ . '/_nav.tpl.php';
                     <?php if ($row['ssh_alias'] === null): ?>
                         <small>none yet</small>
                     <?php else: ?>
-                        <code>ssh <?= $h($row['ssh_alias']) ?></code>
-                        <small><?= $row['login_confirmed_on'] === null ? 'not confirmed' : 'confirmed ' . $h($row['login_confirmed_on']) ?></small>
+                        <code>ssh <?= $h($row['ssh_alias']) ?></code><br />
+                        <small>(<?= $row['login_confirmed_on'] === null ? 'not confirmed' : $h($row['login_confirmed_on']) ?>)</small>
                     <?php endif; ?>
                 </td>
                 <td><small><?= $h($row['domains']) ?></small></td>
