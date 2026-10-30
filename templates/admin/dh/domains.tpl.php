@@ -30,7 +30,8 @@ include __DIR__ . '/_nav.tpl.php';
         <tbody>
         <?php foreach ($domains as $row): ?>
             <tr>
-                <td data-sort="<?= $h($row['domain']) ?>"><a href="/admin/dh/domain.php?dh_domain_id=<?= (int) $row['dh_domain_id'] ?>"><?= $h($row['domain']) ?></a></td>
+                <td data-sort="<?= $h($row['domain']) ?>"><a href="/admin/dh/domain.php?dh_domain_id=<?= (int) $row['dh_domain_id'] ?>"><?= $h($row['domain']) ?></a>
+                    <a href="<?= $row['https'] === 'lets_encrypt' ? 'https' : 'http' ?>://<?= $h($row['domain']) ?>/" target="<?= $h('dh-visit-' . $row['domain']) ?>" title="Open <?= $h($row['domain']) ?> in its own tab">&#x2197;</a></td>
                 <td data-sort="<?= $h($row['type']) ?>"><?= $h($row['type']) ?></td>
                 <td data-sort="<?= $h($row['username']) ?>"><?php if ($row['dh_user_id'] !== null): ?><a href="/admin/dh/user.php?dh_user_id=<?= (int) $row['dh_user_id'] ?>"><?= $h($row['username']) ?></a><?php endif; ?></td>
                 <td data-sort="<?= $h($row['php_version']) ?>"><?= $h($row['php_version']) ?></td>
