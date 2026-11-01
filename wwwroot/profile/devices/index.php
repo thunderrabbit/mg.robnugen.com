@@ -42,6 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $page = new \Template(config: $config, is_logged_in: $is_logged_in);
 $page->setTemplate("profile/devices.tpl.php");
 $page->set("devices", $is_logged_in->devices());
+$page->set("now", new \DateTimeImmutable());
 $page->set("error_message", $error_message);
 $page->set("success_message", $success_message);
 

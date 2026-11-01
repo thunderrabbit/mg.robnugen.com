@@ -10,6 +10,9 @@ namespace Auth;
  * Carries the row id (to revoke it) but never the cookie hash, so nothing that
  * renders a Device can leak a token lookup key into the page. There is no IP:
  * mg drops it from `cookies` (migration 06_remove_ip_auth).
+ *
+ * The timestamp strings are UTC, as the table keeps them (CookieRepository);
+ * lastUsed(), signedIn() and expires() give them as instants.
  */
 class Device
 {
@@ -26,5 +29,27 @@ class Device
     public function label(): string
     {
         return DeviceLabel::fromUserAgent($this->user_agent);
+    }
+
+    /** When this browser last sent its cookie, or null if never recorded. */
+    public function lastUsed(): ?\DateTimeImmutable
+    {
+        return self::instant($this->last_access);
+    }
+
+    public function signedIn(): ?\DateTimeImmutable
+    {
+        return self::instant($this->created_at);
+    }
+
+    public function expires(): ?\DateTimeImmutable
+    {
+        return self::instant($this->expires_at);
+    }
+
+    private static function instant(string $utc): ?\DateTimeImmutable
+    {
+        $when = \DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $utc, new \DateTimeZone('UTC'));
+        return $when === false ? null : $when;
     }
 }
