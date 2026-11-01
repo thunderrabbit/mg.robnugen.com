@@ -98,10 +98,14 @@ $agent_choices = $aiu_stmt->fetchAll(\PDO::FETCH_ASSOC);
 $pinned_name = \Auth\OAuthClients::pinnedActorName($client_id);
 $pinned_aiu  = null;
 if ($pinned_name !== null) {
-    $pin_stmt = $pdo->prepare("SELECT aiu_id FROM agent_inbox_user WHERE user_id = ? AND name = ? LIMIT 1");
+    $pin_stmt = $pdo->prepare("SELECT aiu_id FROM agent_inbox_user WHERE user_id = ? AND name = ? AND todos_limited = 1 LIMIT 1");
     $pin_stmt->execute([$user_id, $pinned_name]);
     $pin_found = $pin_stmt->fetchColumn();
-    if ($pin_found === false) {
+    // The pinned actor must be limited and hold at least one granted todo, so
+    // the phone can never be handed a broad actor's token.
+    $pin_has_grants = $pin_found
+        && (new \Auth\TodoGrants($pdo))->todoIds(\Field::toInt($pin_found)) !== [];
+    if (!$pin_has_grants) {
         http_response_code(400);
         echo htmlspecialchars(\Auth\OAuthClients::displayName($client_id) . " isn't set up for this account.");
         exit;
