@@ -251,6 +251,27 @@ class ActivityKai
     }
 
     /**
+     * The activity a user's session belongs to.
+     *
+     * @param int $ak_id Activity session ID
+     * @param int $user_id User ID (for security check)
+     * @return int|null activity_id, or null if the session is missing or not the user's
+     */
+    public function activityIdOf(int $ak_id, int $user_id): ?int
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT activity_id
+            FROM activity_kai
+            WHERE ak_id = ? AND user_id = ?
+        ");
+
+        $stmt->execute([$ak_id, $user_id]);
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        return is_array($result) ? \Field::int($result, 'activity_id') : null;
+    }
+
+    /**
      * Delete an activity session
      *
      * @param int $ak_id Activity session ID

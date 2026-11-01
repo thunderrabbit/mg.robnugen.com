@@ -56,6 +56,7 @@ $actor_stmt = $pdo->prepare(
 );
 $actor_stmt->execute([$auth_key_id]);
 $auth_actor = $actor_stmt->fetch(\PDO::FETCH_ASSOC);
+/** @var array<string, mixed> $auth_actor */
 $auth_actor = is_array($auth_actor) ? $auth_actor : [];
 
 // ── Route parsing ─────────────────────────────────────────────────────────────
@@ -63,6 +64,16 @@ $auth_actor = is_array($auth_actor) ? $auth_actor : [];
 $method    = \Field::string($_SERVER, 'REQUEST_METHOD');
 $uri_path  = (string) parse_url(\Field::string($_SERVER, 'REQUEST_URI'), PHP_URL_PATH);
 $path      = rtrim(preg_replace('#^/api/v1#', '', $uri_path) ?? '', '/') ?: '/';
+
+// ── Limited actors (BG Bells, mg #801) ───────────────────────────────────────
+// A todos_limited actor may only reach the routes Guards::limitedRoute lists.
+$limited_verdict = $guards->limitedRoute($auth_actor, $method, $path);
+if ($limited_verdict !== null) {
+    http_response_code($limited_verdict['code']);
+    echo json_encode(['error' => $limited_verdict['error']]);
+    exit;
+}
+$todo_grants = new \Auth\TodoGrants($pdo);   // shared by handler includes
 
 // ── Credit enforcement + usage logging ───────────────────────────────────────
 // Call at the top of any write endpoint before processing.

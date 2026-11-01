@@ -6,6 +6,8 @@
  * @var \PDO $pdo
  * @var int $auth_user_id
  * @var array<string, mixed> $auth_actor
+ * @var \Auth\Guards $guards
+ * @var \Auth\TodoGrants $todo_grants
  * @var string $method
  * @var string $path
  */
@@ -563,6 +565,15 @@ if ($todos_path === '/list') {
     if (!$todoHelper->verifyOwnership($todo_id, $auth_user_id)) {
         http_response_code(403);
         echo json_encode(['error' => 'Todo not found or access denied']);
+        return;
+    }
+
+    $grant_verdict = $guards->isLimited($auth_actor)
+        ? $guards->todo($auth_actor, $todo_id, $todo_grants->todoIds(\Field::int($auth_actor, 'aiu_id')))
+        : null;
+    if ($grant_verdict !== null) {
+        http_response_code($grant_verdict['code']);
+        echo json_encode(['error' => $grant_verdict['error']]);
         return;
     }
 
