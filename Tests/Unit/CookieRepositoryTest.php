@@ -21,7 +21,7 @@ class CookieRepositoryTest extends Unit
     protected function _before(): void
     {
         $this->pdo = $this->database(with_user_agent_column: true);
-        $this->t0 = new \DateTimeImmutable('2026-10-21 12:00:00');
+        $this->t0 = new \DateTimeImmutable('2026-10-21 12:00:00', new \DateTimeZone('UTC'));
     }
 
     /**
@@ -217,6 +217,19 @@ class CookieRepositoryTest extends Unit
 
         $this->assertTrue($repo->revokeDevice(7, $phone_id));
         $this->assertSame(0, $repo->findUserId('phone', self::UA));
+    }
+
+    public function testTimestampsAreStoredInUtcWhateverZonePhpRunsIn(): void
+    {
+        // Production PHP runs in America/Los_Angeles while the PDO session is
+        // UTC. 13:29:17 PDT is 20:29:17 UTC.
+        $pdt = new \DateTimeImmutable('2026-10-31 13:29:17', new \DateTimeZone('America/Los_Angeles'));
+        $repo = new \Database\CookieRepository($this->pdo, $pdt);
+        $repo->issue(7, 'phone', self::UA, self::DAY, self::PHONE);
+
+        $device = $repo->listForUser(7, null)[0];
+        $this->assertSame('2026-10-31 20:29:17', $device->last_access);
+        $this->assertSame('2026-11-01 20:29:17', $device->expires_at);
     }
 
     public function testTouchRecordsUseAtMostHourly(): void

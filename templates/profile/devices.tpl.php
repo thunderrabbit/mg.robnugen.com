@@ -1,10 +1,22 @@
 <?php
 /**
  * @var list<\Auth\Device> $devices
+ * @var \DateTimeImmutable $now
  * @var string $error_message
  * @var string $success_message
  */
 $others = count(array_filter($devices, fn(\Auth\Device $d) => !$d->is_current));
+
+/** "12 minutes ago" on the page, the exact UTC time on hover. */
+$when = function (?\DateTimeImmutable $instant) use ($now): string {
+    if ($instant === null) {
+        return 'unknown';
+    }
+    return '<time datetime="' . $instant->format(DATE_ATOM) . '"'
+        . ' title="' . $instant->format('Y-m-d H:i:s') . ' UTC">'
+        . htmlspecialchars(\RelativeTime::describe($instant, $now))
+        . '</time>';
+};
 ?>
 <div class="PagePanel">
     <div class="head"><h5 class="iUser">Signed-in Devices</h5></div>
@@ -33,9 +45,9 @@ $others = count(array_filter($devices, fn(\Auth\Device $d) => !$d->is_current));
                     <?php endif; ?>
                 </div>
                 <div class="DeviceMeta">
-                    Last used <?= htmlspecialchars($device->last_access !== '' ? $device->last_access : 'unknown') ?>
-                    · signed in <?= htmlspecialchars($device->created_at) ?>
-                    · expires <?= htmlspecialchars($device->expires_at) ?>
+                    Last used <?= $when($device->lastUsed()) ?>
+                    · signed in <?= $when($device->signedIn()) ?>
+                    · expires <?= $when($device->expires()) ?>
                 </div>
                 <?php /* No button on this device: /logout/ signs out every device, not just this one. */ ?>
                 <?php if (!$device->is_current): ?>
