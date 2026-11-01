@@ -192,9 +192,28 @@ if ($method === 'POST' && $is_backfill) {
         exit;
     }
 
-    require_credit($pdo, $auth_user_id, $auth_key_id, $path);
-
     $start_local_dt = $dtStart->format('Y-m-d H:i:s');
+
+    // A retried backfill returns the first session: no duplicate, no charge.
+    $existing_ak_id = $activityHelper->findBackfill($auth_user_id, $activity_id, $start_local_dt, $actual_sec);
+    if ($existing_ak_id !== null) {
+        $existing_key = (new \ActivityTracking\SessionKey($pdo))->keyFor($existing_ak_id);
+        http_response_code(200);
+        echo json_encode([
+            'session' => array_filter([
+                'ak_id'          => $existing_ak_id,
+                'activity_id'    => $activity_id,
+                'start_local_dt' => $start_local_dt,
+                'timezone'       => $timezone_str,
+                'actual_sec'     => $actual_sec,
+                'is_active'      => false,
+                'session_key'    => $existing_key,
+            ], static fn($v) => $v !== null),
+        ]);
+        exit;
+    }
+
+    require_credit($pdo, $auth_user_id, $auth_key_id, $path);
 
     $timezoneHelper = new \ActivityTracking\Timezone($pdo);
     $timezone_id    = $timezoneHelper->getTimezoneId($timezone_str);
