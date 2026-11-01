@@ -40,7 +40,33 @@ if ($method !== 'GET' && !$auth_actor['can_write_todos']) {
 
 $todoHelper = new \ActivityTracking\Todo($pdo);
 
-if ($todos_path === '/list') {
+if ($todos_path === '/granted') {
+    if ($method !== 'GET') {
+        http_response_code(405);
+        echo json_encode(['error' => 'Method not allowed']);
+        return;
+    }
+
+    if (!$guards->isLimited($auth_actor)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Only for apps limited to granted todos']);
+        return;
+    }
+
+    try {
+        $tz = new \DateTimeZone(\Field::string($_GET, 'timezone', 'UTC'));
+    } catch (\Exception $e) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Invalid timezone']);
+        return;
+    }
+
+    echo json_encode(['todos' => $todo_grants->listGranted(
+        \Field::int($auth_actor, 'aiu_id'),
+        $auth_user_id,
+        \ActivityTracking\DailyCap::logicalDay(new \DateTimeImmutable('now', $tz))
+    )]);
+} elseif ($todos_path === '/list') {
     if ($method !== 'GET') {
         http_response_code(405);
         echo json_encode(['error' => 'Method not allowed']);
@@ -614,11 +640,21 @@ if ($todos_path === '/list') {
     } else {
         $dt = $now;
     }
-    $today = $dt->format('Y-m-d');
+    $today = \ActivityTracking\DailyCap::logicalDay($dt);
     $date_logged = $dt->format('Y-m-d H:i:s');
 
     $completionCount = $todoHelper->getCompletionCount($todo_id, $today);
     $nth = $completionCount + 1;
+
+    // A limited actor (BG Bells) stops ticking at the todo's daily target.
+    if ($guards->isLimited($auth_actor)) {
+        $target = $todoHelper->getTodo($todo_id);
+        $target_count = $target === null ? null : \Field::intOrNull($target, 'target_count');
+        if (\ActivityTracking\DailyCap::reached($completionCount, $target_count)) {
+            echo json_encode(['success' => true, 'capped' => true, 'log_id' => 0]);
+            return;
+        }
+    }
 
     // INSERT IGNORE + unique(todo_id, ak_id) prevents duplicate completions
     $log_id = $todoHelper->logCompletion(

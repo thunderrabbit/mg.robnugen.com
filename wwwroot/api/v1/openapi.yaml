@@ -329,6 +329,102 @@ paths:
         "409":
           description: Activity name already exists
 
+  /todos/granted:
+    get:
+      summary: List the todos this limited app was granted
+      description: |
+        Only for apps limited to granted todos (e.g. BG Bells); other keys get 400.
+        `completed_today` counts ticks on the current logical day, which turns
+        over at 03:00 in the given timezone.
+      parameters:
+        - name: timezone
+          in: query
+          required: false
+          schema:
+            type: string
+            default: UTC
+          description: IANA timezone name, e.g. Asia/Tokyo
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  todos:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        todo_id:
+                          type: integer
+                        title:
+                          type: string
+                        activity_id:
+                          type: integer
+                          nullable: true
+                        target_count:
+                          type: integer
+                        completed_today:
+                          type: integer
+        "400":
+          description: Invalid timezone, or the key is not limited to granted todos
+
+  /todos/complete-with-session:
+    post:
+      summary: Tick a todo, tied to a finished session
+      description: |
+        For a key limited to granted todos, a tick past the todo's daily target
+        (on the 03:00 logical day) is not logged; the response is
+        `{"success": true, "capped": true, "log_id": 0}`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - todo_id
+                - ak_id
+              properties:
+                todo_id:
+                  type: integer
+                ak_id:
+                  type: integer
+                duration_seconds:
+                  type: integer
+                  nullable: true
+                timezone:
+                  type: string
+                  default: UTC
+                date_logged:
+                  type: string
+                  description: Optional backdated time; not in the future
+      responses:
+        "200":
+          description: Ticked, or capped
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  capped:
+                    type: boolean
+                    description: Present and true when the daily target was already met
+                  log_id:
+                    type: integer
+                  nth:
+                    type: integer
+                  date_logged:
+                    type: string
+                  already_completed:
+                    type: boolean
+        "403":
+          description: Todo not found or access denied
+
   # ── Emotional Interaction Ledger ────────────────────────────
   # TODO: document GET/POST/DELETE for vocab, events, sessions, everything
 
