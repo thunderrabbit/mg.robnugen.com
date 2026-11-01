@@ -212,6 +212,31 @@ class Todo
     }
 
     /**
+     * The completion already linked to this session, if any (a retried tick).
+     *
+     * @return array{log_id: int, nth: int, date_logged: string}|null
+     */
+    public function findCompletionForSession(int $todo_id, int $ak_id): ?array
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT log_id, nth, date_logged
+            FROM todo_logs
+            WHERE todo_id = ? AND ak_id = ?
+            LIMIT 1
+        ");
+        $stmt->execute([$todo_id, $ak_id]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        if (!is_array($row)) {
+            return null;
+        }
+        return [
+            'log_id' => \Field::int($row, 'log_id'),
+            'nth' => \Field::int($row, 'nth'),
+            'date_logged' => \Field::string($row, 'date_logged'),
+        ];
+    }
+
+    /**
      * Remove a todo completion (uncheck)
      *
      * @param int $todo_id

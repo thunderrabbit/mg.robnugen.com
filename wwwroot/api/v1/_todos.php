@@ -668,6 +668,20 @@ if ($todos_path === '/granted') {
     $completionCount = $todoHelper->getCompletionCount($todo_id, $today);
     $nth = $completionCount + 1;
 
+    // A retried tick: this session already completed the todo, so answer with
+    // that row and skip the cap (the cap would misread the retry as a new tick).
+    $existing_completion = $todoHelper->findCompletionForSession($todo_id, $ak_id);
+    if ($existing_completion !== null) {
+        echo json_encode([
+            'success' => true,
+            'log_id' => $existing_completion['log_id'],
+            'nth' => $existing_completion['nth'],
+            'date_logged' => $existing_completion['date_logged'],
+            'already_completed' => true
+        ]);
+        return;
+    }
+
     // Every caller stops ticking at the todo's daily target.
     $target = $todoHelper->getTodo($todo_id);
     $target_count = $target === null ? null : \Field::intOrNull($target, 'target_count');
