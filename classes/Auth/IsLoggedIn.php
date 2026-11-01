@@ -342,15 +342,17 @@ class IsLoggedIn
     }
 
     /**
-     * Name one of this user's devices (null takes the name away). A cookie_id
-     * that is not theirs names nothing. Returns whether the device is theirs.
+     * Name THIS device, the browser making the request (null takes the name
+     * away). Other devices cannot be renamed from here: a stolen session gets
+     * to touch itself and nothing else. Returns whether a live row was named.
      */
-    public function renameDevice(int $cookie_id, ?string $name): bool
+    public function renameThisDevice(?string $name): bool
     {
-        if ($this->who_is_logged_in <= 0) {
+        $cookie_hash = $this->presentedCookieHash();
+        if ($this->who_is_logged_in <= 0 || $cookie_hash === null) {
             return false;
         }
-        return $this->di_cookies->rename($this->who_is_logged_in, $cookie_id, $name);
+        return $this->di_cookies->rename($this->who_is_logged_in, $cookie_hash, $name);
     }
 
     /**

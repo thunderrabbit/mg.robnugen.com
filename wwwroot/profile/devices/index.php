@@ -37,29 +37,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $revoked = $is_logged_in->revokeOtherSessions();
         $success_message = "Signed out {$revoked} other " . ($revoked === 1 ? "device" : "devices") . ".";
     } elseif ($action === 'rename') {
-        $cookie_id = $_POST['cookie_id'] ?? '';
+        // Only this browser's own row: the form carries no device id, and
+        // renameThisDevice() scopes to the cookie in hand (mg 0.57.0 review).
         $name = \Auth\DeviceName::clean(\Field::string($_POST, 'device_name'));
-        if (!is_string($cookie_id) || !ctype_digit($cookie_id)) {
-            $error_message = "That device was already signed out.";
-        } elseif (!$is_logged_in->renameDevice((int) $cookie_id, $name)) {
-            $error_message = "That device was already signed out.";
+        if (!$is_logged_in->renameThisDevice($name)) {
+            $error_message = "Could not find this device to name it.";
         } elseif ($name === null) {
-            $success_message = "Cleared that device's name.";
+            $success_message = "Cleared this device's name.";
         } else {
-            $success_message = "Named that device \"{$name}\".";
+            $success_message = "Named this device \"{$name}\".";
         }
     }
 }
 
-// ?rename=<cookie_id> opens that device's rename form for a browser without
-// JavaScript; with it, clicking the name opens the form in place.
-$renaming = \Field::string($_GET, 'rename');
+// ?rename=1 opens this device's rename form for a browser without JavaScript;
+// with it, clicking the name opens the form in place.
+$renaming = \Field::string($_GET, 'rename') !== '';
 
 $page = new \Template(config: $config, is_logged_in: $is_logged_in);
 $page->setTemplate("profile/devices.tpl.php");
 $page->set("devices", $is_logged_in->devices());
 $page->set("now", new \DateTimeImmutable());
-$page->set("renaming", ctype_digit($renaming) ? (int) $renaming : 0);
+$page->set("renaming", $renaming);
 $page->set("error_message", $error_message);
 $page->set("success_message", $success_message);
 

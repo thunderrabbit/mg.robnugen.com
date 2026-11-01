@@ -212,9 +212,8 @@ class CookieRepositoryTest extends Unit
     {
         $repo = $this->at(0);
         $repo->issue(7, 'phone', self::UA, self::DAY, self::PHONE);
-        $phone_id = $repo->listForUser(7, null)[0]->cookie_id;
 
-        $this->assertTrue($repo->rename(7, $phone_id, "Ma's Laptop in Riverdell"));
+        $this->assertTrue($repo->rename(7, 'phone', "Ma's Laptop in Riverdell"));
         $this->assertSame(["Ma's Laptop in Riverdell"], $this->labels($repo->listForUser(7, null)));
         $this->assertSame('iPhone · Safari', $repo->listForUser(7, null)[0]->autoLabel());
     }
@@ -223,10 +222,9 @@ class CookieRepositoryTest extends Unit
     {
         $repo = $this->at(0);
         $repo->issue(7, 'phone', self::UA, self::DAY, self::PHONE);
-        $phone_id = $repo->listForUser(7, null)[0]->cookie_id;
-        $repo->rename(7, $phone_id, 'Phone');
+        $repo->rename(7, 'phone', 'Phone');
 
-        $this->assertTrue($repo->rename(7, $phone_id, null));
+        $this->assertTrue($repo->rename(7, 'phone', null));
         $this->assertSame(['iPhone · Safari'], $this->labels($repo->listForUser(7, null)));
     }
 
@@ -234,31 +232,43 @@ class CookieRepositoryTest extends Unit
     {
         $repo = $this->at(0);
         $repo->issue(7, 'phone', self::UA, self::DAY, self::PHONE);
-        $phone_id = $repo->listForUser(7, null)[0]->cookie_id;
-        $repo->rename(7, $phone_id, 'Phone');
+        $repo->rename(7, 'phone', 'Phone');
 
-        $this->assertTrue($repo->rename(7, $phone_id, 'Phone'));
+        $this->assertTrue($repo->rename(7, 'phone', 'Phone'));
+    }
+
+    public function testRenameTouchesOnlyTheCookieInHand(): void
+    {
+        $repo = $this->at(0);
+        $repo->issue(7, 'phone', self::UA, self::DAY, self::PHONE);
+        $repo->issue(7, 'laptop', self::UA, self::DAY, 'Mozilla/5.0 (Macintosh) Safari/605');
+
+        $this->assertTrue($repo->rename(7, 'laptop', 'Mine'));
+        $names = [];
+        foreach ($repo->listForUser(7, null) as $device) {
+            $names[$device->autoLabel()] = $device->device_name;
+        }
+        ksort($names);
+        $this->assertSame(['Mac · Safari' => 'Mine', 'iPhone · Safari' => null], $names, 'the phone row keeps no name');
     }
 
     public function testRenameOnlyTakesTheOwnersLiveCookie(): void
     {
         $repo = $this->at(0);
         $repo->issue(7, 'phone', self::UA, self::DAY, self::PHONE);
-        $phone_id = $repo->listForUser(7, null)[0]->cookie_id;
 
-        $this->assertFalse($repo->rename(9, $phone_id, 'Mine now'), 'not user 9\'s device');
+        $this->assertFalse($repo->rename(9, 'phone', 'Mine now'), 'not user 9\'s cookie');
         $this->assertSame(['iPhone · Safari'], $this->labels($repo->listForUser(7, null)));
-        $this->assertFalse($this->at(2 * self::DAY)->rename(7, $phone_id, 'Too late'), 'expired');
-        $this->assertFalse($repo->rename(7, $phone_id + 100, 'Nobody'), 'no such row');
+        $this->assertFalse($this->at(2 * self::DAY)->rename(7, 'phone', 'Too late'), 'expired');
+        $this->assertFalse($repo->rename(7, 'no-such-hash', 'Nobody'), 'no such row');
     }
 
     public function testRenameDoesNotCountAsUsingTheDevice(): void
     {
         $repo = $this->at(0);
         $repo->issue(7, 'phone', self::UA, self::DAY, self::PHONE);
-        $phone_id = $repo->listForUser(7, null)[0]->cookie_id;
 
-        $this->at(3600)->rename(7, $phone_id, 'Phone');
+        $this->at(3600)->rename(7, 'phone', 'Phone');
         $this->assertSame('2026-10-21 12:00:00', $repo->listForUser(7, null)[0]->last_access);
     }
 

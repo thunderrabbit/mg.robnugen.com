@@ -168,18 +168,20 @@ class CookieRepository
     }
 
     /**
-     * Give one of a user's live devices a name, or null to take its name away.
-     * Scoped to the user, like revokeDevice(). True when the row is theirs.
+     * Name the device whose cookie is in hand, or null to take its name away.
+     * Scoped to the presented cookie on purpose, not a posted cookie_id: a
+     * session stolen on one device may rename itself and nothing else. The
+     * user_id is belt and braces. True when the row is live and theirs.
      *
      * last_access is ON UPDATE CURRENT_TIMESTAMP in MySQL, so the SET keeps
      * it as it was: naming a device is not using it.
      */
-    public function rename(int $user_id, int $cookie_id, ?string $name): bool
+    public function rename(int $user_id, string $cookie_hash, ?string $name): bool
     {
-        $owned = [$cookie_id, $user_id, $this->format($this->now)];
+        $owned = [$cookie_hash, $user_id, $this->format($this->now)];
         $stmt = $this->di_pdo->prepare(
             "UPDATE `cookies` SET `device_name` = ?, `last_access` = `last_access`
-             WHERE `cookie_id` = ? AND `user_id` = ? AND `expires_at` > ?"
+             WHERE `cookie` = ? AND `user_id` = ? AND `expires_at` > ?"
         );
         $stmt->execute([$name, ...$owned]);
         if ($stmt->rowCount() > 0) {
@@ -188,7 +190,7 @@ class CookieRepository
         // MySQL's rowCount is rows changed, not rows matched, so renaming a
         // device to the name it already has reads 0. Ask whether it is theirs.
         $stmt = $this->di_pdo->prepare(
-            "SELECT 1 FROM `cookies` WHERE `cookie_id` = ? AND `user_id` = ? AND `expires_at` > ?"
+            "SELECT 1 FROM `cookies` WHERE `cookie` = ? AND `user_id` = ? AND `expires_at` > ?"
         );
         $stmt->execute($owned);
         return $stmt->fetchColumn() !== false;
