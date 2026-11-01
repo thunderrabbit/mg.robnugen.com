@@ -332,6 +332,11 @@ a:visited {
     font-weight: normal;
 }
 
+/* An author display rule beats the browser's [hidden] rule, so restate it. */
+.DeviceRename[hidden] {
+    display: none;
+}
+
 .DeviceRename input[type="text"] {
     width: 18em;
     max-width: 100%;
