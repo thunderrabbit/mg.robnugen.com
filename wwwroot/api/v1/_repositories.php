@@ -12,7 +12,7 @@
  * No hard delete — deactivation preserves issue_commits FK validity.
  * Hard deletes stay in the "ask Rob / mysql magic" bucket per Rob's decision.
  *
- * Variables from index.php: $pdo, $auth_user_id, $auth_key_id, $auth_actor, $method, $path
+ * Variables from index.php: $pdo, $auth_user_id, $auth_key_id (null for Bearer callers), $auth_token_id (Bearer callers only), $auth_actor, $method, $path
  */
 
 declare(strict_types=1);

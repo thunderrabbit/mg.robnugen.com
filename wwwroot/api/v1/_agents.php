@@ -9,7 +9,7 @@
  *
  * Requires supervisor access (NULL peer in inbox_visibility with can_read=1).
  *
- * Variables from index.php: $pdo, $auth_user_id, $auth_key_id, $auth_actor, $method, $path
+ * Variables from index.php: $pdo, $auth_user_id, $auth_key_id (null for Bearer callers), $auth_token_id (Bearer callers only), $auth_actor, $method, $path
  */
 
 declare(strict_types=1);

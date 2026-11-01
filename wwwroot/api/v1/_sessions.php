@@ -10,7 +10,7 @@
  * PATCH  /api/v1/sessions/{ak_id}/stop            stop a session (server computes duration)
  * DELETE /api/v1/sessions/{ak_id}                 delete a session
  *
- * Variables from index.php: $pdo, $auth_user_id, $method, $path
+ * Variables from index.php: $pdo, $auth_user_id, $auth_key_id (null for Bearer callers), $auth_token_id (Bearer callers only), $method, $path
  */
 
 declare(strict_types=1);

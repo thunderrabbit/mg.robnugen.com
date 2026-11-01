@@ -20,7 +20,8 @@ declare(strict_types=1);
 // Variables in scope from index.php:
 //   $raw_key        — raw API key string (for encryption key derivation)
 //   $auth_user_id   — authenticated user ID
-//   $auth_key_id    — key ID (FK to api_keys.key_id)
+//   $auth_key_id    — key ID (FK to api_keys.key_id); null for Bearer callers
+//   $auth_token_id  — mcp_tokens ID for Bearer callers; null for API-key calls
 //   $pdo            — PDO connection
 //   $method         — HTTP method
 //   $path           — URL path relative to /api/v1 (e.g. /emotions/vocab)
