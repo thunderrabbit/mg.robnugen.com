@@ -23,4 +23,15 @@ class DailyCapTest extends Unit
         $this->assertFalse(DailyCap::reached(0, null));
         $this->assertTrue(DailyCap::reached(1, 0));
     }
+
+    public function testNormaliseDateLoggedMakesBareDateNoon(): void
+    {
+        $this->assertSame('2026-05-28 12:00:00', DailyCap::normaliseDateLogged('2026-05-28'));
+    }
+
+    public function testNormaliseDateLoggedLeavesOtherInputAlone(): void
+    {
+        $this->assertSame('2026-05-28 06:00:00', DailyCap::normaliseDateLogged('2026-05-28 06:00:00'));
+        $this->assertSame('', DailyCap::normaliseDateLogged(''));
+    }
 }

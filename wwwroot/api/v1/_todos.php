@@ -624,7 +624,10 @@ if ($todos_path === '/granted') {
     // Optional backdated completion (mirrors /complete). When supplied, the
     // explicit date_logged overrides the session-derived "now", and nth is
     // counted against that date's completions.
-    $raw_date = trim(\Field::string($body, 'date_logged'));
+    // A bare date means noon that day, so it stays on that logical day.
+    $supplied_date = trim(\Field::string($body, 'date_logged'));
+    $raw_date = \ActivityTracking\DailyCap::normaliseDateLogged($supplied_date);
+    $is_bare_date = $raw_date !== $supplied_date;
     if ($raw_date !== '') {
         try {
             $dt = new \DateTime($raw_date, $tz);
@@ -632,6 +635,9 @@ if ($todos_path === '/granted') {
             http_response_code(400);
             echo json_encode(['error' => 'Invalid date_logged format: ' . $e->getMessage()]);
             return;
+        }
+        if ($is_bare_date && $dt > $now && $dt->format('Y-m-d') === $now->format('Y-m-d')) {
+            $dt = $now; // today's noon hasn't happened yet: use the current time
         }
         if ($dt > $now) {
             http_response_code(400);
