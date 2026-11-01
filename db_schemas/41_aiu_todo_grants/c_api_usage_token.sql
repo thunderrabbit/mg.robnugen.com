@@ -1,5 +1,6 @@
 -- Bearer-token callers (limited actors) have no api_keys row, so usage is
--- logged against the mcp_tokens row instead. Exactly one of key_id/token_id is set.
+-- logged against the mcp_tokens row instead. key_id for API-key calls, token_id for Bearer calls;
+-- token_id becomes NULL when its token is revoked or pruned.
 ALTER TABLE api_usage
     MODIFY key_id BIGINT UNSIGNED NULL,
     ADD COLUMN token_id BIGINT UNSIGNED NULL AFTER key_id,
