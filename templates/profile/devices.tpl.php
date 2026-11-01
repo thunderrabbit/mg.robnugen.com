@@ -2,6 +2,7 @@
 /**
  * @var list<\Auth\Device> $devices
  * @var \DateTimeImmutable $now
+ * @var int $renaming cookie_id whose rename form starts open, 0 for none
  * @var string $error_message
  * @var string $success_message
  */
@@ -33,18 +34,35 @@ $when = function (?\DateTimeImmutable $instant) use ($now): string {
         </div>
     <?php endif; ?>
 
-    <p>Each browser you log in on stays signed in on its own. Sign out any you don't recognise or no longer use.</p>
+    <p>Each browser you log in on stays signed in on its own. Sign out any you don't recognise or no longer use.
+        Click a device's name to call it something you'll recognise, like "Firefox on the laptop".</p>
 
     <ul class="DeviceList">
         <?php foreach ($devices as $device): ?>
             <li class="Device<?= $device->is_current ? ' current' : '' ?>">
+                <?php $open = $renaming === $device->cookie_id; ?>
                 <div class="DeviceName">
-                    <?= htmlspecialchars($device->label()) ?>
+                    <a class="DeviceNameLink" href="/profile/devices/?rename=<?= (int) $device->cookie_id ?>"
+                       title="Rename this device"<?= $open ? ' hidden' : '' ?>><?= htmlspecialchars($device->label()) ?></a>
+                    <form class="DeviceRename" action="/profile/devices/" method="POST"<?= $open ? '' : ' hidden' ?>>
+                        <?= csrf_field() ?>
+                        <input type="hidden" name="action" value="rename" />
+                        <input type="hidden" name="cookie_id" value="<?= (int) $device->cookie_id ?>" />
+                        <input type="text" name="device_name" maxlength="<?= \Auth\DeviceName::MAX_LENGTH ?>"
+                               value="<?= htmlspecialchars($device->device_name ?? '') ?>"
+                               placeholder="<?= htmlspecialchars($device->autoLabel()) ?>"
+                               aria-label="Device name"<?= $open ? ' autofocus' : '' ?> />
+                        <input type="submit" value="Save" class="greyishBtn" />
+                        <a class="DeviceRenameCancel" href="/profile/devices/">Cancel</a>
+                    </form>
                     <?php if ($device->is_current): ?>
                         <span class="DeviceBadge">This device</span>
                     <?php endif; ?>
                 </div>
                 <div class="DeviceMeta">
+                    <?php if ($device->isNamed()): ?>
+                        <?= htmlspecialchars($device->autoLabel()) ?> ·
+                    <?php endif; ?>
                     Last used <?= $when($device->lastUsed()) ?>
                     · signed in <?= $when($device->signedIn()) ?>
                     · expires <?= $when($device->expires()) ?>
@@ -70,3 +88,30 @@ $when = function (?\DateTimeImmutable $instant) use ($now): string {
         </form>
     <?php endif; ?>
 </div>
+
+<script>
+// Clicking a device's name opens its rename form in place; Cancel closes it
+// again. Without JavaScript the name is a link that reloads the page with the
+// form open (?rename=), and Cancel a link back, so nothing here is load-bearing.
+(function () {
+    document.querySelectorAll('.Device').forEach(function (device) {
+        var link = device.querySelector('.DeviceNameLink');
+        var form = device.querySelector('.DeviceRename');
+        var cancel = device.querySelector('.DeviceRenameCancel');
+        if (!link || !form || !cancel) return;
+        link.addEventListener('click', function (e) {
+            e.preventDefault();
+            link.hidden = true;
+            form.hidden = false;
+            var input = form.querySelector('input[name="device_name"]');
+            input.focus();
+            input.select();
+        });
+        cancel.addEventListener('click', function (e) {
+            e.preventDefault();
+            form.hidden = true;
+            link.hidden = false;
+        });
+    });
+})();
+</script>

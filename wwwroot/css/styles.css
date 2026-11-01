@@ -311,6 +311,43 @@ a:visited {
     font-weight: bold;
 }
 
+/* The name is a link only so it can be clicked to rename; it should read as a name. */
+.DeviceNameLink {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px dotted var(--text-muted);
+    cursor: text;
+}
+
+.DeviceNameLink:hover {
+    border-bottom-style: solid;
+    color: var(--text-nav-link);
+}
+
+.DeviceRename {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    align-items: center;
+    font-weight: normal;
+}
+
+.DeviceRename input[type="text"] {
+    width: 18em;
+    max-width: 100%;
+    padding: 0.3em 0.5em;
+    font-size: 1em;
+    color: var(--text-primary);
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+
+.DeviceRenameCancel {
+    font-size: 0.9em;
+    color: var(--text-muted);
+}
+
 .DeviceBadge {
     margin-left: 0.5em;
     padding: 0.1em 0.5em;

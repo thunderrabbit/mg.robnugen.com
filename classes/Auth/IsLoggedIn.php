@@ -342,6 +342,18 @@ class IsLoggedIn
     }
 
     /**
+     * Name one of this user's devices (null takes the name away). A cookie_id
+     * that is not theirs names nothing. Returns whether the device is theirs.
+     */
+    public function renameDevice(int $cookie_id, ?string $name): bool
+    {
+        if ($this->who_is_logged_in <= 0) {
+            return false;
+        }
+        return $this->di_cookies->rename($this->who_is_logged_in, $cookie_id, $name);
+    }
+
+    /**
      * SHA-256 of the remember-me cookie this browser sent, or null without one.
      */
     private function presentedCookieHash(): ?string
