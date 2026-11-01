@@ -13,6 +13,10 @@ namespace Auth;
  *
  * The timestamp strings are UTC, as the table keeps them (CookieRepository);
  * lastUsed(), signedIn() and expires() give them as instants.
+ *
+ * device_name is the name the owner gave it (Auth\DeviceName), or null; label()
+ * prefers it and autoLabel() is always the User-Agent reading, so the page can
+ * show both ("Ma's Laptop in Riverdell", and that it is Linux · Firefox 147).
  */
 class Device
 {
@@ -23,10 +27,23 @@ class Device
         public readonly string $last_access,
         public readonly string $expires_at,
         public readonly bool $is_current,
+        public readonly ?string $device_name = null,
     ) {
     }
 
+    public function isNamed(): bool
+    {
+        return $this->device_name !== null && $this->device_name !== '';
+    }
+
+    /** The owner's name for it when there is one, else the User-Agent label. */
     public function label(): string
+    {
+        return $this->isNamed() ? (string) $this->device_name : $this->autoLabel();
+    }
+
+    /** What the User-Agent says it is, e.g. "Linux · Firefox 147", named or not. */
+    public function autoLabel(): string
     {
         return DeviceLabel::fromUserAgent($this->user_agent);
     }

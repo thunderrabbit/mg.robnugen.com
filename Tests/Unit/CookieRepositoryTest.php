@@ -20,14 +20,15 @@ class CookieRepositoryTest extends Unit
 
     protected function _before(): void
     {
-        $this->pdo = $this->database(with_user_agent_column: true);
+        $this->pdo = $this->database(with_user_agent_column: true, with_device_name_column: true);
         $this->t0 = new \DateTimeImmutable('2026-10-21 12:00:00', new \DateTimeZone('UTC'));
     }
 
     /**
-     * The cookies table, with or without 37_cookie_user_agent applied.
+     * The cookies table, with or without 37_cookie_user_agent and
+     * 43_cookie_device_name applied.
      */
-    private function database(bool $with_user_agent_column): \PDO
+    private function database(bool $with_user_agent_column, bool $with_device_name_column = false): \PDO
     {
         $pdo = new \PDO('sqlite::memory:');
         $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
@@ -41,6 +42,7 @@ class CookieRepositoryTest extends Unit
                 expires_at TEXT NOT NULL,
                 user_agent_md5 TEXT"
             . ($with_user_agent_column ? ", user_agent TEXT" : "")
+            . ($with_device_name_column ? ", device_name TEXT" : "")
             . ")"
         );
         return $pdo;
@@ -204,6 +206,70 @@ class CookieRepositoryTest extends Unit
         $repo = new \Database\CookieRepository($this->database(with_user_agent_column: false), $this->t0);
         $repo->issue(7, 'hash-a', self::UA, self::DAY, self::PHONE);
         $this->assertSame(['Unknown device'], $this->labels($repo->listForUser(7, null)));
+    }
+
+    public function testRenameShowsTheNameInPlaceOfTheLabel(): void
+    {
+        $repo = $this->at(0);
+        $repo->issue(7, 'phone', self::UA, self::DAY, self::PHONE);
+        $phone_id = $repo->listForUser(7, null)[0]->cookie_id;
+
+        $this->assertTrue($repo->rename(7, $phone_id, "Ma's Laptop in Riverdell"));
+        $this->assertSame(["Ma's Laptop in Riverdell"], $this->labels($repo->listForUser(7, null)));
+        $this->assertSame('iPhone · Safari', $repo->listForUser(7, null)[0]->autoLabel());
+    }
+
+    public function testRenameToNullGoesBackToTheLabel(): void
+    {
+        $repo = $this->at(0);
+        $repo->issue(7, 'phone', self::UA, self::DAY, self::PHONE);
+        $phone_id = $repo->listForUser(7, null)[0]->cookie_id;
+        $repo->rename(7, $phone_id, 'Phone');
+
+        $this->assertTrue($repo->rename(7, $phone_id, null));
+        $this->assertSame(['iPhone · Safari'], $this->labels($repo->listForUser(7, null)));
+    }
+
+    public function testRenameToTheSameNameStillSucceeds(): void
+    {
+        $repo = $this->at(0);
+        $repo->issue(7, 'phone', self::UA, self::DAY, self::PHONE);
+        $phone_id = $repo->listForUser(7, null)[0]->cookie_id;
+        $repo->rename(7, $phone_id, 'Phone');
+
+        $this->assertTrue($repo->rename(7, $phone_id, 'Phone'));
+    }
+
+    public function testRenameOnlyTakesTheOwnersLiveCookie(): void
+    {
+        $repo = $this->at(0);
+        $repo->issue(7, 'phone', self::UA, self::DAY, self::PHONE);
+        $phone_id = $repo->listForUser(7, null)[0]->cookie_id;
+
+        $this->assertFalse($repo->rename(9, $phone_id, 'Mine now'), 'not user 9\'s device');
+        $this->assertSame(['iPhone · Safari'], $this->labels($repo->listForUser(7, null)));
+        $this->assertFalse($this->at(2 * self::DAY)->rename(7, $phone_id, 'Too late'), 'expired');
+        $this->assertFalse($repo->rename(7, $phone_id + 100, 'Nobody'), 'no such row');
+    }
+
+    public function testRenameDoesNotCountAsUsingTheDevice(): void
+    {
+        $repo = $this->at(0);
+        $repo->issue(7, 'phone', self::UA, self::DAY, self::PHONE);
+        $phone_id = $repo->listForUser(7, null)[0]->cookie_id;
+
+        $this->at(3600)->rename(7, $phone_id, 'Phone');
+        $this->assertSame('2026-10-21 12:00:00', $repo->listForUser(7, null)[0]->last_access);
+    }
+
+    public function testListBeforeTheDeviceNameColumnExistsShowsTheLabel(): void
+    {
+        $repo = new \Database\CookieRepository(
+            $this->database(with_user_agent_column: true, with_device_name_column: false),
+            $this->t0,
+        );
+        $repo->issue(7, 'hash-a', self::UA, self::DAY, self::PHONE);
+        $this->assertSame(['iPhone · Safari'], $this->labels($repo->listForUser(7, null)));
     }
 
     public function testRevokeDeviceOnlyTakesTheOwnersCookie(): void

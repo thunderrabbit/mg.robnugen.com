@@ -30,6 +30,19 @@ class CookieRepository
     /** How stale `last_access` may get before touch() writes it again. */
     private const TOUCH_EVERY_SECONDS = 3600;
 
+    /**
+     * What listForUser() can SELECT for user_agent and device_name, newest
+     * schema first. A deploy can land before a migration does: without 43
+     * there is no device_name column, and without 37 no user_agent either.
+     *
+     * @var list<array{string, string}>
+     */
+    private const LIST_COLUMNS = [
+        ['`user_agent`', '`device_name`'],
+        ['`user_agent`', 'NULL'],
+        ["''", 'NULL'],
+    ];
+
     private \DateTimeImmutable $now;
 
     public function __construct(
@@ -64,7 +77,7 @@ class CookieRepository
         } catch (\PDOException $e) {
             // A deploy can land before migration 37 does. Login must keep
             // working; the devices page just cannot name the browser yet.
-            if (!self::isMissingUserAgentColumn($e)) {
+            if (!self::isMissingColumn($e)) {
                 throw $e;
             }
             $stmt = $this->di_pdo->prepare(
@@ -155,6 +168,33 @@ class CookieRepository
     }
 
     /**
+     * Give one of a user's live devices a name, or null to take its name away.
+     * Scoped to the user, like revokeDevice(). True when the row is theirs.
+     *
+     * last_access is ON UPDATE CURRENT_TIMESTAMP in MySQL, so the SET keeps
+     * it as it was: naming a device is not using it.
+     */
+    public function rename(int $user_id, int $cookie_id, ?string $name): bool
+    {
+        $owned = [$cookie_id, $user_id, $this->format($this->now)];
+        $stmt = $this->di_pdo->prepare(
+            "UPDATE `cookies` SET `device_name` = ?, `last_access` = `last_access`
+             WHERE `cookie_id` = ? AND `user_id` = ? AND `expires_at` > ?"
+        );
+        $stmt->execute([$name, ...$owned]);
+        if ($stmt->rowCount() > 0) {
+            return true;
+        }
+        // MySQL's rowCount is rows changed, not rows matched, so renaming a
+        // device to the name it already has reads 0. Ask whether it is theirs.
+        $stmt = $this->di_pdo->prepare(
+            "SELECT 1 FROM `cookies` WHERE `cookie_id` = ? AND `user_id` = ? AND `expires_at` > ?"
+        );
+        $stmt->execute($owned);
+        return $stmt->fetchColumn() !== false;
+    }
+
+    /**
      * Record that a cookie was just used, so the devices page can say when.
      * Runs on every logged-in request, so it writes at most once an hour per
      * cookie; the WHERE clause makes the other requests a no-op read.
@@ -181,27 +221,19 @@ class CookieRepository
     public function listForUser(int $user_id, ?string $current_cookie_hash): array
     {
         $params = [$current_cookie_hash ?? '', $user_id, $this->format($this->now)];
-        $sql = "SELECT `cookie_id`, %s AS `user_agent`, `created_at`, `last_access`, `expires_at`,
+        $sql = "SELECT `cookie_id`, %s AS `user_agent`, %s AS `device_name`,
+                       `created_at`, `last_access`, `expires_at`,
                        (`cookie` = ?) AS `is_current`
                 FROM `cookies`
                 WHERE `user_id` = ? AND `expires_at` > ?
                 ORDER BY `last_access` DESC, `cookie_id` DESC";
-        try {
-            $stmt = $this->di_pdo->prepare(sprintf($sql, '`user_agent`'));
-            $stmt->execute($params);
-        } catch (\PDOException $e) {
-            if (!self::isMissingUserAgentColumn($e)) {
-                throw $e;
-            }
-            $stmt = $this->di_pdo->prepare(sprintf($sql, "''"));
-            $stmt->execute($params);
-        }
 
         $devices = [];
-        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+        foreach ($this->selectDevices($sql, $params) as $row) {
             if (!is_array($row)) {
                 continue;
             }
+            $name = self::str($row['device_name'] ?? '');
             $devices[] = new \Auth\Device(
                 cookie_id: self::int($row['cookie_id'] ?? 0),
                 user_agent: self::str($row['user_agent'] ?? ''),
@@ -209,9 +241,34 @@ class CookieRepository
                 last_access: self::str($row['last_access'] ?? ''),
                 expires_at: self::str($row['expires_at'] ?? ''),
                 is_current: self::int($row['is_current'] ?? 0) === 1,
+                device_name: $name === '' ? null : $name,
             );
         }
         return $devices;
+    }
+
+    /**
+     * Run the devices query with the newest column set the table has (see
+     * LIST_COLUMNS). Any error other than a missing column is the caller's.
+     *
+     * @param list<mixed> $params
+     * @return list<mixed>
+     */
+    private function selectDevices(string $sql, array $params): array
+    {
+        $oldest = array_key_last(self::LIST_COLUMNS);
+        foreach (self::LIST_COLUMNS as $i => [$user_agent, $device_name]) {
+            try {
+                $stmt = $this->di_pdo->prepare(sprintf($sql, $user_agent, $device_name));
+                $stmt->execute($params);
+                return array_values($stmt->fetchAll(\PDO::FETCH_ASSOC));
+            } catch (\PDOException $e) {
+                if ($i === $oldest || !self::isMissingColumn($e)) {
+                    throw $e;
+                }
+            }
+        }
+        return [];
     }
 
     public function purgeExpired(): void
@@ -237,12 +294,13 @@ class CookieRepository
         return is_numeric($value) ? (int) $value : 0;
     }
 
-    private static function isMissingUserAgentColumn(\PDOException $e): bool
+    /** Whether the statement named a column the table does not have (yet). */
+    private static function isMissingColumn(\PDOException $e): bool
     {
         // MySQL reports SQLSTATE 42S22 (unknown column). SQLite says "has no
         // column named" on INSERT and "no such column" on SELECT, with HY000.
         return $e->getCode() === self::SQLSTATE_NO_COLUMN
-            || str_contains($e->getMessage(), 'no column named user_agent')
-            || str_contains($e->getMessage(), 'no such column: user_agent');
+            || str_contains($e->getMessage(), 'no column named')
+            || str_contains($e->getMessage(), 'no such column');
     }
 }
