@@ -646,14 +646,12 @@ if ($todos_path === '/granted') {
     $completionCount = $todoHelper->getCompletionCount($todo_id, $today);
     $nth = $completionCount + 1;
 
-    // A limited actor (BG Bells) stops ticking at the todo's daily target.
-    if ($guards->isLimited($auth_actor)) {
-        $target = $todoHelper->getTodo($todo_id);
-        $target_count = $target === null ? null : \Field::intOrNull($target, 'target_count');
-        if (\ActivityTracking\DailyCap::reached($completionCount, $target_count)) {
-            echo json_encode(['success' => true, 'capped' => true, 'log_id' => 0]);
-            return;
-        }
+    // Every caller stops ticking at the todo's daily target.
+    $target = $todoHelper->getTodo($todo_id);
+    $target_count = $target === null ? null : \Field::intOrNull($target, 'target_count');
+    if (\ActivityTracking\DailyCap::reached($completionCount, $target_count)) {
+        echo json_encode(['success' => true, 'capped' => true, 'log_id' => 0]);
+        return;
     }
 
     // INSERT IGNORE + unique(todo_id, ak_id) prevents duplicate completions

@@ -375,7 +375,7 @@ paths:
     post:
       summary: Tick a todo, tied to a finished session
       description: |
-        For a key limited to granted todos, a tick past the todo's daily target
+        For every caller, a tick past the todo's daily target
         (on the 03:00 logical day) is not logged; the response is
         `{"success": true, "capped": true, "log_id": 0}`.
       requestBody:
