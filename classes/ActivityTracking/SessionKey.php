@@ -128,6 +128,25 @@ class SessionKey
     }
 
     /**
+     * Get the session key for an activity session
+     *
+     * @param int $ak_id Activity session ID
+     * @return string|null Session key, or null if none exists
+     */
+    public function keyFor(int $ak_id): ?string
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT session_key
+            FROM activity_session_keys
+            WHERE ak_id = ?
+            LIMIT 1
+        ");
+        $stmt->execute([$ak_id]);
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return is_array($result) ? \Field::string($result, 'session_key') : null;
+    }
+
+    /**
      * Check if user owns a session
      *
      * @param string $session_key Session key

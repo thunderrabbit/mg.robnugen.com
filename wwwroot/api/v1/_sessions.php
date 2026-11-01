@@ -10,7 +10,7 @@
  * PATCH  /api/v1/sessions/{ak_id}/stop            stop a session (server computes duration)
  * DELETE /api/v1/sessions/{ak_id}                 delete a session
  *
- * Variables from index.php: $pdo, $auth_user_id, $method, $path
+ * Variables from index.php: $pdo, $auth_user_id, $auth_key_id (null for Bearer callers), $auth_token_id (Bearer callers only), $method, $path
  */
 
 declare(strict_types=1);
@@ -20,8 +20,11 @@ declare(strict_types=1);
  *
  * @var \PDO $pdo
  * @var int $auth_user_id
- * @var int $auth_key_id
+ * @var ?int $auth_key_id
+ * @var ?int $auth_token_id
  * @var array<string, mixed> $auth_actor
+ * @var \Auth\Guards $guards
+ * @var \Auth\TodoGrants $todo_grants
  * @var string $method
  * @var string $path
  */
@@ -139,13 +142,19 @@ if ($method === 'GET' && $ak_id !== null && $sub_action === null) {
 // ── POST /sessions/backfill ──────────────────────────────────────────────────
 
 if ($method === 'POST' && $is_backfill) {
-    require_credit($pdo, $auth_user_id, $auth_key_id, $path);
-
     $input        = \Field::jsonArray((string) file_get_contents('php://input'));
     $activity_id  = \Field::int($input, 'activity_id', 1);
     if (!(new \ActivityTracking\Activity($pdo))->userMayUse($activity_id, $auth_user_id)) {
         http_response_code(404);
         echo json_encode(['error' => 'Activity not found or access denied']);
+        exit;
+    }
+    $grant_verdict = $guards->isLimited($auth_actor)
+        ? $guards->activity($auth_actor, $activity_id, $todo_grants->activityIds(\Field::int($auth_actor, 'aiu_id')))
+        : null;
+    if ($grant_verdict !== null) {
+        http_response_code($grant_verdict['code']);
+        echo json_encode(['error' => $grant_verdict['error']]);
         exit;
     }
     $timezone_str = trim(\Field::string($input, 'timezone', 'UTC'));
@@ -186,6 +195,27 @@ if ($method === 'POST' && $is_backfill) {
 
     $start_local_dt = $dtStart->format('Y-m-d H:i:s');
 
+    // A retried backfill returns the first session: no duplicate, no charge.
+    $existing_ak_id = $activityHelper->findBackfill($auth_user_id, $activity_id, $start_local_dt, $actual_sec);
+    if ($existing_ak_id !== null) {
+        $existing_key = (new \ActivityTracking\SessionKey($pdo))->keyFor($existing_ak_id);
+        http_response_code(200);
+        echo json_encode([
+            'session' => array_filter([
+                'ak_id'          => $existing_ak_id,
+                'activity_id'    => $activity_id,
+                'start_local_dt' => $start_local_dt,
+                'timezone'       => $timezone_str,
+                'actual_sec'     => $actual_sec,
+                'is_active'      => false,
+                'session_key'    => $existing_key,
+            ], static fn($v) => $v !== null),
+        ]);
+        exit;
+    }
+
+    require_credit($pdo, $auth_user_id, $auth_key_id, $path, $auth_token_id);
+
     $timezoneHelper = new \ActivityTracking\Timezone($pdo);
     $timezone_id    = $timezoneHelper->getTimezoneId($timezone_str);
 
@@ -224,13 +254,19 @@ if ($method === 'POST' && $is_backfill) {
 // ── POST /sessions ───────────────────────────────────────────────────────────
 
 if ($method === 'POST' && $ak_id === null) {
-    require_credit($pdo, $auth_user_id, $auth_key_id, $path);
-
     $input        = \Field::jsonArray((string) file_get_contents('php://input'));
     $activity_id  = \Field::int($input, 'activity_id', 1);
     if (!(new \ActivityTracking\Activity($pdo))->userMayUse($activity_id, $auth_user_id)) {
         http_response_code(404);
         echo json_encode(['error' => 'Activity not found or access denied']);
+        exit;
+    }
+    $grant_verdict = $guards->isLimited($auth_actor)
+        ? $guards->activity($auth_actor, $activity_id, $todo_grants->activityIds(\Field::int($auth_actor, 'aiu_id')))
+        : null;
+    if ($grant_verdict !== null) {
+        http_response_code($grant_verdict['code']);
+        echo json_encode(['error' => $grant_verdict['error']]);
         exit;
     }
     $timezone_str = trim(\Field::string($input, 'timezone', 'UTC'));
@@ -246,6 +282,8 @@ if ($method === 'POST' && $ak_id === null) {
         echo json_encode(['error' => 'Invalid timezone: ' . $timezone_str]);
         exit;
     }
+
+    require_credit($pdo, $auth_user_id, $auth_key_id, $path, $auth_token_id);
 
     $timezoneHelper = new \ActivityTracking\Timezone($pdo);
     $timezone_id    = $timezoneHelper->getTimezoneId($timezone_str);
@@ -281,6 +319,25 @@ if ($method === 'POST' && $ak_id === null) {
 // ── PATCH /sessions/{ak_id}/stop ─────────────────────────────────────────────
 
 if ($method === 'PATCH' && $ak_id !== null && $sub_action === 'stop') {
+    // A limited actor may only stop sessions of an activity it was granted.
+    // A session that isn't the user's has no activity here and falls through
+    // to the 409 below.
+    $stop_activity_id = $guards->isLimited($auth_actor)
+        ? $activityHelper->activityIdOf($ak_id, $auth_user_id)
+        : null;
+    if ($stop_activity_id !== null) {
+        $grant_verdict = $guards->activity(
+            $auth_actor,
+            $stop_activity_id,
+            $todo_grants->activityIds(\Field::int($auth_actor, 'aiu_id'))
+        );
+        if ($grant_verdict !== null) {
+            http_response_code($grant_verdict['code']);
+            echo json_encode(['error' => $grant_verdict['error']]);
+            exit;
+        }
+    }
+
     // Fetch elapsed seconds atomically — also confirms session is active
     $stmt = $pdo->prepare("
         SELECT TIMESTAMPDIFF(SECOND, created_at_utc, UTC_TIMESTAMP()) AS elapsed

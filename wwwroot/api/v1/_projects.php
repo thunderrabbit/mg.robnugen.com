@@ -20,7 +20,7 @@
  * (humans too), and administering projects and members is for the account's
  * human, member or not. A credit is charged only once every check has passed.
  *
- * Variables from index.php: $pdo, $auth_user_id, $auth_key_id, $auth_actor, $method, $path
+ * Variables from index.php: $pdo, $auth_user_id, $auth_key_id (null for Bearer callers), $auth_token_id (Bearer callers only), $auth_actor, $method, $path
  */
 
 declare(strict_types=1);
@@ -30,7 +30,8 @@ declare(strict_types=1);
  *
  * @var \PDO $pdo
  * @var int $auth_user_id
- * @var int $auth_key_id
+ * @var ?int $auth_key_id
+ * @var ?int $auth_token_id
  * @var array<string, mixed> $auth_actor
  * @var string $method
  * @var string $path
@@ -45,7 +46,7 @@ $project_caller  = new \Issues\Caller(
 );
 $project_service = new \Projects\ProjectService(
     new \Projects\PdoProjectStore($pdo),
-    beforeWrite: static fn(string $action) => require_credit($pdo, $auth_user_id, $auth_key_id, $action),
+    beforeWrite: static fn(string $action) => require_credit($pdo, $auth_user_id, $auth_key_id, $action, $auth_token_id),
 );
 
 /**

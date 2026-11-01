@@ -22,7 +22,7 @@
  *   DELETE /exterm/delete   1    — {exterm_item_id}
  *   GET    /exterm/search   free — ?query (required); project_id?, limit?
  *
- * Variables from index.php: $pdo, $auth_user_id, $auth_key_id, $auth_actor, $method, $path
+ * Variables from index.php: $pdo, $auth_user_id, $auth_key_id (null for Bearer callers), $auth_token_id (Bearer callers only), $auth_actor, $method, $path
  */
 
 declare(strict_types=1);
@@ -32,7 +32,8 @@ declare(strict_types=1);
  *
  * @var \PDO $pdo
  * @var int $auth_user_id
- * @var int $auth_key_id
+ * @var ?int $auth_key_id
+ * @var ?int $auth_token_id
  * @var array<string, mixed> $auth_actor
  * @var string $method
  * @var string $path
@@ -106,7 +107,7 @@ $body     = \Field::jsonArray($body_raw);
 
 // ── POST /exterm/create ───────────────────────────────────────────────────────
 if ($sub === '/create' && $method === 'POST') {
-    require_credit($pdo, $auth_user_id, $auth_key_id, '/exterm/create');
+    require_credit($pdo, $auth_user_id, $auth_key_id, '/exterm/create', $auth_token_id);
     try {
         $item = $exterm->createItem($auth_user_id, $caller_aiu, $body);
         http_response_code(201);
@@ -123,7 +124,7 @@ if ($sub === '/update' && $method === 'PATCH') {
     if (!$id) {
         exterm_error(400, "exterm_item_id is required");
     }
-    require_credit($pdo, $auth_user_id, $auth_key_id, '/exterm/update');
+    require_credit($pdo, $auth_user_id, $auth_key_id, '/exterm/update', $auth_token_id);
     try {
         echo json_encode($exterm->updateItem($auth_user_id, $caller_aiu, $id, $body));
     } catch (\Exterm\AccessException | \Exterm\NotFoundException | \Exterm\ValidationException $e) {
@@ -138,7 +139,7 @@ if ($sub === '/delete' && $method === 'DELETE') {
     if (!$id) {
         exterm_error(400, "exterm_item_id is required");
     }
-    require_credit($pdo, $auth_user_id, $auth_key_id, '/exterm/delete');
+    require_credit($pdo, $auth_user_id, $auth_key_id, '/exterm/delete', $auth_token_id);
     try {
         echo json_encode($exterm->deleteItem($auth_user_id, $caller_aiu, $id));
     } catch (\Exterm\AccessException | \Exterm\NotFoundException | \Exterm\ValidationException $e) {

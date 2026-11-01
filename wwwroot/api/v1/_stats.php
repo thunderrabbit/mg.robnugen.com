@@ -11,7 +11,7 @@
  *   current_streak_days  — consecutive days with at least one completed session
  *   credits_remaining    — useful for agents to know before next write
  *
- * Variables from index.php: $pdo, $auth_user_id, $method
+ * Variables from index.php: $pdo, $auth_user_id, $auth_key_id (null for Bearer callers), $auth_token_id (Bearer callers only), $method
  */
 
 declare(strict_types=1);
@@ -21,7 +21,8 @@ declare(strict_types=1);
  *
  * @var \PDO $pdo
  * @var int $auth_user_id
- * @var int $auth_key_id
+ * @var ?int $auth_key_id
+ * @var ?int $auth_token_id
  * @var string $method
  * @var string $path
  * @var array<mixed> $auth_actor
@@ -40,7 +41,7 @@ if (!\Field::int($auth_actor, 'can_read_sessions')) {
     exit;
 }
 
-require_credit($pdo, $auth_user_id, $auth_key_id, $path);
+require_credit($pdo, $auth_user_id, $auth_key_id, $path, $auth_token_id);
 
 // ── Totals ────────────────────────────────────────────────────────────────────
 

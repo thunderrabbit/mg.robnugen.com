@@ -1,5 +1,12 @@
 RewriteEngine On
 
+# DreamHost FastCGI strips the Authorization header by default. Re-expose it
+# so limited apps (BG Bells) can send "Authorization: Bearer <token>"; after
+# the rewrite below PHP sees it as REDIRECT_HTTP_AUTHORIZATION, which
+# Auth\BearerToken::fromHeaders reads. Same fix as wwwroot/mcp/.htaccess.
+SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+RewriteRule ^ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
 # Block direct HTTP access to handler files (underscore-prefixed)
 <FilesMatch "^_">
     Require all denied

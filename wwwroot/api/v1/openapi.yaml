@@ -30,6 +30,10 @@ components:
       type: apiKey
       in: header
       name: X-API-Key
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: OAuth access token from /mcp/token.php; accepted only for apps limited to granted todos
 
   schemas:
     Session:
@@ -163,6 +167,9 @@ paths:
 
     post:
       summary: Start a session (costs 1 credit)
+      security:
+        - ApiKeyAuth: []
+        - bearerAuth: []
       description: |
         Creates a new active session. The server records the current time
         as `start_local_dt` using the provided timezone — the agent does
@@ -210,6 +217,60 @@ paths:
                   upgrade_url:
                     type: string
 
+  /sessions/backfill:
+    post:
+      summary: Create a finished past session (costs 1 credit)
+      security:
+        - ApiKeyAuth: []
+        - bearerAuth: []
+      description: |
+        Creates a stopped session from `start_time` and `end_time`, read in
+        `timezone`. An exact duplicate (same activity, start and duration)
+        returns the first session with 200 and charges no credit.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - start_time
+                - end_time
+              properties:
+                activity_id:
+                  type: integer
+                  default: 1
+                timezone:
+                  type: string
+                  default: UTC
+                start_time:
+                  type: string
+                end_time:
+                  type: string
+      responses:
+        "201":
+          description: Session created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session:
+                    $ref: "#/components/schemas/Session"
+        "200":
+          description: Exact duplicate of an existing session; same session shape, no credit charged
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session:
+                    $ref: "#/components/schemas/Session"
+        "400":
+          description: Invalid input
+        "402":
+          description: No credits remaining
+
   /sessions/{ak_id}:
     get:
       summary: Get a single session
@@ -249,6 +310,9 @@ paths:
   /sessions/{ak_id}/stop:
     patch:
       summary: Stop an active session
+      security:
+        - ApiKeyAuth: []
+        - bearerAuth: []
       description: |
         Marks the session as complete. The server computes `actual_sec`
         using `TIMESTAMPDIFF(SECOND, created_at_utc, UTC_TIMESTAMP())` —
@@ -328,6 +392,113 @@ paths:
                     $ref: "#/components/schemas/Activity"
         "409":
           description: Activity name already exists
+
+  /todos/granted:
+    get:
+      summary: List the todos this limited app was granted
+      security:
+        - ApiKeyAuth: []
+        - bearerAuth: []
+      description: |
+        Only for apps limited to granted todos (e.g. BG Bells); other keys get 400.
+        `completed_today` counts ticks on the current logical day, which turns
+        over at 03:00 in the given timezone.
+      parameters:
+        - name: timezone
+          in: query
+          required: false
+          schema:
+            type: string
+            default: UTC
+          description: IANA timezone name, e.g. Asia/Tokyo
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  todos:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        todo_id:
+                          type: integer
+                        title:
+                          type: string
+                        activity_id:
+                          type: integer
+                          nullable: true
+                        target_count:
+                          type: integer
+                        completed_today:
+                          type: integer
+        "400":
+          description: Invalid timezone, or the key is not limited to granted todos
+
+  /todos/complete-with-session:
+    post:
+      summary: Tick a todo, tied to a finished session
+      security:
+        - ApiKeyAuth: []
+        - bearerAuth: []
+      description: |
+        For every caller, a tick past the todo's daily target
+        (on the 03:00 logical day) is not logged; the response is
+        `{"success": true, "capped": true, "log_id": 0}`.
+
+        A retry for a session that already ticked this todo returns that
+        completion with `already_completed: true` (its `log_id`, `nth` and
+        `date_logged`) and is never reported as capped. A bare-date
+        `date_logged` (YYYY-MM-DD) means 12:00:00 that day.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - todo_id
+                - ak_id
+              properties:
+                todo_id:
+                  type: integer
+                ak_id:
+                  type: integer
+                duration_seconds:
+                  type: integer
+                  nullable: true
+                timezone:
+                  type: string
+                  default: UTC
+                date_logged:
+                  type: string
+                  description: Optional backdated time; not in the future
+      responses:
+        "200":
+          description: "Ticked, capped, or already completed for this session (already_completed: true)"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  capped:
+                    type: boolean
+                    description: Present and true when the daily target was already met
+                  log_id:
+                    type: integer
+                  nth:
+                    type: integer
+                  date_logged:
+                    type: string
+                  already_completed:
+                    type: boolean
+        "403":
+          description: Todo not found or access denied
 
   # ── Emotional Interaction Ledger ────────────────────────────
   # TODO: document GET/POST/DELETE for vocab, events, sessions, everything

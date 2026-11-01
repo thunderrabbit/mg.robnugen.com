@@ -6,6 +6,8 @@
  * @var \PDO $pdo
  * @var int $auth_user_id
  * @var array<string, mixed> $auth_actor
+ * @var \Auth\Guards $guards
+ * @var \Auth\TodoGrants $todo_grants
  * @var string $method
  * @var string $path
  */
@@ -16,7 +18,8 @@ declare(strict_types=1);
 //
 // Variables in scope from index.php:
 //   $auth_user_id   — authenticated user ID
-//   $auth_key_id    — key ID (FK to api_keys.key_id)
+//   $auth_key_id    — key ID (FK to api_keys.key_id); null for Bearer callers
+//   $auth_token_id  — mcp_tokens ID for Bearer callers; null for API-key calls
 //   $pdo            — PDO connection
 //   $method         — HTTP method
 //   $path           — URL path relative to /api/v1 (e.g. /todos/list)
@@ -38,7 +41,33 @@ if ($method !== 'GET' && !$auth_actor['can_write_todos']) {
 
 $todoHelper = new \ActivityTracking\Todo($pdo);
 
-if ($todos_path === '/list') {
+if ($todos_path === '/granted') {
+    if ($method !== 'GET') {
+        http_response_code(405);
+        echo json_encode(['error' => 'Method not allowed']);
+        return;
+    }
+
+    if (!$guards->isLimited($auth_actor)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Only for apps limited to granted todos']);
+        return;
+    }
+
+    try {
+        $tz = new \DateTimeZone(\Field::string($_GET, 'timezone', 'UTC'));
+    } catch (\Exception $e) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Invalid timezone']);
+        return;
+    }
+
+    echo json_encode(['todos' => $todo_grants->listGranted(
+        \Field::int($auth_actor, 'aiu_id'),
+        $auth_user_id,
+        \ActivityTracking\DailyCap::logicalDay(new \DateTimeImmutable('now', $tz))
+    )]);
+} elseif ($todos_path === '/list') {
     if ($method !== 'GET') {
         http_response_code(405);
         echo json_encode(['error' => 'Method not allowed']);
@@ -566,11 +595,35 @@ if ($todos_path === '/list') {
         return;
     }
 
+    $grant_verdict = $guards->isLimited($auth_actor)
+        ? $guards->todo($auth_actor, $todo_id, $todo_grants->todoIds(\Field::int($auth_actor, 'aiu_id')))
+        : null;
+    if ($grant_verdict !== null) {
+        http_response_code($grant_verdict['code']);
+        echo json_encode(['error' => $grant_verdict['error']]);
+        return;
+    }
+
     $activityHelper = new \ActivityTracking\ActivityKai($pdo);
     if (!$activityHelper->verifyOwnership($ak_id, $auth_user_id)) {
         http_response_code(403);
         echo json_encode(['error' => 'Activity session not found or access denied']);
         return;
+    }
+
+    // A limited actor may only link sessions of the activities its todos use.
+    if ($guards->isLimited($auth_actor)) {
+        $session_activity_id = $activityHelper->activityIdOf($ak_id, $auth_user_id);
+        $activity_verdict = $guards->activity(
+            $auth_actor,
+            $session_activity_id ?? 0,
+            $todo_grants->activityIds(\Field::int($auth_actor, 'aiu_id'))
+        );
+        if ($activity_verdict !== null) {
+            http_response_code($activity_verdict['code']);
+            echo json_encode(['error' => $activity_verdict['error']]);
+            return;
+        }
     }
 
     try {
@@ -586,7 +639,10 @@ if ($todos_path === '/list') {
     // Optional backdated completion (mirrors /complete). When supplied, the
     // explicit date_logged overrides the session-derived "now", and nth is
     // counted against that date's completions.
-    $raw_date = trim(\Field::string($body, 'date_logged'));
+    // A bare date means noon that day, so it stays on that logical day.
+    $supplied_date = trim(\Field::string($body, 'date_logged'));
+    $raw_date = \ActivityTracking\DailyCap::normaliseDateLogged($supplied_date);
+    $is_bare_date = $raw_date !== $supplied_date;
     if ($raw_date !== '') {
         try {
             $dt = new \DateTime($raw_date, $tz);
@@ -594,6 +650,9 @@ if ($todos_path === '/list') {
             http_response_code(400);
             echo json_encode(['error' => 'Invalid date_logged format: ' . $e->getMessage()]);
             return;
+        }
+        if ($is_bare_date && $dt > $now && $dt->format('Y-m-d') === $now->format('Y-m-d')) {
+            $dt = $now; // today's noon hasn't happened yet: use the current time
         }
         if ($dt > $now) {
             http_response_code(400);
@@ -603,11 +662,33 @@ if ($todos_path === '/list') {
     } else {
         $dt = $now;
     }
-    $today = $dt->format('Y-m-d');
+    $today = \ActivityTracking\DailyCap::logicalDay($dt);
     $date_logged = $dt->format('Y-m-d H:i:s');
 
     $completionCount = $todoHelper->getCompletionCount($todo_id, $today);
     $nth = $completionCount + 1;
+
+    // A retried tick: this session already completed the todo, so answer with
+    // that row and skip the cap (the cap would misread the retry as a new tick).
+    $existing_completion = $todoHelper->findCompletionForSession($todo_id, $ak_id);
+    if ($existing_completion !== null) {
+        echo json_encode([
+            'success' => true,
+            'log_id' => $existing_completion['log_id'],
+            'nth' => $existing_completion['nth'],
+            'date_logged' => $existing_completion['date_logged'],
+            'already_completed' => true
+        ]);
+        return;
+    }
+
+    // Every caller stops ticking at the todo's daily target.
+    $target = $todoHelper->getTodo($todo_id);
+    $target_count = $target === null ? null : \Field::intOrNull($target, 'target_count');
+    if (\ActivityTracking\DailyCap::reached($completionCount, $target_count)) {
+        echo json_encode(['success' => true, 'capped' => true, 'log_id' => 0]);
+        return;
+    }
 
     // INSERT IGNORE + unique(todo_id, ak_id) prevents duplicate completions
     $log_id = $todoHelper->logCompletion(

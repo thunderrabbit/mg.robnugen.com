@@ -251,6 +251,54 @@ class ActivityKai
     }
 
     /**
+     * The activity a user's session belongs to.
+     *
+     * @param int $ak_id Activity session ID
+     * @param int $user_id User ID (for security check)
+     * @return int|null activity_id, or null if the session is missing or not the user's
+     */
+    public function activityIdOf(int $ak_id, int $user_id): ?int
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT activity_id
+            FROM activity_kai
+            WHERE ak_id = ? AND user_id = ?
+        ");
+
+        $stmt->execute([$ak_id, $user_id]);
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        return is_array($result) ? \Field::int($result, 'activity_id') : null;
+    }
+
+    /**
+     * Find an existing session with the same user, activity, start and duration
+     *
+     * Lets a retried backfill return the first session instead of a duplicate.
+     *
+     * @param int $user_id User ID
+     * @param int $activity_id Activity ID
+     * @param string $start_local_dt Local start time, Y-m-d H:i:s
+     * @param int $actual_sec Duration in seconds
+     * @return int|null ak_id of the matching session, or null
+     */
+    public function findBackfill(int $user_id, int $activity_id, string $start_local_dt, int $actual_sec): ?int
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT ak_id
+            FROM activity_kai
+            WHERE user_id = ? AND activity_id = ? AND start_local_dt = ? AND actual_sec = ?
+            ORDER BY ak_id
+            LIMIT 1
+        ");
+
+        $stmt->execute([$user_id, $activity_id, $start_local_dt, $actual_sec]);
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        return is_array($result) ? \Field::int($result, 'ak_id') : null;
+    }
+
+    /**
      * Delete an activity session
      *
      * @param int $ak_id Activity session ID
