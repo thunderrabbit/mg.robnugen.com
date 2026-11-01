@@ -5,7 +5,7 @@
  *
  * Inaugurated: 2026-06-16
  *
- * Called by claude.ai when Rob clicks "Add connector". Rob must be logged in
+ * Called by claude.ai when Rob clicks "Add connector" (and by BG Bells, see below). Rob must be logged in
  * to approve. On approval, a short-lived code is issued and the browser is
  * redirected back to claude.ai with that code. claude.ai then exchanges the
  * code (+ PKCE verifier) for an access token at /mcp/token.php.
@@ -18,6 +18,12 @@
  *
  * POST /authorize/ (form submit with hidden params + chosen aiu_id)
  *      → generate code, remember consent → redirect to redirect_uri?code=...&state=...
+ *
+ * The pinned client `bgbells` (mobile app, redirect bgbells://oauth/callback)
+ * skips the picker: it is bound to the logged-in user's actor named
+ * "BG Bells" (mg #801 for per-user actors), always shows its own Allow / Deny
+ * page and never reissues a code silently. Its token is limited to the todos
+ * granted to that actor.
  *
  * @see wwwroot/mcp/token.php  — exchanges the code for an access token
  * @see wwwroot/.well-known/oauth-authorization-server  — discovery metadata
