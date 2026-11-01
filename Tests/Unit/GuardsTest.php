@@ -193,4 +193,58 @@ class GuardsTest extends Unit
             $this->guards->decodedText(['message' => $bomb, 'encoding' => 'gzip+base64'], 'message'),
         );
     }
+
+    // === limited actors ===
+
+    public function testLimitedRouteAllowsOnlyTheFiveRoutes(): void
+    {
+        $lim = ['todos_limited' => 1];
+        foreach (
+            [
+                ['GET', '/todos/granted'], ['POST', '/todos/complete-with-session'],
+                ['POST', '/sessions'], ['POST', '/sessions/backfill'], ['PATCH', '/sessions/12/stop'],
+            ] as [$method, $path]
+        ) {
+            $this->assertNull($this->guards->limitedRoute($lim, $method, $path), "$method $path");
+        }
+        foreach (
+            [
+                ['GET', '/todos/list'], ['POST', '/todos/complete'], ['DELETE', '/sessions/12'],
+                ['POST', '/activities'], ['GET', '/sessions'], ['GET', '/inbox'], ['PATCH', '/sessions/12/pause'],
+            ] as [$method, $path]
+        ) {
+            $this->assertSame(
+                ['code' => 403, 'error' => 'This app may not use this endpoint'],
+                $this->guards->limitedRoute($lim, $method, $path),
+                "$method $path",
+            );
+        }
+    }
+
+    public function testLimitedRouteIgnoresUnlimitedActors(): void
+    {
+        $this->assertNull($this->guards->limitedRoute(['todos_limited' => 0], 'DELETE', '/sessions/12'));
+        $this->assertFalse($this->guards->isLimited(['todos_limited' => 0]));
+        $this->assertTrue($this->guards->isLimited(['todos_limited' => '1']));
+    }
+
+    public function testTodoGuardRefusesUngrantedWithNotFoundWording(): void
+    {
+        $lim = ['todos_limited' => 1];
+        $verdict = $this->guards->todo($lim, 5, [7]);
+        $this->assertSame(403, $verdict['code'] ?? null);
+        $this->assertSame('Todo not found or access denied', $verdict['error']);
+        $this->assertNull($this->guards->todo($lim, 7, [7]));
+        $this->assertNull($this->guards->todo(['todos_limited' => 0], 5, []));
+    }
+
+    public function testActivityGuard(): void
+    {
+        $lim = ['todos_limited' => 1];
+        $verdict = $this->guards->activity($lim, 2, [1]);
+        $this->assertSame(403, $verdict['code'] ?? null);
+        $this->assertSame('This app may not log that activity', $verdict['error']);
+        $this->assertNull($this->guards->activity($lim, 1, [1]));
+        $this->assertNull($this->guards->activity(['todos_limited' => 0], 2, []));
+    }
 }

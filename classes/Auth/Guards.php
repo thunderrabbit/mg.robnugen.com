@@ -106,4 +106,71 @@ class Guards
             return ['code' => 400, 'error' => $e->getMessage()];
         }
     }
+
+    /**
+     * Whether the actor is limited to its granted todos (todos_limited = 1).
+     *
+     * @param array<string, mixed> $auth_actor agent_inbox_user row of the key.
+     */
+    public function isLimited(array $auth_actor): bool
+    {
+        return !empty($auth_actor['todos_limited']);
+    }
+
+    /**
+     * Refuse every endpoint a limited actor has not been opened to.
+     *
+     * A limited actor (the BG Bells app, mg #801) may only list its granted
+     * todos, complete one with a session, and start, backfill and stop
+     * sessions. Unlimited actors pass through untouched.
+     *
+     * @param array<string, mixed> $auth_actor agent_inbox_user row of the key.
+     * @param string               $method     HTTP method, upper case.
+     * @param string               $path       Route path, e.g. '/sessions/12/stop'.
+     * @return array{code: int, error: string}|null null if permitted, else ['code'=>403,'error'=>...].
+     */
+    public function limitedRoute(array $auth_actor, string $method, string $path): ?array
+    {
+        if (!$this->isLimited($auth_actor)) {
+            return null;
+        }
+        $allowed = match ($method) {
+            'GET' => $path === '/todos/granted',
+            'POST' => in_array($path, ['/todos/complete-with-session', '/sessions', '/sessions/backfill'], true),
+            'PATCH' => preg_match('#^/sessions/\d+/stop$#', $path) === 1,
+            default => false,
+        };
+        return $allowed ? null : ['code' => 403, 'error' => 'This app may not use this endpoint'];
+    }
+
+    /**
+     * Refuse a todo a limited actor was not granted. The wording matches the
+     * not-owned refusal, so a refusal never reveals whether the todo exists.
+     *
+     * @param array<string, mixed> $auth_actor        agent_inbox_user row of the key.
+     * @param list<int>            $granted_todo_ids  Ids from TodoGrants::todoIds().
+     * @return array{code: int, error: string}|null null if permitted, else ['code'=>403,'error'=>...].
+     */
+    public function todo(array $auth_actor, int $todo_id, array $granted_todo_ids): ?array
+    {
+        if ($this->isLimited($auth_actor) && !in_array($todo_id, $granted_todo_ids, true)) {
+            return ['code' => 403, 'error' => 'Todo not found or access denied'];
+        }
+        return null;
+    }
+
+    /**
+     * Refuse a session activity that none of a limited actor's granted todos use.
+     *
+     * @param array<string, mixed> $auth_actor            agent_inbox_user row of the key.
+     * @param list<int>            $granted_activity_ids  Ids from TodoGrants::activityIds().
+     * @return array{code: int, error: string}|null null if permitted, else ['code'=>403,'error'=>...].
+     */
+    public function activity(array $auth_actor, int $activity_id, array $granted_activity_ids): ?array
+    {
+        if ($this->isLimited($auth_actor) && !in_array($activity_id, $granted_activity_ids, true)) {
+            return ['code' => 403, 'error' => 'This app may not log that activity'];
+        }
+        return null;
+    }
 }
