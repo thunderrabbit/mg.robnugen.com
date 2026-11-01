@@ -112,6 +112,16 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
 - First-time setup redirects to admin user creation unless visiting `/login/register.php`
 - Login state managed by `Auth\IsLoggedIn` class
 
+### Connected apps (limited actors)
+
+An actor with `agent_inbox_user.todos_limited = 1` is a "limited actor": a third-party app (BG Bells) that may touch only the todos listed for it in `aiu_todo_grants` (`db_schemas/41_aiu_todo_grants/`, read through `Auth\TodoGrants`).
+
+- `Auth\Guards::isLimited()` spots them; `limitedRoute()` lets them reach only `GET /todos/granted`, `POST /todos/complete-with-session`, `POST /sessions`, `POST /sessions/backfill` and `PATCH /sessions/{id}/stop`; `todo()` and `activity()` refuse anything not granted with the same `Todo not found or access denied` 403 as a todo they don't own.
+- `wwwroot/api/v1/index.php` takes `Authorization: Bearer` (resolved by `Auth\BearerToken`) only from limited actors; every other actor gets 401 `Use X-API-Key`. `wwwroot/mcp/index.php` refuses limited actors outright.
+- `/mcp/token.php` gives limited actors a 31-day sliding refresh token instead of 400 days (`Auth\TokenLifetime`). A password change revokes all connected apps via `ConnectedApps::revokeAll`.
+- The `bgbells` client (`Auth\OAuthClients`, redirect `bgbells://oauth/callback`) is pinned on `/authorize` to the account's actor named `BG Bells` (a hand-made actor; per-user actors are mg #801) and always shows Allow/Deny, never a silent reissue.
+- v1 `/todos/complete-with-session` applies the daily cap (logical day starts 03:00) to every caller; the web UI copy is unchanged.
+
 ## Development Notes
 
 - No runtime dependencies — pure PHP with custom autoloader. `composer.json` holds dev tools (Codeception, phpcs, PHPStan) plus the platform requirement (PHP 8.5 and the extensions in `Startup\RequiredExtensions`; `prepend.php` fails by name if one is missing, so keep the two lists in step); `vendor/` is never deployed
