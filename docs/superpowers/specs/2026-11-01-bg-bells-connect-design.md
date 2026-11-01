@@ -73,7 +73,16 @@ BG Bells.
 - **No remembered consent for `bgbells`:** the Allow page is always shown. `client_id` is
   self-asserted and any app can claim `bgbells://`, so a remembered consent would let a
   rogue app start its own flow (with its own verifier) and get a code silently. Connecting
-  is rare (the refresh token lives 400 days), so the extra tap is cheap. My call.
+  is rare (see the idle timeout below), so the extra tap is cheap. My call. This is the
+  *connect* page only: posting sits never shows it.
+- **Idle timeout: 31 days** (Rob, 2026-11-01). Rob approves once; BG Bells then stays
+  connected by refreshing silently. For tokens issued to a `todos_limited` actor,
+  `/mcp/token.php` sets the refresh token's life to 31 days instead of 400, and each
+  refresh (rotation) restarts the 31 days, as it already does. Access tokens stay 24
+  hours. So a sit posted at least once a month keeps the approval alive indefinitely;
+  after more than 31 days with no calls, the next call gets 401 and the refresh fails,
+  and the app asks Rob to press Allow again. The app should refresh whenever it is
+  about to post, not on a timer.
 - Only `client_id=bgbells` may use the `bgbells://oauth/callback` redirect, and vice versa.
 - The pinned actor bypasses the approval page's existing actor filter (which lists only
   actors with `can_read_project`).
@@ -243,6 +252,8 @@ Revoke BG Bells in settings → the same calls give 401.
 - A limited actor may not delete sessions. When the app posts a sit is decided in the
   BG Bells spec, with its designer.
 - The daily cap does not touch the web UI.
+- Approve once; the approval lapses only after more than 31 days unused, and each use
+  renews it.
 
 ## My calls (mgClaude), for Rob to check
 
