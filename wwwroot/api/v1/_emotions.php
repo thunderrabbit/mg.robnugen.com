@@ -6,7 +6,8 @@
  * @var \PDO $pdo
  * @var string $raw_key
  * @var int $auth_user_id
- * @var int $auth_key_id
+ * @var ?int $auth_key_id
+ * @var ?int $auth_token_id
  * @var array<string, mixed> $auth_actor
  * @var string $method
  * @var string $path
@@ -23,6 +24,15 @@ declare(strict_types=1);
 //   $pdo            — PDO connection
 //   $method         — HTTP method
 //   $path           — URL path relative to /api/v1 (e.g. /emotions/vocab)
+
+// Emotions are encrypted under the caller's raw API key and keyed by api_keys.key_id,
+// so a Bearer caller (no key) cannot use them. limitedRoute already refuses the
+// only Bearer-capable actors; this makes the dependency explicit and type-safe.
+if ($auth_key_id === null) {
+    http_response_code(401);
+    echo json_encode(['error' => 'Use X-API-Key']);
+    exit;
+}
 
 $emotions_path = rtrim(preg_replace('#^/emotions#', '', $path) ?? '', '/') ?: '/';
 

@@ -23,7 +23,8 @@ declare(strict_types=1);
  * @var \PDO $pdo
  * @var \Auth\Guards $guards
  * @var int $auth_user_id
- * @var int $auth_key_id
+ * @var ?int $auth_key_id
+ * @var ?int $auth_token_id
  * @var string $method
  * @var string $path
  * @var array<string, mixed> $auth_actor
@@ -99,7 +100,7 @@ if ($method === 'POST' && $sub === '/create') {
         return;
     }
 
-    require_credit($pdo, $auth_user_id, $auth_key_id, 'repositories/create');
+    require_credit($pdo, $auth_user_id, $auth_key_id, 'repositories/create', $auth_token_id);
 
     $stmt = $pdo->prepare(
         "INSERT INTO repositories (user_id, name, url, default_branch)
@@ -176,7 +177,7 @@ if ($method === 'PATCH' && $sub === '/update') {
         $params[] = $default_branch;
     }
 
-    require_credit($pdo, $auth_user_id, $auth_key_id, 'repositories/update');
+    require_credit($pdo, $auth_user_id, $auth_key_id, 'repositories/update', $auth_token_id);
 
     $params[] = $repo_id;
     $params[] = $auth_user_id;
@@ -206,7 +207,7 @@ if ($method === 'PATCH' && $sub === '/deactivate') {
         return;
     }
 
-    require_credit($pdo, $auth_user_id, $auth_key_id, 'repositories/deactivate');
+    require_credit($pdo, $auth_user_id, $auth_key_id, 'repositories/deactivate', $auth_token_id);
 
     $stmt = $pdo->prepare(
         "UPDATE repositories SET is_active = 0 WHERE repo_id = ? AND user_id = ?"

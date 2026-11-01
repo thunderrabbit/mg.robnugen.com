@@ -20,7 +20,8 @@ declare(strict_types=1);
  *
  * @var \PDO $pdo
  * @var int $auth_user_id
- * @var int $auth_key_id
+ * @var ?int $auth_key_id
+ * @var ?int $auth_token_id
  * @var array<string, mixed> $auth_actor
  * @var \Auth\Guards $guards
  * @var \Auth\TodoGrants $todo_grants
@@ -213,7 +214,7 @@ if ($method === 'POST' && $is_backfill) {
         exit;
     }
 
-    require_credit($pdo, $auth_user_id, $auth_key_id, $path);
+    require_credit($pdo, $auth_user_id, $auth_key_id, $path, $auth_token_id);
 
     $timezoneHelper = new \ActivityTracking\Timezone($pdo);
     $timezone_id    = $timezoneHelper->getTimezoneId($timezone_str);
@@ -282,7 +283,7 @@ if ($method === 'POST' && $ak_id === null) {
         exit;
     }
 
-    require_credit($pdo, $auth_user_id, $auth_key_id, $path);
+    require_credit($pdo, $auth_user_id, $auth_key_id, $path, $auth_token_id);
 
     $timezoneHelper = new \ActivityTracking\Timezone($pdo);
     $timezone_id    = $timezoneHelper->getTimezoneId($timezone_str);

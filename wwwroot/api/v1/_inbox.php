@@ -36,7 +36,8 @@ declare(strict_types=1);
  * @var \PDO $pdo
  * @var \Auth\Guards $guards
  * @var int $auth_user_id
- * @var int $auth_key_id
+ * @var ?int $auth_key_id
+ * @var ?int $auth_token_id
  * @var array<string, mixed> $auth_actor
  * @var string $method
  * @var string $path
@@ -246,7 +247,7 @@ if ($method === 'GET' && $sub === '/list') {
     }
 
     // Credit deducted only after validation passes, so invalid requests don't drain credits
-    require_credit($pdo, $auth_user_id, $auth_key_id, 'inbox/send');
+    require_credit($pdo, $auth_user_id, $auth_key_id, 'inbox/send', $auth_token_id);
 
     $stmt = $pdo->prepare(
         "INSERT INTO agent_inbox (user_id, message, priority, show_date, sender_timezone, sender_aiu, recipient_aiu)
