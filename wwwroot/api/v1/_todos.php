@@ -611,6 +611,21 @@ if ($todos_path === '/granted') {
         return;
     }
 
+    // A limited actor may only link sessions of the activities its todos use.
+    if ($guards->isLimited($auth_actor)) {
+        $session_activity_id = $activityHelper->activityIdOf($ak_id, $auth_user_id);
+        $activity_verdict = $guards->activity(
+            $auth_actor,
+            $session_activity_id ?? 0,
+            $todo_grants->activityIds(\Field::int($auth_actor, 'aiu_id'))
+        );
+        if ($activity_verdict !== null) {
+            http_response_code($activity_verdict['code']);
+            echo json_encode(['error' => $activity_verdict['error']]);
+            return;
+        }
+    }
+
     try {
         $tz = new \DateTimeZone($timezone);
     } catch (\Exception $e) {
