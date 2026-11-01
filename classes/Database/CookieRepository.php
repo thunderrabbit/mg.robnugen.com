@@ -14,7 +14,10 @@ namespace Database;
  * expired rows, which keeps the table bounded without a cron entry.
  *
  * Timestamps are computed in PHP and the SQL kept portable so the Unit suite
- * can drive this on an in-memory SQLite.
+ * can drive this on an in-memory SQLite. They are written in UTC: the PDO
+ * session runs in UTC (Database\Base), so a local-time string would be read
+ * back hours off. created_at is MySQL's own CURRENT_TIMESTAMP, also UTC there,
+ * so the three columns agree and the devices page can say how long ago.
  */
 class CookieRepository
 {
@@ -33,7 +36,9 @@ class CookieRepository
         private \PDO $di_pdo,
         ?\DateTimeImmutable $now = null,
     ) {
-        $this->now = $now ?? new \DateTimeImmutable();
+        // UTC before any arithmetic: "+30 days" in America/Los_Angeles is an
+        // hour short or long across a DST change, and the column is UTC anyway.
+        $this->now = ($now ?? new \DateTimeImmutable())->setTimezone(new \DateTimeZone('UTC'));
     }
 
     public function issue(
