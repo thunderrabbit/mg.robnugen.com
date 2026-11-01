@@ -5,8 +5,8 @@
  *
  * Inaugurated: 2026-06-16
  *
- * Called by claude.ai when Rob clicks "Add connector" (and by BG Bells, see below). Rob must be logged in
- * to approve. On approval, a short-lived code is issued and the browser is
+ * Called by claude.ai when Rob clicks "Add connector" (and by BG Bells, see
+ * below). Rob must be logged in to approve. On approval, a short-lived code is issued and the browser is
  * redirected back to claude.ai with that code. claude.ai then exchanges the
  * code (+ PKCE verifier) for an access token at /mcp/token.php.
  *
