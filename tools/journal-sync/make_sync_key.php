@@ -5,12 +5,14 @@
  * make the "Journal Sync" actor (journal_sync = 1, no other permission), and
  * print a fresh API key for it on STDOUT.
  *
- *     ssh mg 'cd mg.robnugen.com && php tools/journal-sync/make_sync_key.php' \
+ *     ssh mg 'cd mg.robnugen.com && /usr/local/php85/bin/php tools/journal-sync/make_sync_key.php --user-id=1' \
  *         > ~/.config/journal-sync/mg.key      # with umask 077
+ *
+ * The server's plain `php` is 8.2; mg needs 8.5, hence the full path.
  *
  * Only the key goes to STDOUT, so it can be redirected straight into the key
  * file on Lemur 13 without being shown anywhere; progress goes to STDERR.
- * The key belongs to the one admin account. Running it again mints another
+ * The key belongs to the admin account given (required when there are several). Running it again mints another
  * key (mg allows two active per actor); revoke the old one in Settings.
  */
 
@@ -39,13 +41,22 @@ foreach ($schema->getPendingMigrations() as $migration) {
     }
 }
 
+$options = getopt('', ['user-id:']);
 $admins = $pdo->query("SELECT user_id FROM users WHERE role = 'admin' ORDER BY user_id");
-$admin_ids = $admins === false ? [] : $admins->fetchAll(\PDO::FETCH_COLUMN);
-if (count($admin_ids) !== 1) {
-    $say('REFUSED: expected exactly one admin account, found ' . count($admin_ids));
+$admin_ids = array_map(\Field::toInt(...), $admins === false ? [] : $admins->fetchAll(\PDO::FETCH_COLUMN));
+$wanted = is_array($options) ? \Field::int($options, 'user-id') : 0;
+if ($wanted !== 0) {
+    if (!in_array($wanted, $admin_ids, true)) {
+        $say("REFUSED: user $wanted is not an admin account");
+        exit(1);
+    }
+    $user_id = $wanted;
+} elseif (count($admin_ids) === 1) {
+    $user_id = $admin_ids[0];
+} else {
+    $say('REFUSED: ' . count($admin_ids) . ' admin accounts; name one with --user-id=N');
     exit(1);
 }
-$user_id = \Field::toInt($admin_ids[0]);
 
 $find = $pdo->prepare("SELECT aiu_id FROM agent_inbox_user WHERE user_id = ? AND name = 'Journal Sync'");
 $find->execute([$user_id]);
