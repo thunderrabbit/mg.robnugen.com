@@ -247,4 +247,24 @@ class GuardsTest extends Unit
         $this->assertNull($this->guards->activity($lim, 1, [1]));
         $this->assertNull($this->guards->activity(['todos_limited' => 0], 2, []));
     }
+
+    // === journalRoute() ===
+
+    public function testJournalSyncKeyReachesOnlyJournalSync(): void
+    {
+        $sync = ['journal_sync' => 1];
+        $this->assertNull($this->guards->journalRoute($sync, '/journal-sync/files'));
+        $this->assertNull($this->guards->journalRoute($sync, '/journal-sync'));
+        foreach (['/todos', '/inbox', '/journal-syncx', '/'] as $path) {
+            $this->assertSame(403, $this->guards->journalRoute($sync, $path)['code'] ?? null, $path);
+        }
+    }
+
+    public function testOtherKeysNeverReachJournalSync(): void
+    {
+        foreach ([[], ['journal_sync' => 0], ['journal_sync' => '0'], ['can_read_inbox' => 1]] as $actor) {
+            $this->assertSame(403, $this->guards->journalRoute($actor, '/journal-sync/edits')['code'] ?? null);
+            $this->assertNull($this->guards->journalRoute($actor, '/todos'));
+        }
+    }
 }
