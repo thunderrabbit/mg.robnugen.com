@@ -100,6 +100,14 @@ if ($limited_verdict !== null) {
     echo json_encode(['error' => $limited_verdict['error']]);
     exit;
 }
+// ── Journal sync (Lemur 13) ─────────────────────────────────────────────────
+// The sync key reaches only /journal-sync; no other key reaches it.
+$journal_verdict = $guards->journalRoute($auth_actor, $path);
+if ($journal_verdict !== null) {
+    http_response_code($journal_verdict['code']);
+    echo json_encode(['error' => $journal_verdict['error']]);
+    exit;
+}
 $todo_grants = new \Auth\TodoGrants($pdo);   // shared by handler includes
 
 // ── Credit enforcement + usage logging ───────────────────────────────────────
@@ -181,6 +189,8 @@ if ($path === '/sessions' || preg_match('#^/sessions(/|$)#', $path)) {
     include __DIR__ . '/_exterm.php';
 } elseif ($path === '/notify' || preg_match('#^/notify(/|$)#', $path)) {
     include __DIR__ . '/_notify.php';
+} elseif ($path === '/journal-sync' || preg_match('#^/journal-sync(/|$)#', $path)) {
+    include __DIR__ . '/_journal_sync.php';
 } else {
     http_response_code(404);
     echo json_encode(['error' => 'Not found']);
