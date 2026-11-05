@@ -123,6 +123,15 @@ An actor with `agent_inbox_user.todos_limited = 1` is a "limited actor": a third
 - The `bgbells` client (`Auth\OAuthClients`, redirect `bgbells://oauth/callback`) is pinned on `/authorize` to the account's actor named `BG Bells` (a hand-made actor; per-user actors are mg #801) and always shows Allow/Deny, never a silent reissue.
 - v1 `/todos/complete-with-session` applies the daily cap (logical day starts 03:00) to every caller; the web UI copy is unchanged.
 
+### Journal editing (Lemur 13 sync)
+
+`/journal/` lets Rob edit recent journal entries from his phone; Lemur 13 syncs them. Design: `docs/superpowers/specs/2026-11-05-journal-editing-design.md`.
+
+- Lemur 13 runs a **pinned copy** at `~/work/carrie/journal-sync/`, called at the end of `~/work/carrie/run.sh`. Changing `classes/Journal/*` or `tools/journal-sync/journal_sync.php` does nothing on Lemur 13 until `tools/journal-sync/install.sh` is re-run.
+- Its key (`~/.config/journal-sync/mg.key`, 0600) belongs to actor `Journal Sync` with `agent_inbox_user.journal_sync = 1`. `Guards::journalRoute()` keeps that key to `/journal-sync` and every other key out of it.
+- `Journal\EntryCheck` is the one save check, run by mg on Save and by Lemur 13 before writing. Those classes also run under Lemur 13's PHP 8.1 (no curl extension), so keep them free of 8.2+ syntax.
+- On the server, plain `php` is 8.2; use `/usr/local/php85/bin/php` for CLI tools.
+
 ## Development Notes
 
 - No runtime dependencies — pure PHP with custom autoloader. `composer.json` holds dev tools (Codeception, phpcs, PHPStan) plus the platform requirement (PHP 8.5 and the extensions in `Startup\RequiredExtensions`; `prepend.php` fails by name if one is missing, so keep the two lists in step); `vendor/` is never deployed

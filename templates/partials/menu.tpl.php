@@ -38,6 +38,9 @@ if (isset($is_logged_in) && is_object($is_logged_in) && method_exists($is_logged
         <a href="/projects/">Projects</a> |
         <a href="/repositories/">Repositories</a> |
     <?php endif; ?>
+    <?php if ($user_is_admin): ?>
+        <a href="/journal/">Journal</a> |
+    <?php endif; ?>
 
     <?php if ($user_is_logged_in): ?>
         <div class="dropdown">

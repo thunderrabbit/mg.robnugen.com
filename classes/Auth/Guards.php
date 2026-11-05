@@ -144,6 +144,31 @@ class Guards
     }
 
     /**
+     * Keep journal syncing and everything else apart, in both directions.
+     *
+     * The Lemur 13 sync key (agent_inbox_user.journal_sync = 1) may reach
+     * /journal-sync and nothing else; no other key may reach /journal-sync.
+     * So a leaked sync key exposes recent journal files and nothing more, and
+     * no ordinary key can read the journal.
+     *
+     * @param array<string, mixed> $auth_actor agent_inbox_user row of the key.
+     * @param string               $path       Route path, e.g. '/journal-sync/files'.
+     * @return array{code: int, error: string}|null null if permitted, else ['code'=>403,'error'=>...].
+     */
+    public function journalRoute(array $auth_actor, string $path): ?array
+    {
+        $is_sync_key = !empty($auth_actor['journal_sync']);
+        $is_journal = $path === '/journal-sync' || str_starts_with($path, '/journal-sync/');
+        if ($is_sync_key && !$is_journal) {
+            return ['code' => 403, 'error' => 'This key may only sync journal files'];
+        }
+        if (!$is_sync_key && $is_journal) {
+            return ['code' => 403, 'error' => 'This API key may not sync journal files'];
+        }
+        return null;
+    }
+
+    /**
      * Refuse a todo a limited actor was not granted. The wording matches the
      * not-owned refusal, so a refusal never reveals whether the todo exists.
      *
