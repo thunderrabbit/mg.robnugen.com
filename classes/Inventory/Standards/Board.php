@@ -27,26 +27,37 @@ final class Board
     /**
      * Every standard with its sites and its untried ideas.
      *
-     * @return list<array{slug: string, name: string, proven: int, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, deployed_branch: string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}>, ideas: list<array{track: string, title: string}>}>
+     * @return list<array{slug: string, name: string, proven: int, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, deployed_branch: string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}>, ideas: list<array{slug: string, track: string, title: string, practising: list<array{shortcode: string, issue: NoteIssue}>}>}>
      */
     public function standards(): array
     {
         $standards = [];
         foreach ($this->rows('SELECT std_standard_id, slug, name FROM std_standards ORDER BY name') as $standard) {
             $standardId = RowValue::int($standard, 'std_standard_id');
-            $ideas = [];
-            foreach ($this->stepsOf($standardId) as $step) {
-                if (RowValue::string($step, 'status') === StepStatus::Idea->value) {
-                    $ideas[] = [
-                        'track' => RowValue::string($step, 'track_name'),
-                        'title' => RowValue::string($step, 'title'),
-                    ];
-                }
-            }
             $sites = [];
             $rows = $this->rows('SELECT * FROM std_sites WHERE std_standard_id = ? ORDER BY shortcode', [$standardId]);
             foreach ($rows as $site) {
                 $sites[] = $this->site($site);
+            }
+            $ideas = [];
+            foreach ($this->stepsOf($standardId) as $step) {
+                if (RowValue::string($step, 'status') !== StepStatus::Idea->value) {
+                    continue;
+                }
+                $slug = RowValue::string($step, 'slug');
+                // A site with a note on an idea is the site practising it.
+                $practising = [];
+                foreach ($sites as $site) {
+                    foreach ($site['report']->ideaNotes[$slug] ?? [] as $issue) {
+                        $practising[] = ['shortcode' => $site['shortcode'], 'issue' => $issue];
+                    }
+                }
+                $ideas[] = [
+                    'slug' => $slug,
+                    'track' => RowValue::string($step, 'track_name'),
+                    'title' => RowValue::string($step, 'title'),
+                    'practising' => $practising,
+                ];
             }
             $standards[] = [
                 'slug' => RowValue::string($standard, 'slug'),

@@ -5,7 +5,7 @@
  * crying-laughing face for a site nobody can reach yet.
  *
  * @var array{id: int, swept_on: string, previous_id: int|null, previous_on: string|null}|null $sweep
- * @var list<array{slug: string, name: string, proven: int, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, deployed_branch: string, last_checked_utc: ?string, skipped_reason: ?string, report: \Inventory\Standards\SiteReport}>, ideas: list<array{track: string, title: string}>}> $standards
+ * @var list<array{slug: string, name: string, proven: int, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, deployed_branch: string, last_checked_utc: ?string, skipped_reason: ?string, report: \Inventory\Standards\SiteReport}>, ideas: list<array{slug: string, track: string, title: string, practising: list<array{shortcode: string, issue: \Inventory\Standards\NoteIssue}>}>}> $standards
  */
 
 use Inventory\Standards\Names;
@@ -116,10 +116,26 @@ Every site here is working, so nothing on this page is urgent.</small></p>
     <?php endforeach; ?>
 
     <?php if ($standard['ideas'] !== []): ?>
-        <h4>Ideas not yet tried on any site</h4>
+        <h4>Ideas</h4>
+        <p><small>A step becomes proven when the site practising it deploys the work and the step file is
+            deployed on mg as proven. Until then an idea counts against no one.</small></p>
         <table class="StdSteps">
             <?php foreach ($standard['ideas'] as $idea): ?>
-                <tr><th scope="row"><?= $h($idea['track']) ?></th><td><?= $h($idea['title']) ?></td></tr>
+                <tr>
+                    <th scope="row"><?= $h($idea['track']) ?></th>
+                    <td>
+                        <?= $h($idea['title']) ?>
+                        <?php if ($idea['practising'] === []): ?>
+                            <span class="StdNote">nobody is practising it yet</span>
+                        <?php else: ?>
+                            <?php foreach ($idea['practising'] as $who): ?>
+                                <span class="StdNote">practised on <strong><?= $h($who['shortcode']) ?></strong>:
+                                    <a href="/issues/view.php?issue_id=<?= $who['issue']->issueId ?>">#<?= $who['issue']->issueId ?>
+                                        <?= $h($who['issue']->statusLabel) ?></a></span>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </td>
+                </tr>
             <?php endforeach; ?>
         </table>
     <?php endif; ?>
