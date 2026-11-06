@@ -17,4 +17,5 @@ be worked.
 2. Clone it under `~/work` on Lemur 13.
 3. Record both:
    `tools/site-standards/site.sh site-set --shortcode=<shortcode> --github=<owner>/<name> --checkout=<path under ~/work>`
-4. If the site's trunk is not `master`, record that too with `--trunk=`.
+4. Record which branch is deployed, if it is not `master`: `--deployed=<branch>`.
+   The scanner checks the checkout only when it is on that branch.

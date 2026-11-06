@@ -5,7 +5,7 @@
  * crying-laughing face for a site nobody can reach yet.
  *
  * @var array{id: int, swept_on: string, previous_id: int|null, previous_on: string|null}|null $sweep
- * @var list<array{slug: string, name: string, proven: int, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, last_checked_utc: ?string, skipped_reason: ?string, report: \Inventory\Standards\SiteReport}>, ideas: list<array{track: string, title: string}>}> $standards
+ * @var list<array{slug: string, name: string, proven: int, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, deployed_branch: string, last_checked_utc: ?string, skipped_reason: ?string, report: \Inventory\Standards\SiteReport}>, ideas: list<array{track: string, title: string}>}> $standards
  */
 
 use Inventory\Standards\Names;
@@ -93,10 +93,11 @@ Every site here is working, so nothing on this page is urgent.</small></p>
                     Notes live in <a href="/projects/view.php?project_id=<?= $site['project_id'] ?>">project
                     <?= $site['project_id'] ?></a>.
                 <?php endif; ?>
+                Deployed branch <code><?= $h($site['deployed_branch']) ?></code>,
                 <?php if ($site['last_checked_utc'] === null): ?>
-                    Trunk not checked yet.
+                    not checked yet.
                 <?php else: ?>
-                    Trunk last checked <?= $h($site['last_checked_utc']) ?> UTC.
+                    last checked <?= $h($site['last_checked_utc']) ?> UTC.
                 <?php endif; ?>
                 <?php if ($site['skipped_reason'] !== null): ?>
                     The latest scan skipped it: <?= $h($site['skipped_reason']) ?>.
