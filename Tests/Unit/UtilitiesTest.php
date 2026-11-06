@@ -157,4 +157,20 @@ class UtilitiesTest extends Unit
         // safe mode URL-encodes the colon so the browser won't treat it as a javascript: URL
         $this->assertStringNotContainsString('href="javascript:', $html);
     }
+
+    public function testRenderMarkdownTurnsALineEndIntoABreakByDefault(): void
+    {
+        $this->assertStringContainsString('<br', \Utilities::renderMarkdown("one\ntwo"));
+    }
+
+    public function testRenderMarkdownCanLeaveHardWrappedTextAsOneParagraph(): void
+    {
+        $html = \Utilities::renderMarkdown("one\ntwo", breaks: false);
+
+        $this->assertStringNotContainsString('<br', $html);
+        $this->assertStringContainsString('one', $html);
+        $this->assertStringContainsString('two', $html);
+        // The switch is per call: the next default call breaks lines again.
+        $this->assertStringContainsString('<br', \Utilities::renderMarkdown("one\ntwo"));
+    }
 }
