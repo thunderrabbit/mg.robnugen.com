@@ -121,13 +121,20 @@ final class StandardsImporter
             }
         }
 
-        // A standard whose directory is gone has no step files left at all.
+        // A whole standard missing from the document is far more likely a scan
+        // read from the wrong ref than a standard someone meant to remove, and
+        // retiring its steps would leave every site looking up to date.
         foreach ($this->rows('SELECT std_standard_id, slug FROM std_standards') as $standard) {
-            if (isset($inFiles[RowValue::string($standard, 'slug')])) {
+            $slug = RowValue::string($standard, 'slug');
+            if (isset($inFiles[$slug])) {
                 continue;
             }
             foreach ($this->stepsOf(RowValue::int($standard, 'std_standard_id')) as $row) {
-                $this->retire($row, $retiredOn, $scanId);
+                if (RowValue::stringOrNull($row, 'retired_on') === null) {
+                    throw new ScanRefusedException(
+                        "the scan has no step files for the standard {$slug}, which still has steps"
+                    );
+                }
             }
         }
     }

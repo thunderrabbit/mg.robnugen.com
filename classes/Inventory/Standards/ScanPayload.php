@@ -56,6 +56,10 @@ final readonly class ScanPayload
             }
             $files[$path] = $content;
         }
+        if ($files === []) {
+            // An empty tree would read as "every step was deleted" and retire them all.
+            throw new StandardsFormatException('the document carries no step files');
+        }
 
         $sites = [];
         $seen = [];

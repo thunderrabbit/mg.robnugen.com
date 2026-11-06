@@ -199,4 +199,14 @@ final class StandardsScanPayloadTest extends Unit
 
         $this->refuses($data, '#template/_standard\.md#');
     }
+
+    public function testRefusesADocumentWithNoStepFiles(): void
+    {
+        // An empty tree would otherwise look like every step had been deleted.
+        $data = $this->good();
+        $data['files'] = [];
+        $data['sites'] = [];
+
+        $this->refuses($data, '/no step files/');
+    }
 }
