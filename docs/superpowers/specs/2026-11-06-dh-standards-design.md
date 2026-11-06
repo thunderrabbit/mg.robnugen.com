@@ -120,7 +120,8 @@ Template sites   measured against mg · last checked 2026-11-06 01:20 UTC
 - A step that does not apply to a site shows its reason and counts as done.
 - A step that could not be checked says why ("no local checkout", "not checked
   yet") and shows as an open step with the info circle. It is not an error.
-- Each site shows when it was last checked and which branch the check saw.
+- Each site shows when its trunk was last checked. If the latest scan skipped it,
+  the row says why ("on branch example-topic") beside that date.
 
 ### The rule for the mark
 
@@ -221,7 +222,8 @@ never reaches Lemur 13, and no new credential is needed.
 
 1. The scanner asks mg for the site list (site, standard, checkout path) over
    `ssh mg`.
-2. It runs the checks, and reads the step files from its own mg checkout.
+2. It runs the checks, and reads the step files from `master` of the mg repo on
+   Lemur 13 (with git, as above, whatever branch is checked out).
 3. It streams one JSON document (steps, plus per site: branch, commit, and each
    check's outcome and detail) over `ssh mg` to a PHP tool that reads STDIN and
    imports it in one transaction. A `--dry-run` rolls back, as the sweep importer
