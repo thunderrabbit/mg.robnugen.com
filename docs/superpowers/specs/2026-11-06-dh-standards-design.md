@@ -289,9 +289,10 @@ The step is still ticked only by its check. An issue marked Done beside a check
 that has not passed is not an error; it usually means the work is on a branch
 that has not reached trunk, and seeing both is useful.
 
-**A fifth issue status: NAh**, "Not Applicable here" (the need was Claude's call,
-the name is Rob's). mg's issue statuses today are Open, In Progress, Blocked and
-Done. This build adds NAh as a terminal status. A site note in that status makes
+**A new issue status: NAh**, "Not Applicable here" (the need was Claude's call,
+the name is Rob's). mg's issue statuses today are Open, In Progress, Blocked,
+Done, Abandoned, Won't Do and Duplicate. None says "this step does not fit this
+site", so this build adds NAh as a terminal status. A site note in that status makes
 its step count as done for that site, with the issue as the reason. It is the
 only way a person, not a check, changes a site's mark, and any mg issue can use
 it.
