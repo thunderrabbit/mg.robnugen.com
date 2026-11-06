@@ -120,4 +120,17 @@ final class StandardsHostChecksTest extends Unit
     {
         $this->assertNull(HostChecks::answer('phpstan_top', null, new SiteFacts([], null, null)));
     }
+
+    public function testServesPhpWithNoVersionToCompareCannotTell(): void
+    {
+        // A step file that forgot its param must not tick the step for every site.
+        $facts = new SiteFacts([$this->domain('8.5', 'example', '2026-11-07')], null, null);
+
+        $this->assertSame(Outcome::Unknown, $this->answer('dh_serves_php', null, $facts)->outcome);
+        $this->assertSame(Outcome::Unknown, $this->answer('dh_serves_php', 'latest', $facts)->outcome);
+        $this->assertSame(
+            'this step does not say which PHP version it wants',
+            $this->answer('dh_serves_php', null, $facts)->detail,
+        );
+    }
 }

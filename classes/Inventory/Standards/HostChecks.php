@@ -64,6 +64,10 @@ final class HostChecks
 
     private static function servesPhp(SiteFacts $facts, string $wanted): CheckResult
     {
+        if (preg_match('/\A\d+\.\d+\z/', $wanted) !== 1) {
+            // Comparing against nothing would pass every site.
+            return new CheckResult(Outcome::Unknown, 'this step does not say which PHP version it wants');
+        }
         if ($facts->domains === []) {
             return new CheckResult(Outcome::Fail, 'no domain yet');
         }
