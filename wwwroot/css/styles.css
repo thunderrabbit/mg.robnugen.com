@@ -391,3 +391,84 @@ a:visited {
 .L2Mock {
     opacity: 0.8;
 }
+
+/* Site standards: which sites have done each written-up step. Calm on
+   purpose. The only marks are a checkmark, an info circle and a face. */
+.StdSite {
+    margin: 0.4em 0;
+    padding: 0.4em 0.8em;
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    background: var(--bg-card);
+}
+
+.StdSite > summary {
+    cursor: pointer;
+}
+
+.StdMark {
+    display: inline-block;
+    width: 1.4em;
+    text-align: center;
+}
+
+.StdMark--check {
+    color: var(--success);
+    font-weight: bold;
+}
+
+.StdMark--info {
+    color: var(--info);
+}
+
+.StdSummary,
+.StdNote {
+    margin-left: 0.6em;
+    color: var(--text-muted);
+    font-size: 0.9em;
+}
+
+.StdSteps {
+    margin: 0.6em 0 0.2em 1.4em;
+    border-collapse: collapse;
+}
+
+.StdSteps th {
+    padding: 0.15em 1.2em 0.15em 0;
+    text-align: left;
+    vertical-align: top;
+    white-space: nowrap;
+    font-weight: normal;
+    color: var(--text-muted);
+}
+
+.StdSteps td {
+    padding: 0.15em 0;
+    vertical-align: top;
+}
+
+.StdTick {
+    display: inline-block;
+    width: 1.2em;
+    color: var(--success);
+}
+
+.StdWhy,
+.StdHowTo {
+    margin: 0.2em 0 0.4em 1.2em;
+    font-size: 0.9em;
+}
+
+.StdWhy p {
+    margin: 0.2em 0;
+}
+
+.StdFoot {
+    margin: 0.4em 0 0 1.4em;
+    color: var(--text-muted);
+}
+
+.StdDomainSites {
+    list-style: none;
+    padding-left: 0;
+}
