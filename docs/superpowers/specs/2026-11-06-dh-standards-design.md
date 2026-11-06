@@ -47,7 +47,7 @@ and is expected to be revised once he has used it.
   site. A fork served on two domains is still one site. One domain can carry two
   sites at different paths (a Hugo site at `/` and Perl scripts under `/journal`).
 - **Shortcode**: a site's short, unique handle, such as `mg` or `badmin`. It is
-  what file names and commands use to name a site.
+  what issue titles and commands use to name a site.
 - **Standard**: the set of tracks for one kind of site. Only the **template**
   standard is built now. WordPress, MediaWiki, Hugo and Perl standards come later.
 - **Track**: one line of improvement inside a standard. Tracks advance
@@ -55,7 +55,7 @@ and is expected to be revised once he has used it.
 - **Step**: one improvement on a track, with an explanation, a how-to, and a
   check. A step starts as an **idea** and becomes **proven** once one site has it.
 - **Site note**: what was different about one step on one site, or why it could
-  not be applied there.
+  not be applied there. It is an mg issue in that site's own project.
 
 ## Goals
 
@@ -67,7 +67,7 @@ and is expected to be revised once he has used it.
 4. A step is a Markdown file in mg's repo, whichever site the idea came from. Rob
    approving a step is Rob advancing mg's master, which he already does.
 5. Each step carries a how-to that gets better after every site it is applied to.
-   Each site's notes on a step are files too, named with the site's shortcode.
+   Each site's notes on a step are an issue in that site's own mg project.
 6. A domain's existing page shows the status of every site inside that domain.
 7. The tables can later hold other standards, and sites that are not on
    DreamHost, without being redesigned.
@@ -97,9 +97,9 @@ and is expected to be revised once he has used it.
 - **The scanner changing a repo.** It reads; it never writes, commits, or deploys.
 - **New credentials.** Nothing here adds an API key, a route for agents, or a
   secret on Lemur 13.
-- **Leaking the fleet.** mg's repo is public. Which domain a shortcode stands for,
-  DreamHost usernames, and per-site progress live only in the database behind
-  Rob's login. See the open question under [Site notes](#site-notes).
+- **Leaking the fleet.** mg's repo is public. Nothing about a particular site goes
+  in it: no shortcodes, no site names, no per-site progress or notes. All of that
+  lives in mg's database, behind Rob's login and each project's membership.
 
 ## The page
 
@@ -132,8 +132,10 @@ Ideas not yet tried on any site
   step is Rob's move.
 - Expanding uses `<details>`, so no JavaScript. Open steps show their explanation;
   the how-to sits one level further in.
-- A site's notes on a step show under that step, done or not.
-- A step that does not apply to a site shows its reason and counts as done.
+- A step with an issue in the site's project shows the issue's number, status and
+  a link to it, whether the step is done or not.
+- A step that does not apply to a site says so, links to the issue that gives the
+  reason, and counts as done.
 - A step that could not be checked says why ("no local checkout", "not checked
   yet") and shows as an open step with the info circle. It is not an error.
 - Each site shows when its trunk was last checked. If the latest scan skipped it,
@@ -225,59 +227,57 @@ render them. The copy is replaced on each import; the files are the truth.
 
 ## Site notes
 
-Rob's idea: a step's file holds the basic concept, and a second file beside it
-augments the step for one site, or for several when the same tweak applies to
-each.
+Rob's decision: a site's notes on a step are an **issue in that site's own mg
+project**, not a file. mg's issue tracker is private, each site already has (or
+gets) a project, and the notes sit beside the rest of that site's work.
 
-    <step>.md                   the step itself
-    <step>.<shortcode>.md       how it went, or why it could not be applied, on one site
-    <step>.<shortcode>+<shortcode>.md      the same, for several sites
+- One issue per step per site. The same tweak on three sites is three issues.
+  That repeats some text, and Rob prefers it: each is clear and explicit.
+- The issue's title is the step's name, a dot, and the site's shortcode:
+  `title_of_upgrade.abc-eli`.
+- The shortcode in the title is a **check digit**. The issue must be in the
+  project of the site that shortcode belongs to. An issue titled for one site but
+  filed in another site's project is a mistake the page can point out.
+- The issue is opened when work on that step starts on that site, or to record
+  that the step cannot be applied there. A step with no issue simply has no notes.
+- The description and comments hold how it went and what was different. Commits
+  can be attached to the issue as they already can for any mg issue.
 
 ### Names
 
 - A **step name** is lowercase letters, digits and underscores:
-  `title_of_upgrade`.
+  `title_of_upgrade`. It is the step file's name without `.md`, and it is unique
+  within a standard.
 - A **shortcode** is lowercase letters and digits, in groups joined by single
   hyphens: `mg`, `badmin`, `abc-eli`. At most 24 characters. Unique across all
   sites, and never reused for a different site.
-- In a file name the step name comes first, then a dot, then the shortcodes
-  joined by `+`, then `.md`: `title_of_upgrade.abc-eli+badmin.md`.
+- An **issue title** for a site note is exactly `<step name>.<shortcode>`.
 
-Underscores belong to step names, hyphens to shortcodes, `+` joins shortcodes and
-dots separate the parts, so a file name reads only one way *(Claude's call on the
-characters; Rob asked for a rule)*.
+Underscores belong to step names and hyphens to shortcodes, so the one dot
+always separates them *(Claude's call on the characters; Rob asked for a rule)*.
 
-### What a site note holds
+### What the page reads from the issue
 
-The body is free text for the next agent and for the page. Optional frontmatter
-holds the few facts the page uses:
+The page finds a site's note by looking in the site's project for an issue with
+that exact title. It shows the issue's number and status and links to it.
 
-- `applies: no`, with the body as the reason, when the step could not or should
-  not be applied. The step then counts as done for those sites.
-- how the step was done there (paired, reviewed or solo),
-- the mg issue that did the work.
+The step is still ticked only by its check. An issue marked Done beside a check
+that has not passed is not an error; it usually means the work is on a branch
+that has not reached trunk, and seeing both is useful.
 
-A site may be named by more than one note for the same step (its own, and a
-shared one). Both show, the shared one first.
+**"Does not apply" needs a status** *(Claude's call)*. mg's issue statuses today
+are Open, In Progress, Blocked and Done. This build adds a fifth, terminal one:
+**Doesn't apply**. A site note in that status makes its step count as done for
+that site, with the issue as the reason. It is the only way a person, not a
+check, changes a site's mark, and it is useful for ordinary issues too.
 
-A note naming a shortcode that no site has is refused by the importer, with the
-file name, so a typo cannot pass silently.
+Under each site the page also lists, quietly, any issue in its project whose
+title has the site-note shape but names a different site or no known step. That
+is the check digit doing its job, and it catches a renamed step.
 
-### Open question for Rob: where site-note files live
-
-mg's repo is public. Step files are general and safe there. Site notes are not
-the same: `<step>.<shortcode>.md` says, in public, which site has not had a
-particular fix, or could not take it. For a security step that is a map for an
-attacker, and one of the sites is a client's.
-
-Claude's recommendation: keep the naming exactly as above, but put site notes
-under the same path in a private repo on Lemur 13 (the local-only
-`dreamhost-inventory` repo, or a new one). The scanner reads both places.
-Everything else in this design is the same whichever Rob picks.
-
-The alternatives: site notes in mg's public repo, as first proposed, accepting
-that; or opaque shortcodes that hide which site is meant, at the cost of file
-names Rob cannot read at a glance.
+Who can read or write a site's notes follows the project's membership, as for
+any issue. An agent working on a site needs to be a member of that site's
+project; Rob grants that.
 
 ## Two kinds of check
 
@@ -313,10 +313,9 @@ never reaches Lemur 13, and no new credential is needed.
 1. The scanner asks mg for the site list (shortcode, standard, checkout path,
    trunk branch) over `ssh mg`.
 2. It runs the checks, and reads the step files from `master` of the mg repo on
-   Lemur 13 (with git, as above, whatever branch is checked out). It reads the
-   site notes from wherever Rob decides they live.
-3. It streams one JSON document (standards, tracks, steps, site notes, plus per
-   site: branch, commit, and each check's outcome and detail) over `ssh mg` to a
+   Lemur 13 (with git, as above, whatever branch is checked out).
+3. It streams one JSON document (standards, tracks, steps, plus per site: branch,
+   commit, and each check's outcome and detail) over `ssh mg` to a
    PHP tool that reads STDIN and imports it in one transaction. A `--dry-run`
    rolls back, as the sweep importer does.
 
@@ -327,14 +326,16 @@ the site's last trunk results stand with their date. So a checkmark means "merge
 to trunk", never "passes on a branch nobody has merged". It does not mean
 "deployed": the scanner does not check what a server is running.
 
+Site notes never pass through the scanner. They are already in mg.
+
 The scanner is run by hand at first, for one site or all. Scheduling it beside
 the daily sweep is a later, small change once it is trusted.
 
 ## Beyond DreamHost
 
 Most of this design does not care where a site is hosted: standards, tracks,
-steps, the how-to that improves, site notes, and the scanner checks that run
-against a checkout on Lemur 13. Only three things are DreamHost-specific:
+steps, the how-to that improves, site notes as issues in a site's project, and
+the scanner checks that run against a checkout on Lemur 13. Only three things are DreamHost-specific:
 
 - the link from a site to its DreamHost domains,
 - the checks mg answers from the DreamHost sweep (ssh login, PHP version served),
@@ -370,14 +371,12 @@ Copies of the files, replaced on each import:
 | `std_standards` | A kind of site | `std_standard_id`, `slug` (unique), `name` |
 | `std_tracks` | A track of a standard | `std_track_id`, `std_standard_id` →, `slug`, `name`, `position`; unique (`std_standard_id`, `slug`) |
 | `std_steps` | A step file | `std_step_id`, `std_track_id` →, `slug`, `position`, `title`, `explanation`, `how_to`, `status` (idea, proven), `whose_move` (rob, agent), `check_name`, `check_param` (nullable), `retired_on` (nullable); unique (`std_track_id`, `slug`) |
-| `std_step_notes` | A site-note file | `std_step_note_id`, `std_step_id` →, `file_name`, `applies` (yes, no), `done_mode` (nullable: paired, reviewed, solo), `issue_id` (nullable), `body`; unique (`std_step_id`, `file_name`) |
-| `std_step_note_sites` | Which sites a note names | `std_step_note_site_id`, `std_step_note_id` →, `std_site_id` →; unique (`std_step_note_id`, `std_site_id`) |
 
 Kept by hand:
 
 | Table | Holds | Columns |
 |---|---|---|
-| `std_sites` | A codebase | `std_site_id`, `std_standard_id` →, `shortcode` (unique), `checkout_path` (nullable, relative to `~/work`), `trunk_branch` (default `master`), `github_repo` (nullable), `autonomy` (paired, reviewed, solo; default paired) |
+| `std_sites` | A codebase | `std_site_id`, `std_standard_id` →, `shortcode` (unique), `project_id` (nullable → `projects`), `checkout_path` (nullable, relative to `~/work`), `trunk_branch` (default `master`), `github_repo` (nullable), `autonomy` (paired, reviewed, solo; default paired) |
 | `dh_site_domains` | Which domains serve a site | `dh_site_domain_id`, `std_site_id` →, `dh_domain_id` → `dh_domains`, `path_prefix` (default empty); unique (`dh_domain_id`, `path_prefix`) |
 
 Written by the scanner:
@@ -388,12 +387,15 @@ Written by the scanner:
 | `std_scan_sites` | What a scan saw of a site | `std_scan_site_id`, `std_scan_id` →, `std_site_id` →, `branch`, `commit_sha`, `skipped_reason` (nullable); unique (`std_scan_id`, `std_site_id`) |
 | `std_step_states` | Outcome of a scanner check over time | `std_step_state_id`, `std_site_id` →, `std_step_id` →, `from_scan_id` →, `until_scan_id` (nullable →; NULL = current), `outcome` (pass, fail, unknown), `detail` |
 
+One row added to an existing table: `issue_statuses` gains the terminal status
+"Doesn't apply".
+
 Notes on the draft:
 
-- "Replaced on each import" keeps ids stable: a row is matched by its slug or
-  file name and updated in place, so `std_step_states` keeps pointing at the
-  same step. A step removed from the files is retired (`retired_on`), not
-  deleted, so its history stays. A note removed from the files is deleted.
+- "Replaced on each import" keeps ids stable: a row is matched by its slug and
+  updated in place, so `std_step_states` keeps pointing at the same step. A step
+  removed from the files is retired (`retired_on`), not deleted, so its history
+  stays.
 - `std_step_states` uses the same span pattern as the sweep tables (`from` /
   exclusive `until`, NULL = current), so history is kept without a row per scan.
   `Inventory\SpanPlan` already holds that rule.
@@ -402,11 +404,17 @@ Notes on the draft:
 - `std_sites` holds nothing about hosting. Where a site is served is said only by
   a link table (`dh_site_domains` today), so a site on another host needs no
   change to it.
-- A site note is one row however many sites it names; the names are rows in
-  `std_step_note_sites`. That is what lets one file serve several sites without
-  copying its text.
-- `std_sites.autonomy` is Rob's instruction for the site from now on;
-  `std_step_notes.done_mode` is the record of what happened on one step.
+- A step's name must be unique within its standard, not just within its track,
+  because an issue title names the step without its track. The importer refuses
+  two steps with the same name in one standard.
+- **No table links a site note to its step.** The link is the issue's title and
+  the site's `project_id`, read when the page loads. Storing an issue id per site
+  and step would be a second copy of what the title already says.
+- A project can be the home of more than one site (a codebase served as two
+  sites). The shortcode in the title still tells their notes apart.
+- `std_sites.autonomy` is Rob's instruction for the site from now on. How a
+  particular step was done (paired, reviewed, solo) is said in its issue, not in
+  a column.
 - The undeployed template skeleton has no domain, so it would not appear on the
   page. Rob hopes each idea reaches the template itself, so it will need a way
   onto the page when it is entered. Left open until then.
@@ -417,12 +425,13 @@ The pages are read-only in this build. The only facts kept by hand are about
 sites, written with a command-line tool over `ssh mg`, by Rob or by the agent
 working beside him:
 
-- add a site with its shortcode and standard
+- add a site with its shortcode, standard and mg project
 - link its domains, with a path when the domain carries more than one site
 - record its checkout path, trunk branch and GitHub repo
 - set its autonomy
 
-Everything about steps and site notes is written by editing files.
+Steps are written by editing files. Site notes are written as issues, with the
+tools that already write issues.
 
 ## What ships in the first build
 
@@ -433,14 +442,15 @@ Everything about steps and site notes is written by editing files.
   10 with no baseline, serves PHP 8.5, and the Rector 8.5 and type-declaration
   steps already proven on another fork. The how-to for those last two is copied
   from that fork's notes and tightened when mg does them.
-- Two site rows: `mg` and `badmin` (one site, two domains). Both will show the
+- The "Doesn't apply" issue status.
+- Two site rows: `mg` and `badmin` (one site, two domains), each tied to its mg
+  project. Both will show the
   info circle from day one, which is the point of having something to look at.
 - No phpcs-without-exclusions or MLAPHP steps as proven. Where an idea is already
   in mind it may be written up as an idea.
 
 ## Left open on purpose
 
-- **Where site-note files live.** Rob's call; see [Site notes](#site-notes).
 - **A smoke test per site.** Rob would wince if a site went down, so no step that
   deploys should run on a site without one. What a smoke test is, and its
   Groundwork step, get designed during the first paired work.
@@ -455,11 +465,13 @@ Everything about steps and site notes is written by editing files.
 
 - Class names and layout under `classes/Inventory/`, and the exact shape of the
   JSON document and the command-line tool.
-- The frontmatter keys of a step file and of a site note.
+- The frontmatter keys of a step file.
+- Where "Doesn't apply" sorts among the statuses, and checking that boards and
+  counts which list statuses by name still read well with a fifth one.
 - How a track's display name and position are written down beside its directory.
 - Column types, indexes and the order of files inside the migration.
 - The pure rule for a site's mark and summary gets Unit tests with made-up sites;
-  so do the step-file parser and the file-name rule for site notes.
+  so do the step-file parser and the title rule for site notes.
 - The importer gets no committed database test, matching the sweep importer, whose
   database runs were done by hand and never committed. Verify it by hand: a run
   against a throwaway `mysql:8.0` container on Lemur 13, then `--dry-run` against
