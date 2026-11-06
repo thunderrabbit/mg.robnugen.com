@@ -17,11 +17,14 @@ final readonly class SiteReport
     /**
      * @param list<StepLine> $lines one per proven step, in the order given
      * @param list<NoteIssue> $strays issues titled like a site note that match no site or step here
+     * @param array<string, list<NoteIssue>> $ideaNotes this site's notes on steps that are still
+     *     ideas, by step slug: the sign that this site is the one practising the idea
      */
     private function __construct(
         public Standing $standing,
         public array $lines,
         public array $strays,
+        public array $ideaNotes,
     ) {
     }
 
@@ -67,6 +70,7 @@ final readonly class SiteReport
         foreach ($stepRows as $row) {
             $slug = RowValue::string($row, 'slug');
             $issues = $notes[$slug] ?? [];
+            unset($notes[$slug]);
             $nah = array_any($issues, static fn (NoteIssue $i): bool => $i->statusSlug === SiteStanding::NAH_SLUG);
 
             $answer = HostChecks::answer(
@@ -95,6 +99,6 @@ final readonly class SiteReport
             );
         }
 
-        return new self(SiteStanding::of(HostChecks::reachable($facts), $lines), $lines, $strays);
+        return new self(SiteStanding::of(HostChecks::reachable($facts), $lines), $lines, $strays, $notes);
     }
 }

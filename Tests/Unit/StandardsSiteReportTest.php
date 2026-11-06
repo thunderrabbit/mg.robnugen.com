@@ -218,4 +218,19 @@ final class StandardsSiteReportTest extends Unit
         $this->assertSame([], $report->lines);
         $this->assertSame(Mark::Check, $report->standing->mark);
     }
+
+    public function testANoteOnAnIdeaStepIsKeptForTheIdeasList(): void
+    {
+        $report = $this->report([], [$this->issue(821, 'an_idea_step.mg', 'in_progress')]);
+
+        $this->assertSame([], $report->strays);
+        $this->assertSame([], $report->lines[0]->issues);
+        $this->assertCount(1, $report->ideaNotes['an_idea_step']);
+        $this->assertSame(821, $report->ideaNotes['an_idea_step'][0]->issueId);
+    }
+
+    public function testNoNotesOnIdeasIsAnEmptyList(): void
+    {
+        $this->assertSame([], $this->report()->ideaNotes);
+    }
 }
