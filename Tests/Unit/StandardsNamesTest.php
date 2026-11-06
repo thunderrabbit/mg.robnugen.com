@@ -49,4 +49,18 @@ final class StandardsNamesTest extends Unit
         $this->assertNull(Names::parseNoteTitle('a.b.c'));
         $this->assertNull(Names::parseNoteTitle('title_of_upgrade.example-games '));
     }
+
+    public function testCheckoutPathsStayInsideTheWorkDirectory(): void
+    {
+        $this->assertTrue(Names::isCheckoutPath('rob/example.test'));
+        $this->assertTrue(Names::isCheckoutPath('rob/jobhunt/example.test'));
+        $this->assertFalse(Names::isCheckoutPath('/home/someone/work/rob/example.test'));
+        $this->assertFalse(Names::isCheckoutPath('rob/../../etc'));
+        $this->assertFalse(Names::isCheckoutPath('rob/./example.test'));
+        $this->assertFalse(Names::isCheckoutPath('rob//example.test'));
+        $this->assertFalse(Names::isCheckoutPath('rob/example.test/'));
+        $this->assertFalse(Names::isCheckoutPath('rob/has space'));
+        $this->assertFalse(Names::isCheckoutPath('~/work/rob/example.test'));
+        $this->assertFalse(Names::isCheckoutPath(''));
+    }
 }

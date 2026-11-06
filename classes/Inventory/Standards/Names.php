@@ -30,6 +30,18 @@ final class Names
         return strlen($s) <= self::SHORTCODE_MAX && preg_match('/\A' . self::SHORTCODE . '\z/', $s) === 1;
     }
 
+    /**
+     * A site's checkout, relative to ~/work on Lemur 13: plain path segments,
+     * none of them "." or "..", so the scanner can never be sent elsewhere.
+     */
+    public static function isCheckoutPath(string $s): bool
+    {
+        if (preg_match('#\A[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*\z#', $s) !== 1) {
+            return false;
+        }
+        return array_intersect(explode('/', $s), ['.', '..']) === [];
+    }
+
     public static function noteTitle(string $step, string $shortcode): string
     {
         return $step . '.' . $shortcode;
