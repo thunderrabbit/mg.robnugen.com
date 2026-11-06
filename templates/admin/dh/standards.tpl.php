@@ -39,7 +39,11 @@ Every site here is working, so nothing on this page is urgent.</small></p>
             <summary>
                 <span class="<?= $report->standing->mark->cssClass() ?>"><?= $report->standing->mark->glyph() ?></span>
                 <strong><?= $h($site['shortcode']) ?></strong>
-                <span class="StdSummary"><?= $h($report->standing->summary) ?></span>
+                <?php if ($report->standing->summary === 'waiting on you'): ?>
+                    <span class="StdSummary StdYours">🐾 waiting on you</span>
+                <?php else: ?>
+                    <span class="StdSummary"><?= $h($report->standing->summary) ?></span>
+                <?php endif; ?>
             </summary>
 
             <?php if ($report->lines === []): ?>
@@ -56,7 +60,11 @@ Every site here is working, so nothing on this page is urgent.</small></p>
                             <?php if ($line->nah): ?>
                                 <span class="StdNote">NAh</span>
                             <?php elseif (!$line->done): ?>
-                                <span class="StdNote"><?= $line->whoseMove === WhoseMove::Rob ? 'your move' : 'an agent can do this' ?></span>
+                                <?php if ($line->whoseMove === WhoseMove::Rob): ?>
+                                    <span class="StdNote StdYours">🐾 your move</span>
+                                <?php else: ?>
+                                    <span class="StdNote">an agent can do this</span>
+                                <?php endif; ?>
                             <?php endif; ?>
                             <?php if ($line->detail !== '' && !$line->nah): ?>
                                 <small><?= $h($line->detail) ?></small>
