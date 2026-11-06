@@ -492,7 +492,7 @@ tools that already write issues.
   JSON document and the command-line tool.
 - The frontmatter keys of a step file.
 - Where NAh sorts among the statuses, and checking that boards and
-  counts which list statuses by name still read well with a fifth one.
+  counts which list statuses by name still read well with an eighth one.
 - How a track's display name and position are written down beside its directory.
 - Column types, indexes and the order of files inside the migration.
 - The pure rule for a site's mark and summary gets Unit tests with made-up sites;
