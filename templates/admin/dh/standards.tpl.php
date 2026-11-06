@@ -12,7 +12,8 @@ use Inventory\Standards\Names;
 use Inventory\Standards\WhoseMove;
 
 $h = \Inventory\AdminPage::h(...);
-$md = \Utilities::renderMarkdown(...);
+// Step files are hard-wrapped, so a line end inside a paragraph is not a break.
+$md = static fn (string $text): string => \Utilities::renderMarkdown($text, breaks: false);
 include __DIR__ . '/_nav.tpl.php';
 ?>
 <h1>Site standards</h1>
@@ -57,7 +58,7 @@ Every site here is working, so nothing on this page is urgent.</small></p>
                             <?php elseif (!$line->done): ?>
                                 <span class="StdNote"><?= $line->whoseMove === WhoseMove::Rob ? 'your move' : 'an agent can do this' ?></span>
                             <?php endif; ?>
-                            <?php if ($line->detail !== ''): ?>
+                            <?php if ($line->detail !== '' && !$line->nah): ?>
                                 <small><?= $h($line->detail) ?></small>
                             <?php endif; ?>
                             <?php foreach ($line->issues as $issue): ?>
