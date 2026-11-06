@@ -144,7 +144,7 @@ An actor with `agent_inbox_user.todos_limited = 1` is a "limited actor": a third
 - **A site's notes on a step are an mg issue** in the site's own project, titled `<step>.<shortcode>` (`Inventory\Standards\Names`). An issue in status **NAh** ("Not Applicable here") makes that step count as done for that site; an issue marked Done does not.
 - **Three marks and no others**: checkmark, info circle, and a crying-laughing face for a site nobody can reach (no domain, or no proven ssh login). Never add warning styling; every site here is working.
 - **This repo is public.** Shortcodes, site names and anything about one site's progress live only in the database and in issues. Step files, tests and comments use `mg` or made-up names.
-- `.gitignore` ignores `php*`; `tools/site-standards/steps/**` is exempt so a track or step can be named `phpstan`. Count the files git sees after adding one.
+- `.gitignore` ignores `php*`; `tools/site-standards/**` is exempt so a track, step or check can be named `phpstan`. An ignored file leaves `git status` clean, so after adding one count what `git ls-files tools/site-standards` sees.
 - Tables: `std_*` are host-neutral, `dh_site_domains` is the one DreamHost link (`db_schemas/45_site_standards/`). Sites not on DreamHost are a separate, later project.
 
 ## Development Notes

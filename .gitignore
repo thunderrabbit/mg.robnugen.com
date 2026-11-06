@@ -10,9 +10,9 @@ php*
 !phpstan.neon
 # committed style-gate config (php* would otherwise hide it)
 !phpcs.xml
-# site-standards tracks and steps are named for what they cover (phpstan/,
-# php_version/, phpstan_level_10_no_baseline.md); php* would otherwise hide them
-!tools/site-standards/steps/**
+# site-standards tracks, steps and checks are named for what they cover
+# (phpstan/, php_version/, phpstan_top.sh); php* would otherwise hide them
+!tools/site-standards/**
 
 # Environment
 .env
