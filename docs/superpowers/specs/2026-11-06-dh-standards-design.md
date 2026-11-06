@@ -150,7 +150,9 @@ Ideas not yet tried on any site
 - Each site shows which branch of it is deployed and when that was last checked.
   If the latest scan skipped it,
   the row says why ("on branch example-topic") beside that date.
-- Below the sites, ideas are listed once, by track. They are not repeated under
+- Below the sites, ideas are listed once, by track, each with the site that is
+  practising it (the site whose project holds an issue titled for it) and a link
+  to that issue, or "nobody is practising it yet". They are not repeated under
   each site.
 
 ### On a domain's page
@@ -191,9 +193,23 @@ to mg's repo; it takes effect when Rob deploys that commit to mg. A step that
 is urgent (a zero-day fix) follows the same path, just quickly. The page stays
 calm either way.
 
-When a new PHP version arrives, its steps ("serve PHP 8.6", "Rector's 8.6 rules")
-are written as ideas. Once one site proves them, every site shows the info circle
-until it catches up.
+### From idea to proven
+
+(Rob, 2026-11-07.) An idea is not written on the page; it is born where the work
+is:
+
+1. Something prompts it: work starting on some site (a BEGIN commit on a
+   branch), news of a zero-day, a new PHP release. A step file appears as an
+   `idea`: a name, a track, a sentence. The site trying it opens its issue,
+   titled for the step, which is how the page knows who is practising it.
+2. The how-to and the check are written *during* that work, in the site's issue
+   and in the step file, by the agent doing it.
+3. That site deploys the work, and the step file is deployed on mg with
+   `status: proven`. From then it counts for every site.
+
+Sorting ideas is their `position`; dropping one is deleting its file. There are
+no buttons for this on the page: the file, reviewed as a commit and approved by
+deploying, is the record.
 
 ## Tracks of the template standard
 
