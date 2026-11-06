@@ -1,6 +1,7 @@
-# DreamHost dashboard: which sites are behind mg
+# DreamHost dashboard: which sites are behind the standard
 
-Date: 6 Nov 2026. Rob, with Claude (brainstormed in the mg session).
+Date: 6 Nov 2026, revised 7 Nov 2026. Rob, with Claude (brainstormed in the mg
+session).
 
 ## Intent
 
@@ -16,10 +17,17 @@ fleet of sites up to modern PHP standards, each one getting its own careful
 handling." The page built here is the memory for that: a calm list of which
 template sites are behind, what each one still needs, and whose move it is.
 
-**mg is the gold standard.** Every improvement is proven on mg first, because mg
-has the widest safety net and nothing on it can be harmed by a test record. A
-client site that takes real orders must never be the lab. The other sites only
-ever receive what mg has already proven.
+**New ideas might come from anywhere.** Rob doing an upgrade on one site, Rob
+wanting a new feature everywhere (the PHP version shown on each admin page), PHP
+standards rising, a zero-day that needs fixing. Any site can be the first to have
+an idea, and on a given day any site can be ahead of the others. The hope is that
+each idea then reaches mg and the template itself, and from there the rest.
+
+So **no site is the yardstick**. The standard is the set of written-up steps, and
+every site, mg included, is measured against that set. mg is where Rob prefers to
+try anything risky, because it has the widest safety net and nothing on it can be
+harmed by a test record. A site that takes real orders must never be the place
+where something needing test records is tried.
 
 **The practice is meant to travel.** The template was itself forked from two
 older codebases, ABB and ABF, which do not live on DreamHost and have not had
@@ -29,40 +37,48 @@ could possibly appear on an `/admin/ec2/` dashboard one day, and that is
 definitely a separate project. What it means for this one is in
 [Beyond DreamHost](#beyond-dreamhost).
 
+**Start small and look at it.** Rob finds it hard to say what he wants changed
+without seeing the thing work. The first build covers two sites, mg and badmin,
+and is expected to be revised once he has used it.
+
 ## Words used here
 
-- **Site**: one codebase and the domains that serve it. A fork served on three
-  domains is one site. One domain can carry two sites at different paths (a Hugo
-  site at `/` and Perl scripts under `/journal`).
+- **Site**: one codebase and the domains that serve it. Usually one domain is one
+  site. A fork served on two domains is still one site. One domain can carry two
+  sites at different paths (a Hugo site at `/` and Perl scripts under `/journal`).
+- **Shortcode**: a site's short, unique handle, such as `mg` or `badmin`. It is
+  what file names and commands use to name a site.
 - **Standard**: the set of tracks for one kind of site. Only the **template**
   standard is built now. WordPress, MediaWiki, Hugo and Perl standards come later.
 - **Track**: one line of improvement inside a standard. Tracks advance
   independently, in no fixed order.
-- **Step**: one proven improvement on a track, with an explanation, a how-to, and a
-  check.
-- **Reference site**: the site a standard is measured against. For the template
-  standard it is mg.
+- **Step**: one improvement on a track, with an explanation, a how-to, and a
+  check. A step starts as an **idea** and becomes **proven** once one site has it.
+- **Site note**: what was different about one step on one site, or why it could
+  not be applied there.
 
 ## Goals
 
-1. `/admin/dh/standards.php` lists every template site with one of two marks: a
-   green checkmark (as up to date as it can be) or an info circle (behind mg).
+1. `/admin/dh/standards.php` lists each template site with one of two marks: a
+   green checkmark (as up to date as it can be) or an info circle (behind).
 2. Under each site is a list of its steps, collapsed by default, that expands to
    say what remains, why, and whose move it is (Rob's or an agent's).
 3. A step is ticked by a **check that passes**, never by hand.
-4. A new step is born in the same mg bubble that proves it, as a file in mg's repo.
-   Rob approving the step is Rob advancing master, which he already does.
-5. Each step carries a how-to that gets better after every site it is applied to,
-   and each site records how much hand-holding each step took.
-6. The tables can later hold other standards, and sites that are not on
+4. A step is a Markdown file in mg's repo, whichever site the idea came from. Rob
+   approving a step is Rob advancing mg's master, which he already does.
+5. Each step carries a how-to that gets better after every site it is applied to.
+   Each site's notes on a step are files too, named with the site's shortcode.
+6. A domain's existing page shows the status of every site inside that domain.
+7. The tables can later hold other standards, and sites that are not on
    DreamHost, without being redesigned.
 
 ## Non-goals
 
 - Migrating any site. That work happens afterwards, one site at a time, each in its
   own bubble in that site's repo.
-- Adding Rector to mg. That is the first piece of paired work after this is built,
-  and it will add the first Rector step files.
+- Adding Rector to mg. That is the first piece of paired work after this is built.
+- Entering all the template sites. The first build has mg and badmin; the others
+  are added later, one command each.
 - WordPress, MediaWiki, Hugo or Perl standards. Only their place in the tables.
 - ABB, ABF, or an `/admin/ec2/` dashboard. No rows, no page, no checks for them.
   Only the room described in [Beyond DreamHost](#beyond-dreamhost).
@@ -81,9 +97,9 @@ definitely a separate project. What it means for this one is in
 - **The scanner changing a repo.** It reads; it never writes, commits, or deploys.
 - **New credentials.** Nothing here adds an API key, a route for agents, or a
   secret on Lemur 13.
-- **Leaking the fleet.** mg's repo is public. Real site names, DreamHost usernames
-  and per-site progress live only in the database behind Rob's login. Step files,
-  tests and comments use mg or made-up names.
+- **Leaking the fleet.** mg's repo is public. Which domain a shortcode stands for,
+  DreamHost usernames, and per-site progress live only in the database behind
+  Rob's login. See the open question under [Site notes](#site-notes).
 
 ## The page
 
@@ -91,57 +107,68 @@ A new page in the existing DreamHost inventory, linked from its nav as
 "standards", guarded the same way (`Inventory\AdminPage::guard`: Rob only).
 
 ```
-Template sites   measured against mg · last checked 2026-11-06 01:20 UTC
+Template sites   7 proven steps · trunks last checked 2026-11-07 01:20 UTC
 
-✓  mg                  the reference                                  ▸
-ⓘ  example-games       3 steps to go                                  ▾
-      Groundwork       ✓ ssh login works
-                       ✓ repo located
-                       ✓ checks in place (phpcs, PHPStan, unit tests)
-      PHP version      ✓ serves PHP 8.5
-      Tooling          · point the tooling at PHP 8.5        an agent can do this
-                           Why and how: …
-      PHPStan          ✓ level 10, no baseline
-      Rector           · Rector's 8.5 rules, one per commit  an agent can do this
-                       · declare the types Rector can prove  an agent can do this
-ⓘ  example-dreams      waiting on you                                 ▸
+ⓘ  mg          1 step to go                                           ▾
+      Groundwork   ✓ ssh login works
+                   ✓ repo located
+                   ✓ checks in place (phpcs, PHPStan, unit tests)
+      PHP version  ✓ serves PHP 8.5
+      Tooling      ✓ tooling on PHP 8.5
+      PHPStan      ✓ level 10, no baseline
+      Rector       · Rector's 8.5 rules, one per commit      an agent can do this
+                       Why and how: …
+ⓘ  badmin      waiting on you                                         ▸
+
+Ideas not yet tried on any site
+      MLAPHP       remove globals from prepend.php
 ```
 
-- One section per standard; only "Template sites" exists now. The reference site
-  is the first row.
+- One section per standard; only "Template sites" exists now. Sites are listed by
+  shortcode. No site has a special row.
 - A site appears on this page when at least one DreamHost domain is linked to it.
   A site hosted elsewhere never has such a link, so it never appears here.
-- Row summary: `the reference`, `up to date`, `N steps to go`, or `waiting on you`
-  when an open step is Rob's move.
+- Row summary: `up to date`, `N steps to go`, or `waiting on you` when an open
+  step is Rob's move.
 - Expanding uses `<details>`, so no JavaScript. Open steps show their explanation;
   the how-to sits one level further in.
-- A done step shows how it was done (paired, reviewed or solo) and any note about
-  what was different on that site.
+- A site's notes on a step show under that step, done or not.
 - A step that does not apply to a site shows its reason and counts as done.
 - A step that could not be checked says why ("no local checkout", "not checked
   yet") and shows as an open step with the info circle. It is not an error.
 - Each site shows when its trunk was last checked. If the latest scan skipped it,
   the row says why ("on branch example-topic") beside that date.
+- Below the sites, ideas are listed once, by track. They are not repeated under
+  each site.
+
+### On a domain's page
+
+`/admin/dh/domain.php` gains a "Sites in this domain" panel: one line per site
+linked to the domain, with its path when it has one, its mark, its summary, and a
+link to its row on the standards page. Most domains show one line. A domain that
+carries a Hugo site and Perl scripts will show two, once those standards exist.
+A domain with no site entered yet shows nothing new.
 
 ### The rule for the mark
 
-A step file says whether the step is **proven** or only **planned**.
+A step file says whether the step is an **idea** or **proven**.
 
-- A **proven** step has been done on mg. It counts for every site of the standard,
-  mg included. A site gets the green checkmark when every proven step is passed or
-  marked as not applying. Otherwise it gets the info circle.
-- A **planned** step is where mg is heading next. It shows only on the reference
-  site's own row ("2 planned") and counts against no one.
+- An **idea** has been written up but no site has done it yet. It counts against
+  no one and is listed once, below the sites.
+- A **proven** step has been done on at least one site and merged to that site's
+  trunk. From then it counts for every site of the standard, mg included.
 
-This is what makes "behind" mean "behind mg" and not "behind the final state". It
-is also deliberately not computed from mg's latest check result *(Claude's call)*:
-if mg's own check fails or cannot run one day, no other site's mark changes; mg's
-row simply shows the info circle like anyone else's.
+A site gets the green checkmark when every proven step is passed or marked as not
+applying to it. Otherwise it gets the info circle.
 
-*Claude's guess, not yet confirmed by Rob:* when a new PHP version arrives, its
-steps ("serve PHP 8.6", "Rector's 8.6 rules") are added as planned. The mg bubble
-that does the work flips them to proven, and from then every other site shows the
-info circle until it catches up.
+Whoever proves a step flips it from idea to proven in the step file, in a commit
+to mg's repo; it takes effect when Rob advances mg's master over it. A step that
+is urgent (a zero-day fix) follows the same path, just quickly. The page stays
+calm either way.
+
+When a new PHP version arrives, its steps ("serve PHP 8.6", "Rector's 8.6 rules")
+are written as ideas. Once one site proves them, every site shows the info circle
+until it catches up.
 
 ## Tracks of the template standard
 
@@ -155,7 +182,7 @@ Rob's final state for a template site, in no particular order:
 | MLAPHP | Every chapter of *Modernizing Legacy Applications in PHP* done |
 | PHP version | The newest DreamHost offers (8.5 today) |
 
-Two more tracks are Claude's additions:
+Further tracks are Claude's additions:
 
 - **Groundwork**: what must be true before any other step can be worked. ssh login
   works (Rob's move), repo located on GitHub and checked out on Lemur 13 (Rob's
@@ -163,31 +190,94 @@ Two more tracks are Claude's additions:
 - **Tooling**: the site's checks run on the same PHP the site is moving to (hook
   image, `composer.json` platform, standards-mcp `php_target`). The first
   migration found that Rector on an older image silently skips newer rules.
+- **Security** and **Features**, for the other two sources Rob named: a fix every
+  site needs, and a feature Rob wants everywhere. Empty in the first build.
 
-Order matters inside a track (a step has a position). Across tracks it does not,
-except that Groundwork comes first.
+A track is a directory, so adding one needs no migration. Order matters inside a
+track (a step has a position). Across tracks it does not, except that Groundwork
+comes first.
 
 ## Where a step lives
 
-A step is a Markdown file in mg's repo, one per step, under
-`tools/site-standards/steps/<standard>/<track>/`. Frontmatter holds the title, the
-position, whether it is planned or proven, whose move it is, and the name of its
-check (with an optional parameter such as `8.5`). The body has two parts: the
-explanation shown on the page, and the how-to an agent follows.
+A step is a Markdown file in mg's repo:
+
+    tools/site-standards/steps/<standard>/<track>/<step>.md
+
+Frontmatter holds the title, the position, whether it is an idea or proven, whose
+move it is, and the name of its check (with an optional parameter such as `8.5`).
+The body has two parts: the explanation shown on the page, and the how-to an
+agent follows.
 
 **Only step files on mg's `master` count** *(Claude's call)*. The scanner reads
-them from `master` with git, never from the working tree, so a step in an open
-bubble reaches no one until Rob has advanced master over it.
+them from `master` with git, never from the working tree, so a step on an open
+branch reaches no one until Rob has advanced master over it.
 
 This is deliberate:
 
-- The step is added in the bubble that proves it on mg, so it is reviewed with the
-  work and approved when Rob advances master.
+- A step is reviewed as a commit and approved when Rob advances master. When the
+  idea was proven on mg, the step rides in the same bubble as the work. When it
+  was proven on another site, it is a small commit of its own in mg's repo.
 - The how-to's history is git history. Tightening it after a site is a commit.
 - The check is code sitting beside the words that describe it.
 
-mg's database holds a copy of the steps so the page can render them. The copy is
-replaced on each import; the files are the truth.
+mg's database holds a copy of the standards, tracks and steps so the page can
+render them. The copy is replaced on each import; the files are the truth.
+
+## Site notes
+
+Rob's idea: a step's file holds the basic concept, and a second file beside it
+augments the step for one site, or for several when the same tweak applies to
+each.
+
+    <step>.md                   the step itself
+    <step>.<shortcode>.md       how it went, or why it could not be applied, on one site
+    <step>.<shortcode>+<shortcode>.md      the same, for several sites
+
+### Names
+
+- A **step name** is lowercase letters, digits and underscores:
+  `title_of_upgrade`.
+- A **shortcode** is lowercase letters and digits, in groups joined by single
+  hyphens: `mg`, `badmin`, `abc-eli`. At most 24 characters. Unique across all
+  sites, and never reused for a different site.
+- In a file name the step name comes first, then a dot, then the shortcodes
+  joined by `+`, then `.md`: `title_of_upgrade.abc-eli+badmin.md`.
+
+Underscores belong to step names, hyphens to shortcodes, `+` joins shortcodes and
+dots separate the parts, so a file name reads only one way *(Claude's call on the
+characters; Rob asked for a rule)*.
+
+### What a site note holds
+
+The body is free text for the next agent and for the page. Optional frontmatter
+holds the few facts the page uses:
+
+- `applies: no`, with the body as the reason, when the step could not or should
+  not be applied. The step then counts as done for those sites.
+- how the step was done there (paired, reviewed or solo),
+- the mg issue that did the work.
+
+A site may be named by more than one note for the same step (its own, and a
+shared one). Both show, the shared one first.
+
+A note naming a shortcode that no site has is refused by the importer, with the
+file name, so a typo cannot pass silently.
+
+### Open question for Rob: where site-note files live
+
+mg's repo is public. Step files are general and safe there. Site notes are not
+the same: `<step>.<shortcode>.md` says, in public, which site has not had a
+particular fix, or could not take it. For a security step that is a map for an
+attacker, and one of the sites is a client's.
+
+Claude's recommendation: keep the naming exactly as above, but put site notes
+under the same path in a private repo on Lemur 13 (the local-only
+`dreamhost-inventory` repo, or a new one). The scanner reads both places.
+Everything else in this design is the same whichever Rob picks.
+
+The alternatives: site notes in mg's public repo, as first proposed, accepting
+that; or opaque shortcodes that hide which site is meant, at the cost of file
+names Rob cannot read at a glance.
 
 ## Two kinds of check
 
@@ -220,36 +310,35 @@ network), the same way the gates do. Examples for the first build:
 The same way sweeps do, and for the same reason: Lemur 13 starts everything, mg
 never reaches Lemur 13, and no new credential is needed.
 
-1. The scanner asks mg for the site list (site, standard, checkout path) over
-   `ssh mg`.
+1. The scanner asks mg for the site list (shortcode, standard, checkout path,
+   trunk branch) over `ssh mg`.
 2. It runs the checks, and reads the step files from `master` of the mg repo on
-   Lemur 13 (with git, as above, whatever branch is checked out).
-3. It streams one JSON document (steps, plus per site: branch, commit, and each
-   check's outcome and detail) over `ssh mg` to a PHP tool that reads STDIN and
-   imports it in one transaction. A `--dry-run` rolls back, as the sweep importer
-   does.
+   Lemur 13 (with git, as above, whatever branch is checked out). It reads the
+   site notes from wherever Rob decides they live.
+3. It streams one JSON document (standards, tracks, steps, site notes, plus per
+   site: branch, commit, and each check's outcome and detail) over `ssh mg` to a
+   PHP tool that reads STDIN and imports it in one transaction. A `--dry-run`
+   rolls back, as the sweep importer does.
 
 **Only a clean checkout on the site's trunk is checked** *(Claude's call)*. Each
 site records its trunk branch (default `master`). If the checkout is on another
 branch or has uncommitted changes, the scanner skips that site, records why, and
 the site's last trunk results stand with their date. So a checkmark means "merged
 to trunk", never "passes on a branch nobody has merged". It does not mean
-"deployed": the scanner does not check what a server is running. mg is no
-exception, so mg is scanned after a bubble closes and Rob has advanced master.
+"deployed": the scanner does not check what a server is running.
 
-At first the scanner is run by hand, for one site or all (after a bubble closes).
-Scheduling it beside the daily sweep is a later, small change once it is trusted.
+The scanner is run by hand at first, for one site or all. Scheduling it beside
+the daily sweep is a later, small change once it is trusted.
 
 ## Beyond DreamHost
 
 Most of this design does not care where a site is hosted: standards, tracks,
-steps, the how-to that improves, the scanner checks that run against a checkout
-on Lemur 13, and the record of how each step went. Only three things are
-DreamHost-specific:
+steps, the how-to that improves, site notes, and the scanner checks that run
+against a checkout on Lemur 13. Only three things are DreamHost-specific:
 
 - the link from a site to its DreamHost domains,
 - the checks mg answers from the DreamHost sweep (ssh login, PHP version served),
-- the page at `/admin/dh/standards.php`.
+- the pages under `/admin/dh/`.
 
 So the design keeps those three at the edge *(Claude's call)*:
 
@@ -262,9 +351,8 @@ So the design keeps those three at the edge *(Claude's call)*:
   elsewhere is never asked a question only DreamHost can answer.
 
 Left for that later project to decide: whether ABB and ABF join the template
-standard or get a standard of their own that borrows its steps, what their
-reference site is, and what stands in for the two DreamHost-only checks. Nothing
-is built for them now.
+standard or get a standard of their own that borrows its steps, and what stands
+in for the two DreamHost-only checks. Nothing is built for them now.
 
 ## Tables (draft for Rob's 3NF review)
 
@@ -275,76 +363,103 @@ This table set has not had Rob's 3NF review yet. Reading this document is the
 first pass. The build plan stops for a second pass on the exact `CREATE TABLE`
 statements before the migration is committed or applied.
 
+Copies of the files, replaced on each import:
+
 | Table | Holds | Columns |
 |---|---|---|
-| `std_standards` | A kind of site | `std_standard_id`, `slug` (unique), `name`, `reference_site_id` (nullable → `std_sites`) |
+| `std_standards` | A kind of site | `std_standard_id`, `slug` (unique), `name` |
 | `std_tracks` | A track of a standard | `std_track_id`, `std_standard_id` →, `slug`, `name`, `position`; unique (`std_standard_id`, `slug`) |
-| `std_steps` | Copy of a step file | `std_step_id`, `std_track_id` →, `slug`, `position`, `title`, `explanation`, `how_to`, `status` (planned, proven), `whose_move` (rob, agent), `check_name`, `check_param` (nullable), `retired_on` (nullable); unique (`std_track_id`, `slug`) |
-| `std_sites` | A codebase | `std_site_id`, `std_standard_id` →, `name` (unique), `checkout_path` (nullable, relative to `~/work`), `trunk_branch` (default `master`), `github_repo` (nullable), `autonomy` (paired, reviewed, solo; default paired) |
+| `std_steps` | A step file | `std_step_id`, `std_track_id` →, `slug`, `position`, `title`, `explanation`, `how_to`, `status` (idea, proven), `whose_move` (rob, agent), `check_name`, `check_param` (nullable), `retired_on` (nullable); unique (`std_track_id`, `slug`) |
+| `std_step_notes` | A site-note file | `std_step_note_id`, `std_step_id` →, `file_name`, `applies` (yes, no), `done_mode` (nullable: paired, reviewed, solo), `issue_id` (nullable), `body`; unique (`std_step_id`, `file_name`) |
+| `std_step_note_sites` | Which sites a note names | `std_step_note_site_id`, `std_step_note_id` →, `std_site_id` →; unique (`std_step_note_id`, `std_site_id`) |
+
+Kept by hand:
+
+| Table | Holds | Columns |
+|---|---|---|
+| `std_sites` | A codebase | `std_site_id`, `std_standard_id` →, `shortcode` (unique), `checkout_path` (nullable, relative to `~/work`), `trunk_branch` (default `master`), `github_repo` (nullable), `autonomy` (paired, reviewed, solo; default paired) |
 | `dh_site_domains` | Which domains serve a site | `dh_site_domain_id`, `std_site_id` →, `dh_domain_id` → `dh_domains`, `path_prefix` (default empty); unique (`dh_domain_id`, `path_prefix`) |
+
+Written by the scanner:
+
+| Table | Holds | Columns |
+|---|---|---|
 | `std_scans` | One scanner run | `std_scan_id`, `scanned_at_utc`, `imported_at_utc`, `steps_commit` |
 | `std_scan_sites` | What a scan saw of a site | `std_scan_site_id`, `std_scan_id` →, `std_site_id` →, `branch`, `commit_sha`, `skipped_reason` (nullable); unique (`std_scan_id`, `std_site_id`) |
 | `std_step_states` | Outcome of a scanner check over time | `std_step_state_id`, `std_site_id` →, `std_step_id` →, `from_scan_id` →, `until_scan_id` (nullable →; NULL = current), `outcome` (pass, fail, unknown), `detail` |
-| `std_site_steps` | What people recorded about a step on a site | `std_site_step_id`, `std_site_id` →, `std_step_id` →, `not_applicable_reason` (nullable), `done_mode` (nullable: paired, reviewed, solo), `note` (nullable), `issue_id` (nullable); unique (`std_site_id`, `std_step_id`) |
 
 Notes on the draft:
 
+- "Replaced on each import" keeps ids stable: a row is matched by its slug or
+  file name and updated in place, so `std_step_states` keeps pointing at the
+  same step. A step removed from the files is retired (`retired_on`), not
+  deleted, so its history stays. A note removed from the files is deleted.
 - `std_step_states` uses the same span pattern as the sweep tables (`from` /
   exclusive `until`, NULL = current), so history is kept without a row per scan.
   `Inventory\SpanPlan` already holds that rule.
-- A site has exactly one standard. A domain with two kinds of code is two sites.
+- A site has exactly one standard. A domain with two kinds of code is two sites,
+  told apart by `path_prefix`.
 - `std_sites` holds nothing about hosting. Where a site is served is said only by
   a link table (`dh_site_domains` today), so a site on another host needs no
   change to it.
-- The undeployed template skeleton has no domain, so it would not appear on the
-  page. Whether and where to show it is left open.
+- A site note is one row however many sites it names; the names are rows in
+  `std_step_note_sites`. That is what lets one file serve several sites without
+  copying its text.
 - `std_sites.autonomy` is Rob's instruction for the site from now on;
-  `std_site_steps.done_mode` is the record of what happened on one step.
-- A step removed from the files is retired (`retired_on`), not deleted, so its
-  history stays.
-- `std_standards.reference_site_id` and `std_sites.std_standard_id` point at each
-  other; the first is nullable and filled after the site row exists.
+  `std_step_notes.done_mode` is the record of what happened on one step.
+- The undeployed template skeleton has no domain, so it would not appear on the
+  page. Rob hopes each idea reaches the template itself, so it will need a way
+  onto the page when it is entered. Left open until then.
 
 ## Writing the hand-kept facts
 
-The page is read-only in this build. The few facts people keep are written with a
-command-line tool over `ssh mg`, by Rob or by the agent working beside him:
+The pages are read-only in this build. The only facts kept by hand are about
+sites, written with a command-line tool over `ssh mg`, by Rob or by the agent
+working beside him:
 
-- add a site, link its domains, record its checkout path and GitHub repo
-- set a site's autonomy
-- record how a step was done on a site, with a note and an mg issue number
-- mark a step as not applying to a site, with a reason
+- add a site with its shortcode and standard
+- link its domains, with a path when the domain carries more than one site
+- record its checkout path, trunk branch and GitHub repo
+- set its autonomy
+
+Everything about steps and site notes is written by editing files.
 
 ## What ships in the first build
 
-- The migration, the importer, the scanner, the command-line tool and the page.
-- The template standard, its tracks, and step files only for what mg passes today:
-  the Groundwork steps, tooling on PHP 8.5, PHPStan level 10 with no baseline, and
-  serves PHP 8.5.
-- Site rows for the template forks, entered with the tool. Sites with no checkout
-  yet are entered with what is known; their open Groundwork steps say the rest.
-- No Rector, phpcs-without-exclusions or MLAPHP steps. mg does not pass them yet;
-  each arrives with the mg bubble that proves it.
+- The migration, the importer, the scanner, the command-line tool, the standards
+  page, and the new panel on the domain page.
+- The template standard, its tracks, and proven step files only for what is
+  already done somewhere: the Groundwork steps, tooling on PHP 8.5, PHPStan level
+  10 with no baseline, serves PHP 8.5, and the Rector 8.5 and type-declaration
+  steps already proven on another fork. The how-to for those last two is copied
+  from that fork's notes and tightened when mg does them.
+- Two site rows: `mg` and `badmin` (one site, two domains). Both will show the
+  info circle from day one, which is the point of having something to look at.
+- No phpcs-without-exclusions or MLAPHP steps as proven. Where an idea is already
+  in mind it may be written up as an idea.
 
 ## Left open on purpose
 
+- **Where site-note files live.** Rob's call; see [Site notes](#site-notes).
 - **A smoke test per site.** Rob would wince if a site went down, so no step that
   deploys should run on a site without one. What a smoke test is, and its
-  Groundwork step, get designed on mg during the first paired work.
+  Groundwork step, get designed during the first paired work.
 - **How much an agent may do alone.** Rob expects this to become clear over the
   first few sites. Until then `autonomy` defaults to paired, and nothing reads it
   but people and agents deciding how to work.
 - **How to detect a finished MLAPHP chapter.** Designed chapter by chapter, when
-  mg does each one.
+  the first site does each one.
+- **How the template skeleton gets onto the page.**
 
 ## Left to the builder
 
 - Class names and layout under `classes/Inventory/`, and the exact shape of the
   JSON document and the command-line tool.
-- The frontmatter keys of a step file.
+- The frontmatter keys of a step file and of a site note.
+- How a track's display name and position are written down beside its directory.
 - Column types, indexes and the order of files inside the migration.
 - The pure rule for a site's mark and summary gets Unit tests with made-up sites;
-  so does the step-file parser.
+  so do the step-file parser and the file-name rule for site notes.
 - The importer gets no committed database test, matching the sweep importer, whose
   database runs were done by hand and never committed. Verify it by hand: a run
   against a throwaway `mysql:8.0` container on Lemur 13, then `--dry-run` against
