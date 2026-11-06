@@ -3,7 +3,8 @@
 /**
  * Imports one site-standards scan read from STDIN as a single JSON document.
  * Run it through tools/site-standards/scan.sh on Lemur 13, which reads the
- * step files from master, runs each site's checks and streams the result:
+ * step files from the commit deployed on mg, runs each site's checks and
+ * streams the result:
  *
  *     {"scanned_at_utc": "2026-11-07 01:20:00", "steps_commit": "<40 hex>",
  *      "files": {"template/_standard.md": "...", ...},

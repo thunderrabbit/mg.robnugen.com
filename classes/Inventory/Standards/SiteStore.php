@@ -9,8 +9,8 @@ use Db\RowValue;
 
 /**
  * The facts about a site that are kept by hand: its shortcode and standard,
- * the mg project holding its notes, where its code is, and which DreamHost
- * domains serve it. Everything about steps comes from the step files instead.
+ * the mg project holding its notes, where its code is, which branch of it is
+ * deployed, and which DreamHost domains serve it. Everything about steps comes from the step files instead.
  *
  * Every refusal is an InvalidArgumentException whose message is a sentence
  * for the person at the command line.
@@ -46,7 +46,7 @@ final class SiteStore
     }
 
     /**
-     * @param array{project_id?: ?int, checkout_path?: ?string, trunk_branch?: string, github_repo?: ?string, autonomy?: string} $changes
+     * @param array{project_id?: ?int, checkout_path?: ?string, deployed_branch?: string, github_repo?: ?string, autonomy?: string} $changes
      */
     public function set(string $shortcode, array $changes): void
     {
@@ -68,12 +68,12 @@ final class SiteStore
             $sets[] = 'checkout_path = ?';
             $params[] = $path;
         }
-        if (array_key_exists('trunk_branch', $changes)) {
-            if (preg_match('#\A[A-Za-z0-9._/-]{1,100}\z#', $changes['trunk_branch']) !== 1) {
-                throw new \InvalidArgumentException("\"{$changes['trunk_branch']}\" is not a branch name.");
+        if (array_key_exists('deployed_branch', $changes)) {
+            if (preg_match('#\A[A-Za-z0-9._/-]{1,100}\z#', $changes['deployed_branch']) !== 1) {
+                throw new \InvalidArgumentException("\"{$changes['deployed_branch']}\" is not a branch name.");
             }
-            $sets[] = 'trunk_branch = ?';
-            $params[] = $changes['trunk_branch'];
+            $sets[] = 'deployed_branch = ?';
+            $params[] = $changes['deployed_branch'];
         }
         if (array_key_exists('github_repo', $changes)) {
             $repo = $changes['github_repo'];
@@ -130,13 +130,13 @@ final class SiteStore
     /**
      * What the scanner on Lemur 13 needs to know about each site.
      *
-     * @return list<array{shortcode: string, standard: string, checkout_path: ?string, trunk_branch: string}>
+     * @return list<array{shortcode: string, standard: string, checkout_path: ?string, deployed_branch: string}>
      */
     public function forScanner(): array
     {
         $sites = [];
         $rows = $this->rows(
-            'SELECT s.shortcode, t.slug AS standard, s.checkout_path, s.trunk_branch
+            'SELECT s.shortcode, t.slug AS standard, s.checkout_path, s.deployed_branch
                FROM std_sites s JOIN std_standards t ON t.std_standard_id = s.std_standard_id
               ORDER BY s.shortcode'
         );
@@ -145,7 +145,7 @@ final class SiteStore
                 'shortcode' => RowValue::string($row, 'shortcode'),
                 'standard' => RowValue::string($row, 'standard'),
                 'checkout_path' => RowValue::stringOrNull($row, 'checkout_path'),
-                'trunk_branch' => RowValue::string($row, 'trunk_branch'),
+                'deployed_branch' => RowValue::string($row, 'deployed_branch'),
             ];
         }
         return $sites;

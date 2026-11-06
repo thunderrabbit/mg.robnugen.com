@@ -75,4 +75,18 @@ final class StandardsSiteCommandTest extends Unit
         $this->expectException(\InvalidArgumentException::class);
         SiteCommand::parse(['site-set', '--shortcode=mg', '--shortcode=mg']);
     }
+
+    public function testSiteSetRecordsTheDeployedBranch(): void
+    {
+        $parsed = SiteCommand::parse(['site-set', '--shortcode=mg', '--deployed=dh-standards']);
+
+        $this->assertSame(['shortcode' => 'mg', 'deployed' => 'dh-standards'], $parsed['options']);
+    }
+
+    public function testThereIsNoTrunkOptionAnyMore(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches('/--trunk/');
+        SiteCommand::parse(['site-set', '--shortcode=mg', '--trunk=master']);
+    }
 }

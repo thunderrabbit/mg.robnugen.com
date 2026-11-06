@@ -27,7 +27,7 @@ final class Board
     /**
      * Every standard with its sites and its untried ideas.
      *
-     * @return list<array{slug: string, name: string, proven: int, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}>, ideas: list<array{track: string, title: string}>}>
+     * @return list<array{slug: string, name: string, proven: int, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, deployed_branch: string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}>, ideas: list<array{track: string, title: string}>}>
      */
     public function standards(): array
     {
@@ -86,7 +86,7 @@ final class Board
 
     /**
      * @param array<mixed> $site a std_sites row
-     * @return array{shortcode: string, project_id: ?int, autonomy: string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}
+     * @return array{shortcode: string, project_id: ?int, autonomy: string, deployed_branch: string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}
      */
     private function site(array $site): array
     {
@@ -184,6 +184,7 @@ final class Board
             'shortcode' => $shortcode,
             'project_id' => $projectId,
             'autonomy' => RowValue::string($site, 'autonomy'),
+            'deployed_branch' => RowValue::string($site, 'deployed_branch'),
             'last_checked_utc' => $checked === []
                 ? null
                 : RowValue::dateTime($checked[0], 'scanned_at_utc')->format('Y-m-d H:i'),

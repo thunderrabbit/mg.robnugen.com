@@ -6,7 +6,7 @@ namespace Inventory\Standards;
 
 /**
  * The one JSON document the scanner on Lemur 13 sends: the step files as they
- * stand on master, and for each site either what its checks said or why the
+ * stand in the commit deployed on mg, and for each site either what its checks said or why the
  * site was skipped.
  *
  *     {"scanned_at_utc": "2026-11-07 01:20:00", "steps_commit": "<40 hex>",

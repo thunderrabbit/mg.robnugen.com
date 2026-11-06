@@ -10,7 +10,7 @@ namespace Inventory\Standards;
  *
  *     sites
  *     site-add    --shortcode= --standard= [--project=]
- *     site-set    --shortcode= [--project=] [--checkout=] [--trunk=] [--github=] [--autonomy=]
+ *     site-set    --shortcode= [--project=] [--checkout=] [--deployed=] [--github=] [--autonomy=]
  *     site-link   --shortcode= --domain= [--path=]
  *     site-unlink --shortcode= --domain= [--path=]
  *
@@ -24,7 +24,7 @@ final class SiteCommand
         'site-add' => ['required' => ['shortcode', 'standard'], 'optional' => ['project']],
         'site-set' => [
             'required' => ['shortcode'],
-            'optional' => ['project', 'checkout', 'trunk', 'github', 'autonomy'],
+            'optional' => ['project', 'checkout', 'deployed', 'github', 'autonomy'],
         ],
         'site-link' => ['required' => ['shortcode', 'domain'], 'optional' => ['path']],
         'site-unlink' => ['required' => ['shortcode', 'domain'], 'optional' => ['path']],
@@ -92,8 +92,8 @@ final class SiteCommand
                 if (array_key_exists('checkout', $o)) {
                     $changes['checkout_path'] = $o['checkout'] === '' ? null : $o['checkout'];
                 }
-                if (array_key_exists('trunk', $o)) {
-                    $changes['trunk_branch'] = $o['trunk'];
+                if (array_key_exists('deployed', $o)) {
+                    $changes['deployed_branch'] = $o['deployed'];
                 }
                 if (array_key_exists('github', $o)) {
                     $changes['github_repo'] = $o['github'] === '' ? null : $o['github'];
