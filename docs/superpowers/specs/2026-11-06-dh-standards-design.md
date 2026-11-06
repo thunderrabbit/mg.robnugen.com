@@ -59,8 +59,9 @@ and is expected to be revised once he has used it.
 
 ## Goals
 
-1. `/admin/dh/standards.php` lists each template site with one of two marks: a
-   green checkmark (as up to date as it can be) or an info circle (behind).
+1. `/admin/dh/standards.php` lists each template site with one of three marks: a
+   green checkmark (as up to date as it can be), an info circle (behind), or a
+   crying-laughing face (nobody can reach it yet).
 2. Under each site is a list of its steps, collapsed by default, that expands to
    say what remains, why, and whose move it is (Rob's or an agent's).
 3. A step is ticked by a **check that passes**, never by hand.
@@ -90,7 +91,8 @@ and is expected to be revised once he has used it.
 ## Anti-goals
 
 - **Urgency.** Every site here is working. This feature never shows a warning
-  triangle, red text, or a count styled as a problem. The warning triangle is
+  triangle, red text, or a count styled as a problem. Its three marks are the
+  checkmark, the info circle and the crying-laughing face. The warning triangle is
   reserved for a real site-down emergency, which this feature does not detect.
 - **A checkmark that lies.** No hand-ticked boxes, and no checkmark left standing
   on a result nobody can date.
@@ -119,6 +121,11 @@ Template sites   7 proven steps · trunks last checked 2026-11-07 01:20 UTC
       Rector       · Rector's 8.5 rules, one per commit      an agent can do this
                        Why and how: …
 ⓘ  badmin      waiting on you                                         ▸
+😂  example     can't reach it yet                                     ▾
+      Groundwork   ✓ has a domain
+                   · ssh login works                                    your move
+                   ✓ repo located
+      …
 
 Ideas not yet tried on any site
       MLAPHP       remove globals from prepend.php
@@ -126,16 +133,18 @@ Ideas not yet tried on any site
 
 - One section per standard; only "Template sites" exists now. Sites are listed by
   shortcode. No site has a special row.
-- A site appears on this page when at least one DreamHost domain is linked to it.
-  A site hosted elsewhere never has such a link, so it never appears here.
-- Row summary: `up to date`, `N steps to go`, or `waiting on you` when an open
-  step is Rob's move.
+- Every site entered appears on this page, unless it is linked to some other
+  host. No other host exists in mg yet, so today that is every site. A site with
+  no domain at all still appears; having no domain is a Groundwork step, not a
+  reason to hide it.
+- Row summary: `up to date`, `N steps to go`, `waiting on you` when an open step
+  is Rob's move, or `can't reach it yet`.
 - Expanding uses `<details>`, so no JavaScript. Open steps show their explanation;
   the how-to sits one level further in.
 - A step with an issue in the site's project shows the issue's number, status and
   a link to it, whether the step is done or not.
-- A step that does not apply to a site says so, links to the issue that gives the
-  reason, and counts as done.
+- A step marked NAh for a site says so, links to the issue that gives the reason,
+  and counts as done.
 - A step that could not be checked says why ("no local checkout", "not checked
   yet") and shows as an open step with the info circle. It is not an error.
 - Each site shows when its trunk was last checked. If the latest scan skipped it,
@@ -160,8 +169,21 @@ A step file says whether the step is an **idea** or **proven**.
 - A **proven** step has been done on at least one site and merged to that site's
   trunk. From then it counts for every site of the standard, mg included.
 
-A site gets the green checkmark when every proven step is passed or marked as not
-applying to it. Otherwise it gets the info circle.
+A site gets one of three marks:
+
+- **Crying-laughing face** when it cannot be reached: it has no domain, or the
+  ssh login to its DreamHost user is not proven. This comes first, whatever else
+  is true of the site. Rob chose the face over the info circle on purpose: it
+  brings levity, and it reminds him that an AI cannot help with a site it cannot
+  even reach.
+- **Green checkmark** when every proven step is passed or marked NAh.
+- **Info circle** otherwise.
+
+A site with the face still shows its other steps. Its code can be checked from
+its checkout on Lemur 13 even when its server cannot be reached.
+
+*Claude's reading:* Rob named the face for "cannot reach user via ssh" and said
+having no domain is similar, so both get it.
 
 Whoever proves a step flips it from idea to proven in the step file, in a commit
 to mg's repo; it takes effect when Rob advances mg's master over it. A step that
@@ -186,9 +208,11 @@ Rob's final state for a template site, in no particular order:
 
 Further tracks are Claude's additions:
 
-- **Groundwork**: what must be true before any other step can be worked. ssh login
-  works (Rob's move), repo located on GitHub and checked out on Lemur 13 (Rob's
-  move), checks in place.
+- **Groundwork**: what must be true before any other step can be worked. Has a
+  domain (Rob's move), ssh login works (Rob's move), repo located on GitHub and
+  checked out on Lemur 13 (Rob's move), checks in place. The template skeleton
+  itself has no domain, so it is entered like any site and sits with that step
+  open.
 - **Tooling**: the site's checks run on the same PHP the site is moving to (hook
   image, `composer.json` platform, standards-mcp `php_target`). The first
   migration found that Rector on an older image silently skips newer rules.
@@ -265,11 +289,12 @@ The step is still ticked only by its check. An issue marked Done beside a check
 that has not passed is not an error; it usually means the work is on a branch
 that has not reached trunk, and seeing both is useful.
 
-**"Does not apply" needs a status** *(Claude's call)*. mg's issue statuses today
-are Open, In Progress, Blocked and Done. This build adds a fifth, terminal one:
-**Doesn't apply**. A site note in that status makes its step count as done for
-that site, with the issue as the reason. It is the only way a person, not a
-check, changes a site's mark, and it is useful for ordinary issues too.
+**A fifth issue status: NAh**, "Not Applicable here" (the need was Claude's call,
+the name is Rob's). mg's issue statuses today are Open, In Progress, Blocked and
+Done. This build adds NAh as a terminal status. A site note in that status makes
+its step count as done for that site, with the issue as the reason. It is the
+only way a person, not a check, changes a site's mark, and any mg issue can use
+it.
 
 Under each site the page also lists, quietly, any issue in its project whose
 title has the site-note shape but names a different site or no known step. That
@@ -284,8 +309,9 @@ project; Rob grants that.
 **Checks mg can answer itself**, computed when the page loads, from tables it
 already has. Nothing is stored for these:
 
-- *ssh login works*: every DreamHost user serving the site's domains has
-  `dh_users.login_confirmed_on` set, which the existing `recover-dh-user` skill
+- *has a domain*: at least one DreamHost domain is linked to the site.
+- *ssh login works*: the site has a domain, and every DreamHost user serving its
+  domains has `dh_users.login_confirmed_on` set, which the existing `recover-dh-user` skill
   writes when a login is proven. An alias with no proven login does not pass; the
   step's detail says "alias found, login not proven yet".
 - *repo located*: the site has both a GitHub repo and a Lemur 13 checkout path
@@ -388,7 +414,7 @@ Written by the scanner:
 | `std_step_states` | Outcome of a scanner check over time | `std_step_state_id`, `std_site_id` →, `std_step_id` →, `from_scan_id` →, `until_scan_id` (nullable →; NULL = current), `outcome` (pass, fail, unknown), `detail` |
 
 One row added to an existing table: `issue_statuses` gains the terminal status
-"Doesn't apply".
+NAh.
 
 Notes on the draft:
 
@@ -415,9 +441,6 @@ Notes on the draft:
 - `std_sites.autonomy` is Rob's instruction for the site from now on. How a
   particular step was done (paired, reviewed, solo) is said in its issue, not in
   a column.
-- The undeployed template skeleton has no domain, so it would not appear on the
-  page. Rob hopes each idea reaches the template itself, so it will need a way
-  onto the page when it is entered. Left open until then.
 
 ## Writing the hand-kept facts
 
@@ -442,10 +465,12 @@ tools that already write issues.
   10 with no baseline, serves PHP 8.5, and the Rector 8.5 and type-declaration
   steps already proven on another fork. The how-to for those last two is copied
   from that fork's notes and tightened when mg does them.
-- The "Doesn't apply" issue status.
+- The NAh issue status.
 - Two site rows: `mg` and `badmin` (one site, two domains), each tied to its mg
-  project. Both will show the
-  info circle from day one, which is the point of having something to look at.
+  project. Entering a site includes proving its ssh login where an alias already
+  works, so the face is left for sites that really cannot be reached. Both will
+  show the info circle from day one, which is the point of having something to
+  look at.
 - No phpcs-without-exclusions or MLAPHP steps as proven. Where an idea is already
   in mind it may be written up as an idea.
 
@@ -459,14 +484,13 @@ tools that already write issues.
   but people and agents deciding how to work.
 - **How to detect a finished MLAPHP chapter.** Designed chapter by chapter, when
   the first site does each one.
-- **How the template skeleton gets onto the page.**
 
 ## Left to the builder
 
 - Class names and layout under `classes/Inventory/`, and the exact shape of the
   JSON document and the command-line tool.
 - The frontmatter keys of a step file.
-- Where "Doesn't apply" sorts among the statuses, and checking that boards and
+- Where NAh sorts among the statuses, and checking that boards and
   counts which list statuses by name still read well with a fifth one.
 - How a track's display name and position are written down beside its directory.
 - Column types, indexes and the order of files inside the migration.
