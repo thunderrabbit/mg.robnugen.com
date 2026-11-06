@@ -658,7 +658,7 @@ Each step here changes production or needs Rob. Ask before each one; an earlier 
 - [ ] **Step 2: Deploy** with the `deploy` skill (push, then pull on the server). Confirm `v.0.59.0` on a page footer.
 - [ ] **Step 3: Apply migration `45_site_standards`** on production through `/admin/migrate_tables.php`, the way 39 was applied. Confirm the eight tables and the `nah` status with `ssh mg "mysql mgrnc -e …"`.
 - [ ] **Step 4: First import, steps only:** `tools/site-standards/scan.sh --dry-run`, read the summary, then without the flag.
-- [ ] **Step 5: Enter the two sites** with `site.sh`: `mg` and the second site Rob named, each with its mg project, standard `template`, its checkout path, GitHub repo and domains (`badmin` has two). Prove each site's ssh login with the `recover-dh-user` skill where an alias already works, so the face is left for sites that cannot be reached.
+- [ ] **Step 5: Enter the two sites** with `site.sh`: `mg` and the second site Rob named, each with its mg project, standard `template`, its checkout path, GitHub repo and domains (the second site has two). Prove each site's ssh login with the `recover-dh-user` skill where an alias already works, so the face is left for sites that cannot be reached.
 - [ ] **Step 6: Scan:** `scan.sh --dry-run`, then for real. A site whose checkout is off its trunk will be skipped; that is correct and the page will say so.
 - [ ] **Step 7: Rob looks at `/admin/dh/standards.php`** and at both domains' pages. Collect what he wants changed; that list is the next piece of work, not part of this plan.
 - [ ] **Step 8: Close the bubble** with the `close-bubble` skill once Rob gives the closing words.
