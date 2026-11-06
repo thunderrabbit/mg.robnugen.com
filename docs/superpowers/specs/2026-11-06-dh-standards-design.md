@@ -1,6 +1,6 @@
 # DreamHost dashboard: which sites are behind the standard
 
-Date: 6 Nov 2026, revised 7 Nov 2026. Rob, with Claude (brainstormed in the mg
+Date: 6 Nov 2026, revised 7 Nov 2026 (twice: site notes as issues; approval is deploying). Rob, with Claude (brainstormed in the mg
 session).
 
 ## Intent
@@ -66,7 +66,7 @@ and is expected to be revised once he has used it.
    say what remains, why, and whose move it is (Rob's or an agent's).
 3. A step is ticked by a **check that passes**, never by hand.
 4. A step is a Markdown file in mg's repo, whichever site the idea came from. Rob
-   approving a step is Rob advancing mg's master, which he already does.
+   approving a step is Rob deploying it to mg, which he already does.
 5. Each step carries a how-to that gets better after every site it is applied to.
    Each site's notes on a step are an issue in that site's own mg project.
 6. A domain's existing page shows the status of every site inside that domain.
@@ -109,7 +109,7 @@ A new page in the existing DreamHost inventory, linked from its nav as
 "standards", guarded the same way (`Inventory\AdminPage::guard`: Rob only).
 
 ```
-Template sites   7 proven steps · trunks last checked 2026-11-07 01:20 UTC
+Template sites   7 proven steps · last checked 2026-11-07 01:20 UTC
 
 ⓘ  mg          1 step to go                                           ▾
       Groundwork   ✓ ssh login works
@@ -147,7 +147,8 @@ Ideas not yet tried on any site
   and counts as done.
 - A step that could not be checked says why ("no local checkout", "not checked
   yet") and shows as an open step with the info circle. It is not an error.
-- Each site shows when its trunk was last checked. If the latest scan skipped it,
+- Each site shows which branch of it is deployed and when that was last checked.
+  If the latest scan skipped it,
   the row says why ("on branch example-topic") beside that date.
 - Below the sites, ideas are listed once, by track. They are not repeated under
   each site.
@@ -166,8 +167,8 @@ A step file says whether the step is an **idea** or **proven**.
 
 - An **idea** has been written up but no site has done it yet. It counts against
   no one and is listed once, below the sites.
-- A **proven** step has been done on at least one site and merged to that site's
-  trunk. From then it counts for every site of the standard, mg included.
+- A **proven** step has been done on at least one site and is deployed there.
+  From then it counts for every site of the standard, mg included.
 
 A site gets one of three marks:
 
@@ -186,7 +187,7 @@ its checkout on Lemur 13 even when its server cannot be reached.
 having no domain is similar, so both get it.
 
 Whoever proves a step flips it from idea to proven in the step file, in a commit
-to mg's repo; it takes effect when Rob advances mg's master over it. A step that
+to mg's repo; it takes effect when Rob deploys that commit to mg. A step that
 is urgent (a zero-day fix) follows the same path, just quickly. The page stays
 calm either way.
 
@@ -234,13 +235,15 @@ move it is, and the name of its check (with an optional parameter such as `8.5`)
 The body has two parts: the explanation shown on the page, and the how-to an
 agent follows.
 
-**Only step files on mg's `master` count** *(Claude's call)*. The scanner reads
-them from `master` with git, never from the working tree, so a step on an open
-branch reaches no one until Rob has advanced master over it.
+**Only the step files deployed on mg count** (Rob, 2026-11-07: "I approve things
+by deploying them"; `master` is not the only branch he deploys). The scanner asks
+the mg server which commit it is running and reads the step files from that
+commit with git, never from the working tree, so a step that is not deployed on
+mg reaches no one.
 
 This is deliberate:
 
-- A step is reviewed as a commit and approved when Rob advances master. When the
+- A step is reviewed as a commit and approved when Rob deploys it. When the
   idea was proven on mg, the step rides in the same bubble as the work. When it
   was proven on another site, it is a small commit of its own in mg's repo.
 - The how-to's history is git history. Tightening it after a site is a commit.
@@ -287,7 +290,7 @@ that exact title. It shows the issue's number and status and links to it.
 
 The step is still ticked only by its check. An issue marked Done beside a check
 that has not passed is not an error; it usually means the work is on a branch
-that has not reached trunk, and seeing both is useful.
+that is not deployed yet, and seeing both is useful.
 
 **A new issue status: NAh**, "Not Applicable here" (the need was Claude's call,
 the name is Rob's). mg's issue statuses today are Open, In Progress, Blocked,
@@ -338,20 +341,24 @@ The same way sweeps do, and for the same reason: Lemur 13 starts everything, mg
 never reaches Lemur 13, and no new credential is needed.
 
 1. The scanner asks mg for the site list (shortcode, standard, checkout path,
-   trunk branch) over `ssh mg`.
-2. It runs the checks, and reads the step files from `master` of the mg repo on
-   Lemur 13 (with git, as above, whatever branch is checked out).
+   deployed branch) over `ssh mg`, and asks the mg server which commit it is
+   running.
+2. It runs the checks, and reads the step files from that commit in the mg repo
+   on Lemur 13 (with git, as above, whatever branch is checked out). Its own
+   check scripts must match that commit, or it stops.
 3. It streams one JSON document (standards, tracks, steps, plus per site: branch,
    commit, and each check's outcome and detail) over `ssh mg` to a
    PHP tool that reads STDIN and imports it in one transaction. A `--dry-run`
    rolls back, as the sweep importer does.
 
-**Only a clean checkout on the site's trunk is checked** *(Claude's call)*. Each
-site records its trunk branch (default `master`). If the checkout is on another
-branch or has uncommitted changes, the scanner skips that site, records why, and
-the site's last trunk results stand with their date. So a checkmark means "merged
-to trunk", never "passes on a branch nobody has merged". It does not mean
-"deployed": the scanner does not check what a server is running.
+**Only a clean checkout on the site's deployed branch is checked.** Each site
+records which branch is deployed (default `master`; Rob deploys whichever branch
+is ready, so this is kept per site). If the checkout is on another branch or has
+uncommitted changes, the scanner skips that site, records why, and the site's
+last results stand with their date. So a checkmark means "on the deployed
+branch", never "passes on a branch nobody has deployed". The scanner still reads
+the local checkout, not the server; for a site with a proven ssh login, reading
+the deployed branch from the server itself is a later improvement.
 
 Site notes never pass through the scanner. They are already in mg.
 
@@ -403,7 +410,7 @@ Kept by hand:
 
 | Table | Holds | Columns |
 |---|---|---|
-| `std_sites` | A codebase | `std_site_id`, `std_standard_id` →, `shortcode` (unique), `project_id` (nullable → `projects`), `checkout_path` (nullable, relative to `~/work`), `trunk_branch` (default `master`), `github_repo` (nullable), `autonomy` (paired, reviewed, solo; default paired) |
+| `std_sites` | A codebase | `std_site_id`, `std_standard_id` →, `shortcode` (unique), `project_id` (nullable → `projects`), `checkout_path` (nullable, relative to `~/work`), `deployed_branch` (default `master`), `github_repo` (nullable), `autonomy` (paired, reviewed, solo; default paired) |
 | `dh_site_domains` | Which domains serve a site | `dh_site_domain_id`, `std_site_id` →, `dh_domain_id` → `dh_domains`, `path_prefix` (default empty); unique (`dh_domain_id`, `path_prefix`) |
 
 Written by the scanner:
@@ -451,7 +458,7 @@ working beside him:
 
 - add a site with its shortcode, standard and mg project
 - link its domains, with a path when the domain carries more than one site
-- record its checkout path, trunk branch and GitHub repo
+- record its checkout path, deployed branch and GitHub repo
 - set its autonomy
 
 Steps are written by editing files. Site notes are written as issues, with the

@@ -4,7 +4,7 @@
 
 **Goal:** A calm page at `/admin/dh/standards.php` showing, for `mg` and one other fork, which written-up steps each has done, driven by checks, with per-site notes read from mg issues.
 
-**Architecture:** Steps are Markdown files in this repo, read from `master`. A bash scanner on Lemur 13 runs check scripts against each site's checkout and streams one JSON document over `ssh mg` to a PHP importer, the same shape as the DreamHost sweep import. The page combines the imported results with checks mg answers from its own tables and with issues found by title in each site's project. The rules that decide a mark are pure classes with Unit tests; the database code is verified by hand.
+**Architecture:** Steps are Markdown files in this repo, read from the commit deployed on mg (revised 2026-11-07: Rob approves by deploying, and not only `master` gets deployed). A bash scanner on Lemur 13 runs check scripts against each site's checkout and streams one JSON document over `ssh mg` to a PHP importer, the same shape as the DreamHost sweep import. The page combines the imported results with checks mg answers from its own tables and with issues found by title in each site's project. The rules that decide a mark are pure classes with Unit tests; the database code is verified by hand.
 
 **Tech Stack:** PHP 8.5 (no runtime dependencies), MySQL 8, bash + `python3 -I` on Lemur 13, Codeception Unit suite, phpcs PSR-12, PHPStan level 10, standards-mcp runner images.
 
@@ -118,7 +118,7 @@ CREATE TABLE std_sites (
     shortcode       VARCHAR(24) NOT NULL,
     project_id      INT UNSIGNED NULL,
     checkout_path   VARCHAR(255) NULL,
-    trunk_branch    VARCHAR(100) NOT NULL DEFAULT 'master',
+    trunk_branch    VARCHAR(100) NOT NULL DEFAULT 'master',   -- renamed deployed_branch by e_rename_trunk_to_deployed_branch.sql
     github_repo     VARCHAR(255) NULL,
     autonomy        ENUM('paired','reviewed','solo') NOT NULL DEFAULT 'paired',
     UNIQUE KEY uq_site_shortcode (shortcode),
@@ -423,7 +423,7 @@ public function testARemovedStepIsSimplyAbsentFromTheTree(): void
 
 ```json
 {"scanned_at_utc": "2026-11-07 01:20:00",
- "steps_commit": "<40 hex: mg master>",
+ "steps_commit": "<40 hex: the commit deployed on mg>",
  "files": {"template/_standard.md": "…", "template/rector/_track.md": "…"},
  "sites": [
    {"shortcode": "mg", "branch": "master", "commit": "<40 hex>", "skipped_reason": null,
@@ -494,11 +494,11 @@ public function testAPayloadWithNoSitesIsFine(): void { /* 'sites' => [] loads s
 - Produces:
   - `SiteStore::__construct(\PDO $pdo)`
   - `add(string $shortcode, string $standardSlug, ?int $projectId): int`
-  - `set(string $shortcode, array{project_id?: ?int, checkout_path?: ?string, trunk_branch?: string, github_repo?: ?string, autonomy?: string} $changes): void`
+  - `set(string $shortcode, array{project_id?: ?int, checkout_path?: ?string, deployed_branch?: string, github_repo?: ?string, autonomy?: string} $changes): void`
   - `link(string $shortcode, string $domain, string $pathPrefix = ''): void`, `unlink(string $shortcode, string $domain, string $pathPrefix = ''): void`
-  - `forScanner(): list<array{shortcode: string, standard: string, checkout_path: ?string, trunk_branch: string}>`
+  - `forScanner(): list<array{shortcode: string, standard: string, checkout_path: ?string, deployed_branch: string}>`
   - All throw `\InvalidArgumentException` with a plain sentence for: a bad or taken shortcode, an unknown standard, project, domain or autonomy value, a `checkout_path` that is absolute or contains `..`, a `(domain, path)` already linked.
-- CLI: `php tools/site_standards.php sites` prints `forScanner()` as JSON; `site-add --shortcode= --standard= [--project=]`; `site-set --shortcode= [--project=] [--checkout=] [--trunk=] [--github=] [--autonomy=]`; `site-link --shortcode= --domain= [--path=]`; `site-unlink` likewise. Errors go to stderr, exit 1.
+- CLI: `php tools/site_standards.php sites` prints `forScanner()` as JSON; `site-add --shortcode= --standard= [--project=]`; `site-set --shortcode= [--project=] [--checkout=] [--deployed=] [--github=] [--autonomy=]`; `site-link --shortcode= --domain= [--path=]`; `site-unlink` likewise. Errors go to stderr, exit 1.
 - `tools/site-standards/site.sh "$@"` runs the CLI on the server: `ssh mg /usr/local/php85/bin/php '~/mg.robnugen.com/tools/site_standards.php'` with each argument passed through `printf %q`.
 
 A standard exists only after a first import, so `site-add` before any import fails with `No such standard: template. Import the step files first.`
@@ -583,7 +583,7 @@ Write every test in full, in the style of the first of each group.
 `Board` queries: sites with their standard; each site's domains with the **current** `dh_domain_states` row and its `dh_users` row (for `SiteFacts`); proven and idea steps that are not retired; open `std_step_states`; per site the latest unskipped `std_scan_sites` time and the latest row's `skipped_reason`; issues in the site's project joined to `issue_statuses`, limited to titles containing a dot. A site appears whether or not it has domains.
 
 Page (`standards.php` follows `index.php` line for line: prepend include, `@var` block, `AdminPage::guard`, `AdminPage::render` with title `Site standards`):
-- Per standard: heading, `N proven steps`, then one `<details id="site-<shortcode>">` per site. `<summary>` holds the mark, the shortcode and the summary. Inside: lines grouped under their track's name, in the order `Board` returns them; a done line shows `✓`, an open one `·`, its title, whose move (`your move` / `an agent can do this`), its detail, any issues as `#<id> <status label>` linking to `/issues/view.php?issue_id=<id>`, and for an open line the explanation rendered with `\Utilities::renderMarkdown` plus a nested `<details>` for the how-to. A NAh line reads `NAh` with its issue link. Below the lines: the site's autonomy (`paired`, `reviewed` or `solo`), `Trunk last checked <time> UTC`, the skip reason if any, and the strays under `Notes that match no step here`.
+- Per standard: heading, `N proven steps`, then one `<details id="site-<shortcode>">` per site. `<summary>` holds the mark, the shortcode and the summary. Inside: lines grouped under their track's name, in the order `Board` returns them; a done line shows `✓`, an open one `·`, its title, whose move (`your move` / `an agent can do this`), its detail, any issues as `#<id> <status label>` linking to `/issues/view.php?issue_id=<id>`, and for an open line the explanation rendered with `\Utilities::renderMarkdown` plus a nested `<details>` for the how-to. A NAh line reads `NAh` with its issue link. Below the lines: the site's autonomy (`paired`, `reviewed` or `solo`), `Deployed branch <name>, last checked <time> UTC`, the skip reason if any, and the strays under `Notes that match no step here`.
 - After the sites: `Ideas not yet tried on any site`, by track.
 - With no standards imported: one sentence, `No step files imported yet.`, and nothing else.
 - Every value through `AdminPage::h` except the two Markdown renders.
@@ -636,9 +636,9 @@ Checks:
 
 `scan.sh [shortcode…]`:
 1. `MG_REPO` = this script's repo; `STANDARDS_MCP` defaults to `~/work/rob/standards-mcp`; `SCAN_TMP=$(mktemp -d)`, removed on exit.
-2. Read step files **from `master`**, never the working tree: `git -C "$MG_REPO" ls-tree -r --name-only "$STEPS_REF" -- tools/site-standards/steps` and `git show "$STEPS_REF":<path>`; `steps_commit` is `git rev-parse "$STEPS_REF"`. `STEPS_REF` defaults to `master`. Setting it to anything else prints `Reading steps from <ref>, not master` on stderr; it exists for the first look in Task 10 and is not for routine use.
+2. Read step files **from the commit deployed on mg**, never the working tree: ask the server with `ssh mg git -C ~/mg.robnugen.com rev-parse HEAD`, then `git -C "$MG_REPO" ls-tree -r --name-only "$STEPS_REF" -- tools/site-standards/steps` and `git show "$STEPS_REF":<path>`; `steps_commit` is that commit. `STEPS_REF` defaults to it (revised 2026-11-07; it was `master`). Setting it to anything else prints `Reading steps from <ref>, not master` on stderr; it exists for the first look in Task 10 and is not for routine use.
 3. Site list from `site.sh sites`, narrowed to the arguments when given.
-4. Per site: no `checkout_path` or no such directory → skipped, `no local checkout`. `git symbolic-ref --short HEAD` differing from `trunk_branch` → skipped, `on branch <name>`. `git status --porcelain` not empty → skipped, `uncommitted changes`. Otherwise, for every step file of the site's standard: read `check` and `param` from its frontmatter (a few lines of `python3 -I`; the importer, not the scanner, is the judge of a step file). **If `checks/<check>.sh` exists in this working tree, run it** as `checks/<check>.sh "$repo" "$param"`; exit 0/1/2 map to `pass`/`fail`/`unknown`, any other code to `unknown`. If no such script exists, report nothing for that step: it is either a check mg answers itself or an idea with no check yet, and the page says `not checked yet` when it is neither. The scanner therefore holds no list of mg's own check names.
+4. Per site: no `checkout_path` or no such directory → skipped, `no local checkout`. `git symbolic-ref --short HEAD` differing from `deployed_branch` → skipped, `on branch <name>`. `git status --porcelain` not empty → skipped, `uncommitted changes`. Otherwise, for every step file of the site's standard: read `check` and `param` from its frontmatter (a few lines of `python3 -I`; the importer, not the scanner, is the judge of a step file). **If `checks/<check>.sh` exists in this working tree, run it** as `checks/<check>.sh "$repo" "$param"`; exit 0/1/2 map to `pass`/`fail`/`unknown`, any other code to `unknown`. If no such script exists, report nothing for that step: it is either a check mg answers itself or an idea with no check yet, and the page says `not checked yet` when it is neither. The scanner therefore holds no list of mg's own check names.
 5. Build the document with `python3 -I` (as `tools/import-dh-sweep.sh` does) and pipe it to `ssh mg "/usr/local/php85/bin/php ~/mg.robnugen.com/tools/import_site_standards.php $flag"`. `--dry-run` anywhere in the arguments is passed through.
 
 - [ ] **Step 1: Write the step files.** Verify with a throwaway PHP one-liner in the runner that `StepTree::fromFiles` accepts the directory. Commit: `Write up the template standard's first steps`.
@@ -646,7 +646,7 @@ Checks:
 - [ ] **Step 3: Write `scan.sh`.** Run `bash -n` and `shellcheck` if installed. Commit: `Scan each site's checkout and push the results`.
 - [ ] **Step 4: Dry-run against the Task 1 container** by pointing the final `ssh` at it through an environment override used only for this test (`SCAN_IMPORT_CMD`), with this repo on `dh-standards`: confirm steps still come from `master` and that `mg` is reported skipped with `on branch dh-standards`.
 - [ ] **Step 5: Run all three gates** (`run-unit.sh`, `run-phpcs.sh`, `run-phpstan.sh`); all must pass.
-- [ ] **Step 6: Document it in `CLAUDE.md`,** a section "Site standards (which sites are behind)": where step files live and that only `master`'s count; the note-title rule and NAh; that the scanner checks only a clean trunk; the three commands (`scan.sh`, `site.sh`, `--dry-run`); that no real site name goes in the repo. Commit: `Note how the standards page is wired`.
+- [ ] **Step 6: Document it in `CLAUDE.md`,** a section "Site standards (which sites are behind)": where step files live and that only `master`'s count; the note-title rule and NAh; that the scanner checks only a clean checkout on the deployed branch; the three commands (`scan.sh`, `site.sh`, `--dry-run`); that no real site name goes in the repo. Commit: `Note how the standards page is wired`.
 
 ---
 
@@ -654,11 +654,11 @@ Checks:
 
 Each step here changes production or needs Rob. Ask before each one; an earlier yes does not cover the next.
 
-- [ ] **Step 1: Decide where the first look reads its steps from.** The step files are on `dh-standards`, and `master` gets them only when the bubble closes. Ask Rob: scan with `STEPS_REF=dh-standards` for the first look (the one sanctioned use), or close the bubble first. While this repo is on `dh-standards`, `mg` itself is skipped as `on branch dh-standards`; its scanner steps read "not checked yet" until the first scan from `master`.
+- [ ] **Step 1: Deploy is approval.** (Revised 2026-11-07.) The scanner reads steps from whatever commit the mg server runs, so once `dh-standards` is deployed there is nothing to decide. Record `mg`'s deployed branch with `site-set --deployed=dh-standards` so its own checkout is scanned.
 - [ ] **Step 2: Deploy** with the `deploy` skill (push, then pull on the server). Confirm `v.0.59.0` on a page footer.
 - [ ] **Step 3: Apply migration `45_site_standards`** on production through `/admin/migrate_tables.php`, the way 39 was applied. Confirm the eight tables and the `nah` status with `ssh mg "mysql mgrnc -e …"`.
 - [ ] **Step 4: First import, steps only:** `tools/site-standards/scan.sh --dry-run`, read the summary, then without the flag.
 - [ ] **Step 5: Enter the two sites** with `site.sh`: `mg` and the second site Rob named, each with its mg project, standard `template`, its checkout path, GitHub repo and domains (the second site has two). Prove each site's ssh login with the `recover-dh-user` skill where an alias already works, so the face is left for sites that cannot be reached.
-- [ ] **Step 6: Scan:** `scan.sh --dry-run`, then for real. A site whose checkout is off its trunk will be skipped; that is correct and the page will say so.
+- [ ] **Step 6: Scan:** `scan.sh --dry-run`, then for real. A site whose checkout is not on its recorded deployed branch will be skipped; that is correct and the page will say so.
 - [ ] **Step 7: Rob looks at `/admin/dh/standards.php`** and at both domains' pages. Collect what he wants changed; that list is the next piece of work, not part of this plan.
 - [ ] **Step 8: Close the bubble** with the `close-bubble` skill once Rob gives the closing words.
