@@ -38,7 +38,7 @@ definitely a separate project. What it means for this one is in
 [Beyond DreamHost](#beyond-dreamhost).
 
 **Start small and look at it.** Rob finds it hard to say what he wants changed
-without seeing the thing work. The first build covers two sites, mg and badmin,
+without seeing the thing work. The first build covers two sites, mg and one other fork,
 and is expected to be revised once he has used it.
 
 ## Words used here
@@ -46,7 +46,7 @@ and is expected to be revised once he has used it.
 - **Site**: one codebase and the domains that serve it. Usually one domain is one
   site. A fork served on two domains is still one site. One domain can carry two
   sites at different paths (a Hugo site at `/` and Perl scripts under `/journal`).
-- **Shortcode**: a site's short, unique handle, such as `mg` or `badmin`. It is
+- **Shortcode**: a site's short, unique handle, such as `mg` or `example-games`. It is
   what issue titles and commands use to name a site.
 - **Standard**: the set of tracks for one kind of site. Only the **template**
   standard is built now. WordPress, MediaWiki, Hugo and Perl standards come later.
@@ -78,7 +78,7 @@ and is expected to be revised once he has used it.
 - Migrating any site. That work happens afterwards, one site at a time, each in its
   own bubble in that site's repo.
 - Adding Rector to mg. That is the first piece of paired work after this is built.
-- Entering all the template sites. The first build has mg and badmin; the others
+- Entering all the template sites. The first build has mg and one other fork; the others
   are added later, one command each.
 - WordPress, MediaWiki, Hugo or Perl standards. Only their place in the tables.
 - ABB, ABF, or an `/admin/ec2/` dashboard. No rows, no page, no checks for them.
@@ -120,7 +120,7 @@ Template sites   7 proven steps · trunks last checked 2026-11-07 01:20 UTC
       PHPStan      ✓ level 10, no baseline
       Rector       · Rector's 8.5 rules, one per commit      an agent can do this
                        Why and how: …
-ⓘ  badmin      waiting on you                                         ▸
+ⓘ  example-two waiting on you                                         ▸
 😂  example     can't reach it yet                                     ▾
       Groundwork   ✓ has a domain
                    · ssh login works                                    your move
@@ -258,7 +258,7 @@ gets) a project, and the notes sit beside the rest of that site's work.
 - One issue per step per site. The same tweak on three sites is three issues.
   That repeats some text, and Rob prefers it: each is clear and explicit.
 - The issue's title is the step's name, a dot, and the site's shortcode:
-  `title_of_upgrade.abc-eli`.
+  `title_of_upgrade.example-games`.
 - The shortcode in the title is a **check digit**. The issue must be in the
   project of the site that shortcode belongs to. An issue titled for one site but
   filed in another site's project is a mistake the page can point out.
@@ -273,7 +273,7 @@ gets) a project, and the notes sit beside the rest of that site's work.
   `title_of_upgrade`. It is the step file's name without `.md`, and it is unique
   within a standard.
 - A **shortcode** is lowercase letters and digits, in groups joined by single
-  hyphens: `mg`, `badmin`, `abc-eli`. At most 24 characters. Unique across all
+  hyphens: `mg`, `example-games`, `shop-example`. At most 24 characters. Unique across all
   sites, and never reused for a different site.
 - An **issue title** for a site note is exactly `<step name>.<shortcode>`.
 
@@ -467,7 +467,7 @@ tools that already write issues.
   steps already proven on another fork. The how-to for those last two is copied
   from that fork's notes and tightened when mg does them.
 - The NAh issue status.
-- Two site rows: `mg` and `badmin` (one site, two domains), each tied to its mg
+- Two site rows: `mg` and one other fork (one site, two domains), each tied to its mg
   project. Entering a site includes proving its ssh login where an alias already
   works, so the face is left for sites that really cannot be reached. Both will
   show the info circle from day one, which is the point of having something to
