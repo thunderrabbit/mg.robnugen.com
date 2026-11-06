@@ -11,6 +11,8 @@ only. What it does, and what it deliberately does not:
 - A step's check is run only if checks/<check>.sh exists. A step whose check
   has no script here is either one mg answers itself or an idea with no check
   yet, and nothing is reported for it.
+- The check scripts in this checkout must be the ones on that same ref, or
+  nothing is scanned.
 - Nothing in a site's repo is written, committed or deployed.
 
 The document it sends is described in tools/import_site_standards.php.
@@ -43,7 +45,8 @@ def stop(message):
 
 def git(repo, *args):
     """(exit code, stdout) of a read-only git command in a repo."""
-    done = subprocess.run(["git", "-C", repo, *args], capture_output=True, text=True)
+    # --no-optional-locks: even `git status` must not refresh a site's index.
+    done = subprocess.run(["git", "--no-optional-locks", "-C", repo, *args], capture_output=True, text=True)
     return done.returncode, done.stdout
 
 
@@ -61,7 +64,22 @@ def step_files(mg_repo, ref):
         if code != 0:
             stop(f"Could not read {path} on {ref}.")
         files[path[len(STEPS_DIR):]] = content
+    if not files:
+        stop(f"There are no step files on {ref}. Nothing was scanned or sent.")
     return files, commit.strip()
+
+
+def checks_match(mg_repo, ref):
+    """Whether the check scripts in this checkout are the ones on `ref`.
+
+    Step files are read from `ref`, but a check is run from the working tree.
+    A check that has not reached `ref` must not tick a step on anyone's site.
+    """
+    paths = ["tools/site-standards/checks", "tools/site-standards/lib.sh",
+             "tools/site-standards/scan.py", "tools/site-standards/scan.sh"]
+    changed = subprocess.run(["git", "-C", mg_repo, "diff", "--quiet", ref, "--", *paths]).returncode != 0
+    untracked = git(mg_repo, "ls-files", "--others", "--", *paths)[1].strip() != ""
+    return not changed and not untracked
 
 
 def frontmatter(content):
@@ -164,6 +182,9 @@ def main(argv):
     if ref != "master":
         say(f"Reading steps from {ref}, not master.")
     files, steps_commit = step_files(mg_repo, ref)
+    if not checks_match(mg_repo, ref):
+        stop(f"The check scripts in this checkout differ from {ref}, so a scan could tick a step "
+             f"with a check nobody has approved. Nothing was scanned or sent.")
 
     site_command = os.environ.get("SCAN_SITE_CMD", shlex.quote(os.path.join(HERE, "site.sh")))
     listed = subprocess.run(["bash", "-c", site_command + " sites"], capture_output=True, text=True)
