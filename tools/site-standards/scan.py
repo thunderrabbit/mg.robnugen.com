@@ -3,16 +3,17 @@
 Run through scan.sh, which starts this with `python3 -I`. Standard library
 only. What it does, and what it deliberately does not:
 
-- Step files are read from `master` of this repo with git, never from the
-  working tree, so a step on an open branch reaches no one.
-- A site is checked only when its checkout is on its trunk branch with nothing
-  uncommitted. Otherwise it is skipped, with the reason, and keeps the results
-  it had.
+- Rob approves a change by deploying it. So the step files are read, with git,
+  from the commit the mg server is running (asked over ssh), never from the
+  working tree: a step that is not deployed on mg reaches no one.
+- A site is checked only when its checkout is on the branch recorded as
+  deployed, with nothing uncommitted. Otherwise it is skipped, with the
+  reason, and keeps the results it had.
 - A step's check is run only if checks/<check>.sh exists. A step whose check
   has no script here is either one mg answers itself or an idea with no check
   yet, and nothing is reported for it.
-- The check scripts in this checkout must be the ones on that same ref, or
-  nothing is scanned.
+- The check scripts in this checkout must be the ones in that deployed commit,
+  or nothing is scanned.
 - Nothing in a site's repo is written, committed or deployed.
 
 The document it sends is described in tools/import_site_standards.php.
@@ -50,11 +51,23 @@ def git(repo, *args):
     return done.returncode, done.stdout
 
 
+def deployed_commit():
+    """The commit the mg server is running, asked over ssh."""
+    command = os.environ.get("SCAN_DEPLOYED_CMD",
+                             "ssh mg " + shlex.quote("git -C ~/mg.robnugen.com rev-parse HEAD"))
+    asked = subprocess.run(["bash", "-c", command], capture_output=True, text=True)
+    commit = asked.stdout.strip()
+    if asked.returncode != 0 or not re.fullmatch(r"[0-9a-f]{40}", commit):
+        stop("Could not ask the mg server which commit it is running: " + (asked.stderr.strip() or commit))
+    return commit
+
+
 def step_files(mg_repo, ref):
     """Every file under the steps directory as it stands on `ref`, and that commit."""
     code, commit = git(mg_repo, "rev-parse", "--verify", ref + "^{commit}")
     if code != 0:
-        stop(f"This repo has no {ref} to read the step files from.")
+        stop(f"This checkout does not have {ref}, so it cannot read the step files the server "
+             f"is running. Fetch first.")
     code, listing = git(mg_repo, "ls-tree", "-r", "--name-only", ref, "--", STEPS_DIR)
     if code != 0:
         stop(f"Could not list the step files on {ref}.")
@@ -73,7 +86,7 @@ def checks_match(mg_repo, ref):
     """Whether the check scripts in this checkout are the ones on `ref`.
 
     Step files are read from `ref`, but a check is run from the working tree.
-    A check that has not reached `ref` must not tick a step on anyone's site.
+    A check that is not deployed on mg must not tick a step on anyone's site.
     """
     paths = ["tools/site-standards/checks", "tools/site-standards/lib.sh",
              "tools/site-standards/scan.py", "tools/site-standards/scan.sh"]
@@ -138,7 +151,7 @@ def scan_site(site, files, work_root, env):
     branch = branch.strip()
     if code != 0 or branch == "":
         return skipped("not on a branch")
-    if branch != site["trunk_branch"]:
+    if branch != site["deployed_branch"]:
         return skipped(f"on branch {branch}"[:255], branch)
     code, changes = git(repo, "status", "--porcelain")
     if code != 0 or changes.strip() != "":
@@ -178,13 +191,15 @@ def main(argv):
     mg_repo = git(HERE, "rev-parse", "--show-toplevel")[1].strip()
     if mg_repo == "":
         stop("scan.sh must live inside the mg checkout.")
-    ref = os.environ.get("STEPS_REF", "master")
-    if ref != "master":
-        say(f"Reading steps from {ref}, not master.")
+    ref = os.environ.get("STEPS_REF")
+    if ref:
+        say(f"Reading steps from {ref}, not from the commit deployed on mg.")
+    else:
+        ref = deployed_commit()
     files, steps_commit = step_files(mg_repo, ref)
     if not checks_match(mg_repo, ref):
-        stop(f"The check scripts in this checkout differ from {ref}, so a scan could tick a step "
-             f"with a check nobody has approved. Nothing was scanned or sent.")
+        stop(f"The check scripts in this checkout differ from {ref[:12]}, so a scan could tick a "
+             f"step with a check that is not deployed. Nothing was scanned or sent.")
 
     site_command = os.environ.get("SCAN_SITE_CMD", shlex.quote(os.path.join(HERE, "site.sh")))
     listed = subprocess.run(["bash", "-c", site_command + " sites"], capture_output=True, text=True)
@@ -201,7 +216,8 @@ def main(argv):
     work_root = os.environ.get("WORK_ROOT", os.path.expanduser("~/work"))
     with tempfile.TemporaryDirectory() as scan_tmp:
         env = dict(os.environ, SCAN_TMP=scan_tmp)
-        say(f"Scanning {len(sites)} site(s); {len(files)} step files from {ref} ({steps_commit[:7]}).")
+        say(f"Scanning {len(sites)} site(s); {len(files)} step files from {steps_commit[:7]}"
+            + ("" if os.environ.get("STEPS_REF") else " (deployed on mg)") + ".")
         scanned = [scan_site(site, files, work_root, env) for site in sites]
 
     document = json.dumps({

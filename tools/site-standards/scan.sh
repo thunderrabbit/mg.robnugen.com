@@ -6,12 +6,13 @@
 #   tools/site-standards/scan.sh                    every site, for real
 #   tools/site-standards/scan.sh example-games      only the sites named
 #
-# Reads the step files from master of this repo, whatever branch is checked
-# out. Checks a site only when its checkout is clean and on its trunk; any
+# Reads the step files from the commit the mg server is running (Rob approves
+# a step by deploying it), whatever branch this checkout is on. Checks a site
+# only when its checkout is clean and on the branch recorded as deployed; any
 # other site is skipped and keeps the results it had. Never writes to a repo
 # it checks. The logic is in scan.py.
 #
-# STEPS_REF=<ref> reads the step files from another ref. It says so on stderr
-# and is for a first look before a bubble closes, not for routine use.
+# STEPS_REF=<ref> reads the step files from a ref instead. It says so on
+# stderr and is for a look at steps before they are deployed, not routine use.
 set -euo pipefail
 exec python3 -I "$(dirname "${BASH_SOURCE[0]}")/scan.py" "$@"
