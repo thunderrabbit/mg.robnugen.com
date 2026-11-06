@@ -21,6 +21,14 @@ has the widest safety net and nothing on it can be harmed by a test record. A
 client site that takes real orders must never be the lab. The other sites only
 ever receive what mg has already proven.
 
+**The practice is meant to travel.** The template was itself forked from two
+older codebases, ABB and ABF, which do not live on DreamHost and have not had
+many of the upgrades the template has had since. Rob intends to use the same
+upgrade practice on them eventually. They will not appear on `/admin/dh/`. They
+could possibly appear on an `/admin/ec2/` dashboard one day, and that is
+definitely a separate project. What it means for this one is in
+[Beyond DreamHost](#beyond-dreamhost).
+
 ## Words used here
 
 - **Site**: one codebase and the domains that serve it. A fork served on three
@@ -46,7 +54,8 @@ ever receive what mg has already proven.
    Rob approving the step is Rob advancing master, which he already does.
 5. Each step carries a how-to that gets better after every site it is applied to,
    and each site records how much hand-holding each step took.
-6. The tables can hold other standards later without being redesigned.
+6. The tables can later hold other standards, and sites that are not on
+   DreamHost, without being redesigned.
 
 ## Non-goals
 
@@ -55,6 +64,8 @@ ever receive what mg has already proven.
 - Adding Rector to mg. That is the first piece of paired work after this is built,
   and it will add the first Rector step files.
 - WordPress, MediaWiki, Hugo or Perl standards. Only their place in the tables.
+- ABB, ABF, or an `/admin/ec2/` dashboard. No rows, no page, no checks for them.
+  Only the room described in [Beyond DreamHost](#beyond-dreamhost).
 - Changing anything in the DreamHost panel. Switching a site's PHP version stays
   Rob's manual step.
 - Starting agents, deploying, or notifying anyone. The page is read, not obeyed.
@@ -98,6 +109,8 @@ Template sites   measured against mg · last checked 2026-11-06 01:20 UTC
 
 - One section per standard; only "Template sites" exists now. The reference site
   is the first row.
+- A site appears on this page when at least one DreamHost domain is linked to it.
+  A site hosted elsewhere never has such a link, so it never appears here.
 - Row summary: `the reference`, `up to date`, `N steps to go`, or `waiting on you`
   when an open step is Rob's move.
 - Expanding uses `<details>`, so no JavaScript. Open steps show their explanation;
@@ -156,7 +169,7 @@ except that Groundwork comes first.
 ## Where a step lives
 
 A step is a Markdown file in mg's repo, one per step, under
-`tools/dh-standards/steps/<standard>/<track>/`. Frontmatter holds the title, the
+`tools/site-standards/steps/<standard>/<track>/`. Frontmatter holds the title, the
 position, whether it is planned or proven, whose move it is, and the name of its
 check (with an optional parameter such as `8.5`). The body has two parts: the
 explanation shown on the page, and the how-to an agent follows.
@@ -225,9 +238,35 @@ exception, so mg is scanned after a bubble closes and Rob has advanced master.
 At first the scanner is run by hand, for one site or all (after a bubble closes).
 Scheduling it beside the daily sweep is a later, small change once it is trusted.
 
+## Beyond DreamHost
+
+Most of this design does not care where a site is hosted: standards, tracks,
+steps, the how-to that improves, the scanner checks that run against a checkout
+on Lemur 13, and the record of how each step went. Only three things are
+DreamHost-specific:
+
+- the link from a site to its DreamHost domains,
+- the checks mg answers from the DreamHost sweep (ssh login, PHP version served),
+- the page at `/admin/dh/standards.php`.
+
+So the design keeps those three at the edge *(Claude's call)*:
+
+- Host-neutral tables are named `std_*`. The one DreamHost link table is
+  `dh_site_domains`. A later dashboard for another host adds its own link table
+  and its own page, and reuses everything else.
+- Step files and the scanner live under `tools/site-standards/`, not under a
+  DreamHost name.
+- A check that reads the DreamHost sweep is named as such, so a site hosted
+  elsewhere is never asked a question only DreamHost can answer.
+
+Left for that later project to decide: whether ABB and ABF join the template
+standard or get a standard of their own that borrows its steps, what their
+reference site is, and what stands in for the two DreamHost-only checks. Nothing
+is built for them now.
+
 ## Tables (draft for Rob's 3NF review)
 
-One migration, `45_dh_standards`. Primary keys are unique across the project.
+One migration, `45_site_standards`. Primary keys are unique across the project.
 Nothing here references a sweep id, so the sweep rebuild rule still holds.
 
 This table set has not had Rob's 3NF review yet. Reading this document is the
@@ -236,27 +275,32 @@ statements before the migration is committed or applied.
 
 | Table | Holds | Columns |
 |---|---|---|
-| `dh_standards` | A kind of site | `dh_standard_id`, `slug` (unique), `name`, `reference_site_id` (nullable → `dh_sites`) |
-| `dh_tracks` | A track of a standard | `dh_track_id`, `dh_standard_id` →, `slug`, `name`, `position`; unique (`dh_standard_id`, `slug`) |
-| `dh_steps` | Copy of a step file | `dh_step_id`, `dh_track_id` →, `slug`, `position`, `title`, `explanation`, `how_to`, `status` (planned, proven), `whose_move` (rob, agent), `check_name`, `check_param` (nullable), `retired_on` (nullable); unique (`dh_track_id`, `slug`) |
-| `dh_sites` | A codebase | `dh_site_id`, `dh_standard_id` →, `name` (unique), `checkout_path` (nullable, relative to `~/work`), `trunk_branch` (default `master`), `github_repo` (nullable), `autonomy` (paired, reviewed, solo; default paired) |
-| `dh_site_domains` | Which domains serve a site | `dh_site_domain_id`, `dh_site_id` →, `dh_domain_id` → `dh_domains`, `path_prefix` (default empty); unique (`dh_domain_id`, `path_prefix`) |
-| `dh_scans` | One scanner run | `dh_scan_id`, `scanned_at_utc`, `imported_at_utc`, `steps_commit` |
-| `dh_scan_sites` | What a scan saw of a site | `dh_scan_site_id`, `dh_scan_id` →, `dh_site_id` →, `branch`, `commit_sha`, `skipped_reason` (nullable); unique (`dh_scan_id`, `dh_site_id`) |
-| `dh_step_states` | Outcome of a scanner check over time | `dh_step_state_id`, `dh_site_id` →, `dh_step_id` →, `from_scan_id` →, `until_scan_id` (nullable →; NULL = current), `outcome` (pass, fail, unknown), `detail` |
-| `dh_site_steps` | What people recorded about a step on a site | `dh_site_step_id`, `dh_site_id` →, `dh_step_id` →, `not_applicable_reason` (nullable), `done_mode` (nullable: paired, reviewed, solo), `note` (nullable), `issue_id` (nullable); unique (`dh_site_id`, `dh_step_id`) |
+| `std_standards` | A kind of site | `std_standard_id`, `slug` (unique), `name`, `reference_site_id` (nullable → `std_sites`) |
+| `std_tracks` | A track of a standard | `std_track_id`, `std_standard_id` →, `slug`, `name`, `position`; unique (`std_standard_id`, `slug`) |
+| `std_steps` | Copy of a step file | `std_step_id`, `std_track_id` →, `slug`, `position`, `title`, `explanation`, `how_to`, `status` (planned, proven), `whose_move` (rob, agent), `check_name`, `check_param` (nullable), `retired_on` (nullable); unique (`std_track_id`, `slug`) |
+| `std_sites` | A codebase | `std_site_id`, `std_standard_id` →, `name` (unique), `checkout_path` (nullable, relative to `~/work`), `trunk_branch` (default `master`), `github_repo` (nullable), `autonomy` (paired, reviewed, solo; default paired) |
+| `dh_site_domains` | Which domains serve a site | `dh_site_domain_id`, `std_site_id` →, `dh_domain_id` → `dh_domains`, `path_prefix` (default empty); unique (`dh_domain_id`, `path_prefix`) |
+| `std_scans` | One scanner run | `std_scan_id`, `scanned_at_utc`, `imported_at_utc`, `steps_commit` |
+| `std_scan_sites` | What a scan saw of a site | `std_scan_site_id`, `std_scan_id` →, `std_site_id` →, `branch`, `commit_sha`, `skipped_reason` (nullable); unique (`std_scan_id`, `std_site_id`) |
+| `std_step_states` | Outcome of a scanner check over time | `std_step_state_id`, `std_site_id` →, `std_step_id` →, `from_scan_id` →, `until_scan_id` (nullable →; NULL = current), `outcome` (pass, fail, unknown), `detail` |
+| `std_site_steps` | What people recorded about a step on a site | `std_site_step_id`, `std_site_id` →, `std_step_id` →, `not_applicable_reason` (nullable), `done_mode` (nullable: paired, reviewed, solo), `note` (nullable), `issue_id` (nullable); unique (`std_site_id`, `std_step_id`) |
 
 Notes on the draft:
 
-- `dh_step_states` uses the same span pattern as the sweep tables (`from` /
+- `std_step_states` uses the same span pattern as the sweep tables (`from` /
   exclusive `until`, NULL = current), so history is kept without a row per scan.
   `Inventory\SpanPlan` already holds that rule.
 - A site has exactly one standard. A domain with two kinds of code is two sites.
-- `dh_sites.autonomy` is Rob's instruction for the site from now on;
-  `dh_site_steps.done_mode` is the record of what happened on one step.
+- `std_sites` holds nothing about hosting. Where a site is served is said only by
+  a link table (`dh_site_domains` today), so a site on another host needs no
+  change to it.
+- The undeployed template skeleton has no domain, so it would not appear on the
+  page. Whether and where to show it is left open.
+- `std_sites.autonomy` is Rob's instruction for the site from now on;
+  `std_site_steps.done_mode` is the record of what happened on one step.
 - A step removed from the files is retired (`retired_on`), not deleted, so its
   history stays.
-- `dh_standards.reference_site_id` and `dh_sites.dh_standard_id` point at each
+- `std_standards.reference_site_id` and `std_sites.std_standard_id` point at each
   other; the first is nullable and filled after the site row exists.
 
 ## Writing the hand-kept facts
