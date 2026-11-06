@@ -68,4 +68,12 @@ final class StandardsSiteStandingTest extends Unit
         $this->assertSame('1 step to go', $one->summary);
         $this->assertSame('3 steps to go', $three->summary);
     }
+
+    public function testTheThreeMarksAreACheckAnInfoCircleAndALaughingFace(): void
+    {
+        $glyphs = array_map(static fn (Mark $mark): string => $mark->glyph(), Mark::cases());
+
+        $this->assertSame(['✓', 'ⓘ', '😂'], $glyphs);
+        $this->assertSame('StdMark StdMark--face', Mark::Face->cssClass());
+    }
 }

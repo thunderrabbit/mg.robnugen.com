@@ -14,4 +14,18 @@ enum Mark: string
     case Check = 'check';
     case Info = 'info';
     case Face = 'face';
+
+    public function glyph(): string
+    {
+        return match ($this) {
+            self::Check => '✓',
+            self::Info => 'ⓘ',
+            self::Face => '😂',
+        };
+    }
+
+    public function cssClass(): string
+    {
+        return 'StdMark StdMark--' . $this->value;
+    }
 }
