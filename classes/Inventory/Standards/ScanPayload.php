@@ -12,8 +12,13 @@ namespace Inventory\Standards;
  *     {"scanned_at_utc": "2026-11-07 01:20:00", "steps_commit": "<40 hex>",
  *      "files": {"template/_standard.md": "...", ...},
  *      "sites": [{"shortcode": "mg", "branch": "master", "commit": "<40 hex>",
+ *                 "server_branch": "master", "server_commit": "<40 hex>",
  *                 "skipped_reason": null,
  *                 "results": [{"step": "...", "outcome": "pass", "detail": "..."}]}]}
+ *
+ * branch and commit are the checkout's; server_branch and server_commit are
+ * what the site's server ran when asked, null when it could not be asked (and
+ * server_branch null on a detached HEAD). Both server fields may be left out.
  *
  * Everything is checked here, before the importer opens a transaction.
  */
@@ -22,7 +27,7 @@ final readonly class ScanPayload
     private const int DETAIL_MAX = 255;
 
     /**
-     * @param list<array{shortcode: string, branch: ?string, commit: ?string, skippedReason: ?string, results: list<array{step: string, outcome: Outcome, detail: string}>}> $sites
+     * @param list<array{shortcode: string, branch: ?string, commit: ?string, serverBranch: ?string, serverCommit: ?string, skippedReason: ?string, results: list<array{step: string, outcome: Outcome, detail: string}>}> $sites
      */
     private function __construct(
         public string $scannedAtUtc,
@@ -80,7 +85,7 @@ final readonly class ScanPayload
 
     /**
      * @param array<mixed> $site
-     * @return array{shortcode: string, branch: ?string, commit: ?string, skippedReason: ?string, results: list<array{step: string, outcome: Outcome, detail: string}>}
+     * @return array{shortcode: string, branch: ?string, commit: ?string, serverBranch: ?string, serverCommit: ?string, skippedReason: ?string, results: list<array{step: string, outcome: Outcome, detail: string}>}
      */
     private static function site(array $site): array
     {
@@ -91,9 +96,17 @@ final readonly class ScanPayload
         $where = "site {$shortcode}";
         $branch = self::strOrNull($site, 'branch', $where);
         $commit = self::strOrNull($site, 'commit', $where);
+        $serverBranch = array_key_exists('server_branch', $site) ? self::strOrNull($site, 'server_branch', $where) : null;
+        $serverCommit = array_key_exists('server_commit', $site) ? self::strOrNull($site, 'server_commit', $where) : null;
         $skipped = self::strOrNull($site, 'skipped_reason', $where);
         if ($commit !== null && !self::isSha($commit)) {
             throw new StandardsFormatException("{$where}: commit must be a full 40-character commit hash");
+        }
+        if ($serverCommit !== null && !self::isSha($serverCommit)) {
+            throw new StandardsFormatException("{$where}: server_commit must be a full 40-character commit hash");
+        }
+        if ($serverBranch !== null && preg_match('#\A[A-Za-z0-9._/-]{1,100}\z#', $serverBranch) !== 1) {
+            throw new StandardsFormatException("{$where}: server_branch is not a branch name");
         }
         if ($skipped !== null && ($skipped === '' || strlen($skipped) > self::DETAIL_MAX)) {
             throw new StandardsFormatException("{$where}: skipped_reason must be 1 to 255 characters");
@@ -125,14 +138,16 @@ final readonly class ScanPayload
         if ($skipped !== null && $results !== []) {
             throw new StandardsFormatException("{$where} was skipped, so it cannot also carry results");
         }
-        if ($skipped === null && ($branch === null || $commit === null)) {
-            throw new StandardsFormatException("{$where} was scanned, so it needs a branch and a commit");
+        if ($skipped === null && ($commit === null || $serverCommit !== $commit)) {
+            throw new StandardsFormatException("{$where} was scanned, so it needs the commit its server runs");
         }
 
         return [
             'shortcode' => $shortcode,
             'branch' => $branch,
             'commit' => $commit,
+            'serverBranch' => $serverBranch,
+            'serverCommit' => $serverCommit,
             'skippedReason' => $skipped,
             'results' => $results,
         ];

@@ -37,6 +37,8 @@ final class StandardsScanPayloadTest extends Unit
                     'shortcode' => 'mg',
                     'branch' => 'master',
                     'commit' => self::SHA,
+                    'server_branch' => 'master',
+                    'server_commit' => self::SHA,
                     'skipped_reason' => null,
                     'results' => [
                         [
@@ -113,6 +115,29 @@ final class StandardsScanPayloadTest extends Unit
         $this->assertSame('level 10, run clean', $payload->sites[0]['results'][0]['detail']);
         $this->assertSame('on branch example-topic', $payload->sites[1]['skippedReason']);
         $this->assertSame([], $payload->sites[1]['results']);
+        $this->assertSame('master', $payload->sites[0]['serverBranch']);
+        $this->assertSame(self::SHA, $payload->sites[0]['serverCommit']);
+        $this->assertNull($payload->sites[1]['serverCommit'], 'a site may leave the server fields out');
+    }
+
+    public function testRefusesAScannedSiteNotAtItsServersCommit(): void
+    {
+        $this->refuses($this->withSite(0, 'server_commit', str_repeat('b', 40)), '/server runs/');
+        $this->refuses($this->withSite(0, 'server_commit', null), '/server runs/');
+    }
+
+    public function testAScannedCheckoutMayBeOnADetachedHead(): void
+    {
+        $payload = ScanPayload::fromArray($this->withSite(0, 'server_branch', null));
+        $this->assertNull($payload->sites[0]['serverBranch']);
+
+        $payload = ScanPayload::fromArray($this->withSite(0, 'branch', null));
+        $this->assertNull($payload->sites[0]['branch']);
+    }
+
+    public function testRefusesAServerBranchThatIsNotABranchName(): void
+    {
+        $this->refuses($this->withSite(0, 'server_branch', 'master; rm -rf'), '/server_branch/');
     }
 
     public function testAPayloadWithNoSitesIsFine(): void
