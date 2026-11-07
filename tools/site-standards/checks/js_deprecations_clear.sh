@@ -2,14 +2,16 @@
 # js_deprecations_clear REPO: none of the site's libraries warns that it is
 # being used in a way its next major removes.
 #
-# The proof depends on what the site has. With a js-smoke.sh and a test
-# domain, the smoke test is run there with --strict, which fails on any
-# console warning: that is the proof Rob prefers. It runs only when the test
+# A site with no third-party libraries passes at once. Otherwise the step
+# needs the checks step's smoke test (names in ../NAMES.md). With a test
+# domain, its strict form is run there, so any console warning keeps the step
+# open: the "JS strict tests:" command from JS_LIBRARIES.md, or else the
+# dated testing-js-since-<date>.sh with --strict. It runs only when the test
 # domain runs the checkout's own commit, and a result is remembered per
-# commit, as suite_passes_on_php does. A site without both instead records
-# "Deprecation warnings clear at <commit>" in JS_LIBRARIES.md; that passes
-# while the commit is in the checkout's history and the site loads exactly
-# the libraries it loaded then.
+# commit, as suite_passes_on_php does. A site with a smoke test but no test
+# domain records "Deprecation warnings clear at <commit>" in JS_LIBRARIES.md;
+# that passes while the commit is in the checkout's history and the site
+# loads exactly the libraries it loaded then.
 set -uo pipefail
 HERE="$(dirname "${BASH_SOURCE[0]}")"
 . "$HERE/../lib.sh"
@@ -36,7 +38,20 @@ count="$(py count)"
 [[ "$count" =~ ^[0-9]+$ ]] || unknown "could not read the site's scripts: ${count#x }"
 [ "$count" -gt 0 ] || pass "the site loads no third-party libraries"
 
-if [ -x "$REPO/js-smoke.sh" ] && [ -n "${SITE_TEST_DOMAIN:-}" ]; then
+found="$(python3 -I -B "$HERE/js_scripts.py" smoke "$REPO")"
+kind="${found%%$'\t'*}"
+value="${found#*$'\t'}"
+case "$kind" in
+  strict) command=(sh -c "$value") ;;
+  sh) command=("./$value" --strict) ;;
+  js) unknown "$value is a Node smoke test, which the checks can't run yet" ;;
+  plain) not_yet "JS_LIBRARIES.md names \"JS tests:\" but no \"JS strict tests: <command>\" that fails on warnings" ;;
+  none) not_yet "no smoke test yet; the JavaScript checks step comes first" ;;
+  bad) not_yet "$value" ;;
+  *) unknown "could not look for the smoke test: $value" ;;
+esac
+
+if [ -n "${SITE_TEST_DOMAIN:-}" ]; then
   [[ "$SITE_TEST_DOMAIN" =~ ^[A-Za-z0-9.-]+$ ]] || unknown "the test domain's name is not one this check will use"
   [ -z "$(git --no-optional-locks -C "$REPO" status --porcelain 2>/dev/null)" ] \
     || unknown "the checkout has uncommitted changes, so a result would not describe its commit"
@@ -54,7 +69,7 @@ if [ -x "$REPO/js-smoke.sh" ] && [ -n "${SITE_TEST_DOMAIN:-}" ]; then
   shortcode="${SITE_SHORTCODE:-}"
   [[ "$shortcode" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]] || unknown "no site shortcode to remember a result under"
   state="${XDG_STATE_HOME:-$HOME/.local/state}/site-standards"
-  memo="$state/js-smoke-$shortcode"
+  memo="$state/js-strict-smoke-$shortcode"
   if [ -f "$memo" ]; then
     read -r m_commit m_rc m_line < "$memo" || true
     if [ "$m_commit" = "$head" ]; then
@@ -63,22 +78,22 @@ if [ -x "$REPO/js-smoke.sh" ] && [ -n "${SITE_TEST_DOMAIN:-}" ]; then
     fi
   fi
 
-  out="$(TEST_BASE_URL="https://$SITE_TEST_DOMAIN" "$STANDARDS_MCP/run-webdriver.sh" "$REPO" ./js-smoke.sh --strict 2>&1)"
+  out="$(TEST_BASE_URL="https://$SITE_TEST_DOMAIN" "$STANDARDS_MCP/run-webdriver.sh" "$REPO" "${command[@]}" 2>&1)"
   rc=$?
   line="${out##*$'\n'}"
   case "$out" in *"GATE ERROR"*) unknown "the smoke test could not start: $line" ;; esac
   case "$rc" in
-    0) line="js-smoke.sh --strict passes on $SITE_TEST_DOMAIN at ${head:0:7}" ;;
-    1) line="js-smoke.sh --strict fails on $SITE_TEST_DOMAIN: $line" ;;
-    *) unknown "js-smoke.sh did not run (exit $rc): $line" ;;
+    0) line="the strict smoke test passes on $SITE_TEST_DOMAIN at ${head:0:7}" ;;
+    1) line="the strict smoke test fails on $SITE_TEST_DOMAIN: $line" ;;
+    *) unknown "the strict smoke test did not run (exit $rc): $line" ;;
   esac
   mkdir -p "$state" && printf '%s %s %s\n' "$head" "$rc" "${line//$'\n'/ }" > "$memo"
   [ "$rc" = 0 ] && pass "$line"
   not_yet "$line"
 fi
 
-# No smoke test on a test domain: the recorded commit is the proof.
-[ -f "$REPO/JS_LIBRARIES.md" ] || not_yet "no smoke test on a test domain, and no JS_LIBRARIES.md to record the warnings in"
+# A smoke test but no test domain to run it on: the recorded commit is the proof.
+[ -f "$REPO/JS_LIBRARIES.md" ] || not_yet "no test domain to run the smoke test on, and no JS_LIBRARIES.md to record the warnings in"
 sha="$(grep -Eo 'Deprecation warnings clear at [0-9a-f]{7,40}' "$REPO/JS_LIBRARIES.md" | tail -1 | awk '{print $NF}')"
 [ -n "$sha" ] || not_yet "JS_LIBRARIES.md has no \"Deprecation warnings clear at <commit>\" line"
 full="$(git -C "$REPO" rev-parse --verify -q "$sha^{commit}" 2>/dev/null)" \

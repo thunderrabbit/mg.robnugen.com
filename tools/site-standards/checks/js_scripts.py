@@ -189,6 +189,50 @@ def libraries(repo, rev=None):
     return sorted(set(urls))
 
 
+MONTHS = "jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec"
+DATED_TEST = re.compile(rf"\Atesting-js-since-\d{{4}}-(?:{MONTHS})-\d{{2}}\.(sh|js)\Z")
+TESTS_LINE = re.compile(r"^JS tests:[ \t]*(\S.*?)[ \t]*$", re.M)
+STRICT_LINE = re.compile(r"^JS strict tests:[ \t]*(\S.*?)[ \t]*$", re.M)
+
+
+def smoke(repo):
+    """How the site's browser smoke test is run, as (kind, value).
+
+    The names are described in tools/site-standards/NAMES.md. kind is one of:
+      strict  value is the `JS strict tests:` command from JS_LIBRARIES.md
+      sh      value is the dated testing-js-since-<date>.sh, to run with --strict
+      js      value is the dated .js, which the checks can't run yet
+      plain   only a `JS tests:` command, which can't show warnings are gone
+      none    no smoke test
+      bad     value says what is wrong with the names found
+    Each line counts by its last appearance.
+    """
+    dated, misnamed = [], []
+    for name in sorted(os.listdir(repo)):
+        if DATED_TEST.match(name):
+            dated.append(name)
+        elif name.startswith("testing-js-since-"):
+            misnamed.append(name)
+    if misnamed and not dated:
+        return "bad", (f"{misnamed[0]} is not named testing-js-since-<yyyy-mmm-dd>.sh or .js "
+                       "(a month like nov)")
+    if len(dated) > 1:
+        return "bad", f"more than one dated smoke test: {', '.join(dated)}"
+    doc = contents(repo, "JS_LIBRARIES.md") or ""
+    strict = STRICT_LINE.findall(doc)
+    if strict:
+        return "strict", strict[-1]
+    if dated and dated[0].endswith(".sh"):
+        if not os.access(os.path.join(repo, dated[0]), os.X_OK):
+            return "bad", f"{dated[0]} is not executable"
+        return "sh", dated[0]
+    if dated:
+        return "js", dated[0]
+    if TESTS_LINE.findall(doc):
+        return "plain", TESTS_LINE.findall(doc)[-1]
+    return "none", ""
+
+
 def verdict(code, line):
     """Print the check's one line (at most 255 characters) and exit with code."""
     line = " ".join(str(line).split())
@@ -213,3 +257,16 @@ def run(check):
         raise
     except Exception as e:  # noqa: BLE001 - every failure is "could not tell"
         verdict(2, f"the check failed: {type(e).__name__}: {e}")
+
+
+if __name__ == "__main__":
+    # `js_scripts.py smoke REPO`, for the shell checks: one line, "<kind>\t<value>".
+    import sys
+    try:
+        if sys.argv[1:2] == ["smoke"] and len(sys.argv) == 3:
+            kind, value = smoke(sys.argv[2])
+            print(f"{kind}\t{' '.join(value.split())}")
+        else:
+            print("x\tusage: js_scripts.py smoke REPO")
+    except Exception as e:  # noqa: BLE001
+        print(f"x\t{type(e).__name__}: {e}")

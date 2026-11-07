@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # js_checks_in_place REPO: a site that runs any JavaScript has a smoke test
-# (js-smoke.sh at the repo root, run by standards-mcp's run-webdriver.sh),
-# an ESLint config at the root, and a switched-on pre-commit hook that runs
-# ESLint. A site with no scripts at all passes without them.
+# (a dated testing-js-since-<yyyy-mmm-dd>.sh or .js at the repo root, or a
+# "JS tests:" line in JS_LIBRARIES.md naming an existing suite), an ESLint
+# config at the root, and a switched-on pre-commit hook that runs ESLint. A
+# site with no scripts at all passes without them. The names are described
+# in ../NAMES.md.
 set -uo pipefail
 HERE="$(dirname "${BASH_SOURCE[0]}")"
 . "$HERE/../lib.sh"
@@ -23,7 +25,15 @@ PY
 [[ "$count" =~ ^[0-9]+$ ]] || unknown "could not read the site's scripts: ${count#x }"
 [ "$count" -gt 0 ] || pass "the site runs no JavaScript"
 
-[ -x "$REPO/js-smoke.sh" ] || not_yet "no executable js-smoke.sh at the repo root"
+found="$(python3 -I -B "$HERE/js_scripts.py" smoke "$REPO")"
+kind="${found%%$'\t'*}"
+value="${found#*$'\t'}"
+case "$kind" in
+  strict|sh|js|plain) ;;
+  none) not_yet "no smoke test: write testing-js-since-<yyyy-mmm-dd>.sh, or name the site's existing suite in JS_LIBRARIES.md as \"JS tests: <command>\"" ;;
+  bad) not_yet "$value" ;;
+  *) unknown "could not look for the smoke test: $value" ;;
+esac
 config=""
 for name in eslint.config.js eslint.config.mjs eslint.config.cjs; do
   [ -f "$REPO/$name" ] && config="$name"
@@ -33,4 +43,8 @@ done
 grep -q eslint "$REPO/.githooks/pre-commit" || not_yet "the pre-commit hook does not run ESLint"
 [ "$(git -C "$REPO" config core.hooksPath 2>/dev/null)" = ".githooks" ] \
   || not_yet "the pre-commit hook is not switched on (git config core.hooksPath .githooks)"
-pass "js-smoke.sh, $config and the ESLint pre-commit hook are set up"
+case "$kind" in
+  sh|js) what="$value" ;;
+  *) what="the suite named in JS_LIBRARIES.md" ;;
+esac
+pass "$what, $config and the ESLint pre-commit hook are set up"
