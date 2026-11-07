@@ -96,6 +96,40 @@ final class Board
     }
 
     /**
+     * The shortcodes of every site kept in one checkout (relative to ~/work).
+     * Usually none or one; more is the caller's to refuse, never to pick from.
+     *
+     * @return list<string>
+     */
+    public function shortcodesAtCheckout(string $checkoutPath): array
+    {
+        $shortcodes = [];
+        foreach ($this->rows('SELECT shortcode FROM std_sites WHERE checkout_path = ? ORDER BY shortcode', [$checkoutPath]) as $row) {
+            $shortcodes[] = RowValue::string($row, 'shortcode');
+        }
+        return $shortcodes;
+    }
+
+    /**
+     * One site, as the page shows it, plus its standard's slug.
+     *
+     * @return array{standard: string, shortcode: string, project_id: ?int, autonomy: string, server_branch: ?string, server_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}|null
+     */
+    public function siteByShortcode(string $shortcode): ?array
+    {
+        $rows = $this->rows(
+            'SELECT s.*, d.slug AS standard_slug
+               FROM std_sites s JOIN std_standards d ON d.std_standard_id = s.std_standard_id
+              WHERE s.shortcode = ?',
+            [$shortcode],
+        );
+        if ($rows === []) {
+            return null;
+        }
+        return ['standard' => RowValue::string($rows[0], 'standard_slug')] + $this->site($rows[0]);
+    }
+
+    /**
      * @param array<mixed> $site a std_sites row
      * @return array{shortcode: string, project_id: ?int, autonomy: string, server_branch: ?string, server_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}
      */
