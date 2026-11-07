@@ -11,6 +11,13 @@ a time, and each move is its own deploy. If a move breaks something, it can be
 undone by reverting one commit, and the site is never more than one change away
 from a version that was working.
 
+The check asks the npm registry about each library the site loads from a CDN
+(jsDelivr, unpkg, cdnjs, code.jquery.com, esm.sh, jspm), each copy in the repo
+named `<npm package>-<x.y.z>.js`, and each of `package.json`'s
+`dependencies`. A library passes when it is on the newest major and its
+release is not marked deprecated. For a `0.x` library, where every minor can
+break, it passes within ten minors of the newest.
+
 ## How to do it
 
 1. Work out the order from `JS_LIBRARIES.md`. A library goes after everything
@@ -34,7 +41,9 @@ from a version that was working.
       production for this move, so a missed call still works and logs a warning
       instead of failing.
    4. Run ESLint and the smoke test on the test domain, and read the console.
-   5. Commit, update `JS_LIBRARIES.md`, and deploy. Let it run for a day before
+   5. Commit, update `JS_LIBRARIES.md`, and deploy. A copy kept in the repo
+      is named after its npm package (`jquery-4.0.0.min.js`), so the check
+      can look it up. Let it run for a day before
       the next move, and say so in the commit if you don't wait.
 4. A library nobody maintains (AngularJS, or a jQuery plugin with no release in
    years) gets replaced, as its own piece of work, never in the same commit as

@@ -10,12 +10,14 @@ ESLint. PHP's checks never load a page in a browser, so they cannot see a
 script that stopped working. Every later step in this track changes what the
 browser runs, and these checks are what say a change did not break anything.
 
-The smoke test is a WebDriver suite under `Tests/Webdriver/`, run with
-standards-mcp's `run-webdriver.sh` against the test domain. It opens each page
-that runs scripts, uses its main feature once, and fails on any error in the
-browser console. ESLint's config is `eslint.config.js` (or `.mjs`/`.cjs`) at
-the repo root. The check looks for both, and for the hook. A site that loads
-no scripts and has no inline `<script>` passes without them.
+The smoke test is started by a `js-smoke.sh` at the repo root, which
+standards-mcp's `run-webdriver.sh` runs against the test domain (as
+`safe-suite.sh` is for the PHP suite). It opens each page that runs scripts,
+uses its main feature once, and fails on any error in the browser console;
+given `--strict`, it fails on warnings too. ESLint's config is
+`eslint.config.js` (or `.mjs`/`.cjs`) at the repo root. The check looks for
+both, and for the hook. A site that loads no scripts and has no inline
+`<script>` passes without them.
 
 ## How to do it
 
@@ -24,6 +26,9 @@ no scripts and has no inline `<script>` passes without them.
    one thing that page is for (for a 3D viewer: paste coordinates, see the
    canvas draw them), and assert that the console has no errors. In Chrome the
    console is `$I->executeInSelenium(fn ($wd) => $wd->manage()->getLog('browser'))`.
+   Wrap the run in `js-smoke.sh`, which takes `--strict` to fail on console
+   warnings as well, and run it as
+   `TEST_BASE_URL=https://<test domain> run-webdriver.sh <repo> ./js-smoke.sh`.
 2. ESLint reads `.js` files, not templates. If the site's own code is inline in
    `.php` templates, move each block into a `.js` file the template loads, one
    template per commit, values from PHP passed through a small inline

@@ -14,7 +14,8 @@ this step, nothing the site runs changes unless a commit changes it.
 The check reads every `<script src>` and import-map entry that points to
 another host. Each needs a full `x.y.z` version in the URL. A `<script src>`
 also needs `integrity` and `crossorigin`; an import map needs an `integrity`
-entry for each of its URLs. A copy under a `vendor/`, `lib/` or `libs/`
+entry for each of its URLs that names one file (a prefix ending in `/` can't
+carry a hash, only a version). A copy under a `vendor/`, `lib/` or `libs/`
 directory the site serves needs `x.y.z` in its path.
 
 ## How to do it

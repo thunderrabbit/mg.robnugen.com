@@ -14,10 +14,16 @@ becomes a version change and nothing more.
 Nothing is upgraded in this step. Each fix is deployed on the versions the
 site already has.
 
+When the site has a `js-smoke.sh` and a test domain running the checkout's
+commit, the check runs `js-smoke.sh --strict` there, so any console warning
+keeps the step open. Otherwise it reads `JS_LIBRARIES.md` for a line
+`Deprecation warnings clear at <commit>`, and passes when that commit is in the
+checkout's history and the site loads the same libraries now as it did then.
+
 ## How to do it
 
 1. For each library in `JS_LIBRARIES.md`, find how it reports deprecations,
-   and switch that on in the test domain only:
+   and switch that on while you work, locally or on the test domain:
    - jQuery: load the jQuery Migrate release for the major you will move to,
      right after jQuery. Its non-minified build logs one console warning
      for each removed or changed API the site calls.
@@ -32,7 +38,7 @@ site already has.
 3. Fix one kind of warning per commit, in a way that works on the old version
    too (`$.trim(x)` → `x.trim()`, `.bind()` → `.on()`). Deploy to the test
    domain, run the smoke test, then deploy.
-4. When no warnings are left, remove the warning switch from the test domain
-   (Migrate stays out of production until the upgrade step loads it on purpose).
-   Write in `JS_LIBRARIES.md`, for each library, that its warnings are clear,
-   with the date and commit.
+4. When no warnings are left, add the line `Deprecation warnings clear at
+   <commit>` to `JS_LIBRARIES.md`, naming the commit you checked. Then take
+   out whatever you switched on only for this step: jQuery Migrate stays out
+   of production until the upgrade step loads it on purpose.
