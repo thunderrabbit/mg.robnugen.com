@@ -42,6 +42,16 @@ final class Names
         return array_intersect(explode('/', $s), ['.', '..']) === [];
     }
 
+    /**
+     * A git branch name as the scanner and the page handle it: the characters
+     * a branch may have, up to 100 of them, and no "..", so it can never be a
+     * range or a path escape.
+     */
+    public static function isBranch(string $s): bool
+    {
+        return preg_match('#\A[A-Za-z0-9._/-]{1,100}\z#', $s) === 1 && !str_contains($s, '..');
+    }
+
     public static function noteTitle(string $step, string $shortcode): string
     {
         return $step . '.' . $shortcode;
