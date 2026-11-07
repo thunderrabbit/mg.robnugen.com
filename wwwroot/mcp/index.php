@@ -231,7 +231,7 @@ switch ($method) {
             echo json_encode(mcp_error($id, -32603, $e->getMessage()));
         } catch (\Exterm\AccessException | \Issues\AccessException | \Issues\ConflictException $e) {
             echo json_encode(mcp_error($id, -32603, $e->getMessage()));
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             echo json_encode(mcp_error($id, -32603, 'Internal error'));
         }
         break;

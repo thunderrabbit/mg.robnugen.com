@@ -218,7 +218,7 @@ try {
         'today' => $today,
         'day_of_week' => $dayOfWeek
     ]);
-} catch (\Exception $e) {
+} catch (\Exception) {
     http_response_code(500);
     echo json_encode([
         'success' => false,

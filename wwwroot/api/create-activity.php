@@ -58,7 +58,7 @@ try {
         'activity_id' => $activity_id,
         'activity_name' => trim(\Field::string($input, 'activity_name'))
     ]);
-} catch (\Exception $e) {
+} catch (\Exception) {
     http_response_code(500);
     echo json_encode(['error' => 'Failed to create activity']);
 }

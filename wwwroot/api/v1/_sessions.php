@@ -277,7 +277,7 @@ if ($method === 'POST' && $ak_id === null) {
         $tz             = new DateTimeZone($timezone_str);
         $dt             = new DateTime('now', $tz);
         $start_local_dt = $dt->format('Y-m-d H:i:s');
-    } catch (Exception $e) {
+    } catch (Exception) {
         http_response_code(400);
         echo json_encode(['error' => 'Invalid timezone: ' . $timezone_str]);
         exit;

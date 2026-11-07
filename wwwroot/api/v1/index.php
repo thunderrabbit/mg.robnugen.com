@@ -138,7 +138,7 @@ function require_credit(\PDO $pdo, int $user_id, ?int $key_id, string $endpoint,
             "INSERT INTO api_usage (user_id, key_id, token_id, endpoint) VALUES (?, ?, ?, ?)"
         );
         $log->execute([$user_id, $key_id, $token_id, $endpoint]);
-    } catch (\Exception $e) {
+    } catch (\Exception) {
         // Never fail a request over logging
     }
 }

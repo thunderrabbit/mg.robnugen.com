@@ -114,7 +114,7 @@ class StripeWebhookEventsTest extends Unit
         try {
             $handler->handle($event);
             $this->fail('expected the missing users table to throw');
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             $stmt = $this->pdo->query("SELECT COUNT(*) FROM stripe_events");
             $this->assertSame(0, $stmt === false ? -1 : $stmt->fetchColumn());
         }

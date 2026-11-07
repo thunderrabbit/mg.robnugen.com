@@ -111,7 +111,7 @@ try {
         http_response_code(500);
         echo json_encode(['success' => false, 'error' => 'No todos were created.', 'details' => $errors]);
     }
-} catch (Exception $e) {
+} catch (Exception) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }

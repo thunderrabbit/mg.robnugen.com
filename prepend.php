@@ -165,7 +165,7 @@ if ($is_logged_in->isLoggedIn()) {
     try {
         $akHelper = new \ActivityTracking\ActivityKai($mla_database);
         $akHelper->processExpiredTimers($is_logged_in->loggedInID());
-    } catch (\Exception $e) {
+    } catch (\Exception) {
         // Silently fail to avoid breaking page load, but maybe log it?
         // error_log("Failed to finish expired sessions: " . $e->getMessage());
     }

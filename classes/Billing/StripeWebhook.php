@@ -192,7 +192,7 @@ class StripeWebhook
                     "Paying client milestone: $count total paying clients!"
                 ]);
             }
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             // Table not yet created — milestone silently skipped.
         }
     }

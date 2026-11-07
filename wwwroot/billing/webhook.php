@@ -51,7 +51,7 @@ try {
     $handler->handle($event);
     http_response_code(200);
     echo json_encode(['received' => true]);
-} catch (\Exception $e) {
+} catch (\Exception) {
     // Return 500 so Stripe retries the event
     http_response_code(500);
     exit;

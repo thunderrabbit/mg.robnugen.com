@@ -89,7 +89,7 @@ class DBExistaroo
     {
         try {
             return \Database\Base::databaseExists($this->config);
-        } catch (\Database\EDatabaseMissing $e) {
+        } catch (\Database\EDatabaseMissing) {
             return false;
         } catch (\Database\EDatabaseException $e) {
             throw new \Exception("Unexpected DB error: " . $e->getMessage());

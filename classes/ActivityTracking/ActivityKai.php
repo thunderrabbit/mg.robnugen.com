@@ -115,7 +115,7 @@ class ActivityKai
                 $dt = new \DateTime('now', new \DateTimeZone($timezone));
                 $today = $dt->format('Y-m-d');
                 $date_logged = $dt->format('Y-m-d H:i:s');
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 // Fallback
             }
 

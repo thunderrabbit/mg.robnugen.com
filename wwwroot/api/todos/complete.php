@@ -76,7 +76,7 @@ try {
         'log_id' => $log_id,
         'date_logged' => $date_logged
     ]);
-} catch (\Exception $e) {
+} catch (\Exception) {
     http_response_code(500);
     echo json_encode([
         'success' => false,

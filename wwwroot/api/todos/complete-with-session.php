@@ -98,7 +98,7 @@ try {
         'date_logged' => $date_logged,
         'already_completed' => $already_existed
     ]);
-} catch (\Exception $e) {
+} catch (\Exception) {
     http_response_code(500);
     echo json_encode([
         'success' => false,

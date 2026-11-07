@@ -56,7 +56,7 @@ if ($todos_path === '/granted') {
 
     try {
         $tz = new \DateTimeZone(\Field::string($_GET, 'timezone', 'UTC'));
-    } catch (\Exception $e) {
+    } catch (\Exception) {
         http_response_code(400);
         echo json_encode(['error' => 'Invalid timezone']);
         return;
@@ -78,7 +78,7 @@ if ($todos_path === '/granted') {
 
     try {
         $tz = new \DateTimeZone($timezone);
-    } catch (\Exception $e) {
+    } catch (\Exception) {
         http_response_code(400);
         echo json_encode(['error' => 'Invalid timezone']);
         return;
@@ -305,7 +305,7 @@ if ($todos_path === '/granted') {
 
     try {
         $tz = new \DateTimeZone($timezone);
-    } catch (\Exception $e) {
+    } catch (\Exception) {
         http_response_code(400);
         echo json_encode(['error' => 'Invalid timezone']);
         return;

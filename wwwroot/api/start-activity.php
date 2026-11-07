@@ -113,7 +113,7 @@ try {
 
     http_response_code(201);
     echo json_encode($response);
-} catch (\Exception $e) {
+} catch (\Exception) {
     http_response_code(500);
     echo json_encode([
         'success' => false,
