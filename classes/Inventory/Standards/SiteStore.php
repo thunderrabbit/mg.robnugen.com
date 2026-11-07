@@ -171,7 +171,7 @@ final readonly class SiteStore
      * checkout is, and which server to ask what is deployed (or why there is
      * none to ask).
      *
-     * @return list<array{shortcode: string, standard: string, checkout_path: ?string, server: ?array{ssh_alias: string, directory: string}, server_problem: ?string, test: ?array{domain: string, php_version: ?string, ssh_alias: ?string, directory: ?string}}>
+     * @return list<array{shortcode: string, standard: string, checkout_path: ?string, server: ?array{ssh_alias: string, directory: string}, server_problem: ?string, php_current: ?string, test: ?array{domain: string, php_version: ?string, ssh_alias: ?string, directory: ?string}}>
      */
     public function forScanner(): array
     {
@@ -208,7 +208,17 @@ final readonly class SiteStore
             );
             $testId = RowValue::intOrNull($row, 'test_site_domain_id');
             $test = null;
-            foreach ($links[RowValue::int($row, 'std_site_id')] ?? [] as $link) {
+            $mine = $links[RowValue::int($row, 'std_site_id')] ?? [];
+            // The PHP the site is served on now: its named server's, else the first
+            // domain's (ServerChoice has already refused sites whose domains differ).
+            $phpCurrent = null;
+            $namedServer = RowValue::intOrNull($row, 'server_site_domain_id');
+            foreach ($mine as $link) {
+                if ($namedServer === null ? $link === $mine[0] : $link['dh_site_domain_id'] === $namedServer) {
+                    $phpCurrent = $link['php_version'];
+                }
+            }
+            foreach ($mine as $link) {
                 if ($link['dh_site_domain_id'] === $testId) {
                     $where = ServerChoice::pick([$link], null);
                     $test = [
@@ -227,6 +237,7 @@ final readonly class SiteStore
                     ? null
                     : ['ssh_alias' => $server->sshAlias, 'directory' => $server->directory],
                 'server_problem' => $server->problem,
+                'php_current' => $phpCurrent,
                 'test' => $test,
             ];
         }
