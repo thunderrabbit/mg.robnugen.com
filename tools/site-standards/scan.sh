@@ -8,9 +8,9 @@
 #
 # Reads the step files from the commit the mg server is running (Rob approves
 # a step by deploying it), whatever branch this checkout is on. Checks a site
-# only when its checkout is clean and on the branch recorded as deployed; any
-# other site is skipped and keeps the results it had. Never writes to a repo
-# it checks. The logic is in scan.py.
+# only when its checkout is clean and at the commit its server runs (asked
+# over ssh); any other site is skipped and keeps the results it had. Never
+# writes to a repo it checks, here or on a server. The logic is in scan.py.
 #
 # STEPS_REF=<ref> reads the step files from a ref instead. It says so on
 # stderr and is for a look at steps before they are deployed, not routine use.

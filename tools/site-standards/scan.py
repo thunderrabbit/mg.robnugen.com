@@ -6,9 +6,10 @@ only. What it does, and what it deliberately does not:
 - Rob approves a change by deploying it. So the step files are read, with git,
   from the commit the mg server is running (asked over ssh), never from the
   working tree: a step that is not deployed on mg reaches no one.
-- A site is checked only when its checkout is on the branch recorded as
-  deployed, with nothing uncommitted. Otherwise it is skipped, with the
-  reason, and keeps the results it had.
+- A site is checked only when its checkout is clean and at exactly the commit
+  its server runs, asked over ssh (the server's branch name is reported, never
+  trusted: servers keep old names and server-only branches). Otherwise it is
+  skipped, with the reason, and keeps the results it had.
 - A step's check is run only if checks/<check>.sh exists. A step whose check
   has no script here is either one mg answers itself or an idea with no check
   yet, and nothing is reported for it.
@@ -33,6 +34,11 @@ STEPS_DIR = "tools/site-standards/steps/"
 CHECK_NAME = re.compile(r"\A[a-z0-9][a-z0-9_]*\Z")
 OUTCOMES = {0: "pass", 1: "fail", 2: "unknown"}
 CHECK_TIMEOUT = 1800
+SERVER_TIMEOUT = 60
+SSH_ALIAS = re.compile(r"\A[A-Za-z0-9][A-Za-z0-9._-]*\Z")
+SERVER_DIRECTORY = re.compile(r"\A[A-Za-z0-9_][A-Za-z0-9._-]*(?:/[A-Za-z0-9._-]+)*\Z")
+SHA = re.compile(r"\A[0-9a-f]{40}\Z")
+BRANCH = re.compile(r"\A[A-Za-z0-9._/-]{1,100}\Z")
 
 
 def say(message):
@@ -60,6 +66,33 @@ def deployed_commit():
     if asked.returncode != 0 or not re.fullmatch(r"[0-9a-f]{40}", commit):
         stop("Could not ask the mg server which commit it is running: " + (asked.stderr.strip() or commit))
     return commit
+
+
+def ask_server(server):
+    """(commit, branch, None) the site's server runs, or (None, None, why not).
+
+    The directory is relative to the user's home, where ssh starts. branch is
+    None on a detached HEAD.
+    """
+    alias, directory = server.get("ssh_alias", ""), server.get("directory", "")
+    if not SSH_ALIAS.match(alias):
+        return None, None, "its ssh alias is not one the scanner will use"
+    if not SERVER_DIRECTORY.match(directory) or ".." in directory.split("/"):
+        return None, None, "its server directory is not one the scanner will use"
+    git_there = "git --no-optional-locks -C " + shlex.quote(directory)
+    remote = f"{git_there} rev-parse HEAD && {{ {git_there} symbolic-ref --short -q HEAD || true; }}"
+    ssh = shlex.split(os.environ.get("SCAN_SSH", "ssh -o BatchMode=yes -o ConnectTimeout=15"))
+    try:
+        asked = subprocess.run([*ssh, alias, remote], capture_output=True, text=True,
+                               stdin=subprocess.DEVNULL, timeout=SERVER_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        return None, None, "its server did not answer in time"
+    lines = asked.stdout.strip().splitlines()
+    if asked.returncode != 0 or not lines or not SHA.match(lines[0].strip()):
+        said = (asked.stderr.strip().splitlines() or ["no answer"])[-1]
+        return None, None, "could not ask its server which commit it runs: " + said
+    branch = lines[1].strip() if len(lines) > 1 else ""
+    return lines[0].strip(), (branch if BRANCH.match(branch) else None), None
 
 
 def step_files(mg_repo, ref):
@@ -138,25 +171,36 @@ def scan_site(site, files, work_root, env):
     """One site's entry in the document: its results, or why it was skipped."""
     shortcode = site["shortcode"]
 
+    server_commit, server_branch = None, None
+
     def skipped(reason, branch=None):
+        reason = "".join(ch for ch in reason if ch.isprintable())[:255]
         say(f"  {shortcode}: skipped, {reason}")
         return {"shortcode": shortcode, "branch": branch, "commit": None,
+                "server_branch": server_branch, "server_commit": server_commit,
                 "skipped_reason": reason, "results": []}
 
     checkout = site.get("checkout_path")
     repo = os.path.join(work_root, checkout) if checkout else None
     if repo is None or not os.path.isdir(repo) or git(repo, "rev-parse", "--git-dir")[0] != 0:
         return skipped("no local checkout")
+    if site.get("server") is None:
+        return skipped(site.get("server_problem") or "there is no server to ask")
+    server_commit, server_branch, problem = ask_server(site["server"])
+    if problem is not None:
+        return skipped(problem)
+    on = f"{server_commit[:7]}" + (f" ({server_branch})" if server_branch else "")
+
     code, branch = git(repo, "symbolic-ref", "--short", "-q", "HEAD")
-    branch = branch.strip()
-    if code != 0 or branch == "":
-        return skipped("not on a branch")
-    if branch != site["deployed_branch"]:
-        return skipped(f"on branch {branch}"[:255], branch)
+    branch = branch.strip() if code == 0 and branch.strip() != "" else None
+    commit = git(repo, "rev-parse", "HEAD")[1].strip()
+    if commit != server_commit:
+        if git(repo, "cat-file", "-e", server_commit + "^{commit}")[0] != 0:
+            return skipped(f"its server runs {on}, which this checkout does not have", branch)
+        return skipped(f"its server runs {on}; the checkout is at {commit[:7]}", branch)
     code, changes = git(repo, "status", "--porcelain")
     if code != 0 or changes.strip() != "":
         return skipped("uncommitted changes", branch)
-    commit = git(repo, "rev-parse", "HEAD")[1].strip()
 
     results = []
     for name, check, param in checks_for(site["standard"], files):
@@ -178,6 +222,7 @@ def scan_site(site, files, work_root, env):
         results.append({"step": name, "outcome": outcome, "detail": detail})
 
     return {"shortcode": shortcode, "branch": branch, "commit": commit,
+            "server_branch": server_branch, "server_commit": server_commit,
             "skipped_reason": None, "results": results}
 
 
