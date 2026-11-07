@@ -12,7 +12,7 @@ include_once $matches[1] . '/classes/Mlaphp/Autoloader.php';
 include_once $matches[1] . '/version.php';
 // create autoloader instance and register the method with SPL
 $autoloader = new \Mlaphp\Autoloader();
-spl_autoload_register(array($autoloader, 'load'));
+spl_autoload_register($autoloader->load(...));
 
 
 \Startup\Session::start();
