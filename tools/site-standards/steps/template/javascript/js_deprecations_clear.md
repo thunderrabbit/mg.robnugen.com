@@ -14,11 +14,17 @@ becomes a version change and nothing more.
 Nothing is upgraded in this step. Each fix is deployed on the versions the
 site already has.
 
-When the site has a `js-smoke.sh` and a test domain running the checkout's
-commit, the check runs `js-smoke.sh --strict` there, so any console warning
-keeps the step open. Otherwise it reads `JS_LIBRARIES.md` for a line
-`Deprecation warnings clear at <commit>`, and passes when that commit is in the
-checkout's history and the site loads the same libraries now as it did then.
+A site that loads no third-party libraries passes at once. Otherwise the
+step needs the smoke test from the checks step. With a test domain running the
+checkout's commit, the check runs the strict form of it there, so any console
+warning keeps the step open: the `JS strict tests: <command>` line in
+`JS_LIBRARIES.md` if there is one, or else `testing-js-since-<date>.sh
+--strict`. A `.js` smoke test can't be run by the checks yet, so the step
+waits for it. A site with a smoke test but no test domain records a line
+`Deprecation warnings clear at <commit>` in `JS_LIBRARIES.md`, which passes
+while that commit is in the checkout's history and the site loads the same
+libraries now as it did then. The names are described in
+`tools/site-standards/NAMES.md`.
 
 ## How to do it
 
@@ -38,7 +44,8 @@ checkout's history and the site loads the same libraries now as it did then.
 3. Fix one kind of warning per commit, in a way that works on the old version
    too (`$.trim(x)` → `x.trim()`, `.bind()` → `.on()`). Deploy to the test
    domain, run the smoke test, then deploy.
-4. When no warnings are left, add the line `Deprecation warnings clear at
-   <commit>` to `JS_LIBRARIES.md`, naming the commit you checked. Then take
+4. When no warnings are left, and only if the site has no test domain, add the
+   line `Deprecation warnings clear at <commit>` to `JS_LIBRARIES.md`, naming
+   the commit you checked. Then take
    out whatever you switched on only for this step: jQuery Migrate stays out
    of production until the upgrade step loads it on purpose.
