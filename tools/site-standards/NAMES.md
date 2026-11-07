@@ -85,6 +85,23 @@ runs it; its first word is a tracked file (`CSS guard: bin/css-commit-guard.php`
 Read by: `css_cascade_guarded` (the file is tracked and the commit-msg or
 pre-commit hook names it).
 
+### `Visual capture: <command>`
+
+The command that captures every page of the test domain, screenshot and
+computed styles, for the visual differ (`Visual capture: bin/visual-capture
+--ref <branch>`).
+
+Read by: `js_visual_baseline` (it is named; the check does not run it).
+
+### `Visual ledger: <path>`
+
+The tracked JSON file of visual differences a person has accepted, each entry
+with `reason`, `who` and `date` (`Visual ledger:
+Tests/Support/Data/AcceptedVisualDiffs.json`). A list, or an object whose one
+list (under any key not starting with `_`) holds the entries.
+
+Read by: `js_visual_baseline`.
+
 ### `Stays on <npm package> <major>: <why>`
 
 A decision to hold one library on an older major release for now, with the
