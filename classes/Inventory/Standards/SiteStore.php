@@ -47,7 +47,7 @@ final readonly class SiteStore
     }
 
     /**
-     * @param array{project_id?: ?int, checkout_path?: ?string, server?: string, github_repo?: ?string, autonomy?: string} $changes
+     * @param array{project_id?: ?int, checkout_path?: ?string, server?: string, test?: string, github_repo?: ?string, autonomy?: string} $changes
      */
     public function set(string $shortcode, array $changes): void
     {
@@ -70,8 +70,24 @@ final readonly class SiteStore
             $params[] = $path;
         }
         if (array_key_exists('server', $changes)) {
+            $serverId = $changes['server'] === '' ? null : $this->linkId($siteId, $shortcode, $changes['server']);
+            if ($serverId !== null && $serverId === $this->namedLink($siteId, 'test_site_domain_id')) {
+                throw new \InvalidArgumentException(
+                    "{$changes['server']} is the test domain of site {$shortcode}; a domain cannot be both server and test domain."
+                );
+            }
             $sets[] = 'server_site_domain_id = ?';
-            $params[] = $changes['server'] === '' ? null : $this->linkId($siteId, $shortcode, $changes['server']);
+            $params[] = $serverId;
+        }
+        if (array_key_exists('test', $changes)) {
+            $testId = $changes['test'] === '' ? null : $this->linkId($siteId, $shortcode, $changes['test']);
+            if ($testId !== null && $testId === $this->namedLink($siteId, 'server_site_domain_id')) {
+                throw new \InvalidArgumentException(
+                    "{$changes['test']} is the server of site {$shortcode}; a domain cannot be both server and test domain."
+                );
+            }
+            $sets[] = 'test_site_domain_id = ?';
+            $params[] = $testId;
         }
         if (array_key_exists('github_repo', $changes)) {
             $repo = $changes['github_repo'];
@@ -130,6 +146,17 @@ final readonly class SiteStore
                 . "Name another with site-set --server=, or clear it with --server=, first."
             );
         }
+        $isTest = $this->rows(
+            'SELECT s.std_site_id FROM std_sites s
+               JOIN dh_site_domains l ON l.dh_site_domain_id = s.test_site_domain_id
+              WHERE s.std_site_id = ? AND l.dh_domain_id = ? AND l.path_prefix = ?',
+            [$siteId, $domainId, $pathPrefix],
+        );
+        if ($isTest !== []) {
+            throw new \InvalidArgumentException(
+                "{$domain}{$pathPrefix} is the test domain of site {$shortcode}. Clear it with site-set --test= first."
+            );
+        }
         $removed = $this->run(
             'DELETE FROM dh_site_domains WHERE std_site_id = ? AND dh_domain_id = ? AND path_prefix = ?',
             [$siteId, $domainId, $pathPrefix],
@@ -144,13 +171,13 @@ final readonly class SiteStore
      * checkout is, and which server to ask what is deployed (or why there is
      * none to ask).
      *
-     * @return list<array{shortcode: string, standard: string, checkout_path: ?string, server: ?array{ssh_alias: string, directory: string}, server_problem: ?string}>
+     * @return list<array{shortcode: string, standard: string, checkout_path: ?string, server: ?array{ssh_alias: string, directory: string}, server_problem: ?string, test: ?array{domain: string, php_version: ?string, ssh_alias: ?string, directory: ?string}}>
      */
     public function forScanner(): array
     {
         $links = [];
         $linkRows = $this->rows(
-            'SELECT l.std_site_id, l.dh_site_domain_id, d.domain, l.path_prefix, st.web_directory, u.ssh_alias
+            'SELECT l.std_site_id, l.dh_site_domain_id, d.domain, l.path_prefix, st.web_directory, st.php_version, u.ssh_alias
                FROM dh_site_domains l
                JOIN dh_domains d ON d.dh_domain_id = l.dh_domain_id
                LEFT JOIN dh_domain_states st ON st.dh_domain_id = d.dh_domain_id AND st.until_sweep_id IS NULL
@@ -164,12 +191,13 @@ final readonly class SiteStore
                 'path_prefix' => RowValue::string($row, 'path_prefix'),
                 'web_directory' => RowValue::stringOrNull($row, 'web_directory'),
                 'ssh_alias' => RowValue::stringOrNull($row, 'ssh_alias'),
+                'php_version' => RowValue::stringOrNull($row, 'php_version'),
             ];
         }
 
         $sites = [];
         $rows = $this->rows(
-            'SELECT s.std_site_id, s.shortcode, t.slug AS standard, s.checkout_path, s.server_site_domain_id
+            'SELECT s.std_site_id, s.shortcode, t.slug AS standard, s.checkout_path, s.server_site_domain_id, s.test_site_domain_id
                FROM std_sites s JOIN std_standards t ON t.std_standard_id = s.std_standard_id
               ORDER BY s.shortcode'
         );
@@ -178,6 +206,19 @@ final readonly class SiteStore
                 $links[RowValue::int($row, 'std_site_id')] ?? [],
                 RowValue::intOrNull($row, 'server_site_domain_id'),
             );
+            $testId = RowValue::intOrNull($row, 'test_site_domain_id');
+            $test = null;
+            foreach ($links[RowValue::int($row, 'std_site_id')] ?? [] as $link) {
+                if ($link['dh_site_domain_id'] === $testId) {
+                    $where = ServerChoice::pick([$link], null);
+                    $test = [
+                        'domain' => $link['domain'] . $link['path_prefix'],
+                        'php_version' => $link['php_version'],
+                        'ssh_alias' => $where->sshAlias,
+                        'directory' => $where->directory,
+                    ];
+                }
+            }
             $sites[] = [
                 'shortcode' => RowValue::string($row, 'shortcode'),
                 'standard' => RowValue::string($row, 'standard'),
@@ -186,6 +227,7 @@ final readonly class SiteStore
                     ? null
                     : ['ssh_alias' => $server->sshAlias, 'directory' => $server->directory],
                 'server_problem' => $server->problem,
+                'test' => $test,
             ];
         }
         return $sites;
@@ -210,6 +252,17 @@ final readonly class SiteStore
             );
         }
         return RowValue::int($found[0], 'dh_site_domain_id');
+    }
+
+    /**
+     * The link a site's server or test column names right now, or null.
+     *
+     * @param 'server_site_domain_id'|'test_site_domain_id' $column
+     */
+    private function namedLink(int $siteId, string $column): ?int
+    {
+        $found = $this->rows("SELECT {$column} AS named FROM std_sites WHERE std_site_id = ?", [$siteId]);
+        return $found === [] ? null : RowValue::intOrNull($found[0], 'named');
     }
 
     private function siteId(string $shortcode): int
