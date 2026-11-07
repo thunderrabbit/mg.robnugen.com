@@ -22,9 +22,10 @@ newest. The check lists everything it finds wanting, not just the first.
 A site may decide to hold a library on an older major for a while: the people
 who use it were promised a careful upgrade, or the next major is a separate
 piece of work. It writes that decision in `JS_LIBRARIES.md` as one line,
-`Stays on <npm package> <major>: <why>` (`Stays on jquery 3: Akane was
-promised one careful upgrade; jQuery 4 is #3733`), and the check counts that
-library as held, not behind, while it is on that major. The line is the
+`Stays on <npm package> <major>: <why>` (`Stays on jquery 3: the people who
+use the site were promised one careful upgrade; jQuery 4 is next year's
+project`), and the check counts that library as held, not behind, while it is
+on that major. The line is the
 site's own word, on record next to its reason; the check does not judge it.
 The names are described in `tools/site-standards/NAMES.md`.
 

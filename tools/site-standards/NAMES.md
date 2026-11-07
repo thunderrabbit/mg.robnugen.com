@@ -68,8 +68,9 @@ line and a `testing-js-since-<date>.sh` are present, this line is run.
 ### `Stays on <npm package> <major>: <why>`
 
 A decision to hold one library on an older major release for now, with the
-reason: `Stays on jquery 3: Akane was promised one careful upgrade; jQuery 4
-is #3733`. The package is named as npm names it, in lowercase.
+reason: `Stays on jquery 3: the people who use the site were promised one
+careful upgrade; jQuery 4 is next year's project`. The package is named as npm
+names it, in lowercase.
 
 Read by: `js_libraries_current` (a library on exactly that major counts as
 held, not behind; a library below it is still behind).
