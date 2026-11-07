@@ -161,7 +161,7 @@ An actor with `agent_inbox_user.todos_limited = 1` is a "limited actor": a third
 - **Three marks and no others**: checkmark, info circle, and a crying-laughing face for a site nobody can reach (no domain, or no proven ssh login). Never add warning styling; every site here is working.
 - **This repo is public.** Shortcodes, site names and anything about one site's progress live only in the database and in issues. Step files, tests and comments use `mg` or made-up names.
 - `.gitignore` ignores `php*`; `tools/site-standards/**` is exempt so a track, step or check can be named `phpstan`. An ignored file leaves `git status` clean, so after adding one count what `git ls-files tools/site-standards` sees.
-- Tables: `std_*` are host-neutral, `dh_site_domains` is the one DreamHost link (`db_schemas/45_site_standards/`, server link and scan-time server facts in `47_standards_server/`, test domain in `48_standards_test_domain/`, the branch a site is preparing in `49_standards_upgrade_branch/`). Sites not on DreamHost are a separate, later project.
+- Tables: `std_*` are host-neutral, `dh_site_domains` is the one DreamHost link (`db_schemas/45_site_standards/`, server link and scan-time server facts in `47_standards_server/`, test domain in `48_standards_test_domain/`, the branch a site is preparing in `49_standards_upgrade_branch/`). Sites not on DreamHost (the And Beyond backend and frontend on EC2) are being added on branch `add-ec2-sites` (0.67.0): a second link kind beside `dh_site_domains` so `ServerChoice` and the scanner can reach a server that is not a DreamHost domain.
 
 ## Development Notes
 
