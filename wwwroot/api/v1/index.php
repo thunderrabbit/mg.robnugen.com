@@ -187,6 +187,9 @@ if ($path === '/sessions' || preg_match('#^/sessions(/|$)#', $path)) {
 } elseif ($path === '/exterm' || preg_match('#^/exterm(/|$)#', $path)) {
     require_project_perm($auth_actor, $method);
     include __DIR__ . '/_exterm.php';
+} elseif ($path === '/standards' || preg_match('#^/standards(/|$)#', $path)) {
+    require_project_perm($auth_actor, $method);
+    include __DIR__ . '/_standards.php';
 } elseif ($path === '/notify' || preg_match('#^/notify(/|$)#', $path)) {
     include __DIR__ . '/_notify.php';
 } elseif ($path === '/journal-sync' || preg_match('#^/journal-sync(/|$)#', $path)) {
