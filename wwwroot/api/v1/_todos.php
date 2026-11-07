@@ -185,7 +185,7 @@ if ($todos_path === '/granted') {
         $filteredTodos[] = $todo;
     }
 
-    usort($filteredTodos, function (array $a, array $b) {
+    usort($filteredTodos, function (array $a, array $b): int {
         $timeA = $a['do_time'] ?? null;
         $timeB = $b['do_time'] ?? null;
 
