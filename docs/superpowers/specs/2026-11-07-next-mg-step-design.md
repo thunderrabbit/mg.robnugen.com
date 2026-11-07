@@ -74,7 +74,7 @@ every agent has it, whatever repo it runs in.
 - Leaking the hosting map. Domains, DreamHost usernames, ssh aliases and
   server paths stay off the API answer.
 - Warning styling or alarm wording in anything the skill says. Every site is
-  working.
+  currently working.
 
 ## The endpoint
 
