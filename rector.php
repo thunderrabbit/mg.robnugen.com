@@ -35,6 +35,10 @@ return static function (RectorConfig $rectorConfig): void {
         __DIR__ . '/classes/Config.php',
         __DIR__ . '/Tests/Support/_generated',
         __DIR__ . '/Tests/_output',
+        // Also run on Lemur 13 under PHP 8.1 (journal sync; see CLAUDE.md), so
+        // they may not take syntax newer than that. Left as they are.
+        __DIR__ . '/classes/Journal',
+        __DIR__ . '/tools/journal-sync',
     ]);
 
     $rectorConfig->sets([
