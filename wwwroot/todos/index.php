@@ -64,7 +64,7 @@ unset($todo); // Break reference
 // Filter out todos completed before today if requested
 if ($hide_past_completed) {
     $today = date('Y-m-d');
-    $todos = array_filter($todos, function ($todo) use ($today) {
+    $todos = array_filter($todos, function (array $todo) use ($today) {
         if (!empty($todo['is_completed'])) {
             $completed_date = date('Y-m-d', (int) strtotime(\Field::string($todo, 'completed_at')));
             return $completed_date >= $today;

@@ -133,8 +133,8 @@ final class ProjectServiceTest extends Unit
 
         $summaries = $this->service->summaries($this->rob);
 
-        $this->assertSame(['abc', 'jikan'], array_map(static fn($s) => $s->project->name, $summaries));
-        $this->assertSame([0, 4], array_map(static fn($s) => $s->openIssueCount, $summaries));
+        $this->assertSame(['abc', 'jikan'], array_map(static fn(\Projects\ProjectSummary $s) => $s->project->name, $summaries));
+        $this->assertSame([0, 4], array_map(static fn(\Projects\ProjectSummary $s) => $s->openIssueCount, $summaries));
     }
 
     // === Administering projects ===
@@ -164,7 +164,7 @@ final class ProjectServiceTest extends Unit
     public function testUpdateRenamesAndArchivesButNotOntoATakenName(): void
     {
         $this->assertSame(1, $this->service->update($this->rob, new UpdateProject(8, name: 'abc2', isArchived: true)));
-        $this->assertSame(['jikan'], array_map(static fn($v) => $v->project->name, $this->service->list($this->rob)));
+        $this->assertSame(['jikan'], array_map(static fn(\Projects\ProjectView $v) => $v->project->name, $this->service->list($this->rob)));
 
         $this->assertThrows(ConflictException::class, fn() => $this->service->update($this->rob, new UpdateProject(8, name: 'jikan')));
         $this->assertSame(1, $this->service->update($this->rob, new UpdateProject(7, name: 'jikan')));
