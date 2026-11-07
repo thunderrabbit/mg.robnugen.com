@@ -13,10 +13,20 @@ from a version that was working.
 
 The check asks the npm registry about each library the site loads from a CDN
 (jsDelivr, unpkg, cdnjs, code.jquery.com, esm.sh, jspm), each copy in the repo
-named `<npm package>-<x.y.z>.js`, and each of `package.json`'s
-`dependencies`. A library passes when it is on the newest major and its
-release is not marked deprecated. For a `0.x` library, where every minor can
-break, it passes within ten minors of the newest.
+named `<npm package>-<x.y.z>.js` (loaded by a `<script src>` or named from
+PHP), and each of `package.json`'s `dependencies`. A library passes when it is
+on the newest major and its release is not marked deprecated. For a `0.x`
+library, where every minor can break, it passes within ten minors of the
+newest. The check lists everything it finds wanting, not just the first.
+
+A site may decide to hold a library on an older major for a while: the people
+who use it were promised a careful upgrade, or the next major is a separate
+piece of work. It writes that decision in `JS_LIBRARIES.md` as one line,
+`Stays on <npm package> <major>: <why>` (`Stays on jquery 3: Akane was
+promised one careful upgrade; jQuery 4 is #3733`), and the check counts that
+library as held, not behind, while it is on that major. The line is the
+site's own word, on record next to its reason; the check does not judge it.
+The names are described in `tools/site-standards/NAMES.md`.
 
 ## How to do it
 
@@ -45,7 +55,9 @@ break, it passes within ten minors of the newest.
       is named after its npm package (`jquery-4.0.0.min.js`), so the check
       can look it up. Let it run for a day before
       the next move, and say so in the commit if you don't wait.
-4. A library nobody maintains (AngularJS, or a jQuery plugin with no release in
+4. To hold a library on its current major on purpose, add the `Stays on` line
+   with the reason, and take the line out when the hold ends.
+5. A library nobody maintains (AngularJS, or a jQuery plugin with no release in
    years) gets replaced, as its own piece of work, never in the same commit as
    an upgrade: with a maintained library, or with what the browser now does
    itself (`$.ajax` → `fetch`, `$(sel)` → `document.querySelectorAll(sel)`).

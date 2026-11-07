@@ -65,6 +65,15 @@ passes on warnings can't show that they are gone.
 Read by: `js_deprecations_clear` (runs it on the test domain). If both this
 line and a `testing-js-since-<date>.sh` are present, this line is run.
 
+### `Stays on <npm package> <major>: <why>`
+
+A decision to hold one library on an older major release for now, with the
+reason: `Stays on jquery 3: Akane was promised one careful upgrade; jQuery 4
+is #3733`. The package is named as npm names it, in lowercase.
+
+Read by: `js_libraries_current` (a library on exactly that major counts as
+held, not behind; a library below it is still behind).
+
 ### `Deprecation warnings clear at <commit>`
 
 For a site that has a smoke test but no test domain to run it on: the commit
