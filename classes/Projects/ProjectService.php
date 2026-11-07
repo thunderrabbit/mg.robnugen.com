@@ -27,7 +27,7 @@ use Projects\Command\UpdateProject;
  * It shares Caller, Membership and the exceptions with IssueService, so a page
  * or handler that uses both answers their errors the same way.
  */
-final class ProjectService
+final readonly class ProjectService
 {
     /**
      * @param (\Closure(string): void)|null $beforeWrite Runs once every check has passed,
@@ -35,8 +35,8 @@ final class ProjectService
      *        The API charges a credit there, so a rejected request is never billed.
      */
     public function __construct(
-        private readonly ProjectStore $store,
-        private readonly ?\Closure $beforeWrite = null,
+        private ProjectStore $store,
+        private ?\Closure $beforeWrite = null,
     ) {
     }
 

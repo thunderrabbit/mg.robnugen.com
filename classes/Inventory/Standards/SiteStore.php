@@ -15,9 +15,9 @@ use Db\RowValue;
  * Every refusal is an InvalidArgumentException whose message is a sentence
  * for the person at the command line.
  */
-final class SiteStore
+final readonly class SiteStore
 {
-    public function __construct(private readonly \PDO $pdo)
+    public function __construct(private \PDO $pdo)
     {
     }
 

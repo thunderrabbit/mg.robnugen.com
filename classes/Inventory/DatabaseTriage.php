@@ -10,9 +10,9 @@ namespace Inventory;
  * updated or deleted. Rules about WHICH databases may be marked live in
  * EmptyDatabaseRule; this only records what it is handed.
  */
-final class DatabaseTriage
+final readonly class DatabaseTriage
 {
-    public function __construct(private readonly \PDO $pdo)
+    public function __construct(private \PDO $pdo)
     {
     }
 

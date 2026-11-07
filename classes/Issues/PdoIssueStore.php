@@ -28,9 +28,9 @@ use Issues\Command\UpdateIssue;
  * IssueStore on mg's MySQL connection. Every row comes back as a generated row
  * object, so nothing untyped leaves this class.
  */
-final class PdoIssueStore implements IssueStore
+final readonly class PdoIssueStore implements IssueStore
 {
-    public function __construct(private readonly \PDO $pdo)
+    public function __construct(private \PDO $pdo)
     {
     }
 

@@ -36,7 +36,7 @@ use Issues\Command\UpdateIssue;
  * after his agents. Anyone else gets AccessException rather than the silently
  * empty answer these endpoints used to give.
  */
-final class IssueService
+final readonly class IssueService
 {
     /**
      * @param (\Closure(string): void)|null $beforeWrite Runs once every check has passed,
@@ -44,8 +44,8 @@ final class IssueService
      *        The API charges a credit there, so a rejected request is never billed.
      */
     public function __construct(
-        private readonly IssueStore $store,
-        private readonly ?\Closure $beforeWrite = null,
+        private IssueStore $store,
+        private ?\Closure $beforeWrite = null,
     ) {
     }
 
