@@ -30,10 +30,18 @@ final class EmptyDatabaseRuleTest extends Unit
 
     public function testADatabaseNotInTheLatestSweepIsRefused(): void
     {
-        $verdict = EmptyDatabaseRule::check([3, 4], [4 => null]);
+        $verdict = EmptyDatabaseRule::check([3], []);
 
         $this->assertSame([], $verdict->accepted);
-        $this->assertSame([3 => 'not in the latest sweep', 4 => 'not in the latest sweep'], $verdict->refused);
+        $this->assertSame([3 => 'not in the latest sweep'], $verdict->refused);
+    }
+
+    public function testADatabaseWithAnUnknownSizeIsNeverTakenForEmpty(): void
+    {
+        $verdict = EmptyDatabaseRule::check([4], [4 => null]);
+
+        $this->assertSame([], $verdict->accepted);
+        $this->assertSame([4 => 'size unknown in the latest sweep'], $verdict->refused);
     }
 
     public function testAMixedBatchIsSplitAndDuplicatesCountOnce(): void
