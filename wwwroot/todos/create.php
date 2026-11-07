@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Handle Dates of Month (Recurrence)
         if (!empty($_POST['do_dates'])) {
             // Clean up and validate integers
-            $dates = array_map('trim', explode(',', \Field::string($_POST, 'do_dates')));
+            $dates = array_map(trim(...), explode(',', \Field::string($_POST, 'do_dates')));
             $clean_dates = [];
             foreach ($dates as $d) {
                 if (is_numeric($d) && $d >= 1 && $d <= 31) {

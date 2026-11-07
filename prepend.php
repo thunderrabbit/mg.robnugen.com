@@ -81,7 +81,7 @@ $csrf_exempt_scripts = [
 ];
 $running_script = realpath(\Field::string($_SERVER, 'SCRIPT_FILENAME'));
 $csrf_exempt = $running_script !== false
-    && in_array($running_script, array_map('realpath', $csrf_exempt_scripts), true);
+    && in_array($running_script, array_map(realpath(...), $csrf_exempt_scripts), true);
 if (!$csrf_exempt && !$csrfProtect->validateRequest()) {
     http_response_code(403);
     echo "<h1>Request rejected</h1>"

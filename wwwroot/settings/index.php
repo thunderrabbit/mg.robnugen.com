@@ -123,7 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['api_key_action'])) {
     }
 
     if (!empty($errors)) {
-        $error_message = implode('<br>', array_map('htmlspecialchars', $errors));
+        $error_message = implode('<br>', array_map(htmlspecialchars(...), $errors));
     }
 }
 

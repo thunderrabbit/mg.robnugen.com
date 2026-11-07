@@ -116,7 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Set error message if there are errors
     if (!empty($errors)) {
         // HTML escape each error message individually, then join with <br>
-        $escaped_errors = array_map('htmlspecialchars', $errors);
+        $escaped_errors = array_map(htmlspecialchars(...), $errors);
         $error_message = implode("<br>", $escaped_errors);
     }
 }
