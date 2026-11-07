@@ -80,11 +80,14 @@ is by design, so it is not read as skipped testing.
   (Claude's guess): the repo provides one script that runs only safe tests against
   its own test domain and exits 0 or 1. The check refuses to run if the script is
   missing, answering "could not tell" rather than inventing a suite.
-- **Step files per target.** A track per target (`php_8_5/`, later `php_8_6/`)
-  holding the steps above, each carrying the version as `param`. The existing
-  `serves_php_8_5` and `rector_php_8_5_rules` move into or beside it, and the
-  `serves_php_8_5` how-to is rewritten so it no longer tells Rob to "make sure the
-  code is ready" by hand.
+- **Step files per target.** The new steps join the existing `php_version`
+  track at positions 2, 4 and 6, ahead of the switch step at 10, and each
+  carries the version in its slug and as `param` (`code_runs_on_php_8_5`).
+  A future target is a copy of those three files with the version changed. The
+  existing `serves_php_8_5` and `rector_php_8_5_rules` keep their place and
+  identity; only the switch step's how-to changes, so it no longer tells Rob to
+  "make sure the code is ready" by hand. The new steps start as `idea` and count
+  against no site until one site has done them.
 
 ## Constraints
 
@@ -132,9 +135,14 @@ agent's runs.
   not change it. If the sweep has no version for that domain, the check says "could
   not tell" (exit 2). If that version is already X or newer, the check lints on X
   alone.
-- **Two versions reach a check** through environment variables set by `scan.sh`
-  (the current PHP, and whether a test domain exists). The step's one `param` stays
-  the target.
+- **Two versions reach a check** through environment variables set by `scan.py`:
+  `SITE_SHORTCODE`, `SITE_PHP_CURRENT`, `SITE_TEST_DOMAIN`, `SITE_TEST_PHP`,
+  `SITE_TEST_SSH_ALIAS` and `SITE_TEST_DIRECTORY`, each empty when there is
+  nothing to say. The step's one `param` stays the target.
+- **The suite check also requires the test domain to run the checkout's commit**,
+  asked over ssh as the scanner asks a server. Otherwise a pass would describe
+  other code. The convention is a root-level `safe-suite.sh`; its result is
+  remembered per site, commit and PHP.
 - **No new applicability flag.** A step a site does not need passes with a line
   saying why (for example "no test domain"). It shows as a tick, not an info mark,
   because the page's three marks belong to the site's standing, not to a line.
@@ -143,8 +151,8 @@ agent's runs.
   needs. Nothing blocks Rob from switching early; the order is advice.
 - **The existing steps keep their identity.** `serves_php_8_5` and
   `rector_php_8_5_rules` stay where they are, so their `<step>.<shortcode>` issues,
-  NAh marks and proven status survive. Only their how-to text changes, and the new
-  steps are added in a new track. No migration.
+  NAh marks and proven status survive. Only the switch step's how-to text changes,
+  and the new steps join the same track. No migration.
 - **Tier 1 check proves compilation only.** It lints every PHP file outside
   `vendor/` and generated output, templates included, on both runner images. The
   step makes the agent run Rector and PHPStan at the target; the check does not
@@ -152,7 +160,3 @@ agent's runs.
 - **Old PHP.** The runner images that exist are 8.1, 8.3 and 8.5. A site serving
   something older gets "could not tell". Building older images is out of scope.
 
-## Open for the builder
-
-- The test-suite convention's file name and where each repo declares it.
-- Nothing else on Tier 2's running; see the next section.
