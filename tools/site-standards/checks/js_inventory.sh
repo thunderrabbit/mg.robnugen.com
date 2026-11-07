@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # js_inventory REPO: JS_LIBRARIES.md at the repo root names every script the
 # site loads: each <script src>, import-map target and non-relative import,
-# exactly as the code spells it. A site that loads none passes without it.
+# exactly as the code spells it, and each script PHP names (by the tracked
+# file's path when the name resolves to one, else as PHP spells it). A site
+# that loads none passes without it.
 set -uo pipefail
 HERE="$(dirname "${BASH_SOURCE[0]}")"
 . "$HERE/../lib.sh"
@@ -20,12 +22,16 @@ def check(repo):
     named += [(e["url"], e) for e in found["importmap"]]
     keys = {e["key"]: e["url"] for e in found["importmap"]}
     bare = [i for i in found["imports"] if not i["dynamic"]]
-    dynamic = sum(1 for s in found["scripts"] if s["dynamic"])
-    if not named and not bare:
+    php_named = {}
+    for n in found["named"]:
+        php_named.setdefault(n["path"] or n["tail"], n)
+    unresolved = sum(1 for n in found["named"] if n["path"] is None and not j.is_external(n["tail"]))
+    if not named and not bare and not php_named:
         j.verdict(0, "the site loads no scripts")
     path = os.path.join(repo, "JS_LIBRARIES.md")
+    total = len(named) + len(bare) + len(php_named)
     if not os.path.isfile(path):
-        j.verdict(1, f"no JS_LIBRARIES.md, and the site loads {len(named) + len(bare)} scripts")
+        j.verdict(1, f"no JS_LIBRARIES.md, and the site loads {total} scripts")
     with open(path, encoding="utf-8", errors="replace") as f:
         doc = f.read()
     for text, item in named:
@@ -39,8 +45,12 @@ def check(repo):
         if any(spec == k or (k.endswith("/") and spec.startswith(k)) for k in keys):
             continue
         j.verdict(1, f"JS_LIBRARIES.md does not name the import \"{spec}\" ({j.where(item)})")
-    extra = f"; {dynamic} written by PHP, not checked" if dynamic else ""
-    j.verdict(0, f"JS_LIBRARIES.md names all {len(named) + len(bare)} scripts the site loads{extra}")
+    for text, item in php_named.items():
+        if text not in doc:
+            how = "names" if item["path"] is not None else "writes"
+            j.verdict(1, f"JS_LIBRARIES.md does not name {text}, which PHP {how} ({j.where(item)})")
+    extra = f"; {unresolved} named by PHP match no tracked file" if unresolved else ""
+    j.verdict(0, f"JS_LIBRARIES.md names all {total} scripts the site loads{extra}")
 
 
 j.run(check)

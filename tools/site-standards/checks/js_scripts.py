@@ -12,11 +12,16 @@ test fixtures), and not minified:
 - every import-map entry, with whether the map gives it an integrity hash;
 - every import that is not relative (`import x from "three"`, a URL, and
   dynamic `import("...")`), in .js/.mjs files and inline module scripts;
-- how many inline <script> blocks there are.
+- how many inline <script> blocks there are;
+- every script named inside PHP: a `<script src>` that PHP writes part of
+  (`src="<?= $base ?>/js/forms.js"`) keeps the fixed tail after the last PHP
+  block, and a PHP string that ends in `.js` or `.mjs` (`addScript('/forms/
+  forms.js')`) is that tail. Each tail is resolved to the one tracked file
+  whose path ends with it, when there is exactly one.
 
 PHP blocks are blanked before reading, so `src="<?= $x ?>"` shows as dynamic
-rather than being misread. A script written out from inside a PHP string is
-not seen.
+rather than being misread; what PHP writes is then looked for in the PHP
+itself, as above. A src built from several PHP strings is not seen.
 """
 
 import json
@@ -35,6 +40,9 @@ IMPORT = re.compile(
 )
 VERSION = re.compile(r"(?<![0-9.])v?\d+\.\d+\.\d+(?![0-9])")
 EXTERNAL = re.compile(r"\A(?:https?:)?//", re.I)
+# A PHP string that names a script: quoted, one path, ending in .js or .mjs.
+# No backslash: that is a regular expression (`'request\.js'`), not a path.
+PHP_SCRIPT_STRING = re.compile(r"""(["'])((?:(?!\1)[^\s<>()\\])+\.m?js)\1""")
 
 
 def blank_php(text):
@@ -42,17 +50,25 @@ def blank_php(text):
     return PHP_BLOCK.sub(lambda m: re.sub(r"[^\n]", DYNAMIC, m.group(0)), text)
 
 
-def tracked_files(repo, rev=None):
-    """The files read(), as git knows them: in the index, or at commit `rev`."""
+def tracked_files(repo, rev=None, minified=False, skip=SKIP_DIRS):
+    """The files read(), as git knows them: in the index, or at commit `rev`.
+
+    Minified files are left out unless asked for: they are read for nothing,
+    but a copy of a library is often one. `skip` names the directories left
+    out; a copy may well sit under vendor/, so a caller resolving names skips
+    less.
+    """
     listing = ["ls-files", "-z"] if rev is None else ["ls-tree", "-r", "-z", "--name-only", rev]
     done = subprocess.run(["git", "--no-optional-locks", "-C", repo, *listing],
                           capture_output=True, text=True)
     if done.returncode != 0:
         raise RuntimeError("could not list the checkout's files with git")
     for path in done.stdout.split("\0"):
-        if not path.endswith(EXTENSIONS) or path.endswith((".min.js", ".min.mjs")):
+        if not path.endswith(EXTENSIONS):
             continue
-        if SKIP_DIRS.intersection(path.split("/")[:-1]):
+        if not minified and path.endswith((".min.js", ".min.mjs")):
+            continue
+        if skip.intersection(path.split("/")[:-1]):
             continue
         yield path
 
@@ -105,7 +121,8 @@ def read(repo, rev=None):
 
     With `rev`, the scripts as they were at that commit.
     """
-    found = {"scripts": [], "importmap": [], "imports": [], "inline": [], "problems": []}
+    found = {"scripts": [], "importmap": [], "imports": [], "inline": [], "named": [], "problems": []}
+    tails = []
     for path in tracked_files(repo, rev):
         raw = contents(repo, path, rev)
         if raw is None:
@@ -113,7 +130,10 @@ def read(repo, rev=None):
         if path.endswith((".js", ".mjs")):
             imports_in(raw, path, 1, found["imports"])
             continue
-        text = blank_php(raw) if path.endswith((".php", ".phtml")) else raw
+        is_php = path.endswith((".php", ".phtml"))
+        text = blank_php(raw) if is_php else raw
+        if is_php:
+            php_named_in(raw, text, path, tails)
         for m in SCRIPT.finditer(text):
             attrs = attributes(m.group(1))
             line = line_of(text, m.start())
@@ -121,18 +141,52 @@ def read(repo, rev=None):
             kind = attrs.get("type", "").strip().lower()
             if "src" in attrs:
                 src = attrs["src"].strip()
+                dynamic = DYNAMIC in src or src == ""
                 found["scripts"].append({
-                    "src": src, "file": path, "line": line, "dynamic": DYNAMIC in src or src == "",
+                    "src": src, "file": path, "line": line, "dynamic": dynamic,
                     "integrity": attrs.get("integrity", "").strip().startswith(("sha256-", "sha384-", "sha512-")),
                     "crossorigin": "crossorigin" in attrs,
                 })
+                tail = src.rsplit(DYNAMIC, 1)[-1] if dynamic else ""
+                if tail.endswith((".js", ".mjs")):
+                    tails.append({"tail": tail, "file": path, "line": line})
             elif kind == "importmap":
                 read_importmap(body, path, line, found)
             elif body.strip():
                 found["inline"].append({"file": path, "line": line})
                 if kind == "module":
                     imports_in(body, path, line, found["imports"])
+    found["named"] = resolve_tails(repo, rev, tails)
     return found
+
+
+def php_named_in(raw, blanked, path, into):
+    """Script paths written as PHP strings: read where the blanked text has PHP."""
+    for m in PHP_SCRIPT_STRING.finditer(raw):
+        if blanked[m.start()] != DYNAMIC:
+            continue  # a string in HTML or in an inline script, not in PHP
+        into.append({"tail": m.group(2), "file": path, "line": line_of(raw, m.start())})
+
+
+def resolve_tails(repo, rev, tails):
+    """Each PHP-named tail with the tracked file it names, or None if not exactly one matches.
+
+    An external URL is kept as it is: it names itself.
+    """
+    if not tails:
+        return []
+    files = [f for f in tracked_files(repo, rev, minified=True, skip={".git"})
+             if f.endswith((".js", ".mjs"))]
+    named = []
+    for item in tails:
+        tail = item["tail"]
+        if is_external(tail):
+            named.append({**item, "path": tail})
+            continue
+        want = tail.lstrip("/")
+        matches = [f for f in files if f == want or f.endswith("/" + want)]
+        named.append({**item, "path": matches[0] if len(matches) == 1 else None})
+    return named
 
 
 def read_importmap(body, path, line, found):
@@ -164,10 +218,12 @@ def where(item):
 
 
 def loaded_urls(found):
-    """Every script URL the site loads: <script src>s and import-map targets."""
+    """Every script the site loads: <script src>s, import-map targets, and the
+    copies PHP names (as tracked paths)."""
     urls = [s["src"] for s in found["scripts"] if not s["dynamic"]]
     urls += [e["url"] for e in found["importmap"]]
     urls += [i["spec"] for i in found["imports"] if is_external(i["spec"]) and not i["dynamic"]]
+    urls += [n["path"] for n in found["named"] if n["path"] is not None]
     return urls
 
 

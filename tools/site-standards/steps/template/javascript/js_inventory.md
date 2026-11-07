@@ -13,14 +13,19 @@ It also says where the site's own JavaScript lives, inline or in files.
 Every later step in this track changes one library at a time, in an order set
 by what depends on what. That order can only be worked out from a list. The
 check passes when every `<script src>`, import-map entry and bare `import`
-the site has is named in the file. A site that loads no scripts passes without
-the file.
+the site has is named in the file, and every script PHP names: a `src` PHP
+writes part of (`src="<?= $base ?>/js/forms.js"`) or a PHP string ending in
+`.js` (`addScript('/forms/forms.js')`). Such a script is named by the tracked
+file it resolves to (`wwwroot/js/forms.js`), or, when no one file matches, as
+PHP spells it. A site that loads no scripts passes without the file.
 
 ## How to do it
 
 1. Find every place a script is loaded: `<script src>`, `<script
    type="importmap">`, `import ... from` in `.js`/`.mjs` files, and any script
-   added from PHP. Leave `vendor/` and `node_modules/` out.
+   added from PHP (`grep -rn "\.js['\"]" --include='*.php'`). Leave `vendor/`
+   and `node_modules/` out. A script PHP names that matches no tracked file is
+   either served from outside the repo or dead: say which.
 2. For each third-party library, write one entry with these lines:
    - **Version**: the exact one in use. Read it from the URL, the file's
      header comment, or the lockfile, not from memory.
