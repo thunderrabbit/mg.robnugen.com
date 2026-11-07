@@ -133,7 +133,7 @@ final readonly class PdoIssueStore implements IssueStore
     public function statuses(): array
     {
         return array_map(
-            static fn(array $row): IssueStatusRow => IssueStatusRow::fromRow($row),
+            IssueStatusRow::fromRow(...),
             $this->all("SELECT * FROM issue_statuses ORDER BY sort_order ASC", []),
         );
     }
