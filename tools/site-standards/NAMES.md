@@ -65,6 +65,25 @@ passes on warnings can't show that they are gone.
 Read by: `js_deprecations_clear` (runs it on the test domain). If both this
 line and a `testing-js-since-<date>.sh` are present, this line is run.
 
+### `Stays on <npm package> <major>: <why>`
+
+A decision to hold one library on an older major release for now, with the
+reason: `Stays on jquery 3: Akane was promised one careful upgrade; jQuery 4
+is #3733`. The package is named as npm names it, in lowercase.
+
+Read by: `js_libraries_current` (a library on exactly that major counts as
+held, not behind; a library below it is still behind).
+
+### `Shim: <path or url> -- <why>`
+
+A compatibility shim the site wrote or kept itself, which no list of famous
+shims would know: `Shim: wwwroot/js/forms.js -- $.browser polyfill for
+jqTransform; goes with it`. A path is the tracked file's path; a url is as
+the site loads it.
+
+Read by: `js_shims_removed` (the step stays open while the file is tracked or
+the script is loaded).
+
 ### `Deprecation warnings clear at <commit>`
 
 For a site that has a smoke test but no test domain to run it on: the commit

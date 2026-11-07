@@ -17,7 +17,9 @@ Wrapping an existing suite in the dated name is allowed, never required. The
 test opens each page that runs scripts, uses its main feature once, and fails
 on any error in the browser console. ESLint's config is `eslint.config.js`
 (or `.mjs`/`.cjs`) at the repo root. The check looks for the smoke test,
-ESLint and the hook. A site that loads no scripts and has no inline
+ESLint and the hook, in the tracked directory `core.hooksPath` names
+(`.githooks/` by convention; a site with its hooks in `hooks/` is fine). A
+site that loads no scripts and has no inline
 `<script>` passes without them. Every name used here is described in
 `tools/site-standards/NAMES.md`.
 
@@ -51,6 +53,7 @@ ESLint and the hook. A site that loads no scripts and has no inline
    runs PHPStan: `docker run --rm -v "$PWD":/app -w /app node:<exact version>
    npx --yes eslint@<exact version> .` Fix what it finds, or leave a commented
    `// eslint-disable-next-line <rule> -- <why>` where the code is right.
-5. Add that ESLint run to `.githooks/pre-commit`, so a commit with a JavaScript
-   fault is refused.
+5. Add that ESLint run to the repo's tracked `pre-commit` hook (the directory
+   `core.hooksPath` names, `.githooks/` by convention), so a commit with a
+   JavaScript fault is refused.
 6. Commit and deploy.

@@ -13,12 +13,19 @@ behind its own warning. `polyfill.io` was taken over in 2024 and sent harmful
 code to the sites that loaded it.
 
 The check reads the same scripts as the inventory step, and passes when none
-of them is a known shim.
+of them is a known shim. It cannot know a shim the site wrote itself: a
+`$.browser` polyfill kept for one old plugin, a console-capture script left
+in from a sweep. The site declares each of those in `JS_LIBRARIES.md` as
+`Shim: <path or url> -- <why>`, and the step stays open while that file is
+tracked or that script is loaded. The names are described in
+`tools/site-standards/NAMES.md`.
 
 ## How to do it
 
 1. Do this only after the smoke test and the live console have been clean
    since the last upgrade was deployed.
+   While writing the inventory, declare every shim of the site's own with a
+   `Shim:` line, so this step knows to wait for it.
 2. Remove one shim per commit. Run the smoke test on the test domain, read the
    console, deploy.
 3. A polyfill for something every browser the site supports already has:

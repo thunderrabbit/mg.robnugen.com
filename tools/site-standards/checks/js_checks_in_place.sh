@@ -4,7 +4,8 @@
 # "JS tests:" line in JS_LIBRARIES.md naming an existing suite), an ESLint
 # config at the root, and a switched-on pre-commit hook that runs ESLint. A
 # site with no scripts at all passes without them. The names are described
-# in ../NAMES.md.
+# in ../NAMES.md; the hooks directory is wherever core.hooksPath points (see
+# need_hooks in ../lib.sh).
 set -uo pipefail
 HERE="$(dirname "${BASH_SOURCE[0]}")"
 . "$HERE/../lib.sh"
@@ -39,10 +40,9 @@ for name in eslint.config.js eslint.config.mjs eslint.config.cjs; do
   [ -f "$REPO/$name" ] && config="$name"
 done
 [ -n "$config" ] || not_yet "no eslint.config.js (or .mjs/.cjs) at the repo root"
-[ -f "$REPO/.githooks/pre-commit" ] || not_yet "no .githooks/pre-commit"
-grep -q eslint "$REPO/.githooks/pre-commit" || not_yet "the pre-commit hook does not run ESLint"
-[ "$(git -C "$REPO" config core.hooksPath 2>/dev/null)" = ".githooks" ] \
-  || not_yet "the pre-commit hook is not switched on (git config core.hooksPath .githooks)"
+need_hooks
+[ -f "$HOOKS/pre-commit" ] || not_yet "no pre-commit hook in ${HOOKS#"$REPO/"}/"
+grep -q eslint "$HOOKS/pre-commit" || not_yet "the pre-commit hook does not run ESLint"
 case "$kind" in
   sh|js) what="$value" ;;
   *) what="the suite named in JS_LIBRARIES.md" ;;

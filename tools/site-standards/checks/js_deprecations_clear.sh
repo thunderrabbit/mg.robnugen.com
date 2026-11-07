@@ -7,8 +7,11 @@
 # domain, its strict form is run there, so any console warning keeps the step
 # open: the "JS strict tests:" command from JS_LIBRARIES.md, or else the
 # dated testing-js-since-<date>.sh with --strict. It runs only when the test
-# domain runs the checkout's own commit, and a result is remembered per
-# commit, as suite_passes_on_php does. A site with a smoke test but no test
+# domain runs the checkout's own commit. A pass is remembered per commit, so
+# the suite is not driven again for a commit it already passed on; a failure
+# is not, because a browser suite can fail for a reason that is not the
+# site's (a flaky run, a sleeping test domain), and the next scan should
+# look again. A site with a smoke test but no test
 # domain records "Deprecation warnings clear at <commit>" in JS_LIBRARIES.md;
 # that passes while the commit is in the checkout's history and the site
 # loads exactly the libraries it loaded then.
@@ -71,11 +74,8 @@ if [ -n "${SITE_TEST_DOMAIN:-}" ]; then
   state="${XDG_STATE_HOME:-$HOME/.local/state}/site-standards"
   memo="$state/js-strict-smoke-$shortcode"
   if [ -f "$memo" ]; then
-    read -r m_commit m_rc m_line < "$memo" || true
-    if [ "$m_commit" = "$head" ]; then
-      [ "$m_rc" = 0 ] && pass "$m_line"
-      not_yet "$m_line"
-    fi
+    read -r m_commit m_line < "$memo" || true
+    [ "$m_commit" = "$head" ] && pass "$m_line"
   fi
 
   out="$(TEST_BASE_URL="https://$SITE_TEST_DOMAIN" "$STANDARDS_MCP/run-webdriver.sh" "$REPO" "${command[@]}" 2>&1)"
@@ -87,8 +87,10 @@ if [ -n "${SITE_TEST_DOMAIN:-}" ]; then
     1) line="the strict smoke test fails on $SITE_TEST_DOMAIN: $line" ;;
     *) unknown "the strict smoke test did not run (exit $rc): $line" ;;
   esac
-  mkdir -p "$state" && printf '%s %s %s\n' "$head" "$rc" "${line//$'\n'/ }" > "$memo"
-  [ "$rc" = 0 ] && pass "$line"
+  if [ "$rc" = 0 ]; then
+    mkdir -p "$state" && printf '%s %s\n' "$head" "${line//$'\n'/ }" > "$memo"
+    pass "$line"
+  fi
   not_yet "$line"
 fi
 
