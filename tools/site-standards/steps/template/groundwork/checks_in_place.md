@@ -6,7 +6,9 @@ whose_move: agent
 check: checks_in_place
 ---
 The repo has a `phpcs.xml`, a `phpstan.neon`, a Unit suite under `Tests/Unit/`
-and a pre-commit hook that is switched on. Every later step changes code, and
+and a tracked pre-commit hook that is switched on: `core.hooksPath` names a
+directory in the repo (`.githooks/` by convention; `hooks/` on older sites),
+and the hook is committed there. Every later step changes code, and
 these are what say a change did not break anything. Without them a rewrite by
 Rector is a guess.
 
@@ -21,6 +23,7 @@ Rector is a guess.
 4. Give phpcs the excludes it needs to pass today. Clearing them is its own
    step.
 5. Write at least one real Unit test, so the suite is not empty.
-6. Switch the hook on: `git config core.hooksPath .githooks`.
+6. Switch the hook on: `git config core.hooksPath .githooks` (or whichever
+   tracked directory the site keeps its hooks in).
 7. Add the repo to standards-mcp's `repos.yaml` so the runner scripts know its
    PHP target.
