@@ -27,6 +27,8 @@ final readonly class StepLine
         public array $issues,
         public string $explanation,
         public string $howTo,
+        public string $checkName,
+        public ?string $checkParam,
     ) {
     }
 }

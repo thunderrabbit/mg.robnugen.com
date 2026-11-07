@@ -96,6 +96,8 @@ final readonly class SiteReport
                 $issues,
                 RowValue::string($row, 'explanation'),
                 RowValue::string($row, 'how_to'),
+                RowValue::string($row, 'check_name'),
+                RowValue::stringOrNull($row, 'check_param'),
             );
         }
 
