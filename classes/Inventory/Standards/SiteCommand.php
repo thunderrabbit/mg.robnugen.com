@@ -10,7 +10,7 @@ namespace Inventory\Standards;
  *
  *     sites
  *     site-add    --shortcode= --standard= [--project=]
- *     site-set    --shortcode= [--project=] [--checkout=] [--server=] [--github=] [--autonomy=]
+ *     site-set    --shortcode= [--project=] [--checkout=] [--server=] [--test=] [--github=] [--autonomy=]
  *     site-link   --shortcode= --domain= [--path=]
  *     site-unlink --shortcode= --domain= [--path=]
  *
@@ -19,6 +19,9 @@ namespace Inventory\Standards;
  * --server= names the domain the scanner asks what is deployed, as
  * example.test or example.test/blog; it is needed only when a site's domains
  * have different checkouts.
+ *
+ * --test= names the site's test domain in the same way; clear it with --test=.
+ * A site with no test domain has no steps that need one.
  */
 final class SiteCommand
 {
@@ -28,7 +31,7 @@ final class SiteCommand
         'site-add' => ['required' => ['shortcode', 'standard'], 'optional' => ['project']],
         'site-set' => [
             'required' => ['shortcode'],
-            'optional' => ['project', 'checkout', 'server', 'github', 'autonomy'],
+            'optional' => ['project', 'checkout', 'server', 'test', 'github', 'autonomy'],
         ],
         'site-link' => ['required' => ['shortcode', 'domain'], 'optional' => ['path']],
         'site-unlink' => ['required' => ['shortcode', 'domain'], 'optional' => ['path']],
@@ -98,6 +101,9 @@ final class SiteCommand
                 }
                 if (array_key_exists('server', $o)) {
                     $changes['server'] = $o['server'];
+                }
+                if (array_key_exists('test', $o)) {
+                    $changes['test'] = $o['test'];
                 }
                 if (array_key_exists('github', $o)) {
                     $changes['github_repo'] = $o['github'] === '' ? null : $o['github'];

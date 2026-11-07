@@ -91,6 +91,20 @@ final class StandardsSiteCommandTest extends Unit
         $this->assertSame(['shortcode' => 'mg', 'server' => 'example.test/blog'], $parsed['options']);
     }
 
+    public function testSiteSetNamesTheTestDomain(): void
+    {
+        $parsed = SiteCommand::parse(['site-set', '--shortcode=mg', '--test=example.test']);
+
+        $this->assertSame(['shortcode' => 'mg', 'test' => 'example.test'], $parsed['options']);
+    }
+
+    public function testSiteSetStillRefusesAnUnknownOption(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches('/--tset/');
+        SiteCommand::parse(['site-set', '--shortcode=mg', '--tset=example.test']);
+    }
+
     public function testThereIsNoTrunkOptionAnyMore(): void
     {
         $this->expectException(\InvalidArgumentException::class);
