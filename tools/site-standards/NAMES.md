@@ -74,6 +74,16 @@ is #3733`. The package is named as npm names it, in lowercase.
 Read by: `js_libraries_current` (a library on exactly that major counts as
 held, not behind; a library below it is still behind).
 
+### `Shim: <path or url> -- <why>`
+
+A compatibility shim the site wrote or kept itself, which no list of famous
+shims would know: `Shim: wwwroot/js/forms.js -- $.browser polyfill for
+jqTransform; goes with it`. A path is the tracked file's path; a url is as
+the site loads it.
+
+Read by: `js_shims_removed` (the step stays open while the file is tracked or
+the script is loaded).
+
 ### `Deprecation warnings clear at <commit>`
 
 For a site that has a smoke test but no test domain to run it on: the commit

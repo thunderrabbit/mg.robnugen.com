@@ -98,11 +98,16 @@ def identify(url, local):
 
 
 def line(before, items, after=""):
-    """before + the items + after, the items cut where the 255-character line would run out."""
+    """before + the items + after, the items cut where the 255-byte line would run out.
+
+    Cut at an item boundary when one fits, mid-item when even the first is too
+    long. ASCII dots, because the line's limit is bytes.
+    """
     room = 255 - len(before) - len(after)
     text = ", ".join(items)
     if len(text) > room:
-        text = text[:max(room - 2, 0)].rsplit(", ", 1)[0] + ", …"
+        cut = text[:max(room - 3, 0)]
+        text = (cut.rsplit(", ", 1)[0] + ", ...") if ", " in cut else (cut + "...")
     return before + text + after
 
 
