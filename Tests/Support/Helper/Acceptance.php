@@ -16,7 +16,7 @@ class Acceptance extends \Codeception\Module
      *
      * @throws \Codeception\Exception\ModuleException
      */
-    public function switchToNewWindow()
+    public function switchToNewWindow(): void
     {
         $webdriver = $this->getModule('WebDriver')->webDriver;
         $handles = $webdriver->getWindowHandles();
