@@ -102,7 +102,7 @@ class Base
         // Split SQL into individual statements
         $statements = array_filter(
             array_map(trim(...), explode(';', $sql)),
-            fn($stmt) => !empty($stmt)
+            fn($stmt): bool => !empty($stmt)
         );
 
         foreach ($statements as $statement) {

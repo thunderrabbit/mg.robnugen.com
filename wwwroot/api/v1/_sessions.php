@@ -209,7 +209,7 @@ if ($method === 'POST' && $is_backfill) {
                 'actual_sec'     => $actual_sec,
                 'is_active'      => false,
                 'session_key'    => $existing_key,
-            ], static fn($v) => $v !== null),
+            ], static fn(string|int|false|null $v): bool => $v !== null),
         ]);
         exit;
     }

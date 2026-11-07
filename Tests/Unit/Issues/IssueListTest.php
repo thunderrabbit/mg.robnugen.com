@@ -33,11 +33,11 @@ final class IssueListTest extends IssueCase
 
         $this->assertThrows(
             NotFoundException::class,
-            fn() => $this->service->listIssues($this->stranger, ListIssues::fromInput(['project_id' => 7])),
+            fn(): \Issues\Page => $this->service->listIssues($this->stranger, ListIssues::fromInput(['project_id' => 7])),
         );
         $this->assertThrows(
             NotFoundException::class,
-            fn() => $this->service->listIssues($this->writer, ListIssues::fromInput(['project_id' => 9999])),
+            fn(): \Issues\Page => $this->service->listIssues($this->writer, ListIssues::fromInput(['project_id' => 9999])),
         );
     }
 
@@ -47,7 +47,7 @@ final class IssueListTest extends IssueCase
 
         $this->assertThrows(
             AccessException::class,
-            fn() => $this->service->listIssues($this->blocked, ListIssues::fromInput(['project_id' => 7])),
+            fn(): \Issues\Page => $this->service->listIssues($this->blocked, ListIssues::fromInput(['project_id' => 7])),
         );
     }
 
@@ -90,13 +90,13 @@ final class IssueListTest extends IssueCase
 
         $closed = $this->service->board($this->reader, 7, done: true);
         $this->assertCount(2, $closed);
-        $this->assertContains($done->issueId, array_map(static fn($row): int => $row->issue->issueId, $closed));
+        $this->assertContains($done->issueId, array_map(static fn(\Issues\BoardIssue $row): int => $row->issue->issueId, $closed));
     }
 
     public function testTheBoardNeedsReadAccess(): void
     {
-        $this->assertThrows(AccessException::class, fn() => $this->service->board($this->blocked, 7));
-        $this->assertThrows(NotFoundException::class, fn() => $this->service->board($this->stranger, 7));
+        $this->assertThrows(AccessException::class, fn(): array => $this->service->board($this->blocked, 7));
+        $this->assertThrows(NotFoundException::class, fn(): array => $this->service->board($this->stranger, 7));
     }
 
     public function testAStatusSlugShowsThatStatusEvenWhenItIsTerminal(): void

@@ -56,7 +56,7 @@ try {
         paging: new \Issues\Command\Paging(limit: 200),
     ))->items;
     // The table opens sorted by id, as its header says.
-    usort($children, fn ($a, $b) => $a->issue->issueId <=> $b->issue->issueId);
+    usort($children, fn ($a, $b): int => $a->issue->issueId <=> $b->issue->issueId);
 } catch (\Input\InvalidInput | \Issues\NotFoundException | \Issues\AccessException) {
     header("Location: /projects/?msg=issue_not_found");
     exit;

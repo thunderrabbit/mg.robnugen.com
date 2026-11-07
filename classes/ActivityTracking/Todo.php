@@ -330,7 +330,7 @@ class Todo
      * @param array<string, mixed> $data Todo data
      * @return int|false New todo ID or false on failure
      */
-    public function createTodo(array $data)
+    public function createTodo(array $data): false|int
     {
         // Basic validation
         if (empty($data['user_id']) || empty($data['title'])) {

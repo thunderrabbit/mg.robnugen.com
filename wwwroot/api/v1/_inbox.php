@@ -342,7 +342,7 @@ if ($method === 'GET' && $sub === '/list') {
     }
 
     $message_ids = array_map(\Field::toInt(...), $message_ids);
-    $message_ids = array_filter($message_ids, fn($id) => $id > 0);
+    $message_ids = array_filter($message_ids, fn($id): bool => $id > 0);
 
     if (empty($message_ids)) {
         http_response_code(400);

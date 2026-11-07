@@ -44,8 +44,8 @@ final class IssueCommentsTest extends IssueCase
     {
         $issue = $this->create();
 
-        $this->assertThrows(AccessException::class, fn() => $this->comment($issue, caller: $this->reader));
-        $this->assertThrows(NotFoundException::class, fn() => $this->comment($issue, caller: $this->stranger));
+        $this->assertThrows(AccessException::class, fn(): int => $this->comment($issue, caller: $this->reader));
+        $this->assertThrows(NotFoundException::class, fn(): int => $this->comment($issue, caller: $this->stranger));
     }
 
     public function testCommentsComeBackOldestFirstWithTheirAuthorsNames(): void
@@ -84,7 +84,7 @@ final class IssueCommentsTest extends IssueCase
 
         $this->assertThrows(
             NotFoundException::class,
-            fn() => $this->service->comments($this->stranger, $issue->issueId, new Paging(limit: 100)),
+            fn(): \Issues\Page => $this->service->comments($this->stranger, $issue->issueId, new Paging(limit: 100)),
         );
     }
 
@@ -114,7 +114,7 @@ final class IssueCommentsTest extends IssueCase
 
         $this->assertThrows(
             AccessException::class,
-            fn() => $this->service->editComment(
+            fn(): \Db\Row\IssueCommentRow => $this->service->editComment(
                 $other,
                 EditComment::fromInput(['issue_comment_id' => $id, 'body' => 'not mine to edit']),
             ),
@@ -125,7 +125,7 @@ final class IssueCommentsTest extends IssueCase
     {
         $this->assertThrows(
             NotFoundException::class,
-            fn() => $this->service->editComment(
+            fn(): \Db\Row\IssueCommentRow => $this->service->editComment(
                 $this->writer,
                 EditComment::fromInput(['issue_comment_id' => 4242, 'body' => 'nothing there']),
             ),

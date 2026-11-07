@@ -172,7 +172,7 @@ class CookieRepositoryTest extends Unit
      */
     private function labels(array $devices): array
     {
-        return array_map(fn(\Auth\Device $d) => $d->label(), $devices);
+        return array_map(fn(\Auth\Device $d): string => $d->label(), $devices);
     }
 
     public function testListShowsOnlyThisUsersLiveDevicesMostRecentlyUsedFirst(): void
@@ -196,7 +196,7 @@ class CookieRepositoryTest extends Unit
         $repo->issue(7, 'phone', self::UA, self::DAY, self::PHONE);
         $repo->issue(7, 'laptop', self::UA, self::DAY, self::PHONE);
 
-        $current = array_map(fn(\Auth\Device $d) => $d->is_current, $repo->listForUser(7, 'laptop'));
+        $current = array_map(fn(\Auth\Device $d): bool => $d->is_current, $repo->listForUser(7, 'laptop'));
         sort($current);
         $this->assertSame([false, true], $current);
     }

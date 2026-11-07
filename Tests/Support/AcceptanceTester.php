@@ -50,7 +50,7 @@ class AcceptanceTester extends \Codeception\Actor
     /**
      * Login as admin user
      */
-    public function loginAsAdmin()
+    public function loginAsAdmin(): void
     {
         $this->login($this->admin_username, $this->admin_password);
     }
@@ -58,7 +58,7 @@ class AcceptanceTester extends \Codeception\Actor
     /**
      * Login as paid user
      */
-    public function loginAsPaid()
+    public function loginAsPaid(): void
     {
         $this->login($this->paid_username, $this->paid_password);
     }
@@ -66,7 +66,7 @@ class AcceptanceTester extends \Codeception\Actor
     /**
      * Login as free user
      */
-    public function loginAsFree()
+    public function loginAsFree(): void
     {
         $this->login($this->free_username, $this->free_password);
     }
@@ -74,7 +74,7 @@ class AcceptanceTester extends \Codeception\Actor
     /**
      * Login as tester user (Dr_Hilbert_Space_mgTester — has API keys and actors)
      */
-    public function loginAsTester()
+    public function loginAsTester(): void
     {
         $this->login($this->tester_username, $this->tester_password);
     }
@@ -86,7 +86,7 @@ class AcceptanceTester extends \Codeception\Actor
      * @param string $password
      * @param bool $expect_success Whether to expect successful login
      */
-    public function login($username, $password, $expect_success = true)
+    public function login($username, $password, $expect_success = true): void
     {
         $I = $this;
         $I->amOnPage('/login/');
@@ -104,7 +104,7 @@ class AcceptanceTester extends \Codeception\Actor
     /**
      * Logout the current user
      */
-    public function logout()
+    public function logout(): void
     {
         $I = $this;
         $I->amOnPage('/login/logout.php');

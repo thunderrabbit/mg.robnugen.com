@@ -32,7 +32,7 @@ class Template
      * @param mixed $value mixed so array of file names can be passed in /list/index.php
      * @return void
      */
-    public function set(string $name, mixed $value)
+    public function set(string $name, mixed $value): void
     {
         $this->vars[$name] = $value;
     }
