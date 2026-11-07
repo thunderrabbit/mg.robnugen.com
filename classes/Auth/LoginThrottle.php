@@ -28,7 +28,7 @@ class LoginThrottle
     public const WINDOW_SECONDS = 15 * 60;
 
     /** MySQL: table does not exist. */
-    private const SQLSTATE_NO_TABLE = '42S02';
+    private const string SQLSTATE_NO_TABLE = '42S02';
 
     private \DateTimeImmutable $now;
 

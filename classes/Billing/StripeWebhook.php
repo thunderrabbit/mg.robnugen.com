@@ -20,7 +20,7 @@ namespace Billing;
 
 class StripeWebhook
 {
-    private const PLAN_CREDITS = [
+    private const array PLAN_CREDITS = [
         'developer' => 5000,
         'growth'    => 25000,
     ];

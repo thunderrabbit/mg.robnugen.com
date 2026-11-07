@@ -13,7 +13,7 @@ use Journal\Files;
  */
 class JournalFilesTest extends Unit
 {
-    private const P = '2026/11/05dream-theater.md';
+    private const string P = '2026/11/05dream-theater.md';
     private Files $files;
     private \PDO $pdo;
 

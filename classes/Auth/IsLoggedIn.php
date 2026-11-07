@@ -16,7 +16,7 @@ class IsLoggedIn
      * A bcrypt hash of nothing in particular, verified against when the
      * username does not exist. Same cost as password_hash()'s default.
      */
-    private const TIMING_DUMMY_HASH = '$2y$12$rpioDu.X8KGylTtBBuu6Wun5FcZ69ji8f2MrHwx.vy4Ec5CrJD.Qu';
+    private const string TIMING_DUMMY_HASH = '$2y$12$rpioDu.X8KGylTtBBuu6Wun5FcZ69ji8f2MrHwx.vy4Ec5CrJD.Qu';
 
     private int $who_is_logged_in = 0;
 

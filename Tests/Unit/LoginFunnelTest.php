@@ -13,7 +13,7 @@ use Codeception\Test\Unit;
  */
 class LoginFunnelTest extends Unit
 {
-    private const UA = 'Mozilla/5.0 LoginFunnelTest';
+    private const string UA = 'Mozilla/5.0 LoginFunnelTest';
 
     private \PDO $pdo;
     private string $app_path;

@@ -9,9 +9,9 @@ use Codeception\Test\Unit;
 
 class StripeWebhookSignatureTest extends Unit
 {
-    private const SECRET = 'whsec_test_secret';
-    private const PAYLOAD = '{"id":"evt_1","type":"checkout.session.completed"}';
-    private const T = 1_800_000_000;
+    private const string SECRET = 'whsec_test_secret';
+    private const string PAYLOAD = '{"id":"evt_1","type":"checkout.session.completed"}';
+    private const int T = 1_800_000_000;
 
     private function header(int $t, string $secret = self::SECRET, string $extra = ''): string
     {

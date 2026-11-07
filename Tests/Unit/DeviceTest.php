@@ -8,7 +8,7 @@ use Codeception\Test\Unit;
 
 class DeviceTest extends Unit
 {
-    private const FIREFOX = 'Mozilla/5.0 (X11; Linux x86_64; rv:147.0) Gecko/20100101 Firefox/147.0';
+    private const string FIREFOX = 'Mozilla/5.0 (X11; Linux x86_64; rv:147.0) Gecko/20100101 Firefox/147.0';
 
     private function device(string $last_access, string $user_agent = '', ?string $device_name = null): \Auth\Device
     {
