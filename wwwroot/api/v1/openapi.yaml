@@ -570,3 +570,67 @@ paths:
                     $ref: "#/components/schemas/Stats"
         "402":
           description: No credits remaining
+
+  /standards/site:
+    get:
+      summary: Which standards steps a site still owes (free, account owner only)
+      description: |
+        The same answer /admin/dh/standards.php shows for one site: its
+        standing and its open proven steps, in the page's order. Give
+        exactly one of checkout_path or shortcode. Only user 1's actors
+        with can_read_project get an answer. Read only; a step is ticked
+        by the scanner, never through the API.
+      parameters:
+        - in: query
+          name: checkout_path
+          schema:
+            type: string
+          description: "The site's checkout, relative to ~/work (e.g. rob/example.com)"
+        - in: query
+          name: shortcode
+          schema:
+            type: string
+          description: "The site's shortcode"
+      responses:
+        "200":
+          description: "{site: null} when no site matches; otherwise the site"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  site:
+                    type: object
+                    nullable: true
+                    properties:
+                      shortcode: { type: string }
+                      standard: { type: string }
+                      standing:
+                        type: object
+                        properties:
+                          mark: { type: string, enum: [check, info, face] }
+                          text: { type: string }
+                      last_checked_utc: { type: string, nullable: true }
+                      skipped_reason: { type: string, nullable: true }
+                      open_steps:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            slug: { type: string }
+                            track: { type: string }
+                            title: { type: string }
+                            whose_move: { type: string, enum: [rob, agent] }
+                            detail: { type: string }
+                            check: { type: string }
+                            check_param: { type: string, nullable: true }
+                            explanation: { type: string }
+                            how_to: { type: string }
+        "400":
+          description: Neither or both parameters, or a malformed one
+        "403":
+          description: Not the account owner, or no can_read_project
+        "405":
+          description: Only GET
+        "409":
+          description: More than one site uses that checkout; pass shortcode (body lists shortcodes)

@@ -17,7 +17,7 @@ final class StandardsSiteStandingTest extends Unit
 {
     private function line(bool $done, WhoseMove $whose = WhoseMove::Agent): StepLine
     {
-        return new StepLine('a_step', 'A track', 'A step', $whose, $done, '', false, [], '', '');
+        return new StepLine('a_step', 'A track', 'A step', $whose, $done, '', false, [], '', '', 'a_check', null);
     }
 
     public function testUnreachableComesFirstEvenWhenEverythingElseIsDone(): void

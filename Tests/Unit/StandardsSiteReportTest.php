@@ -233,4 +233,20 @@ final class StandardsSiteReportTest extends Unit
     {
         $this->assertSame([], $this->report()->ideaNotes);
     }
+
+    public function testALineCarriesItsCheckNameAndParam(): void
+    {
+        $report = SiteReport::build(
+            'mg',
+            $this->reachableFacts(),
+            [$this->step(self::STEP, 'phpstan_top', '10')],
+            [],
+            [],
+            ['mg'],
+            [self::STEP],
+        );
+
+        $this->assertSame('phpstan_top', $report->lines[0]->checkName);
+        $this->assertSame('10', $report->lines[0]->checkParam);
+    }
 }
