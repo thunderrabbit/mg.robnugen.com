@@ -50,7 +50,7 @@ if ($page_num === 1) {
         }
     }
     // Sort merged list by next_due_date / due_date
-    usort($upcoming, function ($a, $b) {
+    usort($upcoming, function (array $a, array $b) {
         $dateA = $a['next_due_date'] ?? $a['due_date'] ?? $a['do_dates'] ?? '';
         $dateB = $b['next_due_date'] ?? $b['due_date'] ?? $b['do_dates'] ?? '';
         return strcmp(\Field::toString($dateA), \Field::toString($dateB));
