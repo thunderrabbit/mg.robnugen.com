@@ -5,7 +5,7 @@
  * crying-laughing face for a site nobody can reach yet.
  *
  * @var array{id: int, swept_on: string, previous_id: int|null, previous_on: string|null}|null $sweep
- * @var list<array{slug: string, name: string, proven: int, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, deployed_branch: string, last_checked_utc: ?string, skipped_reason: ?string, report: \Inventory\Standards\SiteReport}>, ideas: list<array{slug: string, track: string, title: string, practising: list<array{shortcode: string, issue: \Inventory\Standards\NoteIssue}>}>}> $standards
+ * @var list<array{slug: string, name: string, proven: int, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, server_branch: ?string, server_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: \Inventory\Standards\SiteReport}>, ideas: list<array{slug: string, track: string, title: string, practising: list<array{shortcode: string, issue: \Inventory\Standards\NoteIssue}>}>}> $standards
  */
 
 use Inventory\Standards\Names;
@@ -101,7 +101,15 @@ Every site here is working, so nothing on this page is urgent.</small></p>
                     Notes live in <a href="/projects/view.php?project_id=<?= $site['project_id'] ?>">project
                     <?= $site['project_id'] ?></a>.
                 <?php endif; ?>
-                Deployed branch <code><?= $h($site['deployed_branch']) ?></code>,
+                <?php if ($site['server_commit'] === null): ?>
+                    Its server has not been asked what it runs yet;
+                <?php else: ?>
+                    Its server runs
+                    <?php if ($site['server_branch'] !== null): ?>
+                        <code><?= $h($site['server_branch']) ?></code> at
+                    <?php endif; ?>
+                    <code><?= $h(substr($site['server_commit'], 0, 7)) ?></code>;
+                <?php endif; ?>
                 <?php if ($site['last_checked_utc'] === null): ?>
                     not checked yet.
                 <?php else: ?>

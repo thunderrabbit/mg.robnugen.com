@@ -76,11 +76,19 @@ final class StandardsSiteCommandTest extends Unit
         SiteCommand::parse(['site-set', '--shortcode=mg', '--shortcode=mg']);
     }
 
-    public function testSiteSetRecordsTheDeployedBranch(): void
+    public function testThereIsNoDeployedOptionAnyMore(): void
     {
-        $parsed = SiteCommand::parse(['site-set', '--shortcode=mg', '--deployed=dh-standards']);
+        // The scanner asks each site's server what it runs instead.
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches('/--deployed/');
+        SiteCommand::parse(['site-set', '--shortcode=mg', '--deployed=dh-standards']);
+    }
 
-        $this->assertSame(['shortcode' => 'mg', 'deployed' => 'dh-standards'], $parsed['options']);
+    public function testSiteSetNamesTheServer(): void
+    {
+        $parsed = SiteCommand::parse(['site-set', '--shortcode=mg', '--server=example.test/blog']);
+
+        $this->assertSame(['shortcode' => 'mg', 'server' => 'example.test/blog'], $parsed['options']);
     }
 
     public function testThereIsNoTrunkOptionAnyMore(): void
