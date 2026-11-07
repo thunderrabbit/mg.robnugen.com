@@ -47,7 +47,7 @@ final readonly class SiteStore
     }
 
     /**
-     * @param array{project_id?: ?int, checkout_path?: ?string, server?: string, test?: string, github_repo?: ?string, autonomy?: string} $changes
+     * @param array{project_id?: ?int, checkout_path?: ?string, server?: string, test?: string, github_repo?: ?string, autonomy?: string, upgrade_branch?: ?string} $changes
      */
     public function set(string $shortcode, array $changes): void
     {
@@ -102,6 +102,14 @@ final readonly class SiteStore
                 ?? throw new \InvalidArgumentException('Autonomy is one of: paired, reviewed, solo.');
             $sets[] = 'autonomy = ?';
             $params[] = $autonomy->value;
+        }
+        if (array_key_exists('upgrade_branch', $changes)) {
+            $branch = $changes['upgrade_branch'];
+            if ($branch !== null && !Names::isBranch($branch)) {
+                throw new \InvalidArgumentException("\"{$branch}\" is not a branch name.");
+            }
+            $sets[] = 'upgrade_branch = ?';
+            $params[] = $branch;
         }
         if ($sets === []) {
             return;
@@ -168,10 +176,10 @@ final readonly class SiteStore
 
     /**
      * What the scanner on Lemur 13 needs to know about each site: where its
-     * checkout is, and which server to ask what is deployed (or why there is
-     * none to ask).
+     * checkout is, which server to ask what is deployed (or why there is
+     * none to ask), and the branch it is preparing, if any.
      *
-     * @return list<array{shortcode: string, standard: string, checkout_path: ?string, server: ?array{ssh_alias: string, directory: string}, server_problem: ?string, php_current: ?string, test: ?array{domain: string, php_version: ?string, ssh_alias: ?string, directory: ?string}}>
+     * @return list<array{shortcode: string, standard: string, checkout_path: ?string, server: ?array{ssh_alias: string, directory: string}, server_problem: ?string, php_current: ?string, test: ?array{domain: string, php_version: ?string, ssh_alias: ?string, directory: ?string}, upgrade_branch: ?string}>
      */
     public function forScanner(): array
     {
@@ -197,7 +205,8 @@ final readonly class SiteStore
 
         $sites = [];
         $rows = $this->rows(
-            'SELECT s.std_site_id, s.shortcode, t.slug AS standard, s.checkout_path, s.server_site_domain_id, s.test_site_domain_id
+            'SELECT s.std_site_id, s.shortcode, t.slug AS standard, s.checkout_path, s.server_site_domain_id,
+                    s.test_site_domain_id, s.upgrade_branch
                FROM std_sites s JOIN std_standards t ON t.std_standard_id = s.std_standard_id
               ORDER BY s.shortcode'
         );
@@ -239,6 +248,7 @@ final readonly class SiteStore
                 'server_problem' => $server->problem,
                 'php_current' => $phpCurrent,
                 'test' => $test,
+                'upgrade_branch' => RowValue::stringOrNull($row, 'upgrade_branch'),
             ];
         }
         return $sites;

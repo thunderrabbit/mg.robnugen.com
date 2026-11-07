@@ -214,13 +214,25 @@ final class StandardsImporter
     private function importSite(array $site, int $scanId): void
     {
         $found = $this->rows(
-            'SELECT std_site_id, std_standard_id FROM std_sites WHERE shortcode = ?',
+            'SELECT std_site_id, std_standard_id, upgrade_branch FROM std_sites WHERE shortcode = ?',
             [$site['shortcode']],
         );
         if ($found === []) {
             throw new ScanRefusedException("no site has the shortcode {$site['shortcode']}");
         }
         $siteId = RowValue::int($found[0], 'std_site_id');
+        if ($site['skippedReason'] === null && $site['commit'] !== $site['serverCommit']) {
+            // Off the server's commit is allowed on one branch only: the one the
+            // site is preparing, as mg has it on record.
+            $line = RowValue::stringOrNull($found[0], 'upgrade_branch');
+            if ($line === null || $site['branch'] !== $line) {
+                $on = $site['branch'] === null ? 'a detached HEAD' : "branch {$site['branch']}";
+                throw new ScanRefusedException(
+                    "site {$site['shortcode']} was checked on {$on}, not at the commit its server runs, "
+                    . ($line === null ? 'and has no upgrade branch on record' : "and its upgrade branch is {$line}")
+                );
+            }
+        }
 
         $this->run(
             'INSERT INTO std_scan_sites

@@ -27,7 +27,7 @@ final class Board
     /**
      * Every standard with its sites and its untried ideas.
      *
-     * @return list<array{slug: string, name: string, proven: int, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, server_branch: ?string, server_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}>, ideas: list<array{slug: string, track: string, title: string, practising: list<array{shortcode: string, issue: NoteIssue}>}>}>
+     * @return list<array{slug: string, name: string, proven: int, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}>, ideas: list<array{slug: string, track: string, title: string, practising: list<array{shortcode: string, issue: NoteIssue}>}>}>
      */
     public function standards(): array
     {
@@ -113,7 +113,7 @@ final class Board
     /**
      * One site, as the page shows it, plus its standard's slug.
      *
-     * @return array{standard: string, shortcode: string, project_id: ?int, autonomy: string, server_branch: ?string, server_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}|null
+     * @return array{standard: string, shortcode: string, project_id: ?int, autonomy: string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}|null
      */
     public function siteByShortcode(string $shortcode): ?array
     {
@@ -131,7 +131,7 @@ final class Board
 
     /**
      * @param array<mixed> $site a std_sites row
-     * @return array{shortcode: string, project_id: ?int, autonomy: string, server_branch: ?string, server_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}
+     * @return array{shortcode: string, project_id: ?int, autonomy: string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}
      */
     private function site(array $site): array
     {
@@ -231,7 +231,7 @@ final class Board
         }
 
         $latest = $this->rows(
-            'SELECT ss.skipped_reason, ss.server_branch, ss.server_commit
+            'SELECT ss.skipped_reason, ss.server_branch, ss.server_commit, ss.branch, ss.commit_sha
                FROM std_scan_sites ss JOIN std_scans sc ON sc.std_scan_id = ss.std_scan_id
               WHERE ss.std_site_id = ?
               ORDER BY sc.scanned_at_utc DESC LIMIT 1',
@@ -251,6 +251,8 @@ final class Board
             'autonomy' => RowValue::string($site, 'autonomy'),
             'server_branch' => $latest === [] ? null : RowValue::stringOrNull($latest[0], 'server_branch'),
             'server_commit' => $latest === [] ? null : RowValue::stringOrNull($latest[0], 'server_commit'),
+            'checked_branch' => $latest === [] ? null : RowValue::stringOrNull($latest[0], 'branch'),
+            'checked_commit' => $latest === [] ? null : RowValue::stringOrNull($latest[0], 'commit_sha'),
             'last_checked_utc' => $checked === []
                 ? null
                 : RowValue::dateTime($checked[0], 'scanned_at_utc')->format('Y-m-d H:i'),

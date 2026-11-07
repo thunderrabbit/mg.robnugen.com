@@ -29,6 +29,24 @@ need_repo() {
   REPO="$(cd "$1" && pwd)"
 }
 
+# need_hooks: sets HOOKS to the repo's tracked hooks directory, or stops the
+# check with "not yet". The directory is whatever core.hooksPath names, so
+# long as that is a relative path inside the repo with tracked files in it:
+# .githooks/ by convention, hooks/ on older sites. Hooks under .git/ are not
+# tracked, so nothing switches them on for the next clone.
+need_hooks() {
+  local path
+  path="$(git -C "$REPO" config core.hooksPath 2>/dev/null || true)"
+  [ -n "$path" ] || not_yet "no tracked hooks: git config core.hooksPath .githooks, with the hooks committed there"
+  case "$path" in
+    /*|*..*) not_yet "core.hooksPath is $path, which is outside the repo; the hooks must be tracked in it" ;;
+  esac
+  path="${path%/}"
+  [ -n "$(git -C "$REPO" ls-files -- "$path" 2>/dev/null | head -1)" ] \
+    || not_yet "core.hooksPath is $path, but nothing is tracked there"
+  HOOKS="$REPO/$path"
+}
+
 # Rector's dry run over the repo's own rector.php, run once per repo per scan
 # and remembered under $SCAN_TMP. Sets RECTOR_RC and RECTOR_OUT.
 rector_dry_run() {

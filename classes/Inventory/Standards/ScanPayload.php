@@ -19,6 +19,9 @@ namespace Inventory\Standards;
  * branch and commit are the checkout's; server_branch and server_commit are
  * what the site's server ran when asked, null when it could not be asked (and
  * server_branch null on a detached HEAD). Both server fields may be left out.
+ * A scanned site has both commits. They differ only for a site checked on the
+ * branch it is preparing; whether that is the branch mg knows for the site is
+ * the importer's question, since it has the database.
  *
  * Everything is checked here, before the importer opens a transaction.
  */
@@ -138,8 +141,10 @@ final readonly class ScanPayload
         if ($skipped !== null && $results !== []) {
             throw new StandardsFormatException("{$where} was skipped, so it cannot also carry results");
         }
-        if ($skipped === null && ($commit === null || $serverCommit !== $commit)) {
-            throw new StandardsFormatException("{$where} was scanned, so it needs the commit its server runs");
+        if ($skipped === null && ($commit === null || $serverCommit === null)) {
+            throw new StandardsFormatException(
+                "{$where} was scanned, so it needs its own commit and the commit its server runs"
+            );
         }
 
         return [

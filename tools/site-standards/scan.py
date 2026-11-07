@@ -10,6 +10,11 @@ only. What it does, and what it deliberately does not:
   its server runs, asked over ssh (the server's branch name is reported, never
   trusted: servers keep old names and server-only branches). Otherwise it is
   skipped, with the reason, and keeps the results it had.
+- One exception: a site preparing a long upgrade on its own line names that
+  branch on mg (site.sh site-set --upgrade=). Its checkout is then checked
+  clean at that branch's tip instead, the results describe that line, and
+  the page says so beside what the server runs. The importer refuses an
+  off-server scan on any other branch.
 - A step's check is run only if checks/<check>.sh exists. A step whose check
   has no script here is either one mg answers itself or an idea with no check
   yet, and nothing is reported for it.
@@ -167,14 +172,16 @@ def checks_for(standard, files):
     return wanted
 
 
-def check_environment(site, env):
-    """The environment a site's checks run in: the scan's, plus what mg knows.
+def check_environment(site, env, server_commit=None, server_branch=None):
+    """The environment a site's checks run in: the scan's, plus what mg knows
+    and what the server just answered.
 
     Every variable is set, empty when there is nothing to say, so a check
     never has to tell "unset" from "none". A check reads these; the step's one
     `param` stays the target PHP.
     """
     test = site.get("test") or {}
+    server = site.get("server") or {}
     facts = {
         "SITE_SHORTCODE": site["shortcode"],
         "SITE_PHP_CURRENT": site.get("php_current"),
@@ -182,6 +189,11 @@ def check_environment(site, env):
         "SITE_TEST_PHP": test.get("php_version"),
         "SITE_TEST_SSH_ALIAS": test.get("ssh_alias"),
         "SITE_TEST_DIRECTORY": test.get("directory"),
+        "SITE_SERVER_SSH_ALIAS": server.get("ssh_alias"),
+        "SITE_SERVER_DIRECTORY": server.get("directory"),
+        "SITE_SERVER_COMMIT": server_commit,
+        "SITE_SERVER_BRANCH": server_branch,
+        "SITE_UPGRADE_BRANCH": site.get("upgrade_branch"),
     }
     return dict(env, **{name: value or "" for name, value in facts.items()})
 
@@ -213,16 +225,23 @@ def scan_site(site, files, work_root, env):
     code, branch = git(repo, "symbolic-ref", "--short", "-q", "HEAD")
     branch = branch.strip() if code == 0 and branch.strip() != "" else None
     commit = git(repo, "rev-parse", "HEAD")[1].strip()
+    line = site.get("upgrade_branch")
+    if line and (not BRANCH.match(line) or ".." in line):
+        return skipped(f"its upgrade branch on mg, {line!r}, is not a branch name", branch)
     if commit != server_commit:
-        if git(repo, "cat-file", "-e", server_commit + "^{commit}")[0] != 0:
+        if line and branch == line:
+            say(f"  {shortcode}: checking {line}, the line it is preparing; its server runs {on}")
+        elif git(repo, "cat-file", "-e", server_commit + "^{commit}")[0] != 0:
             return skipped(f"its server runs {on}, which this checkout does not have", branch)
-        return skipped(f"its server runs {on}; the checkout is at {commit[:7]}", branch)
+        else:
+            hint = f", not on {line}" if line else ""
+            return skipped(f"its server runs {on}; the checkout is at {commit[:7]}{hint}", branch)
     code, changes = git(repo, "status", "--porcelain")
     if code != 0 or changes.strip() != "":
         return skipped("uncommitted changes", branch)
 
     results = []
-    site_env = check_environment(site, env)
+    site_env = check_environment(site, env, server_commit, server_branch)
     for name, check, param in checks_for(site["standard"], files):
         script = os.path.join(HERE, "checks", check + ".sh")
         if not CHECK_NAME.match(check) or not os.path.isfile(script):

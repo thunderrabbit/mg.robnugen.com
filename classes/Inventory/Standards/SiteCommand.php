@@ -12,6 +12,7 @@ namespace Inventory\Standards;
  *     test-candidates
  *     site-add    --shortcode= --standard= [--project=]
  *     site-set    --shortcode= [--project=] [--checkout=] [--server=] [--test=] [--github=] [--autonomy=]
+ *                 [--upgrade=]
  *     site-link   --shortcode= --domain= [--path=]
  *     site-unlink --shortcode= --domain= [--path=]
  *
@@ -23,6 +24,11 @@ namespace Inventory\Standards;
  *
  * --test= names the site's test domain in the same way; clear it with --test=.
  * A site with no test domain has no steps that need one.
+ *
+ * --upgrade= names the branch the site is preparing to replace what its
+ * server runs. The scanner then checks the site at that branch's tip instead
+ * of skipping it for not being at the server's commit. Clear it with
+ * --upgrade= when the line is promoted.
  */
 final class SiteCommand
 {
@@ -33,7 +39,7 @@ final class SiteCommand
         'site-add' => ['required' => ['shortcode', 'standard'], 'optional' => ['project']],
         'site-set' => [
             'required' => ['shortcode'],
-            'optional' => ['project', 'checkout', 'server', 'test', 'github', 'autonomy'],
+            'optional' => ['project', 'checkout', 'server', 'test', 'github', 'autonomy', 'upgrade'],
         ],
         'site-link' => ['required' => ['shortcode', 'domain'], 'optional' => ['path']],
         'site-unlink' => ['required' => ['shortcode', 'domain'], 'optional' => ['path']],
@@ -114,6 +120,9 @@ final class SiteCommand
                 }
                 if (array_key_exists('autonomy', $o)) {
                     $changes['autonomy'] = $o['autonomy'];
+                }
+                if (array_key_exists('upgrade', $o)) {
+                    $changes['upgrade_branch'] = $o['upgrade'] === '' ? null : $o['upgrade'];
                 }
                 if ($changes === []) {
                     throw new \InvalidArgumentException('site-set needs at least one thing to change.');
