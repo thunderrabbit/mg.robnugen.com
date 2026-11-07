@@ -99,23 +99,31 @@ is by design, so it is not read as skipped testing.
 
 The scanner on Lemur 13 runs the repo's declared safe-suite script itself, in a
 container that has network, like `run-webdriver.sh`. The check ticks only from a
-real run against the current commit. Rob's constraint: **tests run only when
+real run against the current commit. Rob's constraints: **tests run only when
 necessary**, because a suite run for every site would make one scan take over an
-hour.
+hour, and **it is automatic**: Rob does not name sites or flag anything, as for
+every other step.
 
-Claude's reading of "necessary": the scanner runs a site's suite only when all of
-these hold, and otherwise answers "could not tell" with a line saying why the
-suite was not run, never a pass:
+The scanner runs a site's suite only when all of these hold, and otherwise
+answers "could not tell" with a line saying why the suite was not run, never a
+pass:
 
 1. the site has a test domain;
-2. that domain already serves X in the latest sweep;
+2. that domain already serves X in the latest sweep (Rob's panel switch is the
+   trigger);
 3. the site's Tier 1 check passes;
-4. the site is named on the command line (`scan.sh <shortcode>`), so a bare
-   `scan.sh` never runs a suite;
-5. the checkout's commit differs from the one the last suite pass was recorded
-   for (an unchanged commit keeps its result).
+4. the checkout's commit differs from the one the last suite result (pass or
+   fail) was recorded for, so an unchanged commit is never run twice.
 
-Point 4 is Claude's guess at the mechanism; Rob has given only the principle.
+Only the one or two sites in this state at any moment run a suite, so a plain
+`scan.sh` stays fast.
+
+**The agent's own test runs are unchanged.** Rob and an agent keep running the
+site's tests through the existing Docker harness (standards-mcp's runners,
+`check_tests`, the Webdriver runner) during development. The repo's declared safe
+suite is the same thing the agent runs there, not a second suite. The scanner's
+run is an independent confirmation that ticks the step; it does not replace the
+agent's runs.
 
 ## Calls made while writing this (Claude's, for Rob to check)
 
