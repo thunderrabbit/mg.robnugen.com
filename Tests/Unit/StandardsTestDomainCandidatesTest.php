@@ -14,32 +14,33 @@ final class StandardsTestDomainCandidatesTest extends Unit
 {
     private const array SITE = [
         'shortcode' => 'example',
-        'server_domain' => 'example.test',
+        'server_domain' => 'shop.example.test',
         'dh_user' => 'exampleuser',
-        'web_directory' => 'example.test/public',
+        'web_directory' => 'shop.example.test/public',
     ];
 
     /**
-     * @return array{domain: string, dh_user: ?string, web_directory: ?string, linked_to: ?string}
+     * @param list<string> $linkedTo
+     * @return array{domain: string, dh_user: ?string, web_directory: ?string, linked_to: list<string>}
      */
-    private function domain(string $name, ?string $user = 'exampleuser', ?string $dir = null, ?string $linkedTo = null): array
+    private function domain(string $name, ?string $user = 'exampleuser', ?string $dir = null, array $linkedTo = []): array
     {
         return ['domain' => $name, 'dh_user' => $user, 'web_directory' => $dir, 'linked_to' => $linkedTo];
     }
 
     public function testSameUserParentAndANearTwinNameIsACandidate(): void
     {
-        $found = TestDomainCandidates::find(self::SITE, [$this->domain('examplet.test')]);
+        $found = TestDomainCandidates::find(self::SITE, [$this->domain('shopt.example.test')]);
 
-        $this->assertSame('examplet.test', $found[0]['domain']);
+        $this->assertSame('shopt.example.test', $found[0]['domain']);
         $this->assertContains('same DreamHost user', $found[0]['reasons']);
         $this->assertContains('name differs by one trailing letter', $found[0]['reasons']);
     }
 
     public function testAReplacedLastLetterCountsAsANearTwin(): void
     {
-        $site = ['server_domain' => 'games.test'] + self::SITE;
-        $found = TestDomainCandidates::find($site, [$this->domain('gamet.test')]);
+        $site = ['server_domain' => 'cards.example.test'] + self::SITE;
+        $found = TestDomainCandidates::find($site, [$this->domain('cardt.example.test')]);
 
         $this->assertContains('name differs by one trailing letter', $found[0]['reasons']);
     }
@@ -53,7 +54,7 @@ final class StandardsTestDomainCandidatesTest extends Unit
 
     public function testADomainLinkedToAnotherSiteIsLeftOut(): void
     {
-        $found = TestDomainCandidates::find(self::SITE, [$this->domain('examplet.test', linkedTo: 'other')]);
+        $found = TestDomainCandidates::find(self::SITE, [$this->domain('shopt.example.test', linkedTo: ['other'])]);
 
         $this->assertSame([], $found);
     }
@@ -61,20 +62,37 @@ final class StandardsTestDomainCandidatesTest extends Unit
     public function testADomainAlreadyLinkedToThisSiteStaysAndTheServerItselfDoesNot(): void
     {
         $found = TestDomainCandidates::find(self::SITE, [
-            $this->domain('example.test', linkedTo: 'example'),
-            $this->domain('examplet.test', linkedTo: 'example'),
+            $this->domain('shop.example.test', linkedTo: ['example']),
+            $this->domain('shopt.example.test', linkedTo: ['example']),
         ]);
 
-        $this->assertSame(['examplet.test'], array_column($found, 'domain'));
+        $this->assertSame(['shopt.example.test'], array_column($found, 'domain'));
     }
 
     public function testTheMostReasonsComeFirst(): void
     {
         $found = TestDomainCandidates::find(self::SITE, [
-            $this->domain('sibling.test'),
-            $this->domain('examplet.test', dir: 'examplet.test/public'),
+            $this->domain('blog.example.test'),
+            $this->domain('shopt.example.test', dir: 'shopt.example.test/public'),
         ]);
 
-        $this->assertSame(['examplet.test', 'sibling.test'], array_column($found, 'domain'));
+        $this->assertSame(['shopt.example.test', 'blog.example.test'], array_column($found, 'domain'));
+    }
+
+    public function testTwoApexDomainsOnTheSameTldAreNotSameParent(): void
+    {
+        $site = ['server_domain' => 'example.test', 'web_directory' => null] + self::SITE;
+        $found = TestDomainCandidates::find($site, [$this->domain('sibling.test')]);
+
+        $this->assertSame([], $found);
+    }
+
+    public function testADomainAlsoLinkedToAnotherSiteUnderAPathIsLeftOut(): void
+    {
+        $found = TestDomainCandidates::find(self::SITE, [
+            $this->domain('shopt.example.test', linkedTo: ['example', 'other']),
+        ]);
+
+        $this->assertSame([], $found);
     }
 }

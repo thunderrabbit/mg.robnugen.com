@@ -69,25 +69,25 @@ final readonly class SiteStore
             $sets[] = 'checkout_path = ?';
             $params[] = $path;
         }
-        if (array_key_exists('server', $changes)) {
-            $serverId = $changes['server'] === '' ? null : $this->linkId($siteId, $shortcode, $changes['server']);
-            if ($serverId !== null && $serverId === $this->namedLink($siteId, 'test_site_domain_id')) {
-                throw new \InvalidArgumentException(
-                    "{$changes['server']} is the test domain of site {$shortcode}; a domain cannot be both server and test domain."
-                );
+        if (array_key_exists('server', $changes) || array_key_exists('test', $changes)) {
+            $serverId = array_key_exists('server', $changes)
+                ? ($changes['server'] === '' ? null : $this->linkId($siteId, $shortcode, $changes['server']))
+                : $this->namedLink($siteId, 'server_site_domain_id');
+            $testId = array_key_exists('test', $changes)
+                ? ($changes['test'] === '' ? null : $this->linkId($siteId, $shortcode, $changes['test']))
+                : $this->namedLink($siteId, 'test_site_domain_id');
+            $problem = TestDomainRule::problem($serverId, $testId);
+            if ($problem !== null) {
+                throw new \InvalidArgumentException($problem);
             }
-            $sets[] = 'server_site_domain_id = ?';
-            $params[] = $serverId;
-        }
-        if (array_key_exists('test', $changes)) {
-            $testId = $changes['test'] === '' ? null : $this->linkId($siteId, $shortcode, $changes['test']);
-            if ($testId !== null && $testId === $this->namedLink($siteId, 'server_site_domain_id')) {
-                throw new \InvalidArgumentException(
-                    "{$changes['test']} is the server of site {$shortcode}; a domain cannot be both server and test domain."
-                );
+            if (array_key_exists('server', $changes)) {
+                $sets[] = 'server_site_domain_id = ?';
+                $params[] = $serverId;
             }
-            $sets[] = 'test_site_domain_id = ?';
-            $params[] = $testId;
+            if (array_key_exists('test', $changes)) {
+                $sets[] = 'test_site_domain_id = ?';
+                $params[] = $testId;
+            }
         }
         if (array_key_exists('github_repo', $changes)) {
             $repo = $changes['github_repo'];
@@ -254,7 +254,6 @@ final readonly class SiteStore
      */
     public function testCandidates(): array
     {
-        $domains = [];
         $domainRows = $this->rows(
             'SELECT d.domain, u.username, st.web_directory, s.shortcode AS linked_to
                FROM dh_domains d
@@ -264,14 +263,21 @@ final readonly class SiteStore
                LEFT JOIN std_sites s ON s.std_site_id = l.std_site_id
               ORDER BY d.domain'
         );
+        $byDomain = [];
         foreach ($domainRows as $row) {
-            $domains[] = [
-                'domain' => RowValue::string($row, 'domain'),
+            $name = RowValue::string($row, 'domain');
+            $byDomain[$name] ??= [
+                'domain' => $name,
                 'dh_user' => RowValue::stringOrNull($row, 'username'),
                 'web_directory' => RowValue::stringOrNull($row, 'web_directory'),
-                'linked_to' => RowValue::stringOrNull($row, 'linked_to'),
+                'linked_to' => [],
             ];
+            $linked = RowValue::stringOrNull($row, 'linked_to');
+            if ($linked !== null && !in_array($linked, $byDomain[$name]['linked_to'], true)) {
+                $byDomain[$name]['linked_to'][] = $linked;
+            }
         }
+        $domains = array_values($byDomain);
 
         $links = [];
         $linkRows = $this->rows(

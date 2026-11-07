@@ -16,7 +16,7 @@ final class TestDomainCandidates
 
     /**
      * @param array{shortcode: string, server_domain: string, dh_user: ?string, web_directory: ?string} $site the site and its production domain
-     * @param list<array{domain: string, dh_user: ?string, web_directory: ?string, linked_to: ?string}> $domains every domain the sweep knows; linked_to is the shortcode of the site it is linked to
+     * @param list<array{domain: string, dh_user: ?string, web_directory: ?string, linked_to: list<string>}> $domains every domain the sweep knows; linked_to is the shortcode of every site it is linked to, under any path
      * @return list<array{domain: string, reasons: list<string>}> most reasons first, then by name
      */
     public static function find(array $site, array $domains): array
@@ -26,7 +26,7 @@ final class TestDomainCandidates
             if ($domain['domain'] === $site['server_domain']) {
                 continue;
             }
-            if ($domain['linked_to'] !== null && $domain['linked_to'] !== $site['shortcode']) {
+            if (array_filter($domain['linked_to'], static fn(string $code): bool => $code !== $site['shortcode']) !== []) {
                 continue;
             }
             $reasons = self::reasons($site, $domain);
@@ -43,7 +43,7 @@ final class TestDomainCandidates
 
     /**
      * @param array{shortcode: string, server_domain: string, dh_user: ?string, web_directory: ?string} $site
-     * @param array{domain: string, dh_user: ?string, web_directory: ?string, linked_to: ?string} $domain
+     * @param array{domain: string, dh_user: ?string, web_directory: ?string, linked_to: list<string>} $domain
      * @return list<string>
      */
     private static function reasons(array $site, array $domain): array
@@ -54,7 +54,9 @@ final class TestDomainCandidates
         }
         [$label, $parent] = self::split($domain['domain']);
         [$siteLabel, $siteParent] = self::split($site['server_domain']);
-        if ($parent !== '' && $parent === $siteParent) {
+        // Apex domains on one TLD (example.test, sibling.test) share a "parent" of
+        // test and nothing else, so only a parent that is itself a domain counts.
+        if (str_contains($parent, '.') && $parent === $siteParent) {
             $reasons[] = 'same parent domain';
             if (self::differByOneTrailingLetter($label, $siteLabel)) {
                 $reasons[] = 'name differs by one trailing letter';
