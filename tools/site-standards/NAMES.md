@@ -1,0 +1,75 @@
+# Names the steps make up
+
+Some steps ask a site to have a file, or a line in a file, that no tool
+outside these steps knows about. The checks are scripts with no judgment of
+their own, so they can only find what has a fixed name. This page lists each
+of those names, what reads it, and why it is spelled the way it is.
+
+A step that invents a new name adds it here.
+
+## Files at a site's repo root
+
+### `JS_LIBRARIES.md`
+
+The site's list of the JavaScript it loads. Written in step `js_inventory`
+and kept up to date by every later JavaScript step.
+
+Read by: `js_inventory` (every script must be named in it),
+`js_checks_in_place` and `js_deprecations_clear` (the lines below).
+
+### `testing-js-since-<yyyy-mmm-dd>.sh` or `.js`
+
+The site's browser smoke test, dated the day it was added, with the month as
+its lowercase three-letter abbreviation: `testing-js-since-2026-nov-08.sh`.
+The date tells the next agent how long the site has had JavaScript tests,
+without reading the history. A site with no JavaScript has no such file.
+
+The `.sh` form is run as `./testing-js-since-<date>.sh` against the test
+domain by standards-mcp's `run-webdriver.sh`, with `TEST_BASE_URL` set. It
+fails on any error in the browser console, and given `--strict`, on warnings
+too.
+
+The `.js` form is for a site whose tests run under Node. The checks can see
+it but not run it yet: standards-mcp's WebDriver runner has no Node in it.
+
+A site that already has a browser suite does not have to wrap it in this
+name. It names the suite's command in `JS_LIBRARIES.md` instead.
+
+Read by: `js_checks_in_place` (it exists), `js_deprecations_clear` (runs the
+`.sh` with `--strict`).
+
+### `safe-suite.sh`
+
+The site's PHP suite that is safe to run against its test domain. Read by
+`suite_passes_on_php`.
+
+## Lines in `JS_LIBRARIES.md`
+
+Each is one line, starting at the beginning of the line. Where a line appears
+more than once, the last one counts.
+
+### `JS tests: <command>`
+
+The command that runs the site's existing browser suite, for a site that does
+not wrap it in `testing-js-since-<date>.sh`. It runs from the repo root inside
+the WebDriver runner, with `TEST_BASE_URL` set to the test domain.
+
+Read by: `js_checks_in_place` (it counts as the smoke test).
+
+### `JS strict tests: <command>`
+
+The same suite, run so that a warning in the browser console fails it too.
+Step `js_deprecations_clear` needs this, not `JS tests:`, because a run that
+passes on warnings can't show that they are gone.
+
+Read by: `js_deprecations_clear` (runs it on the test domain). If both this
+line and a `testing-js-since-<date>.sh` are present, this line is run.
+
+### `Deprecation warnings clear at <commit>`
+
+For a site that has a smoke test but no test domain to run it on: the commit
+at which the agent found no deprecation warnings. It holds while that commit
+is in the site's history and the site loads the same libraries it loaded
+then.
+
+Read by: `js_deprecations_clear`, only when there is no test domain.
