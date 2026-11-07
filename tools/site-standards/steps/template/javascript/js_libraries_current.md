@@ -51,11 +51,13 @@ The names are described in `tools/site-standards/NAMES.md`.
    3. jQuery only: keep the jQuery Migrate for the new major loaded in
       production for this move, so a missed call still works and logs a warning
       instead of failing.
-   4. Run ESLint and the smoke test on the test domain, and read the console.
+   4. Run ESLint and the smoke test on the test domain, read the console, and
+      compare a visual capture from before the move with one after (the
+      visual baseline step). Fix or accept every finding.
    5. Commit, update `JS_LIBRARIES.md`, and deploy. A copy kept in the repo
       is named after its npm package (`jquery-4.0.0.min.js`), so the check
-      can look it up. Let it run for a day before
-      the next move, and say so in the commit if you don't wait.
+      can look it up. Let it soak on production before the next move (the
+      soak step says how long), and say so in the commit if you don't wait.
 4. To hold a library on its current major on purpose, add the `Stays on` line
    with the reason, and take the line out when the hold ends.
 5. A library nobody maintains (AngularJS, or a jQuery plugin with no release in
