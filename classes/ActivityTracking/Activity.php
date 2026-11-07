@@ -67,7 +67,7 @@ class Activity
      * @param string|null $description Optional description
      * @return int|false The new activity_id or false on failure
      */
-    public function createUserActivity(int $user_id, string $activity_name, ?string $description = null)
+    public function createUserActivity(int $user_id, string $activity_name, ?string $description = null): false|int
     {
         $activity_name = trim($activity_name);
         if (empty($activity_name) || strlen($activity_name) > 64) {
