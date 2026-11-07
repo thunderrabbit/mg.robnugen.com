@@ -26,6 +26,10 @@ test_php="$(printf '%s' "${SITE_TEST_PHP:-}" | grep -Eo '^[0-9]+\.[0-9]+' || tru
   || unknown "the code does not compile on both PHPs yet"
 
 [ -f "$REPO/safe-suite.sh" ] || unknown "the repo has no safe-suite.sh"
+# A result describes the commit only if the tree is that commit. A dirty tree
+# would run the suite on edits and remember the answer under HEAD.
+[ -z "$(git --no-optional-locks -C "$REPO" status --porcelain 2>/dev/null)" ] \
+  || unknown "the checkout has uncommitted changes, so a result would not describe its commit"
 [ -x "$STANDARDS_MCP/run-site-suite.sh" ] || unknown "standards-mcp has no run-site-suite.sh"
 
 alias_="${SITE_TEST_SSH_ALIAS:-}"
