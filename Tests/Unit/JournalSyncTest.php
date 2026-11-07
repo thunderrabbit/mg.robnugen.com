@@ -14,7 +14,7 @@ use Journal\Sync;
  */
 class JournalSyncTest extends Unit
 {
-    private const P = '2026/11/05dream-theater.md';
+    private const string P = '2026/11/05dream-theater.md';
 
     private string $dir;
 

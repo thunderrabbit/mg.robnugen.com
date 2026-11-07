@@ -11,17 +11,17 @@ namespace Auth;
 
 class OAuthClients
 {
-    private const BGBELLS_CLIENT_ID    = 'bgbells';
-    private const BGBELLS_REDIRECT_URI = 'bgbells://oauth/callback';
+    private const string BGBELLS_CLIENT_ID    = 'bgbells';
+    private const string BGBELLS_REDIRECT_URI = 'bgbells://oauth/callback';
 
     // mg #801: BG Bells is pinned to ONE hand-made actor named 'BG Bells' per
     // account. #801 replaces this with per-user actors.
-    private const BGBELLS_ACTOR_NAME = 'BG Bells';
+    private const string BGBELLS_ACTOR_NAME = 'BG Bells';
 
     // Without this list any site could send Rob a link whose redirect_uri is
     // its own, and one click on Approve would hand it a code it can redeem
     // with its own PKCE verifier.
-    private const CLAUDE_REDIRECT_URIS = [
+    private const array CLAUDE_REDIRECT_URIS = [
         'https://claude.ai/api/mcp/auth_callback',
         'https://claude.com/api/mcp/auth_callback',
     ];

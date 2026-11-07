@@ -12,9 +12,9 @@ use Db\Rows;
  * until_sweep_id is NULL, i.e. still true in the latest imported sweep.
  * Rows come back as the database gives them; the templates escape and show.
  */
-final class Browse
+final readonly class Browse
 {
-    public function __construct(private readonly \PDO $pdo)
+    public function __construct(private \PDO $pdo)
     {
     }
 

@@ -6,16 +6,10 @@ namespace Emotional;
 
 class Ledger
 {
-    private string $encKey;
-    private \PDO $pdo;
-    private int $api_key_id;
-    private int $user_id;
+    private readonly string $encKey;
 
-    public function __construct(\PDO $pdo, string $raw_key, int $api_key_id, int $user_id)
+    public function __construct(private readonly \PDO $pdo, string $raw_key, private readonly int $api_key_id, private readonly int $user_id)
     {
-        $this->pdo = $pdo;
-        $this->api_key_id = $api_key_id;
-        $this->user_id = $user_id;
         $this->encKey = hash_hmac('sha256', 'emotional_v1', $raw_key, true); // 32 bytes
     }
 

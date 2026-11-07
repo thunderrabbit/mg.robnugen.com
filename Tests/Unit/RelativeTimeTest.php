@@ -8,7 +8,7 @@ use Codeception\Test\Unit;
 
 class RelativeTimeTest extends Unit
 {
-    private const DAY = 86400;
+    private const int DAY = 86400;
 
     /**
      * @return array<string, array{int, string}>

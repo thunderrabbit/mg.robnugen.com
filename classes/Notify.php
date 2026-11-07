@@ -15,7 +15,7 @@ declare(strict_types=1);
 class Notify
 {
     public function __construct(
-        private \Config $di_config,
+        private readonly \Config $di_config,
     ) {
     }
 

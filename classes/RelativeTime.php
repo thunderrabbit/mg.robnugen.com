@@ -12,7 +12,7 @@ declare(strict_types=1);
 class RelativeTime
 {
     /** @var array<string, int> unit => seconds, largest first */
-    private const UNITS = [
+    private const array UNITS = [
         'year' => 365 * 86400,
         'month' => 30 * 86400,
         'day' => 86400,

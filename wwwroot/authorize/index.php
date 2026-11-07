@@ -104,7 +104,7 @@ if ($pinned_name !== null) {
     // The pinned actor must be limited and hold at least one granted todo, so
     // the phone can never be handed a broad actor's token.
     $pin_has_grants = $pin_found
-        && (new \Auth\TodoGrants($pdo))->todoIds(\Field::toInt($pin_found)) !== [];
+        && new \Auth\TodoGrants($pdo)->todoIds(\Field::toInt($pin_found)) !== [];
     if (!$pin_has_grants) {
         http_response_code(400);
         echo htmlspecialchars(\Auth\OAuthClients::displayName($client_id) . " isn't set up for this account.");
@@ -193,7 +193,7 @@ $page = new \Template($config, $is_logged_in);
 $page->setTemplate("layout/base.tpl.php");
 
 if ($pinned_aiu !== null) {
-    $todo_ids = (new \Auth\TodoGrants($pdo))->todoIds($pinned_aiu);
+    $todo_ids = new \Auth\TodoGrants($pdo)->todoIds($pinned_aiu);
     $todo_titles = [];
     if ($todo_ids !== []) {
         $in = implode(',', array_fill(0, count($todo_ids), '?'));

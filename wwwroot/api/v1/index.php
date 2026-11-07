@@ -30,7 +30,7 @@ include_once $matches[1] . '/prepend.php';
 
 $raw_key = \Field::string($_SERVER, 'HTTP_X_API_KEY');
 $pdo = \Database\Base::getPDO($config);
-$bearer_token = (new \Auth\BearerToken($pdo))->fromHeaders($_SERVER);
+$bearer_token = new \Auth\BearerToken($pdo)->fromHeaders($_SERVER);
 if (empty($raw_key) && $bearer_token === null) {
     http_response_code(401);
     echo json_encode(['error' => 'Missing X-API-Key or Bearer token']);
@@ -64,7 +64,7 @@ if (!empty($raw_key)) {
 } else {
     // ── Bearer token (OAuth access token from /mcp/token.php) ────────────────
     // Only a todos_limited actor (BG Bells, mg #801) may use one here.
-    $token_row = (new \Auth\BearerToken($pdo))->resolve((string) $bearer_token);
+    $token_row = new \Auth\BearerToken($pdo)->resolve((string) $bearer_token);
     if ($token_row === null) {
         http_response_code(401);
         echo json_encode(['error' => 'Invalid or expired token']);
@@ -138,7 +138,7 @@ function require_credit(\PDO $pdo, int $user_id, ?int $key_id, string $endpoint,
             "INSERT INTO api_usage (user_id, key_id, token_id, endpoint) VALUES (?, ?, ?, ?)"
         );
         $log->execute([$user_id, $key_id, $token_id, $endpoint]);
-    } catch (\Exception $e) {
+    } catch (\Exception) {
         // Never fail a request over logging
     }
 }

@@ -47,7 +47,7 @@ class ApiKeyAgentOwnershipTest extends Unit
 
     public function testKeyForOwnAgentIsIssued(): void
     {
-        $raw = (new \Auth\ApiKey($this->pdo))->generateKey(2, 'mine', 40);
+        $raw = new \Auth\ApiKey($this->pdo)->generateKey(2, 'mine', 40);
         $this->assertStringStartsWith('sk_', $raw);
         $this->assertSame(1, $this->keyCount());
     }
@@ -55,7 +55,7 @@ class ApiKeyAgentOwnershipTest extends Unit
     public function testKeyForAnotherAccountsAgentIsRefused(): void
     {
         try {
-            (new \Auth\ApiKey($this->pdo))->generateKey(2, 'stolen', 8);
+            new \Auth\ApiKey($this->pdo)->generateKey(2, 'stolen', 8);
             $this->fail('a key for user 1\'s agent was issued to user 2');
         } catch (\RuntimeException $e) {
             $this->assertStringContainsString('not one of your agents', $e->getMessage());

@@ -29,7 +29,7 @@ require_once __DIR__ . '/classes/Startup/Session.php';
 require_once __DIR__ . '/classes/Mlaphp/Autoloader.php';
 // create autoloader instance and register the method with SPL
 $autoloader = new \Mlaphp\Autoloader();
-spl_autoload_register(array($autoloader, 'load'));
+spl_autoload_register($autoloader->load(...));
 
 $mla_request = new \Mlaphp\Request();
 $csrfProtect = new \Security\CSRFProtectaroo($mla_request);
@@ -81,7 +81,7 @@ $csrf_exempt_scripts = [
 ];
 $running_script = realpath(\Field::string($_SERVER, 'SCRIPT_FILENAME'));
 $csrf_exempt = $running_script !== false
-    && in_array($running_script, array_map('realpath', $csrf_exempt_scripts), true);
+    && in_array($running_script, array_map(realpath(...), $csrf_exempt_scripts), true);
 if (!$csrf_exempt && !$csrfProtect->validateRequest()) {
     http_response_code(403);
     echo "<h1>Request rejected</h1>"
@@ -165,7 +165,7 @@ if ($is_logged_in->isLoggedIn()) {
     try {
         $akHelper = new \ActivityTracking\ActivityKai($mla_database);
         $akHelper->processExpiredTimers($is_logged_in->loggedInID());
-    } catch (\Exception $e) {
+    } catch (\Exception) {
         // Silently fail to avoid breaking page load, but maybe log it?
         // error_log("Failed to finish expired sessions: " . $e->getMessage());
     }

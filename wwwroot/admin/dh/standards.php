@@ -20,5 +20,5 @@ $browse = new \Inventory\Browse($mla_database);
 
 \Inventory\AdminPage::render($config, $is_logged_in, 'admin/dh/standards.tpl.php', 'Site standards', [
     'sweep' => $browse->latestSweep(),
-    'standards' => (new \Inventory\Standards\Board($mla_database))->standards(),
+    'standards' => new \Inventory\Standards\Board($mla_database)->standards(),
 ]);

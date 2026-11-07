@@ -19,6 +19,6 @@ class TokenLifetime
      */
     public static function refreshDays(array $auth_actor): int
     {
-        return (new Guards())->isLimited($auth_actor) ? self::LIMITED_REFRESH_DAYS : self::REFRESH_DAYS;
+        return new Guards()->isLimited($auth_actor) ? self::LIMITED_REFRESH_DAYS : self::REFRESH_DAYS;
     }
 }

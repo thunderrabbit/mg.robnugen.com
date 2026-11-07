@@ -22,7 +22,7 @@ namespace Auth;
 class DeviceLabel
 {
     /** @var array<string, string> needle => system */
-    private const SYSTEMS = [
+    private const array SYSTEMS = [
         'iPhone' => 'iPhone',
         'iPad' => 'iPad',
         'Android' => 'Android',
@@ -33,7 +33,7 @@ class DeviceLabel
     ];
 
     /** @var array<string, string> needle => browser */
-    private const BROWSERS = [
+    private const array BROWSERS = [
         'Edg/' => 'Edge',
         'OPR/' => 'Opera',
         'SamsungBrowser/' => 'Samsung Internet',

@@ -50,6 +50,18 @@ All three must pass. Setup and fixing:
   never a blanket ignore: the `catch` around `new \Config()` is live because
   the autoloader throws.
 
+- **Rector** keeps the code at PHP 8.5 (`rector.php`: `LevelSetList::UP_TO_PHP_85`
+  over the phpcs scope; `classes/Journal` and `tools/journal-sync` are skipped
+  because they also run on Lemur 13's PHP 8.1). It runs only in Docker:
+
+      ~/work/rob/standards-mcp/run-rector.sh ~/work/rob/mg.robnugen.com                      # dry run; exit 2 = changes found
+      ~/work/rob/standards-mcp/run-rector.sh ~/work/rob/mg.robnugen.com --apply --only=<FQCN>  # one rule
+
+  Apply one rule per commit (`Rector <RuleName>: <what changed>`), tidy with
+  phpcbf, and run the Unit suite between rules. Rector takes its target from
+  the PHP it runs on, so it must run on the php8.5 image. rector/rector is held
+  at 2.6 until PHPStan moves past 2.3.4, which 2.8 requires.
+
 The `standards` MCP server runs the Unit suite deterministically too. Before
 reporting any code change as done, call:
 

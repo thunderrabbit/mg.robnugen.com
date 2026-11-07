@@ -22,10 +22,10 @@ class SignupThrottle
     public const MAX_TOTAL = 10;
     public const WINDOW_SECONDS = LoginThrottle::WINDOW_SECONDS;
 
-    private \DateTimeImmutable $now;
+    private readonly \DateTimeImmutable $now;
 
     public function __construct(
-        private \PDO $di_pdo,
+        private readonly \PDO $di_pdo,
         ?\DateTimeImmutable $now = null,
     ) {
         $this->now = $now ?? new \DateTimeImmutable();

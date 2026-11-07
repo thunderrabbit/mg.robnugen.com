@@ -29,7 +29,7 @@ $domain_id = \Field::int($domain, 'dh_domain_id');
     'sweep' => $sweep,
     'domain' => $domain,
     'sites' => $browse->domainSites($domain_id),
-    'standards_sites' => (new \Inventory\Standards\Board($mla_database))->sitesOnDomain($domain_id),
+    'standards_sites' => new \Inventory\Standards\Board($mla_database)->sitesOnDomain($domain_id),
     'certs' => $browse->domainCerts($domain_id),
     'registrations' => $browse->domainRegistrations($domain_id),
 ]);

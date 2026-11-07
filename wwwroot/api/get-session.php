@@ -67,7 +67,7 @@ try {
         'success' => false,
         'error' => 'Session not found or not accessible'
     ]);
-} catch (\Exception $e) {
+} catch (\Exception) {
     http_response_code(500);
     echo json_encode([
         'success' => false,

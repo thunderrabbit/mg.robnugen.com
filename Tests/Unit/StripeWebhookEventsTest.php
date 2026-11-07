@@ -54,7 +54,7 @@ class StripeWebhookEventsTest extends Unit
 
     public function testAnEventWithoutAnIdIsIgnored(): void
     {
-        $this->assertFalse((new StripeWebhook($this->pdo))->handle(['type' => 'checkout.session.completed']));
+        $this->assertFalse(new StripeWebhook($this->pdo)->handle(['type' => 'checkout.session.completed']));
     }
 
     public function testAnUnpaidCheckoutGrantsNothing(): void
@@ -79,7 +79,7 @@ class StripeWebhookEventsTest extends Unit
 
     public function testCancellationDemotesPaidToUser(): void
     {
-        (new StripeWebhook($this->pdo))->handle(
+        new StripeWebhook($this->pdo)->handle(
             $this->event('evt_10', 'customer.subscription.deleted', ['customer' => 'cus_paid'])
         );
         $this->assertSame('user', $this->roleOf(8));
@@ -96,7 +96,7 @@ class StripeWebhookEventsTest extends Unit
 
     public function testAnAdminIsNeverDemoted(): void
     {
-        (new StripeWebhook($this->pdo))->handle(
+        new StripeWebhook($this->pdo)->handle(
             $this->event('evt_13', 'customer.subscription.deleted', ['customer' => 'cus_admin'])
         );
         $this->assertSame('admin', $this->roleOf(9));
@@ -114,7 +114,7 @@ class StripeWebhookEventsTest extends Unit
         try {
             $handler->handle($event);
             $this->fail('expected the missing users table to throw');
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             $stmt = $this->pdo->query("SELECT COUNT(*) FROM stripe_events");
             $this->assertSame(0, $stmt === false ? -1 : $stmt->fetchColumn());
         }

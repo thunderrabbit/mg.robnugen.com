@@ -16,18 +16,18 @@ class IsLoggedIn
      * A bcrypt hash of nothing in particular, verified against when the
      * username does not exist. Same cost as password_hash()'s default.
      */
-    private const TIMING_DUMMY_HASH = '$2y$12$rpioDu.X8KGylTtBBuu6Wun5FcZ69ji8f2MrHwx.vy4Ec5CrJD.Qu';
+    private const string TIMING_DUMMY_HASH = '$2y$12$rpioDu.X8KGylTtBBuu6Wun5FcZ69ji8f2MrHwx.vy4Ec5CrJD.Qu';
 
     private int $who_is_logged_in = 0;
 
     private string $loggedInUsername = 'YUNOset?'; // default value, should be overwritten if user is logged in
-    private string $log_file_path;
+    private readonly string $log_file_path;
 
     public function __construct(
-        private \PDO $di_pdo,
-        private \Config $di_config,
-        private \Database\CookieRepository $di_cookies,
-        private LoginThrottle $di_throttle,
+        private readonly \PDO $di_pdo,
+        private readonly \Config $di_config,
+        private readonly \Database\CookieRepository $di_cookies,
+        private readonly LoginThrottle $di_throttle,
     ) {
         // Set log file path to project root (parent of wwwroot)
         $this->log_file_path = $di_config->app_path . '/auth_log.txt';

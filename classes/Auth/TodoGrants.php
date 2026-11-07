@@ -10,7 +10,7 @@ namespace Auth;
 
 class TodoGrants
 {
-    public function __construct(private \PDO $di_pdo)
+    public function __construct(private readonly \PDO $di_pdo)
     {
     }
 
@@ -63,7 +63,7 @@ class TodoGrants
     public function listGranted(int $aiu_id, int $user_id, string $logical_day): array
     {
         $start = $logical_day . ' 03:00:00';
-        $end = (new \DateTimeImmutable($logical_day))->modify('+1 day')->format('Y-m-d') . ' 03:00:00';
+        $end = new \DateTimeImmutable($logical_day)->modify('+1 day')->format('Y-m-d') . ' 03:00:00';
         $stmt = $this->di_pdo->prepare(
             'SELECT t.todo_id, t.title, t.activity_id, t.target_count,
                     (SELECT COUNT(*) FROM todo_logs l

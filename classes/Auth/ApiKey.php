@@ -14,7 +14,7 @@ class ApiKey
     private ?int $last_key_id = null;
 
     public function __construct(
-        private \PDO $di_pdo,
+        private readonly \PDO $di_pdo,
     ) {
     }
 

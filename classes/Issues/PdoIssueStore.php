@@ -28,7 +28,7 @@ use Issues\Command\UpdateIssue;
  * IssueStore on mg's MySQL connection. Every row comes back as a generated row
  * object, so nothing untyped leaves this class.
  */
-final class PdoIssueStore implements IssueStore
+final readonly class PdoIssueStore implements IssueStore
 {
     public function __construct(private \PDO $pdo)
     {
@@ -133,7 +133,7 @@ final class PdoIssueStore implements IssueStore
     public function statuses(): array
     {
         return array_map(
-            static fn(array $row): IssueStatusRow => IssueStatusRow::fromRow($row),
+            IssueStatusRow::fromRow(...),
             $this->all("SELECT * FROM issue_statuses ORDER BY sort_order ASC", []),
         );
     }

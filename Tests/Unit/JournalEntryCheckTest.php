@@ -14,7 +14,7 @@ use Journal\EntryPath;
  */
 class JournalEntryCheckTest extends Unit
 {
-    private const PATH = '2026/11/05dream-theater-electrical.md';
+    private const string PATH = '2026/11/05dream-theater-electrical.md';
 
     private function file(string $frontmatter, string $body = "#### 05:44\n\nWords.\n"): string
     {

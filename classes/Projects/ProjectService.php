@@ -27,7 +27,7 @@ use Projects\Command\UpdateProject;
  * It shares Caller, Membership and the exceptions with IssueService, so a page
  * or handler that uses both answers their errors the same way.
  */
-final class ProjectService
+final readonly class ProjectService
 {
     /**
      * @param (\Closure(string): void)|null $beforeWrite Runs once every check has passed,

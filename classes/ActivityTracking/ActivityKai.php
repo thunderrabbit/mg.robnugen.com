@@ -6,11 +6,8 @@ namespace ActivityTracking;
 
 class ActivityKai
 {
-    private \PDO $pdo;
-
-    public function __construct(\PDO $pdo)
+    public function __construct(private readonly \PDO $pdo)
     {
-        $this->pdo = $pdo;
     }
 
     /**
@@ -115,7 +112,7 @@ class ActivityKai
                 $dt = new \DateTime('now', new \DateTimeZone($timezone));
                 $today = $dt->format('Y-m-d');
                 $date_logged = $dt->format('Y-m-d H:i:s');
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 // Fallback
             }
 

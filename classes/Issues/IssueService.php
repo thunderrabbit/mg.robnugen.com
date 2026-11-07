@@ -36,7 +36,7 @@ use Issues\Command\UpdateIssue;
  * after his agents. Anyone else gets AccessException rather than the silently
  * empty answer these endpoints used to give.
  */
-final class IssueService
+final readonly class IssueService
 {
     /**
      * @param (\Closure(string): void)|null $beforeWrite Runs once every check has passed,

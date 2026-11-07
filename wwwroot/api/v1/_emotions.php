@@ -85,7 +85,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
                                 'emotional/vocab',
                                 "2 consecutive my_id collisions for api_key_id $auth_key_id — ID space may be getting crowded. Check SELECT COUNT(*) FROM my_ids_for_my_users_state WHERE api_key_id = $auth_key_id"
                             ]);
-                        } catch (\PDOException $omg) {
+                        } catch (\PDOException) {
                             // Table may not exist yet
                         }
                     }
@@ -101,7 +101,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
                             'emotional/vocab',
                             "$max_attempts my_id collisions exhausted for api_key_id $auth_key_id — if < 10k vocab entries in TABLE my_ids_for_my_users_state, likely a bug in the retry loop; if millions of entries, expand random_int range in _emotions.php POST vocab"
                         ]);
-                    } catch (\PDOException $omg) {
+                    } catch (\PDOException) {
                         // Table may not exist yet
                     }
                     http_response_code(500);

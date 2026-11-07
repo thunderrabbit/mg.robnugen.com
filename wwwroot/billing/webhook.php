@@ -22,7 +22,7 @@ $project_root = $matches[1];
 
 include_once $project_root . '/classes/Mlaphp/Autoloader.php';
 $autoloader = new \Mlaphp\Autoloader();
-spl_autoload_register([$autoloader, 'load']);
+spl_autoload_register($autoloader->load(...));
 
 $config = new \Config();
 $pdo    = \Database\Base::getPDO($config);
@@ -51,7 +51,7 @@ try {
     $handler->handle($event);
     http_response_code(200);
     echo json_encode(['received' => true]);
-} catch (\Exception $e) {
+} catch (\Exception) {
     // Return 500 so Stripe retries the event
     http_response_code(500);
     exit;

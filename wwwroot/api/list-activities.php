@@ -46,7 +46,7 @@ if (!$is_logged_in->isLoggedIn()) {
             'activities' => $activities,
             'can_create_activities' => false  // Anonymous users cannot create activities
         ]);
-    } catch (\Exception $e) {
+    } catch (\Exception) {
         // On error, return Meditation as fallback
         echo json_encode([
             'activities' => [
@@ -79,7 +79,7 @@ try {
         'activities' => $activities,
         'can_create_activities' => ($is_admin || $is_paid)  // Only Paid/Admin can create activities
     ]);
-} catch (\Exception $e) {
+} catch (\Exception) {
     http_response_code(500);
     echo json_encode([
         'error' => 'Failed to retrieve activities',

@@ -23,7 +23,7 @@ class OmgAlerts
             );
             $stmt->execute();
             return \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             // Table doesn't exist yet — migration not applied. Return empty silently.
             return [];
         }
@@ -38,7 +38,7 @@ class OmgAlerts
         try {
             $stmt = $pdo->prepare("UPDATE omg_rob_this_happened SET acknowledged_at = NOW() WHERE omg_id = ? AND acknowledged_at IS NULL");
             $stmt->execute([$omg_id]);
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
         }
     }
 
@@ -50,7 +50,7 @@ class OmgAlerts
     {
         try {
             $pdo->exec("UPDATE omg_rob_this_happened SET acknowledged_at = NOW() WHERE acknowledged_at IS NULL");
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             // Table doesn't exist yet — nothing to dismiss.
         }
     }

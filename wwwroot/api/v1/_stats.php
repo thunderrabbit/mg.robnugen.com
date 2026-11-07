@@ -69,8 +69,8 @@ $stmt->execute([$auth_user_id]);
 $date_rows = $stmt->fetchAll(\PDO::FETCH_COLUMN);
 
 $streak       = 0;
-$today_str    = (new DateTime('today'))->format('Y-m-d');
-$yesterday_str = (new DateTime('yesterday'))->format('Y-m-d');
+$today_str    = new DateTime('today')->format('Y-m-d');
+$yesterday_str = new DateTime('yesterday')->format('Y-m-d');
 
 if (!empty($date_rows)) {
     $first = $date_rows[0];

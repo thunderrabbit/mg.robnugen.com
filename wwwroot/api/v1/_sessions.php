@@ -144,7 +144,7 @@ if ($method === 'GET' && $ak_id !== null && $sub_action === null) {
 if ($method === 'POST' && $is_backfill) {
     $input        = \Field::jsonArray((string) file_get_contents('php://input'));
     $activity_id  = \Field::int($input, 'activity_id', 1);
-    if (!(new \ActivityTracking\Activity($pdo))->userMayUse($activity_id, $auth_user_id)) {
+    if (!new \ActivityTracking\Activity($pdo)->userMayUse($activity_id, $auth_user_id)) {
         http_response_code(404);
         echo json_encode(['error' => 'Activity not found or access denied']);
         exit;
@@ -198,7 +198,7 @@ if ($method === 'POST' && $is_backfill) {
     // A retried backfill returns the first session: no duplicate, no charge.
     $existing_ak_id = $activityHelper->findBackfill($auth_user_id, $activity_id, $start_local_dt, $actual_sec);
     if ($existing_ak_id !== null) {
-        $existing_key = (new \ActivityTracking\SessionKey($pdo))->keyFor($existing_ak_id);
+        $existing_key = new \ActivityTracking\SessionKey($pdo)->keyFor($existing_ak_id);
         http_response_code(200);
         echo json_encode([
             'session' => array_filter([
@@ -256,7 +256,7 @@ if ($method === 'POST' && $is_backfill) {
 if ($method === 'POST' && $ak_id === null) {
     $input        = \Field::jsonArray((string) file_get_contents('php://input'));
     $activity_id  = \Field::int($input, 'activity_id', 1);
-    if (!(new \ActivityTracking\Activity($pdo))->userMayUse($activity_id, $auth_user_id)) {
+    if (!new \ActivityTracking\Activity($pdo)->userMayUse($activity_id, $auth_user_id)) {
         http_response_code(404);
         echo json_encode(['error' => 'Activity not found or access denied']);
         exit;
@@ -277,7 +277,7 @@ if ($method === 'POST' && $ak_id === null) {
         $tz             = new DateTimeZone($timezone_str);
         $dt             = new DateTime('now', $tz);
         $start_local_dt = $dt->format('Y-m-d H:i:s');
-    } catch (Exception $e) {
+    } catch (Exception) {
         http_response_code(400);
         echo json_encode(['error' => 'Invalid timezone: ' . $timezone_str]);
         exit;

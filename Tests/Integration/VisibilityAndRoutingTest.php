@@ -172,7 +172,6 @@ class VisibilityAndRoutingTest extends Unit
 
         $response = curl_exec($ch);
         $status   = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
 
         return [
             'status' => $status,
@@ -395,14 +394,7 @@ class VisibilityAndRoutingTest extends Unit
         // Use Full key to list and find message #4
         $result = $this->listInbox(self::$keyFull);
         $this->assertEquals(200, $result['status']);
-
-        $msg4 = null;
-        foreach (\Field::array($result['body'], 'messages') as $msg) {
-            if (\Field::int($msg, 'message_id') === self::$msgBetaToAlpha) {
-                $msg4 = $msg;
-                break;
-            }
-        }
+        $msg4 = array_find(\Field::array($result['body'], 'messages'), fn($msg) => \Field::int($msg, 'message_id') === self::$msgBetaToAlpha);
 
         $this->assertNotNull($msg4, 'Message #4 should exist in list');
         $this->assertEquals(

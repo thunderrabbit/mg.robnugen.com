@@ -21,7 +21,7 @@ use Projects\Command\UpdateProject;
  * ProjectStore on mg's MySQL connection. Every row comes back as a generated
  * row object or a view built from one, so nothing untyped leaves this class.
  */
-final class PdoProjectStore implements ProjectStore
+final readonly class PdoProjectStore implements ProjectStore
 {
     public function __construct(private \PDO $pdo)
     {

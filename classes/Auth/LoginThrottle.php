@@ -28,12 +28,12 @@ class LoginThrottle
     public const WINDOW_SECONDS = 15 * 60;
 
     /** MySQL: table does not exist. */
-    private const SQLSTATE_NO_TABLE = '42S02';
+    private const string SQLSTATE_NO_TABLE = '42S02';
 
-    private \DateTimeImmutable $now;
+    private readonly \DateTimeImmutable $now;
 
     public function __construct(
-        private \PDO $di_pdo,
+        private readonly \PDO $di_pdo,
         ?\DateTimeImmutable $now = null,
     ) {
         $this->now = $now ?? new \DateTimeImmutable();

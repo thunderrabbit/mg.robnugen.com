@@ -109,7 +109,7 @@ try {
             'error' => 'Activity session not found or already stopped'
         ]);
     }
-} catch (\Exception $e) {
+} catch (\Exception) {
     http_response_code(500);
     echo json_encode([
         'success' => false,

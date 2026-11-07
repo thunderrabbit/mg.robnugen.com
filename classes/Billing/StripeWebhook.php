@@ -20,12 +20,12 @@ namespace Billing;
 
 class StripeWebhook
 {
-    private const PLAN_CREDITS = [
+    private const array PLAN_CREDITS = [
         'developer' => 5000,
         'growth'    => 25000,
     ];
 
-    public function __construct(private \PDO $pdo)
+    public function __construct(private readonly \PDO $pdo)
     {
     }
 
@@ -61,12 +61,7 @@ class StripeWebhook
         }
 
         $expected = hash_hmac('sha256', $t_match[1] . '.' . $payload, $secret);
-        foreach ($v1_matches[1] as $signature) {
-            if (hash_equals($expected, $signature)) {
-                return true;
-            }
-        }
-        return false;
+        return array_any($v1_matches[1], fn($signature) => hash_equals($expected, $signature));
     }
 
     // ── Event dispatch ────────────────────────────────────────────────────────
@@ -192,7 +187,7 @@ class StripeWebhook
                     "Paying client milestone: $count total paying clients!"
                 ]);
             }
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             // Table not yet created — milestone silently skipped.
         }
     }
