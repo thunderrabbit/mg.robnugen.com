@@ -77,6 +77,14 @@ passes on warnings can't show that they are gone.
 Read by: `js_deprecations_clear` (runs it on the test domain). If both this
 line and a `testing-js-since-<date>.sh` are present, this line is run.
 
+### `CSS guard: <command>`
+
+The command that refuses a commit quietly dropping a style rule, as the hook
+runs it; its first word is a tracked file (`CSS guard: bin/css-commit-guard.php`).
+
+Read by: `css_cascade_guarded` (the file is tracked and the commit-msg or
+pre-commit hook names it).
+
 ### `Stays on <npm package> <major>: <why>`
 
 A decision to hold one library on an older major release for now, with the
