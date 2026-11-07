@@ -43,6 +43,18 @@ Read by: `js_checks_in_place` (it exists), `js_deprecations_clear` (runs the
 The site's PHP suite that is safe to run against its test domain. Read by
 `suite_passes_on_php`.
 
+## Trailers in commit messages
+
+### `<Line>-has: <sha>`
+
+On a commit on the line the server runs, for a site preparing an upgrade on
+another branch: the commit on the upgrade branch that solves the same
+problem a different way, so there is nothing to cherry-pick. The word before
+`-has` is whatever the site calls its upgrade line (`Green-has: 0d225bc`).
+
+Read by: `js_hotfixes_ported` (such a commit is not reported as unported,
+while the named commit is on the upgrade branch).
+
 ## Lines in `JS_LIBRARIES.md`
 
 Each is one line, starting at the beginning of the line. Where a line appears
@@ -64,6 +76,31 @@ passes on warnings can't show that they are gone.
 
 Read by: `js_deprecations_clear` (runs it on the test domain). If both this
 line and a `testing-js-since-<date>.sh` are present, this line is run.
+
+### `CSS guard: <command>`
+
+The command that refuses a commit quietly dropping a style rule, as the hook
+runs it; its first word is a tracked file (`CSS guard: bin/css-commit-guard.php`).
+
+Read by: `css_cascade_guarded` (the file is tracked and the commit-msg or
+pre-commit hook names it).
+
+### `Visual capture: <command>`
+
+The command that captures every page of the test domain, screenshot and
+computed styles, for the visual differ (`Visual capture: bin/visual-capture
+--ref <branch>`).
+
+Read by: `js_visual_baseline` (it is named; the check does not run it).
+
+### `Visual ledger: <path>`
+
+The tracked JSON file of visual differences a person has accepted, each entry
+with `reason`, `who` and `date` (`Visual ledger:
+Tests/Support/Data/AcceptedVisualDiffs.json`). A list, or an object whose one
+list (under any key not starting with `_`) holds the entries.
+
+Read by: `js_visual_baseline`.
 
 ### `Stays on <npm package> <major>: <why>`
 
