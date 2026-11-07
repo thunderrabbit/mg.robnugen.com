@@ -9,6 +9,7 @@ namespace Inventory\Standards;
  * are kept by hand.
  *
  *     sites
+ *     test-candidates
  *     site-add    --shortcode= --standard= [--project=]
  *     site-set    --shortcode= [--project=] [--checkout=] [--server=] [--test=] [--github=] [--autonomy=]
  *     site-link   --shortcode= --domain= [--path=]
@@ -28,6 +29,7 @@ final class SiteCommand
     /** @var array<string, array{required: list<string>, optional: list<string>}> */
     private const array COMMANDS = [
         'sites' => ['required' => [], 'optional' => []],
+        'test-candidates' => ['required' => [], 'optional' => []],
         'site-add' => ['required' => ['shortcode', 'standard'], 'optional' => ['project']],
         'site-set' => [
             'required' => ['shortcode'],
@@ -88,6 +90,8 @@ final class SiteCommand
         switch ($command) {
             case 'sites':
                 return json_encode($store->forScanner(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+            case 'test-candidates':
+                return json_encode($store->testCandidates(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
             case 'site-add':
                 $store->add($shortcode, $o['standard'] ?? '', self::projectId($o['project'] ?? ''));
                 return "Added site {$shortcode}.";

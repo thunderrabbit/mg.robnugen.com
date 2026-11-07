@@ -234,6 +234,81 @@ final readonly class SiteStore
     }
 
     /**
+     * For each site with no test domain yet, the domains that look like its
+     * test twin (see TestDomainCandidates). A site's production domain is the
+     * one it names as its server, else its only domain; a site with several
+     * and none named is left out.
+     *
+     * @return list<array{shortcode: string, server: string, candidates: list<array{domain: string, reasons: list<string>}>}>
+     */
+    public function testCandidates(): array
+    {
+        $domains = [];
+        $domainRows = $this->rows(
+            'SELECT d.domain, u.username, st.web_directory, s.shortcode AS linked_to
+               FROM dh_domains d
+               LEFT JOIN dh_domain_states st ON st.dh_domain_id = d.dh_domain_id AND st.until_sweep_id IS NULL
+               LEFT JOIN dh_users u ON u.dh_user_id = st.dh_user_id
+               LEFT JOIN dh_site_domains l ON l.dh_domain_id = d.dh_domain_id
+               LEFT JOIN std_sites s ON s.std_site_id = l.std_site_id
+              ORDER BY d.domain'
+        );
+        foreach ($domainRows as $row) {
+            $domains[] = [
+                'domain' => RowValue::string($row, 'domain'),
+                'dh_user' => RowValue::stringOrNull($row, 'username'),
+                'web_directory' => RowValue::stringOrNull($row, 'web_directory'),
+                'linked_to' => RowValue::stringOrNull($row, 'linked_to'),
+            ];
+        }
+
+        $links = [];
+        $linkRows = $this->rows(
+            'SELECT l.std_site_id, l.dh_site_domain_id, d.domain, u.username, st.web_directory
+               FROM dh_site_domains l
+               JOIN dh_domains d ON d.dh_domain_id = l.dh_domain_id
+               LEFT JOIN dh_domain_states st ON st.dh_domain_id = d.dh_domain_id AND st.until_sweep_id IS NULL
+               LEFT JOIN dh_users u ON u.dh_user_id = st.dh_user_id
+              ORDER BY d.domain, l.path_prefix'
+        );
+        foreach ($linkRows as $row) {
+            $links[RowValue::int($row, 'std_site_id')][] = $row;
+        }
+
+        $out = [];
+        $siteRows = $this->rows(
+            'SELECT std_site_id, shortcode, server_site_domain_id FROM std_sites
+              WHERE test_site_domain_id IS NULL ORDER BY shortcode'
+        );
+        foreach ($siteRows as $site) {
+            $mine = $links[RowValue::int($site, 'std_site_id')] ?? [];
+            $named = RowValue::intOrNull($site, 'server_site_domain_id');
+            $production = null;
+            foreach ($mine as $link) {
+                if ($named !== null ? RowValue::int($link, 'dh_site_domain_id') === $named : count($mine) === 1) {
+                    $production = $link;
+                }
+            }
+            if ($production === null) {
+                continue;
+            }
+            $shortcode = RowValue::string($site, 'shortcode');
+            $server = RowValue::string($production, 'domain');
+            $out[] = [
+                'shortcode' => $shortcode,
+                'server' => $server,
+                'candidates' => TestDomainCandidates::find([
+                    'shortcode' => $shortcode,
+                    'server_domain' => $server,
+                    'dh_user' => RowValue::stringOrNull($production, 'username'),
+                    'web_directory' => RowValue::stringOrNull($production, 'web_directory'),
+                ], $domains),
+            ];
+        }
+        return $out;
+    }
+
+    /**
      * The link of this site that --server= names: a domain, with the path
      * inside it for a site that is only part of one (example.test/blog).
      */

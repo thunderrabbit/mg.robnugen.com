@@ -105,6 +105,14 @@ final class StandardsSiteCommandTest extends Unit
         SiteCommand::parse(['site-set', '--shortcode=mg', '--tset=example.test']);
     }
 
+    public function testTestCandidatesTakesNoOptions(): void
+    {
+        $this->assertSame('test-candidates', SiteCommand::parse(['test-candidates'])['command']);
+
+        $this->expectException(\InvalidArgumentException::class);
+        SiteCommand::parse(['test-candidates', '--shortcode=mg']);
+    }
+
     public function testThereIsNoTrunkOptionAnyMore(): void
     {
         $this->expectException(\InvalidArgumentException::class);
