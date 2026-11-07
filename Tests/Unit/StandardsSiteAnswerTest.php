@@ -154,4 +154,29 @@ final class StandardsSiteAnswerTest extends Unit
         $this->assertStringNotContainsString('exampleuser', $json);
         $this->assertStringNotContainsString('"ssh_alias"', $json);
     }
+
+    public function testHostCheckDetailsAndSkipReasonsNameNoHost(): void
+    {
+        $facts = new SiteFacts(
+            [[
+                'domain' => 'example.test',
+                'php_version' => '8.2',
+                'username' => 'exampleuser',
+                'ssh_alias' => 'example',
+                'login_confirmed_on' => null,
+            ]],
+            'rob/example.test',
+            'example/example.test',
+        );
+        $steps = [$this->step('ssh_login_works', 'dh_ssh_login'), $this->step('serves_php_8_5', 'dh_serves_php', '8.5')];
+        $report = SiteReport::build('mg', $facts, $steps, [], [], ['mg'], ['ssh_login_works', 'serves_php_8_5']);
+        $answer = SiteAnswer::of('template', 'mg', null, 'no ssh alias is known for the user serving example.test', $report);
+
+        $this->assertCount(2, $answer['open_steps']);
+        $this->assertSame(SiteAnswer::HOST_DETAIL, $answer['open_steps'][0]['detail']);
+        $this->assertSame(SiteAnswer::SKIPPED, $answer['skipped_reason']);
+        $json = (string) json_encode($answer);
+        $this->assertStringNotContainsString('example.test', $json);
+        $this->assertStringNotContainsString('exampleuser', $json);
+    }
 }
