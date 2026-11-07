@@ -12,8 +12,10 @@ latest sweep saw it. The panel is the authority for what a domain serves;
 
 ## How to do it
 
-1. First make sure the code is ready: the tooling and Rector steps for 8.5
-   are done and deployed.
+1. First make sure the code is ready: the tooling step, and the steps above
+   this one (the code compiles on 8.5 and the current PHP, and for a site with
+   a test domain, the test domain is on 8.5 and its safe suite passes), are done
+   and deployed.
 2. Lint the deployed tree with the server's PHP 8.5 command-line build.
 3. Rob switches each domain to 8.5 in the panel. This is a panel change, so
    it is always Rob's.
