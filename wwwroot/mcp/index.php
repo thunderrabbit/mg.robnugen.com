@@ -227,9 +227,7 @@ switch ($method) {
             echo json_encode(mcp_tool_result($id, $result));
         } catch (\Exterm\ValidationException | \Issues\ValidationException | \Input\InvalidInput $e) {
             echo json_encode(mcp_error($id, -32602, $e->getMessage()));
-        } catch (\Exterm\NotFoundException | \Issues\NotFoundException $e) {
-            echo json_encode(mcp_error($id, -32603, $e->getMessage()));
-        } catch (\Exterm\AccessException | \Issues\AccessException | \Issues\ConflictException $e) {
+        } catch (\Exterm\NotFoundException | \Issues\NotFoundException | \Exterm\AccessException | \Issues\AccessException | \Issues\ConflictException $e) {
             echo json_encode(mcp_error($id, -32603, $e->getMessage()));
         } catch (\Exception) {
             echo json_encode(mcp_error($id, -32603, 'Internal error'));
