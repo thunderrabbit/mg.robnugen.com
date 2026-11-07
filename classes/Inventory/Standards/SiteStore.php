@@ -9,8 +9,9 @@ use Db\RowValue;
 
 /**
  * The facts about a site that are kept by hand: its shortcode and standard,
- * the mg project holding its notes, where its code is, which branch of it is
- * deployed, and which DreamHost domains serve it. Everything about steps comes from the step files instead.
+ * the mg project holding its notes, where its code is, which DreamHost
+ * domains serve it, and which of those is the server the scanner asks what is
+ * deployed. Everything about steps comes from the step files instead.
  *
  * Every refusal is an InvalidArgumentException whose message is a sentence
  * for the person at the command line.
@@ -46,7 +47,7 @@ final readonly class SiteStore
     }
 
     /**
-     * @param array{project_id?: ?int, checkout_path?: ?string, deployed_branch?: string, github_repo?: ?string, autonomy?: string} $changes
+     * @param array{project_id?: ?int, checkout_path?: ?string, deployed_branch?: string, server?: string, github_repo?: ?string, autonomy?: string} $changes
      */
     public function set(string $shortcode, array $changes): void
     {
@@ -74,6 +75,10 @@ final readonly class SiteStore
             }
             $sets[] = 'deployed_branch = ?';
             $params[] = $changes['deployed_branch'];
+        }
+        if (array_key_exists('server', $changes)) {
+            $sets[] = 'server_site_domain_id = ?';
+            $params[] = $changes['server'] === '' ? null : $this->linkId($siteId, $shortcode, $changes['server']);
         }
         if (array_key_exists('github_repo', $changes)) {
             $repo = $changes['github_repo'];
@@ -118,9 +123,23 @@ final readonly class SiteStore
 
     public function unlink(string $shortcode, string $domain, string $pathPrefix = ''): void
     {
+        $siteId = $this->siteId($shortcode);
+        $domainId = $this->domainId($domain);
+        $named = $this->rows(
+            'SELECT s.std_site_id FROM std_sites s
+               JOIN dh_site_domains l ON l.dh_site_domain_id = s.server_site_domain_id
+              WHERE s.std_site_id = ? AND l.dh_domain_id = ? AND l.path_prefix = ?',
+            [$siteId, $domainId, $pathPrefix],
+        );
+        if ($named !== []) {
+            throw new \InvalidArgumentException(
+                "{$domain}{$pathPrefix} is the server of site {$shortcode}. "
+                . "Name another with site-set --server=, or clear it with --server=, first."
+            );
+        }
         $removed = $this->run(
             'DELETE FROM dh_site_domains WHERE std_site_id = ? AND dh_domain_id = ? AND path_prefix = ?',
-            [$this->siteId($shortcode), $this->domainId($domain), $pathPrefix],
+            [$siteId, $domainId, $pathPrefix],
         )->rowCount();
         if ($removed === 0) {
             throw new \InvalidArgumentException("{$domain}{$pathPrefix} is not linked to site {$shortcode}.");
@@ -128,27 +147,78 @@ final readonly class SiteStore
     }
 
     /**
-     * What the scanner on Lemur 13 needs to know about each site.
+     * What the scanner on Lemur 13 needs to know about each site: where its
+     * checkout is, and which server to ask what is deployed (or why there is
+     * none to ask).
      *
-     * @return list<array{shortcode: string, standard: string, checkout_path: ?string, deployed_branch: string}>
+     * @return list<array{shortcode: string, standard: string, checkout_path: ?string, deployed_branch: string, server: ?array{ssh_alias: string, directory: string}, server_problem: ?string}>
      */
     public function forScanner(): array
     {
+        $links = [];
+        $linkRows = $this->rows(
+            'SELECT l.std_site_id, l.dh_site_domain_id, d.domain, l.path_prefix, st.web_directory, u.ssh_alias
+               FROM dh_site_domains l
+               JOIN dh_domains d ON d.dh_domain_id = l.dh_domain_id
+               LEFT JOIN dh_domain_states st ON st.dh_domain_id = d.dh_domain_id AND st.until_sweep_id IS NULL
+               LEFT JOIN dh_users u ON u.dh_user_id = st.dh_user_id
+              ORDER BY d.domain, l.path_prefix'
+        );
+        foreach ($linkRows as $row) {
+            $links[RowValue::int($row, 'std_site_id')][] = [
+                'dh_site_domain_id' => RowValue::int($row, 'dh_site_domain_id'),
+                'domain' => RowValue::string($row, 'domain'),
+                'path_prefix' => RowValue::string($row, 'path_prefix'),
+                'web_directory' => RowValue::stringOrNull($row, 'web_directory'),
+                'ssh_alias' => RowValue::stringOrNull($row, 'ssh_alias'),
+            ];
+        }
+
         $sites = [];
         $rows = $this->rows(
-            'SELECT s.shortcode, t.slug AS standard, s.checkout_path, s.deployed_branch
+            'SELECT s.std_site_id, s.shortcode, t.slug AS standard, s.checkout_path, s.deployed_branch,
+                    s.server_site_domain_id
                FROM std_sites s JOIN std_standards t ON t.std_standard_id = s.std_standard_id
               ORDER BY s.shortcode'
         );
         foreach ($rows as $row) {
+            $server = ServerChoice::pick(
+                $links[RowValue::int($row, 'std_site_id')] ?? [],
+                RowValue::intOrNull($row, 'server_site_domain_id'),
+            );
             $sites[] = [
                 'shortcode' => RowValue::string($row, 'shortcode'),
                 'standard' => RowValue::string($row, 'standard'),
                 'checkout_path' => RowValue::stringOrNull($row, 'checkout_path'),
                 'deployed_branch' => RowValue::string($row, 'deployed_branch'),
+                'server' => $server->sshAlias === null || $server->directory === null
+                    ? null
+                    : ['ssh_alias' => $server->sshAlias, 'directory' => $server->directory],
+                'server_problem' => $server->problem,
             ];
         }
         return $sites;
+    }
+
+    /**
+     * The link of this site that --server= names: a domain, with the path
+     * inside it for a site that is only part of one (example.test/blog).
+     */
+    private function linkId(int $siteId, string $shortcode, string $server): int
+    {
+        $slash = strpos($server, '/');
+        $domain = $slash === false ? $server : substr($server, 0, $slash);
+        $path = $slash === false ? '' : substr($server, $slash);
+        $found = $this->rows(
+            'SELECT dh_site_domain_id FROM dh_site_domains WHERE std_site_id = ? AND dh_domain_id = ? AND path_prefix = ?',
+            [$siteId, $this->domainId($domain), $path],
+        );
+        if ($found === []) {
+            throw new \InvalidArgumentException(
+                "{$server} is not linked to site {$shortcode}. Link it with site-link first."
+            );
+        }
+        return RowValue::int($found[0], 'dh_site_domain_id');
     }
 
     private function siteId(string $shortcode): int
