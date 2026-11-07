@@ -139,6 +139,14 @@ final class SweepPayloadTest extends Unit
         $this->assertSame('one', $moved->databases[0]['server']);
     }
 
+    public function testADatabaseWithNoSizeKeepsAnUnknownSize(): void
+    {
+        $sweep = SweepPayload::fromArray($this->sweep([
+            'files' => ['databases' => ['databases' => [0 => ['size' => null, 'size_bytes' => null]]]],
+        ]));
+        $this->assertNull($sweep->databases[0]['size_bytes']);
+    }
+
     public function testRefusesAServerNameWithoutAMachine(): void
     {
         $this->refuses("server 'lonely' should be machine:user", [
