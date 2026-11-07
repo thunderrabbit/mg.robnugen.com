@@ -53,7 +53,7 @@ try {
 }
 
 // Humans first, then by name.
-usort($members, static fn($a, $b) => strcmp($b->actorType, $a->actorType));
+usort($members, static fn($a, $b): int => strcmp($b->actorType, $a->actorType));
 
 $page = new \Template($config, $is_logged_in);
 $page->setTemplate("layout/base.tpl.php");

@@ -92,10 +92,10 @@ final class StandardsStepTreeTest extends Unit
 
         $tracks = StepTree::fromFiles($files)->standards[0]->tracks;
 
-        $this->assertSame(['groundwork', 'rector'], array_map(static fn (\Inventory\Standards\TrackDef $t) => $t->slug, $tracks));
+        $this->assertSame(['groundwork', 'rector'], array_map(static fn (\Inventory\Standards\TrackDef $t): string => $t->slug, $tracks));
         $this->assertSame(
             ['an_earlier_step', 'rector_php_8_5_rules', 'a_later_step'],
-            array_map(static fn (\Inventory\Standards\StepDef $s) => $s->slug, $tracks[1]->steps),
+            array_map(static fn (\Inventory\Standards\StepDef $s): string => $s->slug, $tracks[1]->steps),
         );
     }
 

@@ -30,12 +30,12 @@ final class InputTest extends Unit
 
     public function testPositiveIdSaysWhatIsWrong(): void
     {
-        $this->assertInvalid('issue_id is required', static fn() => Input::positiveId([], 'issue_id'));
-        $this->assertInvalid('issue_id is required', static fn() => Input::positiveId(['issue_id' => null], 'issue_id'));
+        $this->assertInvalid('issue_id is required', static fn(): int => Input::positiveId([], 'issue_id'));
+        $this->assertInvalid('issue_id is required', static fn(): int => Input::positiveId(['issue_id' => null], 'issue_id'));
         foreach ([0, -1, '0', '', '4.2', 'x', 4.0, true, [1]] as $bad) {
             $this->assertInvalid(
                 'issue_id must be a positive integer',
-                static fn() => Input::positiveId(['issue_id' => $bad], 'issue_id'),
+                static fn(): int => Input::positiveId(['issue_id' => $bad], 'issue_id'),
             );
         }
     }
@@ -51,7 +51,7 @@ final class InputTest extends Unit
         $this->assertSame(35, Input::nullableId(['assignee_aiu' => '35'], 'assignee_aiu'));
         $this->assertInvalid(
             'assignee_aiu must be a positive integer, or 0 or null to clear it',
-            static fn() => Input::nullableId(['assignee_aiu' => 'x'], 'assignee_aiu'),
+            static fn(): int|\Input\Absent|null => Input::nullableId(['assignee_aiu' => 'x'], 'assignee_aiu'),
         );
     }
 
@@ -63,7 +63,7 @@ final class InputTest extends Unit
         $this->assertSame(100, Input::int(['limit' => null], 'limit', 100));
         $this->assertSame(20, Input::int(['limit' => '20'], 'limit', 100));
         $this->assertSame(-1, Input::int(['offset' => -1], 'offset', 0));
-        $this->assertInvalid('limit must be an integer', static fn() => Input::int(['limit' => 'lots'], 'limit', 100));
+        $this->assertInvalid('limit must be an integer', static fn(): int => Input::int(['limit' => 'lots'], 'limit', 100));
     }
 
     public function testFlagAcceptsCommonSpellings(): void
@@ -77,7 +77,7 @@ final class InputTest extends Unit
         }
         $this->assertInvalid(
             'include_terminal must be 1 or 0',
-            static fn() => Input::flag(['include_terminal' => 'maybe'], 'include_terminal'),
+            static fn(): bool => Input::flag(['include_terminal' => 'maybe'], 'include_terminal'),
         );
     }
 
@@ -86,9 +86,9 @@ final class InputTest extends Unit
     public function testTextTrimsAndRequiresSomething(): void
     {
         $this->assertSame('Fix it', Input::text(['title' => "  Fix it \n"], 'title', 255));
-        $this->assertInvalid('title is required', static fn() => Input::text([], 'title', 255));
-        $this->assertInvalid('title is required', static fn() => Input::text(['title' => '   '], 'title', 255));
-        $this->assertInvalid('title must be a string', static fn() => Input::text(['title' => 5], 'title', 255));
+        $this->assertInvalid('title is required', static fn(): string => Input::text([], 'title', 255));
+        $this->assertInvalid('title is required', static fn(): string => Input::text(['title' => '   '], 'title', 255));
+        $this->assertInvalid('title must be a string', static fn(): string => Input::text(['title' => 5], 'title', 255));
     }
 
     public function testTextCountsCharactersOrBytes(): void
@@ -96,11 +96,11 @@ final class InputTest extends Unit
         $this->assertSame(str_repeat('あ', 255), Input::text(['title' => str_repeat('あ', 255)], 'title', 255));
         $this->assertInvalid(
             'title must be 255 characters or fewer',
-            static fn() => Input::text(['title' => str_repeat('a', 256)], 'title', 255),
+            static fn(): string => Input::text(['title' => str_repeat('a', 256)], 'title', 255),
         );
         $this->assertInvalid(
             'body must be 6 bytes or fewer',
-            static fn() => Input::text(['body' => 'あああ'], 'body', 6, Length::Bytes),
+            static fn(): string => Input::text(['body' => 'あああ'], 'body', 6, Length::Bytes),
         );
         $this->assertSame('ああ', Input::text(['body' => 'ああ'], 'body', 6, Length::Bytes));
     }
@@ -117,7 +117,7 @@ final class InputTest extends Unit
         $this->assertNull(Input::optionalText(['note' => '   '], 'note', 255, trim: true));
         $this->assertInvalid(
             'note must be 3 characters or fewer',
-            static fn() => Input::optionalText(['note' => 'four'], 'note', 3),
+            static fn(): string|\Input\Absent|null => Input::optionalText(['note' => 'four'], 'note', 3),
         );
     }
 
@@ -129,11 +129,11 @@ final class InputTest extends Unit
         $this->assertSame(Absent::Field, Input::enum([], 'priority', IssuePriority::class));
         $this->assertInvalid(
             "priority must be 'low', 'normal', or 'high'",
-            static fn() => Input::enum(['priority' => 'urgent'], 'priority', IssuePriority::class),
+            static fn(): \BackedEnum|\Input\Absent => Input::enum(['priority' => 'urgent'], 'priority', IssuePriority::class),
         );
         $this->assertInvalid(
             "priority must be 'low', 'normal', or 'high'",
-            static fn() => Input::enum(['priority' => 3], 'priority', IssuePriority::class),
+            static fn(): \BackedEnum|\Input\Absent => Input::enum(['priority' => 3], 'priority', IssuePriority::class),
         );
     }
 
@@ -184,7 +184,7 @@ final class InputTest extends Unit
         $source = str_repeat('a', 300);
         $this->assertInvalid(
             'body must be 255 bytes or fewer',
-            static fn() => Input::encodedText(
+            static fn(): string => Input::encodedText(
                 ['body' => base64_encode($source), 'encoding' => 'base64'],
                 'body',
                 'encoding',
@@ -198,11 +198,11 @@ final class InputTest extends Unit
     {
         $this->assertInvalid(
             'body is required',
-            static fn() => Input::encodedText(['body' => base64_encode('   '), 'encoding' => 'base64'], 'body', 'encoding', 255),
+            static fn(): string => Input::encodedText(['body' => base64_encode('   '), 'encoding' => 'base64'], 'body', 'encoding', 255),
         );
         $this->assertInvalid(
             'body is required',
-            static fn() => Input::encodedText([], 'body', 'encoding', 255),
+            static fn(): string => Input::encodedText([], 'body', 'encoding', 255),
         );
     }
 
@@ -211,7 +211,7 @@ final class InputTest extends Unit
         $bomb = base64_encode((string) gzencode(str_repeat('A', 5_000_000), 9));
         $this->assertInvalid(
             'body is larger than 255 bytes once decompressed',
-            static fn() => Input::encodedText(
+            static fn(): string => Input::encodedText(
                 ['body' => $bomb, 'encoding' => 'gzip+base64'],
                 'body',
                 'encoding',
@@ -231,7 +231,7 @@ final class InputTest extends Unit
     {
         $this->assertInvalid(
             "encoding must be 'plain', 'base64', or 'gzip+base64'",
-            static fn() => Input::encodedText(['body' => 'x', 'encoding' => 'rot13'], 'body', 'encoding', 255),
+            static fn(): string => Input::encodedText(['body' => 'x', 'encoding' => 'rot13'], 'body', 'encoding', 255),
         );
     }
 
@@ -239,7 +239,7 @@ final class InputTest extends Unit
     {
         $this->assertInvalid(
             'body is not valid base64',
-            static fn() => Input::encodedText(['body' => '***', 'encoding' => 'base64'], 'body', 'encoding', 255),
+            static fn(): string => Input::encodedText(['body' => '***', 'encoding' => 'base64'], 'body', 'encoding', 255),
         );
     }
 
@@ -253,7 +253,7 @@ final class InputTest extends Unit
         $this->assertSame(BodyEncoding::GzipBase64, Input::encoding(['encoding' => 'gzip+base64'], 'encoding'));
         $this->assertInvalid(
             "encoding must be 'plain', 'base64', or 'gzip+base64'",
-            static fn() => Input::encoding(['encoding' => 'rot13'], 'encoding'),
+            static fn(): \Input\BodyEncoding => Input::encoding(['encoding' => 'rot13'], 'encoding'),
         );
     }
 
@@ -261,7 +261,7 @@ final class InputTest extends Unit
 
     public function testEncodedOptionalTextSeparatesAbsentClearedAndSet(): void
     {
-        $read = static fn(array $in) => Input::encodedOptionalText($in, 'description', 'encoding', 100, Length::Bytes);
+        $read = static fn(array $in): string|\Input\Absent|null => Input::encodedOptionalText($in, 'description', 'encoding', 100, Length::Bytes);
 
         $this->assertSame(Absent::Field, $read([]));
         $this->assertSame(Absent::Field, $read(['encoding' => 'base64']));
@@ -279,11 +279,11 @@ final class InputTest extends Unit
         );
         $this->assertInvalid(
             'description must be 3 characters or fewer',
-            static fn() => Input::encodedOptionalText(['description' => 'four'], 'description', 'encoding', 3),
+            static fn(): string|\Input\Absent|null => Input::encodedOptionalText(['description' => 'four'], 'description', 'encoding', 3),
         );
         $this->assertInvalid(
             'description must be a string',
-            static fn() => Input::encodedOptionalText(['description' => 5], 'description', 'encoding', 3),
+            static fn(): string|\Input\Absent|null => Input::encodedOptionalText(['description' => 5], 'description', 'encoding', 3),
         );
     }
 
@@ -312,7 +312,7 @@ final class InputTest extends Unit
         );
         $this->assertInvalid(
             'description must be 10 bytes or fewer',
-            static fn() => Input::encodedOptionalText(
+            static fn(): string|\Input\Absent|null => Input::encodedOptionalText(
                 ['description' => base64_encode($source), 'encoding' => 'base64'],
                 'description',
                 'encoding',
@@ -326,7 +326,7 @@ final class InputTest extends Unit
     {
         $this->assertInvalid(
             'description is larger than 100 bytes once decompressed',
-            static fn() => Input::encodedOptionalText(
+            static fn(): string|\Input\Absent|null => Input::encodedOptionalText(
                 ['description' => base64_encode((string) gzencode(str_repeat('A', 5_000_000), 9)), 'encoding' => 'gzip+base64'],
                 'description',
                 'encoding',
@@ -347,7 +347,7 @@ final class InputTest extends Unit
     public function testJsonRefusesABodyThatCarriesNoFields(): void
     {
         foreach (['', '   ', 'null', '4', '"text"', 'true', '{"broken"'] as $bad) {
-            $this->assertInvalid('a JSON object body is required', static fn() => Input::json($bad));
+            $this->assertInvalid('a JSON object body is required', static fn(): array => Input::json($bad));
         }
     }
 

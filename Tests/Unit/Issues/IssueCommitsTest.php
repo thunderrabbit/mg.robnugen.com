@@ -72,11 +72,11 @@ final class IssueCommitsTest extends IssueCase
 
         $this->assertValidation(
             'repo_id does not belong to this account',
-            fn() => $this->link($issue, ['repo_id' => 9]),
+            fn(): int => $this->link($issue, ['repo_id' => 9]),
         );
         $this->assertValidation(
             'repo_id does not belong to this account',
-            fn() => $this->link($issue, ['repo_id' => 4242]),
+            fn(): int => $this->link($issue, ['repo_id' => 4242]),
         );
     }
 
@@ -84,8 +84,8 @@ final class IssueCommitsTest extends IssueCase
     {
         $issue = $this->create();
 
-        $this->assertThrows(AccessException::class, fn() => $this->link($issue, caller: $this->reader));
-        $this->assertThrows(NotFoundException::class, fn() => $this->link($issue, caller: $this->stranger));
+        $this->assertThrows(AccessException::class, fn(): int => $this->link($issue, caller: $this->reader));
+        $this->assertThrows(NotFoundException::class, fn(): int => $this->link($issue, caller: $this->stranger));
     }
 
     public function testLinksComeBackOldestFirstWithTheirRepositoryAndAuthor(): void
@@ -124,7 +124,7 @@ final class IssueCommitsTest extends IssueCase
 
         $this->assertThrows(
             NotFoundException::class,
-            fn() => $this->service->commits(
+            fn(): \Issues\Page => $this->service->commits(
                 $this->stranger,
                 ListCommits::fromInput(['issue_id' => $issue->issueId]),
             ),

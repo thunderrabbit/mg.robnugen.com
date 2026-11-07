@@ -142,7 +142,7 @@ final class FakeProjectStore implements ProjectStore
     #[\Override]
     public function nameTaken(int $userId, string $name, ?int $exceptProjectId = null): bool
     {
-        return array_any($this->projects, fn(\Db\Row\ProjectRow $project) => $project->userId === $userId && $project->name === $name && $project->projectId !== $exceptProjectId);
+        return array_any($this->projects, fn(\Db\Row\ProjectRow $project): bool => $project->userId === $userId && $project->name === $name && $project->projectId !== $exceptProjectId);
     }
 
     #[\Override]

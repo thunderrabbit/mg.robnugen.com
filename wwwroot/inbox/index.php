@@ -211,7 +211,7 @@ if ($filter_status === 'pending') {
     // Override show_archived to include archived when filtering by archived status
     $show_archived = true;
     // Remove the archived_at IS NULL filter if present
-    $filters = array_filter($filters, fn($f) => $f !== 'AND archived_at IS NULL');
+    $filters = array_filter($filters, fn($f): bool => $f !== 'AND archived_at IS NULL');
     $filters[] = 'AND archived_at IS NOT NULL';
 }
 

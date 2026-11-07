@@ -98,17 +98,17 @@ final class ProjectServiceTest extends Unit
             array_keys($view->jsonSerialize()),
         );
 
-        $this->assertThrows(AccessException::class, fn() => $this->service->get($this->blocked, 7));
-        $this->assertThrows(AccessException::class, fn() => $this->service->get($this->reader, 8));
-        $this->assertThrows(AccessException::class, fn() => $this->service->get($this->neighbour, 7));
+        $this->assertThrows(AccessException::class, fn(): \Projects\ProjectView => $this->service->get($this->blocked, 7));
+        $this->assertThrows(AccessException::class, fn(): \Projects\ProjectView => $this->service->get($this->reader, 8));
+        $this->assertThrows(AccessException::class, fn(): \Projects\ProjectView => $this->service->get($this->neighbour, 7));
     }
 
     public function testForWritingNeedsWriteAccessButNotReadAccess(): void
     {
         $this->assertSame('jikan', $this->service->forWriting($this->blocked, 7)->project->name);
-        $this->assertThrows(AccessException::class, fn() => $this->service->forWriting($this->reader, 7));
-        $this->assertThrows(NotFoundException::class, fn() => $this->service->forWriting($this->reader, 8));
-        $this->assertThrows(NotFoundException::class, fn() => $this->service->forWriting($this->neighbour, 7));
+        $this->assertThrows(AccessException::class, fn(): \Projects\ProjectView => $this->service->forWriting($this->reader, 7));
+        $this->assertThrows(NotFoundException::class, fn(): \Projects\ProjectView => $this->service->forWriting($this->reader, 8));
+        $this->assertThrows(NotFoundException::class, fn(): \Projects\ProjectView => $this->service->forWriting($this->neighbour, 7));
     }
 
     public function testMembersAreListedByNameForReaders(): void
@@ -116,7 +116,7 @@ final class ProjectServiceTest extends Unit
         $names = array_map(static fn(MemberView $m): string => $m->name, $this->service->members($this->reader, 7));
 
         $this->assertSame(['Boss Claude', 'eliClaude', 'mgClaude', 'Rob'], $names);
-        $this->assertThrows(AccessException::class, fn() => $this->service->members($this->blocked, 7));
+        $this->assertThrows(AccessException::class, fn(): array => $this->service->members($this->blocked, 7));
     }
 
     public function testAssigneeChoicesPutHumansFirstAndNeedWriteAccess(): void
@@ -124,7 +124,7 @@ final class ProjectServiceTest extends Unit
         $names = array_map(static fn(Actor $a): string => $a->name, $this->service->assigneeChoices($this->writer, 7));
 
         $this->assertSame(['Rob', 'Boss Claude', 'eliClaude', 'mgClaude'], $names);
-        $this->assertThrows(AccessException::class, fn() => $this->service->assigneeChoices($this->reader, 7));
+        $this->assertThrows(AccessException::class, fn(): array => $this->service->assigneeChoices($this->reader, 7));
     }
 
     public function testSummariesCarryOpenIssueCounts(): void
@@ -133,8 +133,8 @@ final class ProjectServiceTest extends Unit
 
         $summaries = $this->service->summaries($this->rob);
 
-        $this->assertSame(['abc', 'jikan'], array_map(static fn(\Projects\ProjectSummary $s) => $s->project->name, $summaries));
-        $this->assertSame([0, 4], array_map(static fn(\Projects\ProjectSummary $s) => $s->openIssueCount, $summaries));
+        $this->assertSame(['abc', 'jikan'], array_map(static fn(\Projects\ProjectSummary $s): string => $s->project->name, $summaries));
+        $this->assertSame([0, 4], array_map(static fn(\Projects\ProjectSummary $s): int => $s->openIssueCount, $summaries));
     }
 
     // === Administering projects ===
@@ -149,13 +149,13 @@ final class ProjectServiceTest extends Unit
         $role = $this->service->get($this->rob, $project->projectId)->membership;
         $this->assertTrue($role->canRead && $role->canWrite);
 
-        $this->assertThrows(AccessException::class, fn() => $this->service->create($this->writer, new CreateProject('x')));
+        $this->assertThrows(AccessException::class, fn(): \Db\Row\ProjectRow => $this->service->create($this->writer, new CreateProject('x')));
         $this->assertSame(['projects/create'], $this->charged);
     }
 
     public function testANameIsUniqueWithinAnAccountOnly(): void
     {
-        $this->assertThrows(ConflictException::class, fn() => $this->service->create($this->rob, new CreateProject('jikan')));
+        $this->assertThrows(ConflictException::class, fn(): \Db\Row\ProjectRow => $this->service->create($this->rob, new CreateProject('jikan')));
         $this->assertSame([], $this->charged);
 
         $this->assertSame('jikan', $this->service->create($this->neighbour, new CreateProject('jikan'))->name);
@@ -164,17 +164,17 @@ final class ProjectServiceTest extends Unit
     public function testUpdateRenamesAndArchivesButNotOntoATakenName(): void
     {
         $this->assertSame(1, $this->service->update($this->rob, new UpdateProject(8, name: 'abc2', isArchived: true)));
-        $this->assertSame(['jikan'], array_map(static fn(\Projects\ProjectView $v) => $v->project->name, $this->service->list($this->rob)));
+        $this->assertSame(['jikan'], array_map(static fn(\Projects\ProjectView $v): string => $v->project->name, $this->service->list($this->rob)));
 
-        $this->assertThrows(ConflictException::class, fn() => $this->service->update($this->rob, new UpdateProject(8, name: 'jikan')));
+        $this->assertThrows(ConflictException::class, fn(): int => $this->service->update($this->rob, new UpdateProject(8, name: 'jikan')));
         $this->assertSame(1, $this->service->update($this->rob, new UpdateProject(7, name: 'jikan')));
-        $this->assertThrows(AccessException::class, fn() => $this->service->update($this->writer, new UpdateProject(7, isArchived: true)));
+        $this->assertThrows(AccessException::class, fn(): int => $this->service->update($this->writer, new UpdateProject(7, isArchived: true)));
         $this->assertSame(0, $this->service->update($this->rob, new UpdateProject(20, isArchived: true)));
     }
 
     public function testDeleteIsForTheAccountsHumanOnly(): void
     {
-        $this->assertThrows(AccessException::class, fn() => $this->service->delete($this->writer, 8));
+        $this->assertThrows(AccessException::class, fn(): int => $this->service->delete($this->writer, 8));
         $this->assertSame(0, $this->service->delete($this->rob, 20));
         $this->assertSame(1, $this->service->delete($this->rob, 8));
         $this->assertSame(['projects/delete', 'projects/delete'], $this->charged);
@@ -206,8 +206,8 @@ final class ProjectServiceTest extends Unit
             ['mgClaude' => true, 'Boss Claude' => true, 'eliClaude' => true, 'test_bot' => false],
             $this->usual($this->service->candidates($this->rob, 9)),
         );
-        $this->assertThrows(NotFoundException::class, fn() => $this->service->candidates($this->rob, 20));
-        $this->assertThrows(AccessException::class, fn() => $this->service->candidates($this->writer, 8));
+        $this->assertThrows(NotFoundException::class, fn(): array => $this->service->candidates($this->rob, 20));
+        $this->assertThrows(AccessException::class, fn(): array => $this->service->candidates($this->writer, 8));
     }
 
     public function testMemberRightsChangeAndMembersLeave(): void
@@ -216,10 +216,10 @@ final class ProjectServiceTest extends Unit
         $this->assertTrue($this->service->forWriting($this->reader, 7)->membership->canWrite);
 
         $this->assertSame(1, $this->service->removeMember($this->rob, 7, 36));
-        $this->assertThrows(AccessException::class, fn() => $this->service->get($this->reader, 7));
+        $this->assertThrows(AccessException::class, fn(): \Projects\ProjectView => $this->service->get($this->reader, 7));
 
         $this->assertSame(0, $this->service->removeMember($this->rob, 20, 90));
-        $this->assertThrows(AccessException::class, fn() => $this->service->removeMember($this->writer, 7, 35));
+        $this->assertThrows(AccessException::class, fn(): int => $this->service->removeMember($this->writer, 7, 35));
         $this->assertSame(['projects/update-member', 'projects/remove-member', 'projects/remove-member'], $this->charged);
     }
 

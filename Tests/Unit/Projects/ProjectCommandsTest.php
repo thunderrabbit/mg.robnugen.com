@@ -28,12 +28,12 @@ final class ProjectCommandsTest extends Unit
 
     public function testCreateProjectRejectsBadNames(): void
     {
-        $this->assertInvalid('name is required', static fn() => CreateProject::fromInput(['name' => ' ']));
+        $this->assertInvalid('name is required', static fn(): \Projects\Command\CreateProject => CreateProject::fromInput(['name' => ' ']));
         $this->assertInvalid(
             'name must be 100 characters or fewer',
-            static fn() => CreateProject::fromInput(['name' => str_repeat('a', 101)]),
+            static fn(): \Projects\Command\CreateProject => CreateProject::fromInput(['name' => str_repeat('a', 101)]),
         );
-        $this->assertInvalid('name must be a string', static fn() => CreateProject::fromInput(['name' => 7]));
+        $this->assertInvalid('name must be a string', static fn(): \Projects\Command\CreateProject => CreateProject::fromInput(['name' => 7]));
     }
 
     public function testUpdateProjectChangesOnlyWhatWasSent(): void
@@ -53,9 +53,9 @@ final class ProjectCommandsTest extends Unit
     {
         $this->assertInvalid(
             'provide name, description, and/or is_archived to update',
-            static fn() => UpdateProject::fromInput(['project_id' => 3]),
+            static fn(): \Projects\Command\UpdateProject => UpdateProject::fromInput(['project_id' => 3]),
         );
-        $this->assertInvalid('name is required', static fn() => UpdateProject::fromInput(['project_id' => 3, 'name' => '']));
+        $this->assertInvalid('name is required', static fn(): \Projects\Command\UpdateProject => UpdateProject::fromInput(['project_id' => 3, 'name' => '']));
     }
 
     public function testAddMemberDefaultsToReadOnly(): void
@@ -78,9 +78,9 @@ final class ProjectCommandsTest extends Unit
 
         $this->assertInvalid(
             'provide can_read and/or can_write to update',
-            static fn() => UpdateMember::fromInput(['project_id' => 3, 'member_aiu' => 35]),
+            static fn(): \Projects\Command\UpdateMember => UpdateMember::fromInput(['project_id' => 3, 'member_aiu' => 35]),
         );
-        $this->assertInvalid('member_aiu is required', static fn() => UpdateMember::fromInput(['project_id' => 3]));
+        $this->assertInvalid('member_aiu is required', static fn(): \Projects\Command\UpdateMember => UpdateMember::fromInput(['project_id' => 3]));
     }
 
     private function assertInvalid(string $message, \Closure $build): void

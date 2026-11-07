@@ -40,9 +40,9 @@ final class IssueServiceTest extends IssueCase
 
     public function testCreateNeedsWriteAccessToTheProject(): void
     {
-        $this->assertThrows(AccessException::class, fn() => $this->create(caller: $this->reader));
-        $this->assertThrows(NotFoundException::class, fn() => $this->create(caller: $this->stranger));
-        $this->assertThrows(NotFoundException::class, fn() => $this->create(['project_id' => 9]));
+        $this->assertThrows(AccessException::class, fn(): \Db\Row\IssueRow => $this->create(caller: $this->reader));
+        $this->assertThrows(NotFoundException::class, fn(): \Db\Row\IssueRow => $this->create(caller: $this->stranger));
+        $this->assertThrows(NotFoundException::class, fn(): \Db\Row\IssueRow => $this->create(['project_id' => 9]));
     }
 
     public function testCreateChecksAssigneeParentAndStatus(): void
@@ -51,13 +51,13 @@ final class IssueServiceTest extends IssueCase
 
         $this->assertValidation(
             'assignee_aiu is not a member of this project',
-            fn() => $this->create(['assignee_aiu' => 99]),
+            fn(): \Db\Row\IssueRow => $this->create(['assignee_aiu' => 99]),
         );
         $this->assertValidation(
             'parent_issue_id must be an issue in the same project',
-            fn() => $this->create(['parent_issue_id' => $other->issueId]),
+            fn(): \Db\Row\IssueRow => $this->create(['parent_issue_id' => $other->issueId]),
         );
-        $this->assertValidation('status_id is not a valid status', fn() => $this->create(['status_id' => 99]));
+        $this->assertValidation('status_id is not a valid status', fn(): \Db\Row\IssueRow => $this->create(['status_id' => 99]));
 
         $this->assertSame(36, $this->create(['assignee_aiu' => 36])->assigneeAiu);
     }
@@ -91,7 +91,7 @@ final class IssueServiceTest extends IssueCase
 
         $this->assertValidation(
             'an issue cannot be its own parent',
-            fn() => $this->update($issue, ['parent_issue_id' => $issue->issueId]),
+            fn(): \Db\Row\IssueRow => $this->update($issue, ['parent_issue_id' => $issue->issueId]),
         );
     }
 
@@ -100,7 +100,7 @@ final class IssueServiceTest extends IssueCase
         $issue = $this->create();
         $this->store->startTimer($issue->issueId);
 
-        $this->assertThrows(ConflictException::class, fn() => $this->update($issue, ['status_id' => 4]));
+        $this->assertThrows(ConflictException::class, fn(): \Db\Row\IssueRow => $this->update($issue, ['status_id' => 4]));
     }
 
     public function testUpdateMarksDoneAndReopens(): void
@@ -118,8 +118,8 @@ final class IssueServiceTest extends IssueCase
     {
         $issue = $this->create();
 
-        $this->assertThrows(AccessException::class, fn() => $this->update($issue, ['title' => 'x'], $this->reader));
-        $this->assertThrows(NotFoundException::class, fn() => $this->update($issue, ['title' => 'x'], $this->stranger));
+        $this->assertThrows(AccessException::class, fn(): \Db\Row\IssueRow => $this->update($issue, ['title' => 'x'], $this->reader));
+        $this->assertThrows(NotFoundException::class, fn(): \Db\Row\IssueRow => $this->update($issue, ['title' => 'x'], $this->stranger));
     }
 
     // === delete() ===
@@ -128,7 +128,7 @@ final class IssueServiceTest extends IssueCase
     {
         $issue = $this->create();
 
-        $this->assertThrows(AccessException::class, fn() => $this->service->delete($this->writer, $issue->issueId));
+        $this->assertThrows(AccessException::class, fn(): int => $this->service->delete($this->writer, $issue->issueId));
         $this->assertSame(1, $this->service->delete($this->human, $issue->issueId));
         $this->assertSame(0, $this->service->delete($this->human, $issue->issueId));
     }
@@ -182,7 +182,7 @@ final class IssueServiceTest extends IssueCase
         $this->assertTrue($view->status->isTerminal);
         $this->assertTrue($view->membership->canRead);
         $this->assertFalse($view->membership->canWrite);
-        $this->assertThrows(NotFoundException::class, fn() => $this->service->view($this->stranger, $issue->issueId));
+        $this->assertThrows(NotFoundException::class, fn(): \Issues\IssueView => $this->service->view($this->stranger, $issue->issueId));
     }
 
     // === counts() ===
@@ -219,8 +219,8 @@ final class IssueServiceTest extends IssueCase
         $issue = $this->create();
 
         $this->assertSame($issue->issueId, $this->service->get($this->reader, $issue->issueId)->issueId);
-        $this->assertThrows(NotFoundException::class, fn() => $this->service->get($this->stranger, $issue->issueId));
-        $this->assertThrows(NotFoundException::class, fn() => $this->service->get($this->writer, 12345));
+        $this->assertThrows(NotFoundException::class, fn(): \Db\Row\IssueRow => $this->service->get($this->stranger, $issue->issueId));
+        $this->assertThrows(NotFoundException::class, fn(): \Db\Row\IssueRow => $this->service->get($this->writer, 12345));
     }
 
     // === detail() ===
@@ -243,7 +243,7 @@ final class IssueServiceTest extends IssueCase
 
         $readerSees = $this->service->detail($this->reader, $issue->issueId);
         $this->assertFalse($readerSees->canWrite);
-        $this->assertThrows(NotFoundException::class, fn() => $this->service->detail($this->stranger, $issue->issueId));
+        $this->assertThrows(NotFoundException::class, fn(): \Issues\IssueDetail => $this->service->detail($this->stranger, $issue->issueId));
     }
 
     // === statuses() ===

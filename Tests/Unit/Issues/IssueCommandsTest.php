@@ -40,11 +40,11 @@ final class IssueCommandsTest extends Unit
 
     public function testCreateIssueRejectsBadFields(): void
     {
-        $this->assertInvalid('project_id is required', static fn() => CreateIssue::fromInput(['title' => 'x']));
-        $this->assertInvalid('title is required', static fn() => CreateIssue::fromInput(['project_id' => 7]));
+        $this->assertInvalid('project_id is required', static fn(): \Issues\Command\CreateIssue => CreateIssue::fromInput(['title' => 'x']));
+        $this->assertInvalid('title is required', static fn(): \Issues\Command\CreateIssue => CreateIssue::fromInput(['project_id' => 7]));
         $this->assertInvalid(
             "priority must be 'low', 'normal', or 'high'",
-            static fn() => CreateIssue::fromInput(['project_id' => 7, 'title' => 'x', 'priority' => 'urgent']),
+            static fn(): \Issues\Command\CreateIssue => CreateIssue::fromInput(['project_id' => 7, 'title' => 'x', 'priority' => 'urgent']),
         );
     }
 
@@ -65,11 +65,11 @@ final class IssueCommandsTest extends Unit
     {
         $this->assertInvalid(
             'provide at least one field to update',
-            static fn() => UpdateIssue::fromInput(['issue_id' => 5]),
+            static fn(): \Issues\Command\UpdateIssue => UpdateIssue::fromInput(['issue_id' => 5]),
         );
         $this->assertInvalid(
             'title is required',
-            static fn() => UpdateIssue::fromInput(['issue_id' => 5, 'title' => '  ']),
+            static fn(): \Issues\Command\UpdateIssue => UpdateIssue::fromInput(['issue_id' => 5, 'title' => '  ']),
         );
     }
 
@@ -115,7 +115,7 @@ final class IssueCommandsTest extends Unit
     {
         $this->assertInvalid(
             'include_terminal must be 1 or 0',
-            static fn() => ListIssues::fromInput(['project_id' => 7, 'include_terminal' => 'yes']),
+            static fn(): \Issues\Command\ListIssues => ListIssues::fromInput(['project_id' => 7, 'include_terminal' => 'yes']),
         );
     }
 
@@ -153,7 +153,7 @@ final class IssueCommandsTest extends Unit
     {
         $this->assertInvalid(
             'provide at least one field to update',
-            static fn() => UpdateIssue::fromInput(['issue_id' => 4, 'encoding' => 'base64']),
+            static fn(): \Issues\Command\UpdateIssue => UpdateIssue::fromInput(['issue_id' => 4, 'encoding' => 'base64']),
         );
     }
 
@@ -162,7 +162,7 @@ final class IssueCommandsTest extends Unit
         $bomb = base64_encode((string) gzencode(str_repeat('A', 20_000_000), 9));
         $this->assertInvalid(
             'description is larger than 16777215 bytes once decompressed',
-            static fn() => CreateIssue::fromInput([
+            static fn(): \Issues\Command\CreateIssue => CreateIssue::fromInput([
                 'project_id'  => 7,
                 'title'       => 'x',
                 'description' => $bomb,
@@ -175,7 +175,7 @@ final class IssueCommandsTest extends Unit
     {
         $this->assertInvalid(
             "encoding must be 'plain', 'base64', or 'gzip+base64'",
-            static fn() => CreateIssue::fromInput(['project_id' => 7, 'title' => 'x', 'description' => 'y', 'encoding' => 'rot13']),
+            static fn(): \Issues\Command\CreateIssue => CreateIssue::fromInput(['project_id' => 7, 'title' => 'x', 'description' => 'y', 'encoding' => 'rot13']),
         );
     }
 
@@ -193,11 +193,11 @@ final class IssueCommandsTest extends Unit
     {
         $this->assertInvalid(
             'body is required',
-            static fn() => AddComment::fromInput(['issue_id' => 4, 'body' => '   ']),
+            static fn(): \Issues\Command\AddComment => AddComment::fromInput(['issue_id' => 4, 'body' => '   ']),
         );
         $this->assertInvalid(
             'body must be 65535 bytes or fewer',
-            static fn() => AddComment::fromInput(['issue_id' => 4, 'body' => str_repeat('a', 65_536)]),
+            static fn(): \Issues\Command\AddComment => AddComment::fromInput(['issue_id' => 4, 'body' => str_repeat('a', 65_536)]),
         );
     }
 
@@ -209,7 +209,7 @@ final class IssueCommandsTest extends Unit
 
         $this->assertInvalid(
             'issue_comment_id is required',
-            static fn() => EditComment::fromInput(['body' => 'x']),
+            static fn(): \Issues\Command\EditComment => EditComment::fromInput(['body' => 'x']),
         );
     }
 
@@ -248,7 +248,7 @@ final class IssueCommandsTest extends Unit
     {
         $this->assertInvalid(
             'note must be 255 characters or fewer',
-            static fn() => StartTimer::fromInput(['issue_id' => 4, 'note' => str_repeat('n', 256)]),
+            static fn(): \Issues\Command\StartTimer => StartTimer::fromInput(['issue_id' => 4, 'note' => str_repeat('n', 256)]),
         );
     }
 
@@ -292,11 +292,11 @@ final class IssueCommandsTest extends Unit
     {
         $this->assertInvalid(
             'commit_hash is required',
-            static fn() => AddCommit::fromInput(['issue_id' => 4, 'repo_id' => 4]),
+            static fn(): \Issues\Command\AddCommit => AddCommit::fromInput(['issue_id' => 4, 'repo_id' => 4]),
         );
         $this->assertInvalid(
             'commit_hash must be 64 characters or fewer',
-            static fn() => AddCommit::fromInput([
+            static fn(): \Issues\Command\AddCommit => AddCommit::fromInput([
                 'issue_id'    => 4,
                 'repo_id'     => 4,
                 'commit_hash' => str_repeat('f', 65),
