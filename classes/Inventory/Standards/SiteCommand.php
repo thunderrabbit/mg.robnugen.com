@@ -10,7 +10,7 @@ namespace Inventory\Standards;
  *
  *     sites
  *     site-add    --shortcode= --standard= [--project=]
- *     site-set    --shortcode= [--project=] [--checkout=] [--deployed=] [--server=] [--github=] [--autonomy=]
+ *     site-set    --shortcode= [--project=] [--checkout=] [--server=] [--github=] [--autonomy=]
  *     site-link   --shortcode= --domain= [--path=]
  *     site-unlink --shortcode= --domain= [--path=]
  *
@@ -28,7 +28,7 @@ final class SiteCommand
         'site-add' => ['required' => ['shortcode', 'standard'], 'optional' => ['project']],
         'site-set' => [
             'required' => ['shortcode'],
-            'optional' => ['project', 'checkout', 'deployed', 'server', 'github', 'autonomy'],
+            'optional' => ['project', 'checkout', 'server', 'github', 'autonomy'],
         ],
         'site-link' => ['required' => ['shortcode', 'domain'], 'optional' => ['path']],
         'site-unlink' => ['required' => ['shortcode', 'domain'], 'optional' => ['path']],
@@ -95,9 +95,6 @@ final class SiteCommand
                 }
                 if (array_key_exists('checkout', $o)) {
                     $changes['checkout_path'] = $o['checkout'] === '' ? null : $o['checkout'];
-                }
-                if (array_key_exists('deployed', $o)) {
-                    $changes['deployed_branch'] = $o['deployed'];
                 }
                 if (array_key_exists('server', $o)) {
                     $changes['server'] = $o['server'];

@@ -47,7 +47,7 @@ final readonly class SiteStore
     }
 
     /**
-     * @param array{project_id?: ?int, checkout_path?: ?string, deployed_branch?: string, server?: string, github_repo?: ?string, autonomy?: string} $changes
+     * @param array{project_id?: ?int, checkout_path?: ?string, server?: string, github_repo?: ?string, autonomy?: string} $changes
      */
     public function set(string $shortcode, array $changes): void
     {
@@ -68,13 +68,6 @@ final readonly class SiteStore
             }
             $sets[] = 'checkout_path = ?';
             $params[] = $path;
-        }
-        if (array_key_exists('deployed_branch', $changes)) {
-            if (preg_match('#\A[A-Za-z0-9._/-]{1,100}\z#', $changes['deployed_branch']) !== 1) {
-                throw new \InvalidArgumentException("\"{$changes['deployed_branch']}\" is not a branch name.");
-            }
-            $sets[] = 'deployed_branch = ?';
-            $params[] = $changes['deployed_branch'];
         }
         if (array_key_exists('server', $changes)) {
             $sets[] = 'server_site_domain_id = ?';
@@ -151,7 +144,7 @@ final readonly class SiteStore
      * checkout is, and which server to ask what is deployed (or why there is
      * none to ask).
      *
-     * @return list<array{shortcode: string, standard: string, checkout_path: ?string, deployed_branch: string, server: ?array{ssh_alias: string, directory: string}, server_problem: ?string}>
+     * @return list<array{shortcode: string, standard: string, checkout_path: ?string, server: ?array{ssh_alias: string, directory: string}, server_problem: ?string}>
      */
     public function forScanner(): array
     {
@@ -176,8 +169,7 @@ final readonly class SiteStore
 
         $sites = [];
         $rows = $this->rows(
-            'SELECT s.std_site_id, s.shortcode, t.slug AS standard, s.checkout_path, s.deployed_branch,
-                    s.server_site_domain_id
+            'SELECT s.std_site_id, s.shortcode, t.slug AS standard, s.checkout_path, s.server_site_domain_id
                FROM std_sites s JOIN std_standards t ON t.std_standard_id = s.std_standard_id
               ORDER BY s.shortcode'
         );
@@ -190,7 +182,6 @@ final readonly class SiteStore
                 'shortcode' => RowValue::string($row, 'shortcode'),
                 'standard' => RowValue::string($row, 'standard'),
                 'checkout_path' => RowValue::stringOrNull($row, 'checkout_path'),
-                'deployed_branch' => RowValue::string($row, 'deployed_branch'),
                 'server' => $server->sshAlias === null || $server->directory === null
                     ? null
                     : ['ssh_alias' => $server->sshAlias, 'directory' => $server->directory],
