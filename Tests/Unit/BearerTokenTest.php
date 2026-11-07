@@ -43,22 +43,22 @@ class BearerTokenTest extends Unit
 
     public function testResolvesLiveToken(): void
     {
-        $row = (new \Auth\BearerToken($this->pdo))->resolve('abc');
+        $row = new \Auth\BearerToken($this->pdo)->resolve('abc');
         $this->assertSame(['token_id' => 1, 'user_id' => 1, 'aiu_id' => 70], $row);
     }
 
     public function testExpiredTokenIsNull(): void
     {
-        $this->assertNull((new \Auth\BearerToken($this->pdo))->resolve('old'));
+        $this->assertNull(new \Auth\BearerToken($this->pdo)->resolve('old'));
     }
 
     public function testTokenWhoseActorBelongsToAnotherUserIsNull(): void
     {
-        $this->assertNull((new \Auth\BearerToken($this->pdo))->resolve('stray'));
+        $this->assertNull(new \Auth\BearerToken($this->pdo)->resolve('stray'));
     }
 
     public function testUnknownTokenIsNull(): void
     {
-        $this->assertNull((new \Auth\BearerToken($this->pdo))->resolve('nope'));
+        $this->assertNull(new \Auth\BearerToken($this->pdo)->resolve('nope'));
     }
 }

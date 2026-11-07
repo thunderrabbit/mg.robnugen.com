@@ -143,7 +143,7 @@ class LoginFunnelTest extends Unit
 
     public function testResumeFromCookieLogsInTheCookiesOwner(): void
     {
-        (new \Database\CookieRepository($this->pdo))->issue(7, hash('sha256', 'tok-123'), md5(self::UA), 3600);
+        new \Database\CookieRepository($this->pdo)->issue(7, hash('sha256', 'tok-123'), md5(self::UA), 3600);
         $_COOKIE = ['mg_test' => 'tok-123'];
 
         $auth = $this->isLoggedIn();

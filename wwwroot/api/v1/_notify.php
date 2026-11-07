@@ -55,7 +55,7 @@ if ($method === 'POST' && $sub === '/send') {
         return;
     }
 
-    $result = (new \Notify($config))->pingPhone(\Field::string($auth_actor, 'name'), $message, $type);
+    $result = new \Notify($config)->pingPhone(\Field::string($auth_actor, 'name'), $message, $type);
     if (empty($result['ok'])) {
         http_response_code(502);
         echo json_encode(['error' => 'telegram send failed', 'detail' => $result['error'] ?? null]);

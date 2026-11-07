@@ -113,7 +113,7 @@ try {
             } else {
                 // Never completed: start recurring from due_date, not today
                 $start = (!empty($todo['due_date']))
-                    ? (new \DateTime(\Field::string($todo, 'due_date'), $tz))->format('Y-m-d')
+                    ? new \DateTime(\Field::string($todo, 'due_date'), $tz)->format('Y-m-d')
                     : $today;
                 if ($start > $today) {
                     $todo['next_due_date'] = $start;

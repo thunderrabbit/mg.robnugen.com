@@ -352,7 +352,7 @@ if ($todos_path === '/granted') {
     $create_activity_id = \Field::int($body, 'activity_id');
     if (
         $create_activity_id > 0
-        && !(new \ActivityTracking\Activity($pdo))->userMayUse($create_activity_id, $auth_user_id)
+        && !new \ActivityTracking\Activity($pdo)->userMayUse($create_activity_id, $auth_user_id)
     ) {
         http_response_code(400);
         echo json_encode(['error' => 'Activity not found or access denied']);

@@ -29,17 +29,17 @@ class BackfillDuplicateTest extends Unit
 
     public function testFindsExactMatch(): void
     {
-        $this->assertSame(5, (new ActivityKai($this->pdo))->findBackfill(1, 1, '2026-11-01 06:00:00', 1200));
+        $this->assertSame(5, new ActivityKai($this->pdo)->findBackfill(1, 1, '2026-11-01 06:00:00', 1200));
     }
 
     public function testDifferentDurationIsNotADuplicate(): void
     {
-        $this->assertNull((new ActivityKai($this->pdo))->findBackfill(1, 1, '2026-11-01 06:00:00', 1199));
+        $this->assertNull(new ActivityKai($this->pdo)->findBackfill(1, 1, '2026-11-01 06:00:00', 1199));
     }
 
     public function testOtherUserIsNotADuplicate(): void
     {
-        $this->assertNull((new ActivityKai($this->pdo))->findBackfill(2, 1, '2026-11-01 06:00:00', 1200));
+        $this->assertNull(new ActivityKai($this->pdo)->findBackfill(2, 1, '2026-11-01 06:00:00', 1200));
     }
 
     public function testKeyForReturnsTheKeyOrNull(): void

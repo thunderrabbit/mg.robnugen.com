@@ -132,7 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         $chosen_activity_id = \Field::int($data, 'activity_id');
-        if ($chosen_activity_id > 0 && !(new \ActivityTracking\Activity($pdo))->userMayUse($chosen_activity_id, $user_id)) {
+        if ($chosen_activity_id > 0 && !new \ActivityTracking\Activity($pdo)->userMayUse($chosen_activity_id, $user_id)) {
             $error = "That activity is not available.";
         }
 

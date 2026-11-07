@@ -41,7 +41,7 @@ class ConnectedAppsTest extends Unit
 
     public function testListsOnlyTheUsersConnectionsNewestFirst(): void
     {
-        $apps = (new \Auth\ConnectedApps($this->pdo))->listForUser(1);
+        $apps = new \Auth\ConnectedApps($this->pdo)->listForUser(1);
         $this->assertCount(2, $apps);
         $this->assertSame('Claude Phone', $apps[0]['agent_name']);
         $this->assertSame('2026-10-10 00:00:00', $apps[0]['created_at_utc']);
@@ -57,7 +57,7 @@ class ConnectedAppsTest extends Unit
 
     public function testRevokeAllClearsTokensAndConsentsForThatUserOnly(): void
     {
-        $this->assertSame(2, (new \Auth\ConnectedApps($this->pdo))->revokeAll(1));
+        $this->assertSame(2, new \Auth\ConnectedApps($this->pdo)->revokeAll(1));
         $this->assertSame(1, $this->rows('mcp_tokens'));
         $this->assertSame(1, $this->rows('oauth_client_consents'));
     }
