@@ -61,15 +61,19 @@ class Utilities
         return $realTarget;
     }
 
-    public static function renderMarkdown(string $text): string
+    /**
+     * @param bool $breaks whether a single line end becomes a line break. True
+     *     suits text people type into a form; false suits a hard-wrapped file.
+     */
+    public static function renderMarkdown(string $text, bool $breaks = true): string
     {
         /** @var \Parsedown|null $parsedown */
         static $parsedown = null;
         if ($parsedown === null) {
             $parsedown = new \Parsedown();
             $parsedown->setSafeMode(true);
-            $parsedown->setBreaksEnabled(true);
         }
+        $parsedown->setBreaksEnabled($breaks);
         // Parsedown is vendored and unanalysed, so text() answers mixed.
         $html = $parsedown->text($text);
 

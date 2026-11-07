@@ -132,6 +132,21 @@ An actor with `agent_inbox_user.todos_limited = 1` is a "limited actor": a third
 - `Journal\EntryCheck` is the one save check, run by mg on Save and by Lemur 13 before writing. Those classes also run under Lemur 13's PHP 8.1 (no curl extension), so keep them free of 8.2+ syntax.
 - On the server, plain `php` is 8.2; use `/usr/local/php85/bin/php` for CLI tools.
 
+### Site standards (which sites are behind)
+
+`/admin/dh/standards.php` shows, for each site entered, which written-up steps it has done. Design: `docs/superpowers/specs/2026-11-06-dh-standards-design.md`.
+
+- **A step is a Markdown file** under `tools/site-standards/steps/<standard>/<track>/<step>.md`, with `_standard.md` and `_track.md` naming the directories. `Inventory\Standards\StepTree` is the only reader and refuses anything malformed. A step is an `idea` until one site has done it, then `proven`; only proven steps count against a site.
+- **Only the step files deployed on mg count.** Rob approves by deploying, and not only `master` gets deployed. The scanner asks the server which commit it runs and reads the step files from that commit with git, never from the working tree; its own check scripts must match that commit or it stops.
+- **A step is ticked by a check, never by hand.** `Inventory\Standards\HostChecks` answers the ones mg knows from its own tables (`dh_has_domain`, `dh_ssh_login`, `dh_serves_php`, `repo_located`). Every other check is `tools/site-standards/checks/<name>.sh REPO [PARAM]`: one line on stdout, exit 0 done, 1 not yet, 2 could not tell, and it never writes to the repo.
+- **The scanner runs on Lemur 13** (the checkouts and Docker are there): `tools/site-standards/scan.sh [--dry-run] [shortcode ...]`. It checks a site only when its checkout is clean and on the branch recorded as deployed (`site.sh site-set --deployed=`); any other site is skipped and keeps its results. Results go to `tools/import_site_standards.php` over `ssh mg`, like a sweep. Nothing schedules it yet.
+- **Site facts are entered by hand** with `tools/site-standards/site.sh` (`site-add`, `site-set`, `site-link`, `site-unlink`, `sites`). The pages are read-only.
+- **A site's notes on a step are an mg issue** in the site's own project, titled `<step>.<shortcode>` (`Inventory\Standards\Names`). An issue in status **NAh** ("Not Applicable here") makes that step count as done for that site; an issue marked Done does not.
+- **Three marks and no others**: checkmark, info circle, and a crying-laughing face for a site nobody can reach (no domain, or no proven ssh login). Never add warning styling; every site here is working.
+- **This repo is public.** Shortcodes, site names and anything about one site's progress live only in the database and in issues. Step files, tests and comments use `mg` or made-up names.
+- `.gitignore` ignores `php*`; `tools/site-standards/**` is exempt so a track, step or check can be named `phpstan`. An ignored file leaves `git status` clean, so after adding one count what `git ls-files tools/site-standards` sees.
+- Tables: `std_*` are host-neutral, `dh_site_domains` is the one DreamHost link (`db_schemas/45_site_standards/`). Sites not on DreamHost are a separate, later project.
+
 ## Development Notes
 
 - No runtime dependencies — pure PHP with custom autoloader. `composer.json` holds dev tools (Codeception, phpcs, PHPStan) plus the platform requirement (PHP 8.5 and the extensions in `Startup\RequiredExtensions`; `prepend.php` fails by name if one is missing, so keep the two lists in step); `vendor/` is never deployed

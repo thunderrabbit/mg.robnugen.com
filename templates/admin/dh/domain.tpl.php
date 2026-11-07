@@ -3,6 +3,7 @@
  * @var array{id: int, swept_on: string, previous_id: int|null, previous_on: string|null}|null $sweep
  * @var array<mixed> $domain
  * @var list<array<mixed>> $sites
+ * @var list<array{shortcode: string, path_prefix: string, report: \Inventory\Standards\SiteReport}> $standards_sites
  * @var list<array<mixed>> $certs
  * @var list<array<mixed>> $registrations
  */
@@ -13,6 +14,24 @@ $span = static fn (array $row): string => $h($row['from_on']) . ' &rarr; ' . ($r
 <h1><?= $h($domain['domain']) ?></h1>
 <p>Part of <strong><?= $h($domain['base_domain']) ?></strong>.
    <?= $domain['registered_on'] === null ? 'Not registered through DreamHost.' : 'First registered ' . $h($domain['registered_on']) . '.' ?></p>
+
+<?php if ($standards_sites !== []): ?>
+<div class="PagePanel">
+    <h3>Sites in this domain</h3>
+    <ul class="StdDomainSites">
+        <?php foreach ($standards_sites as $site): ?>
+            <li>
+                <span class="<?= $site['report']->standing->mark->cssClass() ?>"><?= $site['report']->standing->mark->glyph() ?></span>
+                <a href="/admin/dh/standards.php#site-<?= $h($site['shortcode']) ?>"><strong><?= $h($site['shortcode']) ?></strong></a>
+                <?php if ($site['path_prefix'] !== ''): ?>
+                    at <code><?= $h($site['path_prefix']) ?></code>
+                <?php endif; ?>
+                <span class="StdSummary<?= $site['report']->standing->summary === 'waiting on you' ? ' StdYours' : '' ?>"><?= $site['report']->standing->summary === 'waiting on you' ? '🐾 ' : '' ?><?= $h($site['report']->standing->summary) ?></span>
+            </li>
+        <?php endforeach; ?>
+    </ul>
+</div>
+<?php endif; ?>
 
 <div class="PagePanel">
     <h3>Website history</h3>

@@ -8,6 +8,7 @@
 <div class="PagePanel">
     <strong>DreamHost inventory</strong> &middot;
     <a href="/admin/dh/">overview</a> &middot;
+    <a href="/admin/dh/standards.php">standards</a> &middot;
     <a href="/admin/dh/domains.php">domains</a> &middot;
     <a href="/admin/dh/users.php">users</a> &middot;
     <a href="/admin/dh/databases.php">databases</a> &middot;
