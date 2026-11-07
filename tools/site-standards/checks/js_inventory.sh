@@ -6,7 +6,7 @@ set -uo pipefail
 HERE="$(dirname "${BASH_SOURCE[0]}")"
 . "$HERE/../lib.sh"
 need_repo "${1:-}"
-out="$(python3 -I - "$HERE" "$REPO" <<'PY'
+out="$(python3 -I -B - "$HERE" "$REPO" <<'PY'
 import os, sys
 sys.path.insert(0, sys.argv[1])
 import js_scripts as j

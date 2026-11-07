@@ -17,7 +17,7 @@ need_repo "${1:-}"
 
 # py WHAT: the reader's answer about this checkout, or "x <why>".
 py() {
-  python3 -I - "$HERE" "$REPO" "$@" <<'PY'
+  python3 -I -B - "$HERE" "$REPO" "$@" <<'PY'
 import sys
 sys.path.insert(0, sys.argv[1])
 import js_scripts as j
