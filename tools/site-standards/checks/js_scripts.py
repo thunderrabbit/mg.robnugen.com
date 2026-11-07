@@ -42,8 +42,10 @@ def blank_php(text):
     return PHP_BLOCK.sub(lambda m: re.sub(r"[^\n]", DYNAMIC, m.group(0)), text)
 
 
-def tracked_files(repo):
-    done = subprocess.run(["git", "--no-optional-locks", "-C", repo, "ls-files", "-z"],
+def tracked_files(repo, rev=None):
+    """The files read(), as git knows them: in the index, or at commit `rev`."""
+    listing = ["ls-files", "-z"] if rev is None else ["ls-tree", "-r", "-z", "--name-only", rev]
+    done = subprocess.run(["git", "--no-optional-locks", "-C", repo, *listing],
                           capture_output=True, text=True)
     if done.returncode != 0:
         raise RuntimeError("could not list the checkout's files with git")
@@ -85,14 +87,28 @@ def imports_in(text, path, base_line, into):
                      "dynamic": DYNAMIC in spec})
 
 
-def read(repo):
-    """Everything the checks need to know about the repo's scripts, as a dict."""
+def contents(repo, path, rev=None):
+    """A file's text in the checkout, or at commit `rev`; None if unreadable."""
+    if rev is not None:
+        done = subprocess.run(["git", "--no-optional-locks", "-C", repo, "show", f"{rev}:{path}"],
+                              capture_output=True)
+        return done.stdout.decode("utf-8", "replace") if done.returncode == 0 else None
+    try:
+        with open(os.path.join(repo, path), encoding="utf-8", errors="replace") as f:
+            return f.read()
+    except OSError:
+        return None
+
+
+def read(repo, rev=None):
+    """Everything the checks need to know about the repo's scripts, as a dict.
+
+    With `rev`, the scripts as they were at that commit.
+    """
     found = {"scripts": [], "importmap": [], "imports": [], "inline": [], "problems": []}
-    for path in tracked_files(repo):
-        try:
-            with open(os.path.join(repo, path), encoding="utf-8", errors="replace") as f:
-                raw = f.read()
-        except OSError:
+    for path in tracked_files(repo, rev):
+        raw = contents(repo, path, rev)
+        if raw is None:
             continue
         if path.endswith((".js", ".mjs")):
             imports_in(raw, path, 1, found["imports"])
@@ -153,6 +169,24 @@ def loaded_urls(found):
     urls += [e["url"] for e in found["importmap"]]
     urls += [i["spec"] for i in found["imports"] if is_external(i["spec"]) and not i["dynamic"]]
     return urls
+
+
+def dependencies(repo, rev=None):
+    """package.json's `dependencies` (name -> range), or {} without one."""
+    text = contents(repo, "package.json", rev)
+    if text is None:
+        return {}
+    deps = json.loads(text).get("dependencies") or {}
+    return {str(k): str(v) for k, v in deps.items()} if isinstance(deps, dict) else {}
+
+
+def libraries(repo, rev=None):
+    """What the site loads from elsewhere, as a sorted list that two commits can be compared by."""
+    found = read(repo, rev)
+    urls = [u for u in loaded_urls(found) if is_external(u) or has_version(u)]
+    urls += [i["spec"] for i in found["imports"] if not is_external(i["spec"]) and not i["dynamic"]]
+    urls += [f"npm:{k}@{v}" for k, v in dependencies(repo, rev).items()]
+    return sorted(set(urls))
 
 
 def verdict(code, line):
