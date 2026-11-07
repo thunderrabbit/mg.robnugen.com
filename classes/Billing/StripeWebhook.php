@@ -61,12 +61,7 @@ class StripeWebhook
         }
 
         $expected = hash_hmac('sha256', $t_match[1] . '.' . $payload, $secret);
-        foreach ($v1_matches[1] as $signature) {
-            if (hash_equals($expected, $signature)) {
-                return true;
-            }
-        }
-        return false;
+        return array_any($v1_matches[1], fn($signature) => hash_equals($expected, $signature));
     }
 
     // ── Event dispatch ────────────────────────────────────────────────────────
