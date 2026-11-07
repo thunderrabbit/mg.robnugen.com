@@ -242,6 +242,18 @@ final class SweepImporter
             $sweepId,
         );
 
+        $machines = [];
+        foreach ($sweep->servers as $server) {
+            $machines[] = new SweptSpan(['dh_mysql_server_id' => $serverIds[$server['name']]], ['machine' => $server['machine']]);
+        }
+        $this->syncSpans('mysql machines', new SpanTable(
+            'dh_mysql_machines',
+            'dh_mysql_machine_id',
+            ['dh_mysql_server_id'],
+            ['machine'],
+            self::SERVERS_IN_ACCOUNT,
+        ), $machines, $accountId, $sweepId);
+
         $hosts = [];
         foreach ($sweep->servers as $server) {
             foreach ($server['hostnames'] as $hostname) {

@@ -121,7 +121,37 @@ final class SweepPayloadTest extends Unit
         $sweep = SweepPayload::fromArray($this->sweep([
             'files' => ['databases' => ['servers' => ['srv:one' => ['hostnames' => ['db.example.com']]]]],
         ]));
-        $this->assertSame('srv:one', $sweep->servers[0]['name']);
+        $this->assertSame('one', $sweep->servers[0]['name']);
+        $this->assertSame('srv', $sweep->servers[0]['machine']);
+    }
+
+    public function testAServerMovingMachinesKeepsItsIdentity(): void
+    {
+        /** @var array{files: array{databases: array{servers: array<string, mixed>, databases: list<array<string, mixed>>}}} $data */
+        $data = $this->sweep();
+        $data['files']['databases']['servers'] = ['srv2:one' => ['hostnames' => ['db.example.com']]];
+        $data['files']['databases']['databases'][0]['server'] = 'srv2:one';
+        $moved = SweepPayload::fromArray($data);
+        $before = SweepPayload::fromArray($this->sweep());
+
+        $this->assertSame($before->servers[0]['name'], $moved->servers[0]['name']);
+        $this->assertSame('srv2', $moved->servers[0]['machine']);
+        $this->assertSame('one', $moved->databases[0]['server']);
+    }
+
+    public function testADatabaseWithNoSizeKeepsAnUnknownSize(): void
+    {
+        $sweep = SweepPayload::fromArray($this->sweep([
+            'files' => ['databases' => ['databases' => [0 => ['size' => null, 'size_bytes' => null]]]],
+        ]));
+        $this->assertNull($sweep->databases[0]['size_bytes']);
+    }
+
+    public function testRefusesAServerNameWithoutAMachine(): void
+    {
+        $this->refuses("server 'lonely' should be machine:user", [
+            'files' => ['databases' => ['servers' => ['lonely' => ['hostnames' => []]]]],
+        ]);
     }
 
     public function testRefusesAKeyCarriedInAValue(): void

@@ -14,6 +14,11 @@ use Db\Rows;
  */
 final readonly class Browse
 {
+    /** A MySQL server as the panel names it, "<machine>:<user>", with the machine it is on now (alias `m` = dh_mysql_servers). */
+    private const string SERVER_LABEL =
+        "(SELECT CONCAT(mm.machine, ':', m.name) FROM dh_mysql_machines mm"
+        . ' WHERE mm.dh_mysql_server_id = m.dh_mysql_server_id ORDER BY mm.from_sweep_id DESC LIMIT 1) AS server';
+
     public function __construct(private \PDO $pdo)
     {
     }
@@ -337,7 +342,7 @@ final readonly class Browse
     public function databases(?int $latestId, ?int $previousId): array
     {
         return $this->rows(
-            'SELECT db.dh_database_id, db.name, m.name AS server, st.description, cur.size_bytes,'
+            'SELECT db.dh_database_id, db.name, ' . self::SERVER_LABEL . ', st.description, cur.size_bytes,'
             . ' cur.size_bytes - prev.size_bytes AS growth,'
             . " (SELECT GROUP_CONCAT(u.username ORDER BY u.username SEPARATOR ', ') FROM dh_db_grants g"
             . ' JOIN dh_db_users u ON u.dh_db_user_id = g.dh_db_user_id'
@@ -390,7 +395,7 @@ final readonly class Browse
     public function markedDatabases(): array
     {
         return $this->rows(
-            'SELECT db.dh_database_id, db.name, m.name AS server, t.decided_at_utc, t.note,'
+            'SELECT db.dh_database_id, db.name, ' . self::SERVER_LABEL . ', t.decided_at_utc, t.note,'
             . ' EXISTS (SELECT 1 FROM dh_database_states s WHERE s.dh_database_id = db.dh_database_id'
             . ' AND s.until_sweep_id IS NULL) AS present,'
             . ' (SELECT sw.swept_on FROM dh_database_states s JOIN dh_sweeps sw ON sw.dh_sweep_id = s.until_sweep_id'

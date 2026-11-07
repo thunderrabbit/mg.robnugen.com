@@ -15,7 +15,7 @@ final class EmptyDatabaseRule
     /**
      * @param list<int> $requested database ids the form posted
      * @param array<int, int|null> $latestSizes size in bytes in the latest sweep, by database id;
-     *                                          a missing id or null means not swept as present
+     *                                          a missing id means not swept as present; null means the panel gave no size
      */
     public static function check(array $requested, array $latestSizes): EmptyDatabaseVerdict
     {
@@ -23,8 +23,10 @@ final class EmptyDatabaseRule
         $refused = [];
         foreach (array_values(array_unique($requested)) as $databaseId) {
             $size = $latestSizes[$databaseId] ?? null;
-            if ($size === null) {
+            if (!array_key_exists($databaseId, $latestSizes)) {
                 $refused[$databaseId] = 'not in the latest sweep';
+            } elseif ($size === null) {
+                $refused[$databaseId] = 'size unknown in the latest sweep';
             } elseif ($size !== 0) {
                 $refused[$databaseId] = 'not empty: ' . $size . ' bytes';
             } else {

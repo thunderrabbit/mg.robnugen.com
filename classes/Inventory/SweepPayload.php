@@ -17,8 +17,8 @@ namespace Inventory;
  * @phpstan-type UserRow array{username: string, access: string, disk_bytes: int|null}
  * @phpstan-type DomainRow array{domain: string, type: string, username: string|null, server: string|null, php_version: string|null, web_directory: string|null, https: string, cert_expires: string|null}
  * @phpstan-type RegistrationRow array{domain: string, registry: string|null, created: string|null, expires: string, auto_renew: bool, auto_renew_on: string|null, transfer_lock: bool, privacy: bool, status: string, hidden: bool}
- * @phpstan-type ServerRow array{name: string, hostnames: list<string>}
- * @phpstan-type DatabaseRow array{name: string, server: string, size_bytes: int, description: string|null, db_users: list<string>}
+ * @phpstan-type ServerRow array{name: string, machine: string, hostnames: list<string>}
+ * @phpstan-type DatabaseRow array{name: string, server: string, size_bytes: int|null, description: string|null, db_users: list<string>}
  * @phpstan-type CronRow array{username: string, title: string, active: bool, output_emailed_to: string|null}
  * @phpstan-type ObjectsUserRow array{username: string, endpoint: string, key_count: int, buckets: list<string>}
  */
@@ -346,11 +346,22 @@ final readonly class SweepPayload
     {
         $servers = [];
         $hostnameOwner = [];
-        foreach (Json::object($file, 'servers') as $name => $info) {
-            $name = (string) $name;
+        $serverOf = [];
+        foreach (Json::object($file, 'servers') as $panelName => $info) {
+            $panelName = (string) $panelName;
             if (!is_array($info)) {
-                throw new SweepFormatException("server '{$name}' should be an object");
+                throw new SweepFormatException("server '{$panelName}' should be an object");
             }
+            // The panel calls a server "<machine>:<dreamhost user>". The user is the server;
+            // DreamHost moves it between machines (mg #803).
+            if (!preg_match('/^([^:]+):([^:]+)$/', $panelName, $parts)) {
+                throw new SweepFormatException("server '{$panelName}' should be machine:user");
+            }
+            [, $machine, $name] = $parts;
+            if (isset($servers[$name])) {
+                throw new SweepFormatException("server '{$name}' is listed on two machines");
+            }
+            $serverOf[$panelName] = $name;
             $hostnames = array_map(strtolower(...), Json::strList($info, 'hostnames'));
             foreach ($hostnames as $hostname) {
                 if (isset($hostnameOwner[$hostname])) {
@@ -358,17 +369,18 @@ final readonly class SweepPayload
                 }
                 $hostnameOwner[$hostname] = $name;
             }
-            $servers[$name] = ['name' => $name, 'hostnames' => $hostnames];
+            $servers[$name] = ['name' => $name, 'machine' => $machine, 'hostnames' => $hostnames];
         }
 
         $databases = [];
         $seen = [];
         foreach (Json::records($file, 'databases') as $record) {
             $name = Json::str($record, 'database');
-            $server = Json::str($record, 'server');
-            if (!isset($servers[$server])) {
-                throw new SweepFormatException("database '{$name}' is on unknown server '{$server}'");
+            $panelServer = Json::str($record, 'server');
+            if (!isset($serverOf[$panelServer])) {
+                throw new SweepFormatException("database '{$name}' is on unknown server '{$panelServer}'");
             }
+            $server = $serverOf[$panelServer];
             if (isset($seen[$server . "\t" . $name])) {
                 throw new SweepFormatException("database '{$name}' appears twice on '{$server}'");
             }
@@ -376,7 +388,7 @@ final readonly class SweepPayload
             $databases[] = [
                 'name' => $name,
                 'server' => $server,
-                'size_bytes' => Json::int($record, 'size_bytes'),
+                'size_bytes' => Json::intOrNull($record, 'size_bytes'),
                 'description' => Json::strOrNull($record, 'description'),
                 'db_users' => Json::strList($record, 'db_users'),
             ];
