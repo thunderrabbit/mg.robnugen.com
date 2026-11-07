@@ -43,10 +43,10 @@ class CookieRepository
         ["''", 'NULL'],
     ];
 
-    private \DateTimeImmutable $now;
+    private readonly \DateTimeImmutable $now;
 
     public function __construct(
-        private \PDO $di_pdo,
+        private readonly \PDO $di_pdo,
         ?\DateTimeImmutable $now = null,
     ) {
         // UTC before any arithmetic: "+30 days" in America/Los_Angeles is an

@@ -25,7 +25,7 @@ class StripeWebhook
         'growth'    => 25000,
     ];
 
-    public function __construct(private \PDO $pdo)
+    public function __construct(private readonly \PDO $pdo)
     {
     }
 

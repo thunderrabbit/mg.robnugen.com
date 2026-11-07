@@ -6,9 +6,9 @@ namespace Emotional;
 
 class Ledger
 {
-    private string $encKey;
+    private readonly string $encKey;
 
-    public function __construct(private \PDO $pdo, string $raw_key, private int $api_key_id, private int $user_id)
+    public function __construct(private readonly \PDO $pdo, string $raw_key, private readonly int $api_key_id, private readonly int $user_id)
     {
         $this->encKey = hash_hmac('sha256', 'emotional_v1', $raw_key, true); // 32 bytes
     }

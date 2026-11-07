@@ -35,8 +35,8 @@ final class ProjectService
      *        The API charges a credit there, so a rejected request is never billed.
      */
     public function __construct(
-        private ProjectStore $store,
-        private ?\Closure $beforeWrite = null,
+        private readonly ProjectStore $store,
+        private readonly ?\Closure $beforeWrite = null,
     ) {
     }
 

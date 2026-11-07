@@ -23,7 +23,7 @@ use Projects\Command\UpdateProject;
  */
 final class PdoProjectStore implements ProjectStore
 {
-    public function __construct(private \PDO $pdo)
+    public function __construct(private readonly \PDO $pdo)
     {
     }
 

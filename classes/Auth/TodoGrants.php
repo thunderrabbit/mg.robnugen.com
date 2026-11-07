@@ -10,7 +10,7 @@ namespace Auth;
 
 class TodoGrants
 {
-    public function __construct(private \PDO $di_pdo)
+    public function __construct(private readonly \PDO $di_pdo)
     {
     }
 

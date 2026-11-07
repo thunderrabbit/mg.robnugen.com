@@ -22,8 +22,8 @@ class DBExistaroo
      * @param \PDO $pdo Native PDO database connection.
      */
     public function __construct(
-        private \Config $config,
-        private \PDO $pdo,
+        private readonly \Config $config,
+        private readonly \PDO $pdo,
     ) {
     }
 

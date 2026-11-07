@@ -32,7 +32,7 @@ class CSRFProtectaroo
     /** Methods that must not change state, so carry no token. */
     private const array SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS'];
 
-    public function __construct(private Request $request)
+    public function __construct(private readonly Request $request)
     {
     }
 

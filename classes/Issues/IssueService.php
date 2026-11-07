@@ -44,8 +44,8 @@ final class IssueService
      *        The API charges a credit there, so a rejected request is never billed.
      */
     public function __construct(
-        private IssueStore $store,
-        private ?\Closure $beforeWrite = null,
+        private readonly IssueStore $store,
+        private readonly ?\Closure $beforeWrite = null,
     ) {
     }
 

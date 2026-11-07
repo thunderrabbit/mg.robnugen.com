@@ -42,7 +42,7 @@ final class FakeProjectStore implements ProjectStore
 
     private int $nextProjectId = 1;
 
-    private \DateTimeImmutable $now;
+    private readonly \DateTimeImmutable $now;
 
     public function __construct()
     {
