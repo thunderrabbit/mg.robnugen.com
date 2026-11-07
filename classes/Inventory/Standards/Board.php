@@ -160,10 +160,30 @@ final class Board
                 'login_confirmed_on' => RowValue::stringOrNull($row, 'login_confirmed_on'),
             ];
         }
+        $testDomain = null;
+        // Absent until migration 48 is applied; the page must work before then.
+        $testLinkId = array_key_exists('test_site_domain_id', $site) ? RowValue::intOrNull($site, 'test_site_domain_id') : null;
+        if ($testLinkId !== null) {
+            $rows = $this->rows(
+                'SELECT d.domain, l.path_prefix, st.php_version
+                   FROM dh_site_domains l
+                   JOIN dh_domains d ON d.dh_domain_id = l.dh_domain_id
+                   LEFT JOIN dh_domain_states st ON st.dh_domain_id = d.dh_domain_id AND st.until_sweep_id IS NULL
+                  WHERE l.dh_site_domain_id = ?',
+                [$testLinkId],
+            );
+            if ($rows !== []) {
+                $testDomain = [
+                    'domain' => RowValue::string($rows[0], 'domain') . RowValue::string($rows[0], 'path_prefix'),
+                    'php_version' => RowValue::stringOrNull($rows[0], 'php_version'),
+                ];
+            }
+        }
         $facts = new SiteFacts(
             $domains,
             RowValue::stringOrNull($site, 'checkout_path'),
             RowValue::stringOrNull($site, 'github_repo'),
+            $testDomain,
         );
 
         $openStates = [];

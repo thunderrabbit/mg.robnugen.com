@@ -28,3 +28,6 @@ Tests/Support/_generated/*
 !Tests/Support/_generated/.gitkeep
 vendor/
 .claude/
+
+# Python bytecode from importing tools/site-standards/scan.py
+__pycache__/

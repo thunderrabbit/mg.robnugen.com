@@ -121,6 +121,55 @@ final class StandardsHostChecksTest extends Unit
         $this->assertNull(HostChecks::answer('phpstan_top', null, new SiteFacts([], null, null)));
     }
 
+    /**
+     * @return array{domain: string, php_version: ?string}
+     */
+    private function testDomain(?string $php): array
+    {
+        return ['domain' => 'example.test', 'php_version' => $php];
+    }
+
+    public function testNoTestDomainPassesWithAReason(): void
+    {
+        $result = $this->answer('dh_test_serves_php', '8.5', new SiteFacts([], null, null));
+
+        $this->assertSame(Outcome::Pass, $result->outcome);
+        $this->assertStringContainsString('no test domain', $result->detail);
+    }
+
+    public function testTestDomainOnTheTargetPasses(): void
+    {
+        $facts = new SiteFacts([], null, null, $this->testDomain('8.5'));
+
+        $this->assertSame(Outcome::Pass, $this->answer('dh_test_serves_php', '8.5', $facts)->outcome);
+    }
+
+    public function testTestDomainBelowTheTargetFailsNamingIt(): void
+    {
+        $facts = new SiteFacts([], null, null, $this->testDomain('8.3'));
+        $result = $this->answer('dh_test_serves_php', '8.5', $facts);
+
+        $this->assertSame(Outcome::Fail, $result->outcome);
+        $this->assertSame('example.test serves 8.3', $result->detail);
+    }
+
+    public function testTestDomainWithNoVersionFails(): void
+    {
+        $facts = new SiteFacts([], null, null, $this->testDomain(null));
+
+        $this->assertSame(
+            'example.test serves no PHP version',
+            $this->answer('dh_test_serves_php', '8.5', $facts)->detail,
+        );
+    }
+
+    public function testTestServesPhpWithNoVersionToCompareCannotTell(): void
+    {
+        $facts = new SiteFacts([], null, null, $this->testDomain('8.5'));
+
+        $this->assertSame(Outcome::Unknown, $this->answer('dh_test_serves_php', '8', $facts)->outcome);
+    }
+
     public function testServesPhpWithNoVersionToCompareCannotTell(): void
     {
         // A step file that forgot its param must not tick the step for every site.

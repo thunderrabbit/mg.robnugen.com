@@ -9,8 +9,9 @@ namespace Inventory\Standards;
  * are kept by hand.
  *
  *     sites
+ *     test-candidates
  *     site-add    --shortcode= --standard= [--project=]
- *     site-set    --shortcode= [--project=] [--checkout=] [--server=] [--github=] [--autonomy=]
+ *     site-set    --shortcode= [--project=] [--checkout=] [--server=] [--test=] [--github=] [--autonomy=]
  *     site-link   --shortcode= --domain= [--path=]
  *     site-unlink --shortcode= --domain= [--path=]
  *
@@ -19,16 +20,20 @@ namespace Inventory\Standards;
  * --server= names the domain the scanner asks what is deployed, as
  * example.test or example.test/blog; it is needed only when a site's domains
  * have different checkouts.
+ *
+ * --test= names the site's test domain in the same way; clear it with --test=.
+ * A site with no test domain has no steps that need one.
  */
 final class SiteCommand
 {
     /** @var array<string, array{required: list<string>, optional: list<string>}> */
     private const array COMMANDS = [
         'sites' => ['required' => [], 'optional' => []],
+        'test-candidates' => ['required' => [], 'optional' => []],
         'site-add' => ['required' => ['shortcode', 'standard'], 'optional' => ['project']],
         'site-set' => [
             'required' => ['shortcode'],
-            'optional' => ['project', 'checkout', 'server', 'github', 'autonomy'],
+            'optional' => ['project', 'checkout', 'server', 'test', 'github', 'autonomy'],
         ],
         'site-link' => ['required' => ['shortcode', 'domain'], 'optional' => ['path']],
         'site-unlink' => ['required' => ['shortcode', 'domain'], 'optional' => ['path']],
@@ -85,6 +90,8 @@ final class SiteCommand
         switch ($command) {
             case 'sites':
                 return json_encode($store->forScanner(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+            case 'test-candidates':
+                return json_encode($store->testCandidates(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
             case 'site-add':
                 $store->add($shortcode, $o['standard'] ?? '', self::projectId($o['project'] ?? ''));
                 return "Added site {$shortcode}.";
@@ -98,6 +105,9 @@ final class SiteCommand
                 }
                 if (array_key_exists('server', $o)) {
                     $changes['server'] = $o['server'];
+                }
+                if (array_key_exists('test', $o)) {
+                    $changes['test'] = $o['test'];
                 }
                 if (array_key_exists('github', $o)) {
                     $changes['github_repo'] = $o['github'] === '' ? null : $o['github'];

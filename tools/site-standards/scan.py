@@ -167,6 +167,25 @@ def checks_for(standard, files):
     return wanted
 
 
+def check_environment(site, env):
+    """The environment a site's checks run in: the scan's, plus what mg knows.
+
+    Every variable is set, empty when there is nothing to say, so a check
+    never has to tell "unset" from "none". A check reads these; the step's one
+    `param` stays the target PHP.
+    """
+    test = site.get("test") or {}
+    facts = {
+        "SITE_SHORTCODE": site["shortcode"],
+        "SITE_PHP_CURRENT": site.get("php_current"),
+        "SITE_TEST_DOMAIN": test.get("domain"),
+        "SITE_TEST_PHP": test.get("php_version"),
+        "SITE_TEST_SSH_ALIAS": test.get("ssh_alias"),
+        "SITE_TEST_DIRECTORY": test.get("directory"),
+    }
+    return dict(env, **{name: value or "" for name, value in facts.items()})
+
+
 def scan_site(site, files, work_root, env):
     """One site's entry in the document: its results, or why it was skipped."""
     shortcode = site["shortcode"]
@@ -203,13 +222,14 @@ def scan_site(site, files, work_root, env):
         return skipped("uncommitted changes", branch)
 
     results = []
+    site_env = check_environment(site, env)
     for name, check, param in checks_for(site["standard"], files):
         script = os.path.join(HERE, "checks", check + ".sh")
         if not CHECK_NAME.match(check) or not os.path.isfile(script):
             continue
         try:
             done = subprocess.run([script, repo, param], capture_output=True, text=True,
-                                  env=env, timeout=CHECK_TIMEOUT)
+                                  env=site_env, timeout=CHECK_TIMEOUT)
             outcome = OUTCOMES.get(done.returncode, "unknown")
             lines = done.stdout.strip().splitlines()
             detail = lines[0] if lines else ""
