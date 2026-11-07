@@ -120,10 +120,18 @@ final class StandardsScanPayloadTest extends Unit
         $this->assertNull($payload->sites[1]['serverCommit'], 'a site may leave the server fields out');
     }
 
-    public function testRefusesAScannedSiteNotAtItsServersCommit(): void
+    public function testRefusesAScannedSiteWithoutBothCommits(): void
     {
-        $this->refuses($this->withSite(0, 'server_commit', str_repeat('b', 40)), '/server runs/');
         $this->refuses($this->withSite(0, 'server_commit', null), '/server runs/');
+        $this->refuses($this->withSite(0, 'commit', null), '/server runs/');
+    }
+
+    public function testAScannedSiteMayBeOnAnotherCommitThanItsServer(): void
+    {
+        // The importer decides whether that is the branch the site is preparing.
+        $payload = ScanPayload::fromArray($this->withSite(0, 'server_commit', str_repeat('b', 40)));
+        $this->assertSame(str_repeat('b', 40), $payload->sites[0]['serverCommit']);
+        $this->assertSame(self::SHA, $payload->sites[0]['commit']);
     }
 
     public function testAScannedCheckoutMayBeOnADetachedHead(): void
