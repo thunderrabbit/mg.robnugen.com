@@ -31,6 +31,17 @@ final class StandardsNamesTest extends Unit
         $this->assertFalse(Names::isShortcode(str_repeat('a', 25)));
     }
 
+    public function testBranches(): void
+    {
+        $this->assertTrue(Names::isBranch('master'));
+        $this->assertTrue(Names::isBranch('green.branch.master.right.here.dawg'));
+        $this->assertTrue(Names::isBranch('feature/jquery-3'));
+        $this->assertFalse(Names::isBranch(''));
+        $this->assertFalse(Names::isBranch('master..green'));
+        $this->assertFalse(Names::isBranch('master; rm -rf'));
+        $this->assertFalse(Names::isBranch(str_repeat('a', 101)));
+    }
+
     public function testNoteTitleRoundTrips(): void
     {
         $title = Names::noteTitle('title_of_upgrade', 'example-games');

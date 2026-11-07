@@ -30,6 +30,13 @@ final class StandardsSiteCommandTest extends Unit
         $this->assertSame(['shortcode' => 'mg', 'github' => ''], $parsed['options']);
     }
 
+    public function testSiteSetTakesTheBranchASiteIsPreparing(): void
+    {
+        $parsed = SiteCommand::parse(['site-set', '--shortcode=mg', '--upgrade=feature/jquery-3']);
+
+        $this->assertSame(['shortcode' => 'mg', 'upgrade' => 'feature/jquery-3'], $parsed['options']);
+    }
+
     public function testAValueMayContainAnEqualsSign(): void
     {
         $parsed = SiteCommand::parse(['site-link', '--shortcode=mg', '--domain=example.test', '--path=/a=b']);
