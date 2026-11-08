@@ -127,4 +127,11 @@ final class Ec2SweepPayloadTest extends Unit
         $this->expectException(SweepFormatException::class);
         SweepPayload::fromArray($sweep);
     }
+
+    public function testRefusesAHostnameAShellWouldReparse(): void
+    {
+        $this->expectException(SweepFormatException::class);
+        $this->expectExceptionMessageMatches('/is not a hostname/');
+        SweepPayload::fromArray($this->sweep([], ['domain' => 'example.test; id']));
+    }
 }

@@ -67,8 +67,10 @@ final readonly class SiteStore
     public function addDomain(string $sshAlias, string $domain, string $directory): void
     {
         $serverId = $this->serverId($sshAlias);
-        if ($domain === '' || strlen($domain) > 255) {
-            throw new \InvalidArgumentException('Give the hostname with --domain=.');
+        if (!Names::isHostname($domain)) {
+            throw new \InvalidArgumentException(
+                "\"{$domain}\" is not a hostname: labels of letters, digits and dashes, joined by dots."
+            );
         }
         if ($this->rows('SELECT dh_domain_id FROM dh_domains WHERE domain = ?', [$domain]) !== []) {
             throw new \InvalidArgumentException("{$domain} is a DreamHost domain; it cannot also be an EC2 hostname.");

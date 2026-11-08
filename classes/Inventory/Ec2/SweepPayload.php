@@ -99,8 +99,8 @@ final readonly class SweepPayload
             throw new SweepFormatException("{$at}.deployed_at_utc: \"{$deployed}\" is not a YYYY-MM-DD HH:MM:SS time");
         }
         $domain = Json::str($record, 'domain');
-        if ($domain === '' || strlen($domain) > 255) {
-            throw new SweepFormatException("{$at}.domain: a hostname is needed");
+        if (!Names::isHostname($domain)) {
+            throw new SweepFormatException("{$at}.domain: \"{$domain}\" is not a hostname");
         }
 
         return [
