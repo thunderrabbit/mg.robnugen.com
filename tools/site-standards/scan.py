@@ -84,7 +84,7 @@ def ask_server(server):
         return None, None, "its ssh alias is not one the scanner will use"
     if not SERVER_DIRECTORY.match(directory) or ".." in directory.split("/"):
         return None, None, "its server directory is not one the scanner will use"
-    git_there = "git --no-optional-locks -C " + shlex.quote(directory)
+    git_there = "git -c " + shlex.quote("safe.directory=*") + " --no-optional-locks -C " + shlex.quote(directory)
     remote = f"{git_there} rev-parse HEAD && {{ {git_there} symbolic-ref --short -q HEAD || true; }}"
     ssh = shlex.split(os.environ.get("SCAN_SSH", "ssh -o BatchMode=yes -o ConnectTimeout=15"))
     try:

@@ -65,7 +65,7 @@ if [ -n "${SITE_TEST_DOMAIN:-}" ]; then
   need_server_dir "$dir" "the test domain's"
   head="$(git -C "$REPO" rev-parse HEAD 2>/dev/null)" || unknown "could not read the checkout's commit"
   # shellcheck disable=SC2086
-  there="$(${SCAN_SSH:-ssh -o BatchMode=yes -o ConnectTimeout=15} "$alias_" "git --no-optional-locks -C '$dir' rev-parse HEAD" 2>/dev/null </dev/null | head -1)"
+  there="$(${SCAN_SSH:-ssh -o BatchMode=yes -o ConnectTimeout=15} "$alias_" "git -c safe.directory='*' --no-optional-locks -C '$dir' rev-parse HEAD" 2>/dev/null </dev/null | head -1)"
   [[ "$there" =~ ^[0-9a-f]{40}$ ]] || unknown "could not ask the test domain which commit it runs"
   [ "$there" = "$head" ] || unknown "the test domain runs ${there:0:7}, the checkout is ${head:0:7}"
 
