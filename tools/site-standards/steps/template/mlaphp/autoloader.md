@@ -13,4 +13,5 @@ autoloader's own file, or a class the bootstrap needs first).
 
 The check passes when `classes/` exists, some script registers an autoloader,
 and every PHP file that includes a file under `classes/` also registers an
-autoloader itself, which is what makes it a bootstrap.
+autoloader itself, which is what makes it a bootstrap. Tests are left out:
+a suite has its own bootstrap and may load a fixture class by hand.
