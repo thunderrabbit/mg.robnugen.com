@@ -5,14 +5,23 @@ declare(strict_types=1);
 namespace Inventory\Standards;
 
 /**
- * The checks mg answers itself, from tables it already has. The ones named
- * dh_* read the DreamHost sweep, so a site hosted elsewhere is never asked
- * them. Every other check belongs to the scanner on Lemur 13.
+ * The checks mg answers itself, from tables it already has: the host facts
+ * the DreamHost sweep or the EC2 sweep brought back, and where the code is.
+ * The dh_ prefix on four names is historical; it means "answered by mg from
+ * host facts", for a site on either host. Every other check belongs to the
+ * scanner on Lemur 13.
  */
 final class HostChecks
 {
     /** @var list<string> */
-    public const array NAMES = ['dh_has_domain', 'dh_ssh_login', 'dh_serves_php', 'dh_test_serves_php', 'repo_located'];
+    public const array NAMES = [
+        'dh_has_domain',
+        'dh_ssh_login',
+        'dh_serves_php',
+        'dh_test_serves_php',
+        'host_php_probe',
+        'repo_located',
+    ];
 
     /**
      * Null when the check is not one of mg's own.
@@ -24,6 +33,7 @@ final class HostChecks
             'dh_ssh_login' => self::sshLogin($facts),
             'dh_serves_php' => self::servesPhp($facts, $param ?? ''),
             'dh_test_serves_php' => self::testServesPhp($facts, $param ?? ''),
+            'host_php_probe' => self::phpProbe($facts),
             'repo_located' => self::repoLocated($facts),
             default => null,
         };
@@ -40,9 +50,31 @@ final class HostChecks
 
     private static function hasDomain(SiteFacts $facts): CheckResult
     {
-        return $facts->domains === []
-            ? new CheckResult(Outcome::Fail, 'no domain yet')
-            : new CheckResult(Outcome::Pass, '');
+        if ($facts->domains !== []) {
+            return new CheckResult(Outcome::Pass, '');
+        }
+        return new CheckResult(Outcome::Fail, $facts->host === HostKind::Ec2 ? 'no hostname linked yet' : 'no domain yet');
+    }
+
+    /**
+     * Whether the PHP that serves the site can be read at all. On DreamHost
+     * the panel says; on EC2 the sweep has to have read /_php_version.php
+     * over loopback from the server link, which comes first.
+     */
+    private static function phpProbe(SiteFacts $facts): CheckResult
+    {
+        return match ($facts->host) {
+            HostKind::DreamHost => new CheckResult(Outcome::Pass, "DreamHost's panel says which PHP serves it"),
+            HostKind::None => new CheckResult(Outcome::Fail, 'no domain or hostname linked yet'),
+            HostKind::Ec2 => match (true) {
+                $facts->domains === [] => new CheckResult(Outcome::Fail, 'no hostname linked yet'),
+                $facts->domains[0]['php_version'] === null => new CheckResult(
+                    Outcome::Fail,
+                    'the sweep has not read a PHP version from ' . $facts->domains[0]['domain'] . ' yet',
+                ),
+                default => new CheckResult(Outcome::Pass, ''),
+            },
+        };
     }
 
     private static function sshLogin(SiteFacts $facts): CheckResult
@@ -73,7 +105,7 @@ final class HostChecks
             return new CheckResult(Outcome::Fail, 'no domain yet');
         }
         foreach ($facts->domains as $domain) {
-            $short = self::shortOf($domain, $wanted);
+            $short = self::shortOf($domain, $wanted, $facts->host);
             if ($short !== null) {
                 return $short;
             }
@@ -93,19 +125,24 @@ final class HostChecks
         if ($facts->testDomain === null) {
             return new CheckResult(Outcome::Pass, 'no test domain, so nothing to switch first');
         }
-        return self::shortOf($facts->testDomain, $wanted) ?? new CheckResult(Outcome::Pass, '');
+        return self::shortOf($facts->testDomain, $wanted, $facts->host) ?? new CheckResult(Outcome::Pass, '');
     }
 
     /**
      * The failure for a domain that serves less than the wanted PHP, or null.
+     * A DreamHost domain with no version serves no PHP at all; an EC2 hostname
+     * with none is one the sweep could not read, which is not the site's
+     * failure.
      *
      * @param array{domain: string, php_version: ?string} $domain
      */
-    private static function shortOf(array $domain, string $wanted): ?CheckResult
+    private static function shortOf(array $domain, string $wanted, HostKind $host): ?CheckResult
     {
         $version = $domain['php_version'];
         if ($version === null) {
-            return new CheckResult(Outcome::Fail, $domain['domain'] . ' serves no PHP version');
+            return $host === HostKind::Ec2
+                ? new CheckResult(Outcome::Unknown, 'the sweep could not read which PHP serves ' . $domain['domain'])
+                : new CheckResult(Outcome::Fail, $domain['domain'] . ' serves no PHP version');
         }
         if (version_compare($version, $wanted, '<')) {
             return new CheckResult(Outcome::Fail, $domain['domain'] . ' serves ' . $version);

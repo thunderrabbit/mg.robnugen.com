@@ -7,6 +7,7 @@ namespace Tests\Unit;
 use Codeception\Test\Unit;
 use Inventory\Standards\CheckResult;
 use Inventory\Standards\HostChecks;
+use Inventory\Standards\HostKind;
 use Inventory\Standards\Outcome;
 use Inventory\Standards\SiteFacts;
 
@@ -25,6 +26,23 @@ final class StandardsHostChecksTest extends Unit
             'php_version' => $php,
             'username' => 'exampleuser',
             'ssh_alias' => $alias,
+            'login_confirmed_on' => $confirmed,
+        ];
+    }
+
+    /**
+     * A hostname on an EC2 server: no DreamHost user, the server's alias and
+     * the server's proven login on every hostname.
+     *
+     * @return array{domain: string, php_version: ?string, username: ?string, ssh_alias: ?string, login_confirmed_on: ?string}
+     */
+    private function ec2Domain(?string $php, ?string $confirmed): array
+    {
+        return [
+            'domain' => 'example.test',
+            'php_version' => $php,
+            'username' => null,
+            'ssh_alias' => 'example-ec2',
             'login_confirmed_on' => $confirmed,
         ];
     }
@@ -181,5 +199,66 @@ final class StandardsHostChecksTest extends Unit
             'this step does not say which PHP version it wants',
             $this->answer('dh_serves_php', null, $facts)->detail,
         );
+    }
+
+    public function testAnEc2HostnameWithoutAVersionIsUnknownNotFailed(): void
+    {
+        $facts = new SiteFacts([$this->ec2Domain(null, '2026-11-08')], 'rob/example', 'example/example', null, HostKind::Ec2);
+
+        $answer = $this->answer('dh_serves_php', '8.5', $facts);
+        $this->assertSame(Outcome::Unknown, $answer->outcome);
+        $this->assertSame('the sweep could not read which PHP serves example.test', $answer->detail);
+        $this->assertSame(Outcome::Fail, $this->answer('host_php_probe', null, $facts)->outcome);
+    }
+
+    public function testAnEc2TestHostnameWithoutAVersionIsUnknownToo(): void
+    {
+        $facts = new SiteFacts([$this->ec2Domain('8.5.1', '2026-11-08')], null, null, $this->testDomain(null), HostKind::Ec2);
+
+        $this->assertSame(Outcome::Unknown, $this->answer('dh_test_serves_php', '8.5', $facts)->outcome);
+    }
+
+    public function testAnEc2HostnameNeverSweptIsNotReachable(): void
+    {
+        $facts = new SiteFacts([$this->ec2Domain(null, null)], null, null, null, HostKind::Ec2);
+
+        $this->assertFalse(HostChecks::reachable($facts));
+        $this->assertSame(
+            'alias found, login not proven yet: example.test',
+            $this->answer('dh_ssh_login', null, $facts)->detail,
+        );
+    }
+
+    public function testASweptEc2HostnameServingTheTargetPasses(): void
+    {
+        $facts = new SiteFacts([$this->ec2Domain('8.5.1', '2026-11-08')], 'rob/example', 'example/example', null, HostKind::Ec2);
+
+        $this->assertTrue(HostChecks::reachable($facts));
+        $this->assertSame(Outcome::Pass, $this->answer('dh_serves_php', '8.5', $facts)->outcome);
+        $this->assertSame(Outcome::Pass, $this->answer('host_php_probe', null, $facts)->outcome);
+    }
+
+    public function testAnEc2SiteWithNoHostnameSaysSo(): void
+    {
+        $facts = new SiteFacts([], null, null, null, HostKind::Ec2);
+
+        $this->assertSame('no hostname linked yet', $this->answer('dh_has_domain', null, $facts)->detail);
+        $this->assertSame(Outcome::Fail, $this->answer('host_php_probe', null, $facts)->outcome);
+    }
+
+    public function testADreamHostSitePassesTheProbeStepBecauseThePanelSays(): void
+    {
+        $facts = new SiteFacts([$this->domain('8.5', 'b.rn', '2026-10-01')], 'rob/example', 'example/example');
+
+        $answer = $this->answer('host_php_probe', null, $facts);
+        $this->assertSame(Outcome::Pass, $answer->outcome);
+        $this->assertSame("DreamHost's panel says which PHP serves it", $answer->detail);
+    }
+
+    public function testASiteOnNoHostFailsTheProbeStep(): void
+    {
+        $facts = new SiteFacts([], null, null, null, HostKind::None);
+
+        $this->assertSame('no domain or hostname linked yet', $this->answer('host_php_probe', null, $facts)->detail);
     }
 }

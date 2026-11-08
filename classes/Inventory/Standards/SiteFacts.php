@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Inventory\Standards;
 
 /**
- * What mg already knows about a site without asking Lemur 13: the DreamHost
- * domains that serve it, as the latest sweep saw them, and where its code is.
+ * What mg already knows about a site without asking Lemur 13: the domains or
+ * hostnames that serve it, as the latest sweep saw them, and where its code
+ * is. For a site on EC2 each entry carries the server's alias and proven
+ * login, and no username; the server link comes first.
  */
 final readonly class SiteFacts
 {
@@ -19,6 +21,7 @@ final readonly class SiteFacts
         public ?string $checkoutPath,
         public ?string $githubRepo,
         public ?array $testDomain = null,
+        public HostKind $host = HostKind::DreamHost,
     ) {
     }
 }
