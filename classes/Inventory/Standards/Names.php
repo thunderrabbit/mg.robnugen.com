@@ -43,6 +43,19 @@ final class Names
     }
 
     /**
+     * The directory on an EC2 server that serves a hostname: absolute, plain
+     * segments, none of them "." or "..", no trailing slash, so the scanner
+     * and the sweep can never be sent elsewhere.
+     */
+    public static function isServerDirectory(string $s): bool
+    {
+        if (preg_match('#\A/[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*\z#', $s) !== 1) {
+            return false;
+        }
+        return array_intersect(explode('/', $s), ['.', '..']) === [];
+    }
+
+    /**
      * A git branch name as the scanner and the page handle it: the characters
      * a branch may have, up to 100 of them, and no "..", so it can never be a
      * range or a path escape.
