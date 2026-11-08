@@ -49,11 +49,10 @@ The site's PHP suite that is safe to run against its test domain. Read by
 
 The site's answer to "which PHP serves you?": `PHP_VERSION` as plain text, to
 a request from the server's own loopback address only, 404 to anyone else.
-Asked for in step `web_php_version_readable`.
+Not asked for by any step now (`web_php_version_readable` reads the server's package instead).
 
-Read by: the EC2 sweep (`tools/ec2-sweep/deets.sh`), which asks the server for
-it over loopback, through the real vhost, and records what comes back as the
-hostname's web PHP. Nothing else reads it. The leading underscore keeps it out
+Read by: nothing on EC2 any more; the sweep reads the Apache PHP package on
+the box instead, so a client site adds no probe file. mg keeps its own copy. The leading underscore keeps it out
 of the way of a site's own routes; `php_version` alone would also be a name
 `.gitignore`'s `php*` rule swallows in some sites.
 

@@ -14,8 +14,8 @@ use Inventory\SweepFormatException;
  * is the only place the document's shape is checked; the importer trusts a
  * payload that got this far.
  *
- * A php_version is the web PHP read over loopback, or null when the probe did
- * not answer with a version; probe_problem then says what came back instead.
+ * A php_version is the web PHP read from the server's Apache module package,
+ * or null when that could not be read; probe_problem then says what came back instead.
  *
  * @phpstan-type DomainRecord array{domain: string, directory: string, php_version: ?string, probe_route: ?string, probe_problem: string, directory_exists: bool, is_git_checkout: bool, head_commit: ?string, head_branch: ?string, deployed_at_utc: ?string}
  */

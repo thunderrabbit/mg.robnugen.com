@@ -58,8 +58,8 @@ final class HostChecks
 
     /**
      * Whether the PHP that serves the site can be read at all. On DreamHost
-     * the panel says; on EC2 the sweep has to have read /_php_version.php
-     * over loopback from the server link, which comes first.
+     * the panel says; on EC2 the sweep has to have read the Apache PHP module's
+     * version from the server link, which comes first.
      */
     private static function phpProbe(SiteFacts $facts): CheckResult
     {
