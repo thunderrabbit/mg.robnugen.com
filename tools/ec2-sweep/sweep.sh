@@ -57,10 +57,15 @@ while IFS=$'\t' read -r alias_ pairs_tsv; do
     failed=1; continue
   fi
   # The server does not know its own alias on this machine; mg needs it.
-  document="$(python3 -I -B -c '
+  if ! document="$(python3 -I -B -c '
 import json, sys
-d = json.load(sys.stdin); d["ssh_alias"] = sys.argv[1]; print(json.dumps(d))
-' "$alias_" <<< "$answer")"
+d = json.load(sys.stdin)
+if not isinstance(d, dict): raise SystemExit("not an object")
+d["ssh_alias"] = sys.argv[1]; print(json.dumps(d))
+' "$alias_" <<< "$answer" 2>/dev/null)"; then
+    echo "$alias_: the server's answer was not a sweep document; is deets.sh installed there cleanly (tools/ec2-sweep/install.sh $alias_)?" >&2
+    failed=1; continue
+  fi
   if ! bash -c "$import_cmd" <<< "$document"; then
     failed=1
   fi

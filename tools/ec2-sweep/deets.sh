@@ -50,7 +50,8 @@ probe() {
                 -w '%{http_code}' "http://127.0.0.1/_php_version.php" 2>/dev/null)" && rc=0 || rc=$?
     fi
     if [ -z "$web_server" ] && [ -s "$hdr" ]; then
-      web_server="$(grep -i '^Server:' "$hdr" | head -1 | cut -d' ' -f2- | tr -d '\r')"
+      # A vhost may send no Server header; that is not a failure of the probe.
+      web_server="$( (grep -i '^Server:' "$hdr" || true) | head -1 | cut -d' ' -f2- | tr -d '\r')"
     fi
     if [ "$rc" -ne 0 ]; then
       problems+=("curl: $rc on $route"); continue
