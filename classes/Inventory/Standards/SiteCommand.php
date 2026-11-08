@@ -15,8 +15,17 @@ namespace Inventory\Standards;
  *                 [--upgrade=]
  *     site-link   --shortcode= --domain= [--path=]
  *     site-unlink --shortcode= --domain= [--path=]
+ *     ec2-server-add --alias= [--label=]
+ *     ec2-domain-add --alias= --domain= --directory=
+ *     ec2-servers
  *
  * An option given with an empty value (--github=) clears that field.
+ *
+ * --domain= on site-link and site-unlink is a DreamHost domain or an EC2
+ * hostname; a site's links are all of one kind. ec2-server-add enters a
+ * server by its ssh alias on Lemur 13, ec2-domain-add a hostname it serves
+ * with the absolute directory behind it, and ec2-servers prints them all as
+ * JSON for tools/ec2-sweep/sweep.sh.
  *
  * --server= names the domain the scanner asks what is deployed, as
  * example.test or example.test/blog; it is needed only when a site's domains
@@ -43,6 +52,9 @@ final class SiteCommand
         ],
         'site-link' => ['required' => ['shortcode', 'domain'], 'optional' => ['path']],
         'site-unlink' => ['required' => ['shortcode', 'domain'], 'optional' => ['path']],
+        'ec2-server-add' => ['required' => ['alias'], 'optional' => ['label']],
+        'ec2-domain-add' => ['required' => ['alias', 'domain', 'directory'], 'optional' => []],
+        'ec2-servers' => ['required' => [], 'optional' => []],
     ];
 
     /**
@@ -132,6 +144,14 @@ final class SiteCommand
             case 'site-link':
                 $store->link($shortcode, $o['domain'] ?? '', $path);
                 return "Linked {$o['domain']}{$path} to site {$shortcode}.";
+            case 'ec2-server-add':
+                $store->addServer($o['alias'] ?? '', $o['label'] ?? '');
+                return "Added EC2 server {$o['alias']}.";
+            case 'ec2-domain-add':
+                $store->addDomain($o['alias'] ?? '', $o['domain'] ?? '', $o['directory'] ?? '');
+                return "Added {$o['domain']} on {$o['alias']}, served from {$o['directory']}.";
+            case 'ec2-servers':
+                return json_encode($store->serversForSweep(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
             default:
                 $store->unlink($shortcode, $o['domain'] ?? '', $path);
                 return "Unlinked {$o['domain']}{$path} from site {$shortcode}.";

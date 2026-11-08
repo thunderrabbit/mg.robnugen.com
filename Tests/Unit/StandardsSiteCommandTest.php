@@ -126,4 +126,26 @@ final class StandardsSiteCommandTest extends Unit
         $this->expectExceptionMessageMatches('/--trunk/');
         SiteCommand::parse(['site-set', '--shortcode=mg', '--trunk=master']);
     }
+
+    public function testEc2ServerAddTakesAnAliasAndAnOptionalLabel(): void
+    {
+        $parsed = SiteCommand::parse(['ec2-server-add', '--alias=example-ec2', '--label=Example EC2']);
+
+        $this->assertSame(['alias' => 'example-ec2', 'label' => 'Example EC2'], $parsed['options']);
+    }
+
+    public function testEc2DomainAddNeedsAllThree(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('ec2-domain-add needs --directory=.');
+        SiteCommand::parse(['ec2-domain-add', '--alias=example-ec2', '--domain=example.test']);
+    }
+
+    public function testEc2ServersTakesNoOptions(): void
+    {
+        $this->assertSame('ec2-servers', SiteCommand::parse(['ec2-servers'])['command']);
+
+        $this->expectException(\InvalidArgumentException::class);
+        SiteCommand::parse(['ec2-servers', '--alias=example-ec2']);
+    }
 }
