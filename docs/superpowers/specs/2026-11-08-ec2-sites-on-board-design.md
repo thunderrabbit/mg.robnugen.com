@@ -216,7 +216,11 @@ leading slash (still no `..`). `php_current` and the `test` block come from the
 EC2 open state. `ask_server` runs the same `git rev-parse HEAD` over the EC2
 alias; a server whose directory is not a git checkout is skipped with the
 reason, exactly as a DreamHost server would be. `SITE_SERVER_SSH_ALIAS`,
-`SITE_SERVER_DIRECTORY`, `SITE_TEST_*` are filled, so no check script changes.
+`SITE_SERVER_DIRECTORY`, `SITE_TEST_*` are filled. The three checks that ask a
+server anything (`js_soaked_on_production`, `js_deprecations_clear`,
+`suite_passes_on_php`) carried the same relative-directory rule as `scan.py`
+and learn the leading slash through one helper in `lib.sh`; no other check
+script changes.
 
 ### The board (`Board`, `standards.tpl.php`)
 
