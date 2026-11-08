@@ -21,4 +21,5 @@ if ($from !== '127.0.0.1' && $from !== '::1') {
     return;
 }
 header('Content-Type: text/plain; charset=utf-8');
-echo PHP_VERSION;
+// The numeric version only: PHP_VERSION may carry a packager's suffix.
+echo PHP_MAJOR_VERSION, '.', PHP_MINOR_VERSION, '.', PHP_RELEASE_VERSION;
