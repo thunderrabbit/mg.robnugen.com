@@ -14,10 +14,17 @@ reads the web PHP from the box: the `php*.load` module enabled in
 release of `libapache2-mod-php<X.Y>`. One read covers every hostname, since they
 share the web server, and it needs nothing from the sites themselves. A
 server that runs PHP some other way (php-fpm) gets no version and a problem
-line. It also reports whether the directory is a git checkout, what HEAD is
+line. `deets.sh` also reports whether the directory is a git checkout, what HEAD is
 (read with `-c safe.directory='*'`, because a production directory may belong
 to the web user), and when the directory path itself last changed. It writes
-nothing on the server. `sweep.sh` adds the alias and streams the JSON to
+nothing on the server.
+
+If the machine also has an ssh host named `<alias>_php_version` (a forced-command
+key that only prints the package version), `sweep.sh` asks it too and its answer
+wins over `deets.sh`'s own read. That host's stderr is noisy (PTY and
+shared-connection lines), so only a stdout line starting with a digit counts.
+
+`sweep.sh` adds the alias and streams the JSON to
 `tools/import_ec2_sweep.php` on mg, which opens and closes `ec2_domain_states`
 the way the DreamHost importer does and proves the server's ssh login on the
 first successful sweep.

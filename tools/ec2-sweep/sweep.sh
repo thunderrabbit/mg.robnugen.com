@@ -10,6 +10,12 @@
 # import. Exits 1 if any server failed. --dry-run imports inside a transaction
 # that is rolled back, so the summary shows what a real run would do.
 #
+# PHP version: if the machine has an ssh host named <alias>_php_version (a
+# forced-command key that only prints the web PHP's package version), its
+# answer wins over deets.sh's own read of the Apache package. That host's
+# stderr is noisy (PTY and shared-connection lines), so only a stdout line
+# that starts with a digit counts, and only its numeric part is kept.
+#
 # Overrides for testing: SWEEP_SSH (default ssh -o BatchMode=yes
 # -o ConnectTimeout=15), SWEEP_SITE_CMD (default site.sh beside the scanner),
 # SWEEP_IMPORT_CMD (default the importer over ssh mg).
@@ -56,13 +62,22 @@ while IFS=$'\t' read -r alias_ pairs_tsv; do
     echo "$alias_: the server did not answer; is deets.sh installed there (tools/ec2-sweep/install.sh $alias_)?" >&2
     failed=1; continue
   fi
+  # The forced-command host, when there is one, names the web PHP; no answer
+  # (no such host, a refusal, only noise) leaves deets.sh's own reading alone.
+  forced_php="$( ("${ssh_cmd[@]}" -T "${alias_}_php_version" 2>/dev/null </dev/null || true) \
+                 | grep -m1 -E '^[0-9]+\.[0-9]+' | tr -d '\r' || true)"
   # The server does not know its own alias on this machine; mg needs it.
   if ! document="$(python3 -I -B -c '
-import json, sys
+import json, re, sys
 d = json.load(sys.stdin)
 if not isinstance(d, dict): raise SystemExit("not an object")
-d["ssh_alias"] = sys.argv[1]; print(json.dumps(d))
-' "$alias_" <<< "$answer" 2>/dev/null)"; then
+d["ssh_alias"] = sys.argv[1]
+m = re.match(r"\d+\.\d+(\.\d+)?", sys.argv[2])
+if m:
+    for dom in d.get("domains", []):
+        dom["php_version"] = m.group(0); dom["probe_route"] = None; dom["probe_problem"] = ""
+print(json.dumps(d))
+' "$alias_" "$forced_php" <<< "$answer" 2>/dev/null)"; then
     echo "$alias_: the server's answer was not a sweep document; is deets.sh installed there cleanly (tools/ec2-sweep/install.sh $alias_)?" >&2
     failed=1; continue
   fi
