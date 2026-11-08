@@ -610,6 +610,14 @@ paths:
                         properties:
                           mark: { type: string, enum: [check, info, face] }
                           text: { type: string }
+                      php_current:
+                        type: string
+                        nullable: true
+                        description: "The PHP serving the site, as the latest sweep saw it (e.g. 8.2); null before a sweep"
+                      test_php:
+                        type: string
+                        nullable: true
+                        description: "The PHP serving its test domain; null without one, or before a sweep"
                       last_checked_utc: { type: string, nullable: true }
                       skipped_reason: { type: string, nullable: true }
                       open_steps:

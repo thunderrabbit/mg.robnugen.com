@@ -63,7 +63,24 @@ final class StandardsSiteAnswerTest extends Unit
     {
         $slugs = array_map(static fn (array $s): string => (string) $s['slug'], $steps);
         $report = SiteReport::build('mg', $this->reachableFacts(), $steps, $states, $issues, ['mg'], $slugs);
-        return SiteAnswer::of('template', 'mg', '2026-11-07 03:12', null, $report);
+        return SiteAnswer::of('template', 'mg', '2026-11-07 03:12', null, $report, '8.2', '8.5');
+    }
+
+    public function testTheAnswerSaysWhichPhpServesTheSite(): void
+    {
+        $answer = $this->answer([$this->step(self::STEP, 'phpstan_top')]);
+
+        $this->assertSame('8.2', $answer['php_current']);
+        $this->assertSame('8.5', $answer['test_php']);
+    }
+
+    public function testAnUnsweptSiteHasNoPhpToName(): void
+    {
+        $report = SiteReport::build('mg', $this->reachableFacts(), [], [], [], ['mg'], []);
+        $answer = SiteAnswer::of('template', 'mg', null, null, $report, null, null);
+
+        $this->assertNull($answer['php_current']);
+        $this->assertNull($answer['test_php']);
     }
 
     public function testAnUpToDateSiteHasNoOpenSteps(): void
@@ -170,7 +187,7 @@ final class StandardsSiteAnswerTest extends Unit
         );
         $steps = [$this->step('ssh_login_works', 'dh_ssh_login'), $this->step('serves_php_8_5', 'dh_serves_php', '8.5')];
         $report = SiteReport::build('mg', $facts, $steps, [], [], ['mg'], ['ssh_login_works', 'serves_php_8_5']);
-        $answer = SiteAnswer::of('template', 'mg', null, 'no ssh alias is known for the user serving example.test', $report);
+        $answer = SiteAnswer::of('template', 'mg', null, 'no ssh alias is known for the user serving example.test', $report, '8.2', null);
 
         $this->assertCount(2, $answer['open_steps']);
         $this->assertSame(SiteAnswer::HOST_DETAIL, $answer['open_steps'][0]['detail']);

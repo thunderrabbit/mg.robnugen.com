@@ -27,7 +27,7 @@ final class Board
     /**
      * Every standard with its sites and its untried ideas.
      *
-     * @return list<array{slug: string, name: string, proven: int, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, host: string, server_where: ?string, web_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}>, groups: list<array{kind: HostKind, heading: string, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, host: string, server_where: ?string, web_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}>}>, ideas: list<array{slug: string, track: string, title: string, practising: list<array{shortcode: string, issue: NoteIssue}>}>}>
+     * @return list<array{slug: string, name: string, proven: int, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, host: string, server_where: ?string, web_php: ?string, php_current: ?string, test_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}>, groups: list<array{kind: HostKind, heading: string, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, host: string, server_where: ?string, web_php: ?string, php_current: ?string, test_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}>}>, ideas: list<array{slug: string, track: string, title: string, practising: list<array{shortcode: string, issue: NoteIssue}>}>}>
      */
     public function standards(): array
     {
@@ -114,7 +114,7 @@ final class Board
     /**
      * One site, as the page shows it, plus its standard's slug.
      *
-     * @return array{standard: string, shortcode: string, project_id: ?int, autonomy: string, host: string, server_where: ?string, web_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}|null
+     * @return array{standard: string, shortcode: string, project_id: ?int, autonomy: string, host: string, server_where: ?string, web_php: ?string, php_current: ?string, test_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}|null
      */
     public function siteByShortcode(string $shortcode): ?array
     {
@@ -132,7 +132,7 @@ final class Board
 
     /**
      * @param array<mixed> $site a std_sites row
-     * @return array{shortcode: string, project_id: ?int, autonomy: string, host: string, server_where: ?string, web_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}
+     * @return array{shortcode: string, project_id: ?int, autonomy: string, host: string, server_where: ?string, web_php: ?string, php_current: ?string, test_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}
      */
     private function site(array $site): array
     {
@@ -143,7 +143,7 @@ final class Board
 
         $domains = [];
         $rows = $this->rows(
-            'SELECT d.domain, st.php_version, u.username, u.ssh_alias, u.login_confirmed_on
+            'SELECT l.dh_site_domain_id, d.domain, st.php_version, u.username, u.ssh_alias, u.login_confirmed_on
                FROM dh_site_domains l
                JOIN dh_domains d ON d.dh_domain_id = l.dh_domain_id
                LEFT JOIN dh_domain_states st ON st.dh_domain_id = d.dh_domain_id AND st.until_sweep_id IS NULL
@@ -165,6 +165,16 @@ final class Board
         $serverWhere = null;
         $webPhp = null;
         $testDomain = null;
+        // The PHP the site is served on now: its named server's, else the first
+        // domain's, as SiteStore::sites() chooses it for the scanner. Absent
+        // until migration 47 is applied; the page must work before then.
+        $phpCurrent = null;
+        $namedServer = array_key_exists('server_site_domain_id', $site) ? RowValue::intOrNull($site, 'server_site_domain_id') : null;
+        foreach ($rows as $row) {
+            if ($namedServer === null ? $row === $rows[0] : RowValue::int($row, 'dh_site_domain_id') === $namedServer) {
+                $phpCurrent = RowValue::stringOrNull($row, 'php_version');
+            }
+        }
         // The EC2 columns are absent until migration 50 is applied; the page
         // must work before then, as it did before migration 48.
         if ($domains === [] && array_key_exists('server_ec2_site_domain_id', $site)) {
@@ -201,6 +211,7 @@ final class Board
                 $serverWhere = RowValue::string($rows[0], 'ssh_alias') . ' in '
                     . RowValue::string($rows[0], 'directory') . RowValue::string($rows[0], 'path_prefix');
                 $webPhp = RowValue::stringOrNull($rows[0], 'php_version');
+                $phpCurrent = $webPhp;
             }
         }
         // Absent until migration 48 is applied; the page must work before then.
@@ -295,6 +306,8 @@ final class Board
             'host' => $host->value,
             'server_where' => $serverWhere,
             'web_php' => $webPhp,
+            'php_current' => $phpCurrent,
+            'test_php' => $testDomain['php_version'] ?? null,
             'server_branch' => $latest === [] ? null : RowValue::stringOrNull($latest[0], 'server_branch'),
             'server_commit' => $latest === [] ? null : RowValue::stringOrNull($latest[0], 'server_commit'),
             'checked_branch' => $latest === [] ? null : RowValue::stringOrNull($latest[0], 'branch'),

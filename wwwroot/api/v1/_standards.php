@@ -79,5 +79,7 @@ echo json_encode([
         $site['last_checked_utc'],
         $site['skipped_reason'],
         $site['report'],
+        $site['php_current'],
+        $site['test_php'],
     ),
 ]);
