@@ -27,7 +27,7 @@ final class Board
     /**
      * Every standard with its sites and its untried ideas.
      *
-     * @return list<array{slug: string, name: string, proven: int, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}>, ideas: list<array{slug: string, track: string, title: string, practising: list<array{shortcode: string, issue: NoteIssue}>}>}>
+     * @return list<array{slug: string, name: string, proven: int, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, host: string, server_where: ?string, web_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}>, groups: list<array{kind: HostKind, heading: string, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, host: string, server_where: ?string, web_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}>}>, ideas: list<array{slug: string, track: string, title: string, practising: list<array{shortcode: string, issue: NoteIssue}>}>}>
      */
     public function standards(): array
     {
@@ -64,6 +64,7 @@ final class Board
                 'name' => RowValue::string($standard, 'name'),
                 'proven' => count($this->provenOf($standardId)),
                 'sites' => $sites,
+                'groups' => SiteGroups::of($sites),
                 'ideas' => $ideas,
             ];
         }
@@ -113,7 +114,7 @@ final class Board
     /**
      * One site, as the page shows it, plus its standard's slug.
      *
-     * @return array{standard: string, shortcode: string, project_id: ?int, autonomy: string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}|null
+     * @return array{standard: string, shortcode: string, project_id: ?int, autonomy: string, host: string, server_where: ?string, web_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}|null
      */
     public function siteByShortcode(string $shortcode): ?array
     {
@@ -131,7 +132,7 @@ final class Board
 
     /**
      * @param array<mixed> $site a std_sites row
-     * @return array{shortcode: string, project_id: ?int, autonomy: string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}
+     * @return array{shortcode: string, project_id: ?int, autonomy: string, host: string, server_where: ?string, web_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}
      */
     private function site(array $site): array
     {
@@ -160,10 +161,51 @@ final class Board
                 'login_confirmed_on' => RowValue::stringOrNull($row, 'login_confirmed_on'),
             ];
         }
+        $host = $domains === [] ? HostKind::None : HostKind::DreamHost;
+        $serverWhere = null;
+        $webPhp = null;
         $testDomain = null;
+        // The EC2 columns are absent until migration 50 is applied; the page
+        // must work before then, as it did before migration 48.
+        if ($domains === [] && array_key_exists('server_ec2_site_domain_id', $site)) {
+            $namedServer = RowValue::intOrNull($site, 'server_ec2_site_domain_id') ?? 0;
+            $testLinkId = RowValue::intOrNull($site, 'test_ec2_site_domain_id');
+            $rows = $this->rows(
+                'SELECT l.ec2_site_domain_id, d.domain, l.path_prefix, d.directory, v.ssh_alias, v.login_confirmed_on,
+                        st.php_version
+                   FROM ec2_site_domains l
+                   JOIN ec2_domains d ON d.ec2_domain_id = l.ec2_domain_id
+                   JOIN ec2_servers v ON v.ec2_server_id = d.ec2_server_id
+                   LEFT JOIN ec2_domain_states st ON st.ec2_domain_id = d.ec2_domain_id AND st.until_sweep_id IS NULL
+                  WHERE l.std_site_id = ?
+                  ORDER BY (l.ec2_site_domain_id = ?) DESC, d.domain, l.path_prefix',
+                [$siteId, $namedServer],
+            );
+            foreach ($rows as $row) {
+                $domains[] = [
+                    'domain' => RowValue::string($row, 'domain'),
+                    'php_version' => RowValue::stringOrNull($row, 'php_version'),
+                    'username' => null,
+                    'ssh_alias' => RowValue::string($row, 'ssh_alias'),
+                    'login_confirmed_on' => RowValue::stringOrNull($row, 'login_confirmed_on'),
+                ];
+                if (RowValue::int($row, 'ec2_site_domain_id') === $testLinkId) {
+                    $testDomain = [
+                        'domain' => RowValue::string($row, 'domain') . RowValue::string($row, 'path_prefix'),
+                        'php_version' => RowValue::stringOrNull($row, 'php_version'),
+                    ];
+                }
+            }
+            if ($rows !== []) {
+                $host = HostKind::Ec2;
+                $serverWhere = RowValue::string($rows[0], 'ssh_alias') . ' in '
+                    . RowValue::string($rows[0], 'directory') . RowValue::string($rows[0], 'path_prefix');
+                $webPhp = RowValue::stringOrNull($rows[0], 'php_version');
+            }
+        }
         // Absent until migration 48 is applied; the page must work before then.
         $testLinkId = array_key_exists('test_site_domain_id', $site) ? RowValue::intOrNull($site, 'test_site_domain_id') : null;
-        if ($testLinkId !== null) {
+        if ($testLinkId !== null && $host === HostKind::DreamHost) {
             $rows = $this->rows(
                 'SELECT d.domain, l.path_prefix, st.php_version
                    FROM dh_site_domains l
@@ -184,6 +226,7 @@ final class Board
             RowValue::stringOrNull($site, 'checkout_path'),
             RowValue::stringOrNull($site, 'github_repo'),
             $testDomain,
+            $host,
         );
 
         $openStates = [];
@@ -249,6 +292,9 @@ final class Board
             'shortcode' => $shortcode,
             'project_id' => $projectId,
             'autonomy' => RowValue::string($site, 'autonomy'),
+            'host' => $host->value,
+            'server_where' => $serverWhere,
+            'web_php' => $webPhp,
             'server_branch' => $latest === [] ? null : RowValue::stringOrNull($latest[0], 'server_branch'),
             'server_commit' => $latest === [] ? null : RowValue::stringOrNull($latest[0], 'server_commit'),
             'checked_branch' => $latest === [] ? null : RowValue::stringOrNull($latest[0], 'branch'),

@@ -74,4 +74,26 @@ final class StandardsNamesTest extends Unit
         $this->assertFalse(Names::isCheckoutPath('~/work/rob/example.test'));
         $this->assertFalse(Names::isCheckoutPath(''));
     }
+
+    public function testServerDirectoryMustBeAbsoluteAndClean(): void
+    {
+        $this->assertTrue(Names::isServerDirectory('/var/www/example.test/current'));
+        $this->assertFalse(Names::isServerDirectory('var/www'));
+        $this->assertFalse(Names::isServerDirectory('/var/../etc'));
+        $this->assertFalse(Names::isServerDirectory('/var/www/'));
+        $this->assertFalse(Names::isServerDirectory('/'));
+        $this->assertFalse(Names::isServerDirectory(''));
+    }
+
+    public function testHostnamesAreLabelsDotsAndDashesOnly(): void
+    {
+        $this->assertTrue(Names::isHostname('example.test'));
+        $this->assertTrue(Names::isHostname('t.example-site.test'));
+        $this->assertFalse(Names::isHostname('example .test'));
+        $this->assertFalse(Names::isHostname('example.test;id'));
+        $this->assertFalse(Names::isHostname('-example.test'));
+        $this->assertFalse(Names::isHostname('example.test.'));
+        $this->assertFalse(Names::isHostname(''));
+        $this->assertFalse(Names::isHostname(str_repeat('a', 256)));
+    }
 }

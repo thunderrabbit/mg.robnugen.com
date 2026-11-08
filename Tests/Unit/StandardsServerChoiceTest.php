@@ -13,15 +13,15 @@ use Inventory\Standards\ServerChoice;
 final class StandardsServerChoiceTest extends Unit
 {
     /**
-     * @return array{dh_site_domain_id: int, domain: string, path_prefix: string, web_directory: ?string, ssh_alias: ?string}
+     * @return array{link_id: int, where: string, path_prefix: string, directory: ?string, ssh_alias: ?string}
      */
     private function link(int $id, string $domain, ?string $directory, ?string $alias = 'example', string $path = ''): array
     {
         return [
-            'dh_site_domain_id' => $id,
-            'domain' => $domain,
+            'link_id' => $id,
+            'where' => $domain,
             'path_prefix' => $path,
-            'web_directory' => $directory,
+            'directory' => $directory,
             'ssh_alias' => $alias,
         ];
     }
@@ -68,9 +68,17 @@ final class StandardsServerChoiceTest extends Unit
         $this->assertSame('example.test/wwwroot/blog', $choice->directory);
     }
 
-    public function testNoDomainMeansNoServer(): void
+    public function testNoLinkOfEitherKindSaysSo(): void
     {
-        $this->assertSame('no domain is linked to it', ServerChoice::pick([], null)->problem);
+        $this->assertSame('no domain or hostname is linked to it', ServerChoice::pick([], null)->problem);
+    }
+
+    public function testAnAbsoluteDirectoryIsKeptAsGiven(): void
+    {
+        $choice = ServerChoice::pick([$this->link(1, 'example.test', '/var/www/example.test/current', 'example-ec2')], null);
+
+        $this->assertSame('/var/www/example.test/current', $choice->directory);
+        $this->assertSame('example-ec2', $choice->sshAlias);
     }
 
     public function testANamedServerThatIsNotLinkedIsAProblem(): void

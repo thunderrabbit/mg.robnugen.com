@@ -43,6 +43,29 @@ final class Names
     }
 
     /**
+     * A hostname as entered for an EC2 server: labels of letters, digits and
+     * dashes joined by dots, 255 characters at most. It is handed to a remote
+     * shell as an argument, so nothing a shell would reparse gets in.
+     */
+    public static function isHostname(string $s): bool
+    {
+        return strlen($s) <= 255 && preg_match('/\A[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?\z/', $s) === 1;
+    }
+
+    /**
+     * The directory on an EC2 server that serves a hostname: absolute, plain
+     * segments, none of them "." or "..", no trailing slash, so the scanner
+     * and the sweep can never be sent elsewhere.
+     */
+    public static function isServerDirectory(string $s): bool
+    {
+        if (preg_match('#\A/[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*\z#', $s) !== 1) {
+            return false;
+        }
+        return array_intersect(explode('/', $s), ['.', '..']) === [];
+    }
+
+    /**
      * A git branch name as the scanner and the page handle it: the characters
      * a branch may have, up to 100 of them, and no "..", so it can never be a
      * range or a path escape.

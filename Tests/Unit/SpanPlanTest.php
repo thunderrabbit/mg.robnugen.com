@@ -108,4 +108,16 @@ final class SpanPlanTest extends Unit
         $this->assertSame(['1', '4'], array_map(static fn (SweptSpan $s): string => $s->keyString(), $changes->opens));
         $this->assertSame(1, $changes->unchanged);
     }
+
+    public function testTwoNullsAreTheSameFact(): void
+    {
+        // A hostname whose PHP the sweep still cannot read keeps its one open state.
+        $open = ['7' => new OpenSpan(41, ['php_version' => null])];
+
+        $changes = SpanPlan::diff($open, $this->swept(7, ['php_version' => null]));
+
+        $this->assertSame([], $changes->closeSpanIds);
+        $this->assertSame([], $changes->opens);
+        $this->assertSame(1, $changes->unchanged);
+    }
 }

@@ -483,6 +483,15 @@ a:visited {
     color: var(--text-muted);
 }
 
+.StdHost {
+    margin: 0.8em 0 0.2em;
+    font-size: 0.95em;
+    font-weight: normal;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
 .StdDomainSites {
     list-style: none;
     padding-left: 0;

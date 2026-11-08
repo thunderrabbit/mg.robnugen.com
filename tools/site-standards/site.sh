@@ -7,6 +7,9 @@
 #   tools/site-standards/site.sh site-add --shortcode=example --standard=template --project=7
 #   tools/site-standards/site.sh site-set --shortcode=example --checkout=rob/example.test
 #   tools/site-standards/site.sh site-link --shortcode=example --domain=example.test
+#   tools/site-standards/site.sh ec2-server-add --alias=example-ec2 --label="Example's EC2"
+#   tools/site-standards/site.sh ec2-domain-add --alias=example-ec2 --domain=example.test --directory=/var/www/example.test/current
+#   tools/site-standards/site.sh ec2-servers
 set -euo pipefail
 
 remote="/usr/local/php85/bin/php ~/mg.robnugen.com/tools/site_standards.php"

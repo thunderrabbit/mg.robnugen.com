@@ -29,6 +29,16 @@ need_repo() {
   REPO="$(cd "$1" && pwd)"
 }
 
+# need_server_dir VALUE WHOSE: sets SERVER_DIR to a directory on a server the
+# check may ask about, or stops the check with "could not tell". A DreamHost
+# directory is relative to the user's home; an EC2 one is absolute. Either
+# way: plain segments, no "..", no trailing slash.
+need_server_dir() {
+  [[ "${1:-}" =~ ^/?[A-Za-z0-9_][A-Za-z0-9._-]*(/[A-Za-z0-9._-]+)*$ && "$1" != *..* ]] \
+    || unknown "$2 directory is not one this check will use"
+  SERVER_DIR="$1"
+}
+
 # need_hooks: sets HOOKS to the repo's tracked hooks directory, or stops the
 # check with "not yet". The directory is whatever core.hooksPath names, so
 # long as that is a relative path inside the repo with tracked files in it:
