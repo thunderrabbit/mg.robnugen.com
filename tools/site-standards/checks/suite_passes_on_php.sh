@@ -35,7 +35,7 @@ test_php="$(printf '%s' "${SITE_TEST_PHP:-}" | grep -Eo '^[0-9]+\.[0-9]+' || tru
 alias_="${SITE_TEST_SSH_ALIAS:-}"
 dir="${SITE_TEST_DIRECTORY:-}"
 [[ "$alias_" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || unknown "no ssh login for the test domain to ask which commit it runs"
-[[ "$dir" =~ ^[A-Za-z0-9_][A-Za-z0-9._-]*(/[A-Za-z0-9._-]+)*$ && "$dir" != *..* ]] || unknown "the test domain's directory is not one this check will use"
+need_server_dir "$dir" "the test domain's"
 head="$(git -C "$REPO" rev-parse HEAD 2>/dev/null)" || unknown "could not read the checkout's commit"
 # shellcheck disable=SC2086
 there="$(${SCAN_SSH:-ssh -o BatchMode=yes -o ConnectTimeout=15} "$alias_" "git --no-optional-locks -C '$dir' rev-parse HEAD" 2>/dev/null </dev/null | head -1)"

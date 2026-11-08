@@ -41,7 +41,7 @@ OUTCOMES = {0: "pass", 1: "fail", 2: "unknown"}
 CHECK_TIMEOUT = 1800
 SERVER_TIMEOUT = 60
 SSH_ALIAS = re.compile(r"\A[A-Za-z0-9][A-Za-z0-9._-]*\Z")
-SERVER_DIRECTORY = re.compile(r"\A[A-Za-z0-9_][A-Za-z0-9._-]*(?:/[A-Za-z0-9._-]+)*\Z")
+SERVER_DIRECTORY = re.compile(r"\A/?[A-Za-z0-9_][A-Za-z0-9._-]*(?:/[A-Za-z0-9._-]+)*\Z")  # relative to home (DreamHost) or absolute (EC2)
 SHA = re.compile(r"\A[0-9a-f]{40}\Z")
 BRANCH = re.compile(r"\A[A-Za-z0-9._/-]{1,100}\Z")
 

@@ -26,7 +26,7 @@ PY
 alias_="${SITE_SERVER_SSH_ALIAS:-}"
 dir="${SITE_SERVER_DIRECTORY:-}"
 [[ "$alias_" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || unknown "no ssh login for the server to ask when it last changed"
-[[ "$dir" =~ ^[A-Za-z0-9_][A-Za-z0-9._-]*(/[A-Za-z0-9._-]+)*$ && "$dir" != *..* ]] || unknown "the server's directory is not one this check will use"
+need_server_dir "$dir" "the server's"
 # shellcheck disable=SC2086
 answer="$(${SCAN_SSH:-ssh -o BatchMode=yes -o ConnectTimeout=15} "$alias_" \
   "git --no-optional-locks -C '$dir' reflog show --date=unix -1 HEAD" 2>/dev/null </dev/null | head -1)"
