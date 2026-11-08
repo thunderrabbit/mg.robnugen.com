@@ -4,9 +4,10 @@
  * Imports one DreamHost sweep (mg #775) read from STDIN as a single JSON
  * document, so the sweep never lands on this machine's disk. Run it through
  * tools/import-dh-sweep.sh on Rob's laptop, which bundles the six files of
- * sweeps/YYYY-MM-DD/ from the dreamhost-inventory repo:
+ * sweeps/YYYY-MM-DD-HHMM/ from the dreamhost-inventory repo (YYYY-MM-DD alone
+ * before 2026-11-09):
  *
- *     {"swept_on": "2026-10-24", "source_dir": "sweeps/2026-10-24",
+ *     {"swept_on": "2026-11-09", "source_dir": "sweeps/2026-11-09-0845",
  *      "files": {"domains": {...}, "users": {...}, "registrations": {...},
  *                "databases": {...}, "crons": {...}, "buckets": {...}}}
  *

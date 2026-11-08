@@ -12,10 +12,12 @@ use Db\Rows;
  * row, then versions what changed about it with SpanPlan. All of it in one
  * transaction, so a failure leaves nothing behind.
  *
- * Sweeps go in date order per account; an older one, or one already in, is
- * refused. Backfilling means emptying the layer-1 state tables and replaying
- * every sweep in date order (SCHEMA.md); nothing outside layer 1 refers to a
- * sweep id, so a replay loses nothing.
+ * Sweeps go in time order per account; an older one, or one already in, is
+ * refused. Two on one day are fine (a domain added after the daily sweep gets
+ * swept again that afternoon); each keeps the day it belongs to in swept_on.
+ * Backfilling means emptying the layer-1 state tables and replaying every
+ * sweep in time order (SCHEMA.md); nothing outside layer 1 refers to a sweep
+ * id, so a replay loses nothing.
  */
 final class SweepImporter
 {
@@ -102,14 +104,15 @@ final class SweepImporter
     private function openSweep(SweepPayload $sweep, int $accountId): int
     {
         $newest = Rows::one($this->run(
-            'SELECT MAX(swept_on) AS newest FROM dh_sweeps WHERE dh_account_id = ?',
+            'SELECT MAX(swept_at_utc) AS newest FROM dh_sweeps WHERE dh_account_id = ?',
             [$accountId],
         )->fetch(\PDO::FETCH_ASSOC));
-        $newestOn = $newest === null ? null : RowValue::stringOrNull($newest, 'newest');
-        if ($newestOn !== null && $newestOn >= $sweep->sweptOn) {
+        $newestAt = $newest === null ? null : RowValue::stringOrNull($newest, 'newest');
+        if ($newestAt !== null && $newestAt >= $sweep->sweptAtUtc) {
             throw new SweepRefusedException(
-                "sweep {$sweep->sweptOn} is not newer than {$newestOn}, which is already imported;"
-                . ' sweeps go in date order (backfill = rebuild, see SCHEMA.md)'
+                "sweep {$sweep->sourceDir} ({$sweep->sweptAtUtc} UTC) is not newer than the one swept at"
+                . " {$newestAt} UTC, which is already imported; sweeps go in time order"
+                . ' (backfill = rebuild, see SCHEMA.md)'
             );
         }
         $this->run(

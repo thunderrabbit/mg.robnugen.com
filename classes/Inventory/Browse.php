@@ -48,7 +48,7 @@ final readonly class Browse
      */
     public function sweeps(): array
     {
-        return $this->rows('SELECT dh_sweep_id, swept_on, provenance, swept_at_utc FROM dh_sweeps ORDER BY swept_on DESC');
+        return $this->rows('SELECT dh_sweep_id, swept_on, provenance, swept_at_utc FROM dh_sweeps ORDER BY swept_at_utc DESC');
     }
 
     /**
