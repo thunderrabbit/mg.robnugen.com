@@ -5,7 +5,7 @@
  * crying-laughing face for a site nobody can reach yet.
  *
  * @var array{id: int, swept_on: string, previous_id: int|null, previous_on: string|null}|null $sweep
- * @var list<array{slug: string, name: string, proven: int, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: \Inventory\Standards\SiteReport}>, ideas: list<array{slug: string, track: string, title: string, practising: list<array{shortcode: string, issue: \Inventory\Standards\NoteIssue}>}>}> $standards
+ * @var list<array{slug: string, name: string, proven: int, sites: list<array<mixed>>, groups: list<array{kind: \Inventory\Standards\HostKind, heading: string, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, host: string, server_where: ?string, web_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: \Inventory\Standards\SiteReport}>}>, ideas: list<array{slug: string, track: string, title: string, practising: list<array{shortcode: string, issue: \Inventory\Standards\NoteIssue}>}>}> $standards
  */
 
 use Inventory\Standards\Names;
@@ -18,7 +18,8 @@ include __DIR__ . '/_nav.tpl.php';
 ?>
 <h1>Site standards</h1>
 <p><small>Which sites have done each written-up step. A step is ticked by a check, never by hand.
-Every site here is working, so nothing on this page is urgent.</small></p>
+Every site here is working, so nothing on this page is urgent.
+Sites on EC2 are here too; their servers are entered with site.sh.</small></p>
 
 <?php if ($standards === []): ?>
     <div class="PagePanel"><p>No step files imported yet.</p></div>
@@ -33,7 +34,9 @@ Every site here is working, so nothing on this page is urgent.</small></p>
         <p>No sites entered yet.</p>
     <?php endif; ?>
 
-    <?php foreach ($standard['sites'] as $site): ?>
+    <?php foreach ($standard['groups'] as $group): ?>
+    <h4 class="StdHost"><?= $h($group['heading']) ?></h4>
+    <?php foreach ($group['sites'] as $site): ?>
         <?php $report = $site['report']; ?>
         <details class="StdSite" id="site-<?= $h($site['shortcode']) ?>">
             <summary>
@@ -101,6 +104,14 @@ Every site here is working, so nothing on this page is urgent.</small></p>
                     Notes live in <a href="/projects/view.php?project_id=<?= $site['project_id'] ?>">project
                     <?= $site['project_id'] ?></a>.
                 <?php endif; ?>
+                <?php if ($site['server_where'] !== null): ?>
+                    Its server is <code><?= $h($site['server_where']) ?></code>;
+                    <?php if ($site['web_php'] === null): ?>
+                        the sweep could not read which PHP serves it;
+                    <?php else: ?>
+                        the web PHP is <code><?= $h($site['web_php']) ?></code>;
+                    <?php endif; ?>
+                <?php endif; ?>
                 <?php if ($site['server_commit'] === null): ?>
                     Its server has not been asked what it runs yet;
                 <?php else: ?>
@@ -137,6 +148,7 @@ Every site here is working, so nothing on this page is urgent.</small></p>
                 </small></p>
             <?php endif; ?>
         </details>
+    <?php endforeach; ?>
     <?php endforeach; ?>
 
     <?php if ($standard['ideas'] !== []): ?>
