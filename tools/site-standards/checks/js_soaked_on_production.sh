@@ -29,7 +29,7 @@ dir="${SITE_SERVER_DIRECTORY:-}"
 need_server_dir "$dir" "the server's"
 # shellcheck disable=SC2086
 answer="$(${SCAN_SSH:-ssh -o BatchMode=yes -o ConnectTimeout=15} "$alias_" \
-  "git --no-optional-locks -C '$dir' reflog show --date=unix -1 HEAD" 2>/dev/null </dev/null | head -1)"
+  "git -c safe.directory='*' --no-optional-locks -C '$dir' reflog show --date=unix -1 HEAD" 2>/dev/null </dev/null | head -1)"
 [[ "$answer" =~ ^([0-9a-f]{7,40})\ HEAD@\{([0-9]+)\} ]] \
   || unknown "the server has no record of when HEAD last moved (deployed by copying files?)"
 sha="${BASH_REMATCH[1]}"
