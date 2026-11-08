@@ -43,6 +43,20 @@ Read by: `js_checks_in_place` (it exists), `js_deprecations_clear` (runs the
 The site's PHP suite that is safe to run against its test domain. Read by
 `suite_passes_on_php`.
 
+## Paths at a site's web root
+
+### `/_php_version.php`
+
+The site's answer to "which PHP serves you?": `PHP_VERSION` as plain text, to
+a request from the server's own loopback address only, 404 to anyone else.
+Asked for in step `web_php_version_readable`.
+
+Read by: the EC2 sweep (`tools/ec2-sweep/deets.sh`), which asks the server for
+it over loopback, through the real vhost, and records what comes back as the
+hostname's web PHP. Nothing else reads it. The leading underscore keeps it out
+of the way of a site's own routes; `php_version` alone would also be a name
+`.gitignore`'s `php*` rule swallows in some sites.
+
 ## Trailers in commit messages
 
 ### `<Line>-has: <sha>`
