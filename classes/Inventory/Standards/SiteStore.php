@@ -194,10 +194,10 @@ final readonly class SiteStore
         );
         foreach ($linkRows as $row) {
             $links[RowValue::int($row, 'std_site_id')][] = [
-                'dh_site_domain_id' => RowValue::int($row, 'dh_site_domain_id'),
-                'domain' => RowValue::string($row, 'domain'),
+                'link_id' => RowValue::int($row, 'dh_site_domain_id'),
+                'where' => RowValue::string($row, 'domain'),
                 'path_prefix' => RowValue::string($row, 'path_prefix'),
-                'web_directory' => RowValue::stringOrNull($row, 'web_directory'),
+                'directory' => RowValue::stringOrNull($row, 'web_directory'),
                 'ssh_alias' => RowValue::stringOrNull($row, 'ssh_alias'),
                 'php_version' => RowValue::stringOrNull($row, 'php_version'),
             ];
@@ -223,15 +223,15 @@ final readonly class SiteStore
             $phpCurrent = null;
             $namedServer = RowValue::intOrNull($row, 'server_site_domain_id');
             foreach ($mine as $link) {
-                if ($namedServer === null ? $link === $mine[0] : $link['dh_site_domain_id'] === $namedServer) {
+                if ($namedServer === null ? $link === $mine[0] : $link['link_id'] === $namedServer) {
                     $phpCurrent = $link['php_version'];
                 }
             }
             foreach ($mine as $link) {
-                if ($link['dh_site_domain_id'] === $testId) {
+                if ($link['link_id'] === $testId) {
                     $where = ServerChoice::pick([$link], null);
                     $test = [
-                        'domain' => $link['domain'] . $link['path_prefix'],
+                        'domain' => $link['where'] . $link['path_prefix'],
                         'php_version' => $link['php_version'],
                         'ssh_alias' => $where->sshAlias,
                         'directory' => $where->directory,

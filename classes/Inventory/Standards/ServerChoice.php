@@ -5,13 +5,19 @@ declare(strict_types=1);
 namespace Inventory\Standards;
 
 /**
- * Which server the scanner asks what a site runs: one of the site's linked
- * domains, reached as its DreamHost user's ssh alias, in that domain's
- * directory. Either a server or the reason there is none, never both.
+ * Which server the scanner asks what a site runs: one of the site's links,
+ * reached as an ssh alias, in that link's directory. Either a server or the
+ * reason there is none, never both.
  *
- * A site names its server only when its domains point at more than one
+ * A link is a DreamHost domain (directory relative to the user's home, alias
+ * the user's) or an EC2 hostname (directory absolute, alias the server's);
+ * the rules here are the same for both.
+ *
+ * A site names its server only when its links point at more than one
  * checkout directory (a test domain beside production); otherwise the one
  * directory they share is the server.
+ *
+ * @phpstan-type Link array{link_id: int, where: string, path_prefix: string, directory: ?string, ssh_alias: ?string}
  */
 final readonly class ServerChoice
 {
@@ -23,17 +29,17 @@ final readonly class ServerChoice
     }
 
     /**
-     * @param list<array{dh_site_domain_id: int, domain: string, path_prefix: string, web_directory: ?string, ssh_alias: ?string}> $links
-     * @param ?int $named the site's server_site_domain_id
+     * @param list<Link> $links
+     * @param ?int $named the link id the site's server column names
      */
     public static function pick(array $links, ?int $named): self
     {
         if ($links === []) {
-            return self::none('no domain is linked to it');
+            return self::none('no domain or hostname is linked to it');
         }
         if ($named !== null) {
             foreach ($links as $link) {
-                if ($link['dh_site_domain_id'] === $named) {
+                if ($link['link_id'] === $named) {
                     return self::reach($link);
                 }
             }
@@ -51,13 +57,13 @@ final readonly class ServerChoice
     }
 
     /**
-     * @param array{dh_site_domain_id: int, domain: string, path_prefix: string, web_directory: ?string, ssh_alias: ?string} $link
+     * @param Link $link
      */
     private static function reach(array $link): self
     {
-        $where = $link['domain'] . $link['path_prefix'];
-        if ($link['web_directory'] === null) {
-            return self::none("the latest sweep has no directory for {$where}");
+        $where = $link['where'] . $link['path_prefix'];
+        if ($link['directory'] === null) {
+            return self::none("no directory is known for {$where}");
         }
         if ($link['ssh_alias'] === null) {
             return self::none("no ssh alias is known for the user serving {$where}");
@@ -66,14 +72,14 @@ final readonly class ServerChoice
     }
 
     /**
-     * The directory relative to the user's home: the domain's web directory,
-     * plus the path inside it for a site that is only part of a domain.
+     * The link's directory plus the path inside it for a site that is only
+     * part of a domain.
      *
-     * @param array{dh_site_domain_id: int, domain: string, path_prefix: string, web_directory: ?string, ssh_alias: ?string} $link
+     * @param Link $link
      */
     private static function directoryOf(array $link): string
     {
-        return ($link['web_directory'] ?? '') . $link['path_prefix'];
+        return ($link['directory'] ?? '') . $link['path_prefix'];
     }
 
     private static function none(string $problem): self
