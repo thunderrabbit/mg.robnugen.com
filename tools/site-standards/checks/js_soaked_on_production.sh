@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
-# js_soaked_on_production REPO [DAYS]: the commit the site's server runs has
-# run there for at least DAYS working days (default 5). Asks the server, over
-# the scanner's ssh (SITE_SERVER_SSH_ALIAS, SITE_SERVER_DIRECTORY), when HEAD
-# last moved, from its reflog. A site with no third-party libraries passes.
+# js_soaked_on_production REPO [DAYS]: the last library change production
+# runs has run there for at least DAYS working days (default 5). A library
+# change is a commit that touched JS_LIBRARIES.md, which names every
+# third-party script's exact version. Asks the server, over the scanner's ssh
+# (SITE_SERVER_SSH_ALIAS, SITE_SERVER_DIRECTORY), for its reflog, and finds
+# the first deploy that carried that commit; deploys since then that changed
+# no library do not restart the count. A site with no third-party libraries
+# passes.
 set -uo pipefail
 HERE="$(dirname "${BASH_SOURCE[0]}")"
 . "$HERE/../lib.sh"
@@ -28,14 +32,28 @@ dir="${SITE_SERVER_DIRECTORY:-}"
 [[ "$alias_" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || unknown "no ssh login for the server to ask when it last changed"
 need_server_dir "$dir" "the server's"
 # shellcheck disable=SC2086
-answer="$(${SCAN_SSH:-ssh -o BatchMode=yes -o ConnectTimeout=15} "$alias_" \
-  "git -c safe.directory='*' --no-optional-locks -C '$dir' reflog show --date=unix -1 HEAD" 2>/dev/null </dev/null | head -1)"
-[[ "$answer" =~ ^([0-9a-f]{7,40})\ HEAD@\{([0-9]+)\} ]] \
+reflog="$(${SCAN_SSH:-ssh -o BatchMode=yes -o ConnectTimeout=15} "$alias_" \
+  "git -c safe.directory='*' --no-optional-locks -C '$dir' reflog show --date=unix --format='%H %gd' -200 HEAD" 2>/dev/null </dev/null)"
+[[ "$reflog" =~ ^([0-9a-f]{40})\ HEAD@\{[0-9]+\} ]] \
   || unknown "the server has no record of when HEAD last moved (deployed by copying files?)"
-sha="${BASH_REMATCH[1]}"
-moved="${BASH_REMATCH[2]}"
+running="${BASH_REMATCH[1]}"
+git -C "$REPO" cat-file -e "$running^{commit}" 2>/dev/null \
+  || unknown "the checkout does not have ${running:0:7}, the commit the server runs"
+git -C "$REPO" cat-file -e "$running:JS_LIBRARIES.md" 2>/dev/null \
+  || not_yet "no JS_LIBRARIES.md in what production runs; the inventory step comes first"
+change="$(git -C "$REPO" log -1 --format=%H "$running" -- JS_LIBRARIES.md)"
 
-out="$(python3 -I -B - "$moved" "$days" "$sha" <<'PY'
+# Walk the reflog newest first while each deploy still carries the change;
+# the last one that does is when production first ran it.
+moved=""
+while read -r sha ref; do
+  [[ "$sha" =~ ^[0-9a-f]{40}$ && "$ref" =~ ^HEAD@\{([0-9]+)\}$ ]] || break
+  git -C "$REPO" merge-base --is-ancestor "$change" "$sha" 2>/dev/null || break
+  moved="${BASH_REMATCH[1]}"
+done <<< "$reflog"
+[ -n "$moved" ] || unknown "could not tell when production first ran ${change:0:7}"
+
+out="$(python3 -I -B - "$moved" "$days" "$change" <<'PY'
 import datetime, sys
 moved = datetime.datetime.fromtimestamp(int(sys.argv[1]), datetime.timezone.utc)
 need, sha = int(sys.argv[2]), sys.argv[3][:7]
@@ -47,9 +65,9 @@ while day < now.date():
         worked += 1
 since = moved.strftime("%Y-%m-%d")
 if worked >= need:
-    print(f"0 production has run {sha} since {since}, {worked} working days")
+    print(f"0 the last library change ({sha}) has run on production since {since}, {worked} working days")
 else:
-    print(f"1 production has run {sha} only since {since}, {worked} of {need} working days")
+    print(f"1 the last library change ({sha}) has run on production only since {since}, {worked} of {need} working days")
 PY
 )"
 case "${out%% *}" in
