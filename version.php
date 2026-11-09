@@ -1,6 +1,6 @@
 <?php
 
-const SENTIMENTAL_VERSION = "BEGIN sweeps per day";
-const SEMVER = "0.69.0";
+const SENTIMENTAL_VERSION = "BEGIN print_rob into a class";
+const SEMVER = "0.70.0";
 
 const EMOTIONAL_SESSION_GAP_MINUTES = 30;
