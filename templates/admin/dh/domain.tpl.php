@@ -27,6 +27,9 @@ $span = static fn (array $row): string => $h($row['from_on']) . ' &rarr; ' . ($r
                     at <code><?= $h($site['path_prefix']) ?></code>
                 <?php endif; ?>
                 <span class="StdSummary<?= $site['report']->standing->summary === 'waiting on you' ? ' StdYours' : '' ?>"><?= $site['report']->standing->summary === 'waiting on you' ? '🐾 ' : '' ?><?= $h($site['report']->standing->summary) ?></span>
+                <?php if ($site['report']->standing->forYou > 0): ?>
+                    <span class="StdSummary StdYours"><?= $site['report']->standing->forYou ?> for you</span>
+                <?php endif; ?>
             </li>
         <?php endforeach; ?>
     </ul>

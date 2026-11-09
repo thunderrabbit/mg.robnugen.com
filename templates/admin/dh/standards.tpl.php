@@ -46,6 +46,9 @@ Sites on EC2 are here too; their servers are entered with site.sh.</small></p>
                     <span class="StdSummary StdYours">🐾 waiting on you</span>
                 <?php else: ?>
                     <span class="StdSummary"><?= $h($report->standing->summary) ?></span>
+                    <?php if ($report->standing->forYou > 0): ?>
+                        <span class="StdSummary StdYours"><?= $report->standing->forYou ?> for you</span>
+                    <?php endif; ?>
                 <?php endif; ?>
             </summary>
 

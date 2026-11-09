@@ -109,7 +109,7 @@ final class StandardsImporter
                     'std_tracks',
                     'std_track_id',
                     ['std_standard_id' => $standardId, 'slug' => $track->slug],
-                    ['name' => $track->name, 'position' => $track->position],
+                    ['name' => $track->name, 'position' => self::decimal($track->position)],
                 );
                 foreach ($track->steps as $step) {
                     $this->writeStep($existing[$step->slug] ?? null, $trackId, $step);
@@ -156,13 +156,22 @@ final class StandardsImporter
     }
 
     /**
+     * A position as the DECIMAL(9,4) column takes it, exactly: "39.0001",
+     * never a float PDO might write as 39.000099999.
+     */
+    private static function decimal(float $position): string
+    {
+        return number_format($position, 4, '.', '');
+    }
+
+    /**
      * @param array<mixed>|null $existing the step's row when the standard already has one by this name
      */
     private function writeStep(?array $existing, int $trackId, StepDef $step): void
     {
         $values = [
             $trackId,
-            $step->position,
+            self::decimal($step->position),
             $step->title,
             $step->explanation,
             $step->howTo,
