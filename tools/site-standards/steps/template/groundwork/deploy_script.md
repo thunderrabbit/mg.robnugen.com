@@ -1,7 +1,7 @@
 ---
 title: Deploys with deploy_to_dh.sh
 position: 35
-status: idea
+status: proven
 whose_move: agent
 check: deploy_script
 ---
