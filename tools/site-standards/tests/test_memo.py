@@ -107,6 +107,34 @@ class ToolIdentityTest(Files):
         write(os.path.join(mcp, "run-phpstan.sh"), "two\n")
         self.assertNotEqual(before, memo.tool_identity(mcp))
 
+    def make_mcp(self):
+        mcp = os.path.join(self.dir, "mcp")
+        os.mkdir(mcp)
+        write(os.path.join(mcp, "run-phpstan.sh"), "one\n")
+        write(os.path.join(mcp, "runner-image.sh"), "image one\n")
+        write(os.path.join(mcp, "repos.yaml"), "mg:\n  php_target: \"8.3\"\n")
+        return mcp, os.path.join(self.dir, "override.yaml")
+
+    def test_tool_identity_changes_with_the_runner_image_chooser(self):
+        mcp, none = self.make_mcp()
+        before = memo.tool_identity(mcp, none)
+        write(os.path.join(mcp, "runner-image.sh"), "image two\n")
+        self.assertNotEqual(before, memo.tool_identity(mcp, none))
+
+    def test_tool_identity_changes_with_the_committed_registry(self):
+        mcp, none = self.make_mcp()
+        before = memo.tool_identity(mcp, none)
+        write(os.path.join(mcp, "repos.yaml"), "mg:\n  php_target: \"8.5\"\n")
+        self.assertNotEqual(before, memo.tool_identity(mcp, none))
+
+    def test_tool_identity_changes_when_a_personal_registry_appears_or_changes(self):
+        mcp, override = self.make_mcp()
+        absent = memo.tool_identity(mcp, override)
+        write(override, "mg:\n  php_target: \"8.4\"\n")
+        present = memo.tool_identity(mcp, override)
+        write(override, "mg:\n  php_target: \"8.5\"\n")
+        self.assertEqual(len({absent, present, memo.tool_identity(mcp, override)}), 3)
+
     def test_tool_identity_ignores_other_files(self):
         mcp = os.path.join(self.dir, "mcp")
         os.mkdir(mcp)
@@ -134,6 +162,17 @@ class MemoTest(Files):
         for outcome in ("unknown", "timeout", ""):
             memory.record("k1", "c" * 40, outcome, "could not tell")
         self.assertIsNone(memory.lookup("k1"))
+
+    def test_a_fail_with_no_detail_is_not_recorded(self):
+        # A check that crashed with exit 1 before printing anything says nothing worth keeping.
+        memory = memo.Memo(self.file)
+        memory.record("k1", "c" * 40, "fail", "")
+        self.assertIsNone(memory.lookup("k1"))
+
+    def test_a_pass_with_no_detail_is_recorded(self):
+        memory = memo.Memo(self.file)
+        memory.record("k1", "c" * 40, "pass", "")
+        self.assertEqual(memory.lookup("k1")["outcome"], "pass")
 
     def test_save_drops_other_commits(self):
         memory = memo.Memo(self.file)

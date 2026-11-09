@@ -6,7 +6,7 @@ Used by scan.py. Standard library only. A check opts in with a line
 A remembered answer is reused only when the whole key is unchanged: the site's
 commit, the check script, lib.sh, the helper files beside the checks, the
 step's param, every SITE_* fact the check is given, and the tools it runs
-(the standards-mcp runner scripts and the local standards-* docker images).
+(the standards-mcp runner scripts, its runner-image chooser and registry, and the local standards-* docker images).
 Only `pass` and `fail` are stored, never "could not tell". One JSON file per
 site lives under the XDG state directory, outside every repo, and holds only
 entries for the commit last scanned.
@@ -54,11 +54,22 @@ def _file_bytes(path):
         return handle.read()
 
 
-def tool_identity(standards_mcp):
-    """One hash for the tools checks run through: the runner scripts and the local standards-* docker images."""
+def tool_identity(standards_mcp, override_registry=None):
+    """One hash for the tools checks run through.
+
+    The runner scripts, the script that picks a repo's runner image and the
+    registry it reads (the committed repos.yaml, and the personal one that wins
+    when present), and the local standards-* docker images.
+    """
+    if override_registry is None:
+        override_registry = os.path.expanduser("~/.config/standards-mcp/repos.yaml")
     digest = hashlib.sha256()
     for path in sorted(glob.glob(os.path.join(standards_mcp, "run-*.sh"))):
         _feed(digest, "runner:" + os.path.basename(path), _file_bytes(path))
+    for name in ("runner-image.sh", "repos.yaml"):
+        path = os.path.join(standards_mcp, name)
+        _feed(digest, "tool:" + name, _file_bytes(path) if os.path.isfile(path) else b"absent")
+    _feed(digest, "personal-registry", _file_bytes(override_registry) if os.path.isfile(override_registry) else b"absent")
     try:
         listed = subprocess.run(
             ["docker", "images", "--no-trunc", "--format", "{{.Repository}}:{{.Tag}} {{.ID}}"],
@@ -134,6 +145,8 @@ class Memo:
     def record(self, key, commit, outcome, detail):
         if outcome not in REMEMBERED:
             return
+        if outcome == "fail" and detail == "":
+            return  # a check that died with exit 1 before saying anything; do not keep that
         self.entries[key] = {"commit": commit, "outcome": outcome, "detail": detail, "at_utc": _now_utc()}
 
     def save(self, current_commit):
