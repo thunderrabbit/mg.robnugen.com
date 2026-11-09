@@ -15,7 +15,7 @@ final readonly class TrackDef
     public function __construct(
         public string $slug,
         public string $name,
-        public int $position,
+        public float $position,
         public array $steps,
     ) {
     }
