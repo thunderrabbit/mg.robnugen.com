@@ -394,12 +394,59 @@ a:visited {
 
 /* Site standards: which sites have done each written-up step. Calm on
    purpose. The only marks are a checkmark, an info circle and a face. */
-.StdSite {
-    margin: 0.4em 0;
-    padding: 0.4em 0.8em;
+/* Each block is a row of tiles, each only as wide as its summary, so the
+   board does not spend a full line on a few words. An open site takes the
+   whole line, since its step table needs the room. */
+.StdBlock {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.4em;
+    min-height: 2.4em;
+    margin: 0.2em 0 0.4em;
+}
+
+.StdItem {
+    display: flex;
+    align-items: flex-start;
     border: 1px solid var(--border-light);
     border-radius: 6px;
     background: var(--bg-card);
+}
+
+.StdItem:has(> details[open]) {
+    flex-basis: 100%;
+}
+
+.StdItem.sortable-ghost {
+    opacity: 0.4;
+}
+
+.StdHandle {
+    padding: 0.4em 0.1em 0.4em 0.4em;
+    color: var(--text-muted);
+    cursor: grab;
+    user-select: none;
+}
+
+.StdEmpty {
+    margin: 0.4em 0;
+    color: var(--text-muted);
+    font-size: 0.9em;
+}
+
+.StdBlock:has(> .StdItem) > .StdEmpty {
+    display: none;
+}
+
+.StdOrderNote {
+    margin: 0.2em 0;
+    color: var(--text-muted);
+}
+
+.StdSite {
+    flex: 1;
+    padding: 0.4em 0.8em 0.4em 0.3em;
 }
 
 .StdSite > summary {
