@@ -38,6 +38,18 @@ name. It names the suite's command in `JS_LIBRARIES.md` instead.
 Read by: `js_checks_in_place` (it exists), `js_deprecations_clear` (runs the
 `.sh` with `--strict`).
 
+### `deploy_to_dh.sh`
+
+The site's deploy: `git push`, then `git pull` over ssh in `DEST_PATH` on
+`DEST`, with `PULL_URL` saying whether the server pulls over ssh (`origin`)
+or https (empty). The text is base.robnugen.com's committed copy, which came
+from new-DH-user-site; older sites' `deploy_on_dh.sh` and
+`deploy_<site>_to_dh.sh` are renamed to it, so one name answers "how do we
+deploy this?" on every site.
+
+Read by: `deploy_script` (it is tracked and executable, and `DEST` and
+`DEST_PATH` match the site's server).
+
 ### `safe-suite.sh`
 
 The site's PHP suite that is safe to run against its test domain. Read by
