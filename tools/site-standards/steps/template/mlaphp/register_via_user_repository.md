@@ -1,7 +1,7 @@
 ---
 title: Registering a user goes through UserRepository
 position: 79.0001
-status: idea
+status: proven
 whose_move: agent
 check: mlaphp_register_via_user_repository
 ---
@@ -19,14 +19,103 @@ no `wwwroot/login/register.php` passes: there is nothing to move.
 
 ## How to do it
 
-1. Copy `classes/Database/UserRepository.php` and
-   `Tests/Unit/UserRepositoryTest.php` byte for byte from a site that
-   already passes this step (`ls ~/work/rob/*/classes/Database/UserRepository.php`).
-   The constructor takes `private readonly \PDO $di_pdo`; `create()` runs
-   the INSERT copied exactly. The test uses in-memory SQLite: the row is
-   stored, and a duplicate username throws a `PDOException` with code
-   23000. Commit them together (`Add Database\UserRepository::create()`),
-   with the page untouched.
+1. Create these two files exactly as written. Commit them together
+   (`Add Database\UserRepository::create()`), with the page untouched.
+   The test uses in-memory SQLite: the row is stored, and a duplicate
+   username throws a `PDOException` with code 23000.
+
+   `classes/Database/UserRepository.php`:
+
+    <?php
+
+    declare(strict_types=1);
+
+    namespace Database;
+
+    /**
+     * Persistence for accounts (the `users` table).
+     *
+     * SQL kept portable so the Unit suite can drive this on an in-memory SQLite.
+     */
+    class UserRepository
+    {
+        public function __construct(private readonly \PDO $di_pdo)
+        {
+        }
+
+        /**
+         * @throws \PDOException SQLSTATE 23000 when the username is taken.
+         */
+        public function create(string $username, string $password_hash, string $role): void
+        {
+            $stmt = $this->di_pdo->prepare("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)");
+            $stmt->execute([$username, $password_hash, $role]);
+        }
+    }
+
+   `Tests/Unit/UserRepositoryTest.php`:
+
+    <?php
+
+    declare(strict_types=1);
+
+    namespace Tests\Unit;
+
+    use Codeception\Test\Unit;
+
+    /**
+     * In-memory SQLite, same reasoning as LoginThrottleTest: hermetic, no server.
+     */
+    class UserRepositoryTest extends Unit
+    {
+        private \PDO $pdo;
+
+        protected function _before(): void
+        {
+            $this->pdo = new \PDO('sqlite::memory:');
+            $this->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+            $this->pdo->exec(
+                "CREATE TABLE users (
+                    user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT NOT NULL UNIQUE,
+                    password_hash TEXT NOT NULL,
+                    role TEXT DEFAULT 'user',
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )"
+            );
+        }
+
+        public function testCreateStoresTheUser(): void
+        {
+            $repo = new \Database\UserRepository($this->pdo);
+            $repo->create('rob', 'hash-a', 'admin');
+
+            $stmt = $this->pdo->query("SELECT username, password_hash, role FROM users");
+            $rows = $stmt === false ? [] : $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            $this->assertSame(
+                [['username' => 'rob', 'password_hash' => 'hash-a', 'role' => 'admin']],
+                $rows
+            );
+        }
+
+        /**
+         * register.php turns SQLSTATE 23000 into "User already exists", so the
+         * gateway must let that PDOException through untouched.
+         */
+        public function testDuplicateUsernameThrowsIntegrityViolation(): void
+        {
+            $repo = new \Database\UserRepository($this->pdo);
+            $repo->create('rob', 'hash-a', 'admin');
+
+            try {
+                $repo->create('rob', 'hash-b', 'user');
+                $this->fail('A duplicate username was accepted.');
+            } catch (\PDOException $e) {
+                $this->assertSame('23000', (string) $e->getCode());
+            }
+        }
+    }
+
 2. In `wwwroot/login/register.php`, replace
 
        $stmt = $mla_database->prepare("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)");
