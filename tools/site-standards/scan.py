@@ -35,6 +35,8 @@ import sys
 import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)  # python3 -I leaves this directory off sys.path
+import memo  # noqa: E402
 STEPS_DIR = "tools/site-standards/steps/"
 CHECK_NAME = re.compile(r"\A[a-z0-9][a-z0-9_]*\Z")
 OUTCOMES = {0: "pass", 1: "fail", 2: "unknown"}
@@ -127,7 +129,8 @@ def checks_match(mg_repo, ref):
     A check that is not deployed on mg must not tick a step on anyone's site.
     """
     paths = ["tools/site-standards/checks", "tools/site-standards/lib.sh",
-             "tools/site-standards/scan.py", "tools/site-standards/scan.sh"]
+             "tools/site-standards/scan.py", "tools/site-standards/scan.sh",
+             "tools/site-standards/memo.py"]
     changed = subprocess.run(["git", "-C", mg_repo, "diff", "--quiet", ref, "--", *paths]).returncode != 0
     untracked = git(mg_repo, "ls-files", "--others", "--", *paths)[1].strip() != ""
     return not changed and not untracked
@@ -198,6 +201,21 @@ def check_environment(site, env, server_commit=None, server_branch=None):
     return dict(env, **{name: value or "" for name, value in facts.items()})
 
 
+def run_check(script, repo, param, site_env):
+    """(outcome, detail) of one check script run against a repo; detail is one printable line."""
+    try:
+        done = subprocess.run([script, repo, param], capture_output=True, text=True,
+                              env=site_env, timeout=CHECK_TIMEOUT)
+        outcome = OUTCOMES.get(done.returncode, "unknown")
+        lines = done.stdout.strip().splitlines()
+        detail = lines[0] if lines else ""
+        if done.returncode not in OUTCOMES:
+            detail = f"the check stopped with exit {done.returncode}"
+    except subprocess.TimeoutExpired:
+        outcome, detail = "unknown", "the check took too long"
+    return outcome, "".join(ch for ch in detail if ch.isprintable())[:255]
+
+
 def scan_site(site, files, work_root, env):
     """One site's entry in the document: its results, or why it was skipped."""
     shortcode = site["shortcode"]
@@ -246,17 +264,7 @@ def scan_site(site, files, work_root, env):
         script = os.path.join(HERE, "checks", check + ".sh")
         if not CHECK_NAME.match(check) or not os.path.isfile(script):
             continue
-        try:
-            done = subprocess.run([script, repo, param], capture_output=True, text=True,
-                                  env=site_env, timeout=CHECK_TIMEOUT)
-            outcome = OUTCOMES.get(done.returncode, "unknown")
-            lines = done.stdout.strip().splitlines()
-            detail = lines[0] if lines else ""
-            if done.returncode not in OUTCOMES:
-                detail = f"the check stopped with exit {done.returncode}"
-        except subprocess.TimeoutExpired:
-            outcome, detail = "unknown", "the check took too long"
-        detail = "".join(ch for ch in detail if ch.isprintable())[:255]
+        outcome, detail = run_check(script, repo, param, site_env)
         say(f"  {shortcode}: {name}: {outcome}" + (f" ({detail})" if detail else ""))
         results.append({"step": name, "outcome": outcome, "detail": detail})
 
