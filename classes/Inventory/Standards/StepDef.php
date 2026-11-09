@@ -11,7 +11,7 @@ final readonly class StepDef
 {
     public function __construct(
         public string $slug,
-        public int $position,
+        public float $position,
         public string $title,
         public string $explanation,
         public string $howTo,

@@ -5,7 +5,7 @@
  * crying-laughing face for a site nobody can reach yet.
  *
  * @var array{id: int, swept_on: string, previous_id: int|null, previous_on: string|null}|null $sweep
- * @var list<array{slug: string, name: string, proven: int, sites: list<array<mixed>>, groups: list<array{kind: \Inventory\Standards\HostKind, heading: string, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, host: string, server_where: ?string, web_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: \Inventory\Standards\SiteReport}>}>, ideas: list<array{slug: string, track: string, title: string, practising: list<array{shortcode: string, issue: \Inventory\Standards\NoteIssue}>}>}> $standards
+ * @var list<array{slug: string, name: string, proven: int, sites: list<array<mixed>>, groups: list<array{kind: \Inventory\Standards\HostKind, heading: string, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, host: string, server_where: ?string, web_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: \Inventory\Standards\SiteReport}>}>, ideas: list<array{slug: string, track: string, title: string, practising: list<array{shortcode: string, issue: \Inventory\Standards\NoteIssue}>, passing: int, checked: int, discussion: ?\Inventory\Standards\NoteIssue}>}> $standards
  */
 
 use Inventory\Standards\Names;
@@ -46,6 +46,9 @@ Sites on EC2 are here too; their servers are entered with site.sh.</small></p>
                     <span class="StdSummary StdYours">🐾 waiting on you</span>
                 <?php else: ?>
                     <span class="StdSummary"><?= $h($report->standing->summary) ?></span>
+                    <?php if ($report->standing->forYou > 0): ?>
+                        <span class="StdSummary StdYours"><?= $report->standing->forYou ?> for you</span>
+                    <?php endif; ?>
                 <?php endif; ?>
             </summary>
 
@@ -161,9 +164,18 @@ Sites on EC2 are here too; their servers are entered with site.sh.</small></p>
                     <th scope="row"><?= $h($idea['track']) ?></th>
                     <td>
                         <?= $h($idea['title']) ?>
-                        <?php if ($idea['practising'] === []): ?>
+                        <?php if ($idea['checked'] > 0): ?>
+                            <span class="StdNote">passing on <?= $idea['passing'] ?> of <?= $idea['checked'] ?>
+                                sites checked (<?= intdiv($idea['passing'] * 100, $idea['checked']) ?>%)</span>
+                        <?php endif; ?>
+                        <?php if ($idea['discussion'] !== null): ?>
+                            <span class="StdNote"><a href="/issues/view.php?issue_id=<?= $idea['discussion']->issueId ?>">discuss
+                                #<?= $idea['discussion']->issueId ?></a></span>
+                        <?php endif; ?>
+                        <?php if ($idea['practising'] === [] && $idea['checked'] === 0): ?>
                             <span class="StdNote">nobody is practising it yet</span>
-                        <?php else: ?>
+                        <?php endif; ?>
+                        <?php if ($idea['practising'] !== []): ?>
                             <?php foreach ($idea['practising'] as $who): ?>
                                 <span class="StdNote">practised on <strong><?= $h($who['shortcode']) ?></strong>:
                                     <a href="/issues/view.php?issue_id=<?= $who['issue']->issueId ?>">#<?= $who['issue']->issueId ?>

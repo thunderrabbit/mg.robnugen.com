@@ -51,9 +51,9 @@ final class StandardsStepTreeTest extends Unit
         $this->assertSame('Template sites', $standard->name);
         $this->assertSame('rector', $track->slug);
         $this->assertSame('Rector', $track->name);
-        $this->assertSame(30, $track->position);
+        $this->assertSame(30.0, $track->position);
         $this->assertSame('rector_php_8_5_rules', $step->slug);
-        $this->assertSame(10, $step->position);
+        $this->assertSame(10.0, $step->position);
         $this->assertSame("Rector's 8.5 rules, one per commit", $step->title);
         $this->assertSame(StepStatus::Proven, $step->status);
         $this->assertSame(WhoseMove::Agent, $step->whoseMove);
@@ -97,6 +97,40 @@ final class StandardsStepTreeTest extends Unit
             ['an_earlier_step', 'rector_php_8_5_rules', 'a_later_step'],
             array_map(static fn (\Inventory\Standards\StepDef $s): string => $s->slug, $tracks[1]->steps),
         );
+    }
+
+    public function testAStepCanSitBetweenTwoWholePositions(): void
+    {
+        $files = self::GOOD + [
+            'template/rector/just_after.md' => str_replace('position: 10', 'position: 10.0001', self::GOOD[self::STEP]),
+            'template/rector/just_before.md' => str_replace('position: 10', 'position: 10.9999', self::GOOD[self::STEP]),
+            'template/rector/whole_eleven.md' => str_replace('position: 10', 'position: 11', self::GOOD[self::STEP]),
+            'template/rector/half_way.md' => str_replace('position: 10', 'position: 10.5', self::GOOD[self::STEP]),
+        ];
+
+        $steps = StepTree::fromFiles($files)->standards[0]->tracks[0]->steps;
+
+        $this->assertSame(
+            ['rector_php_8_5_rules', 'just_after', 'half_way', 'just_before', 'whole_eleven'],
+            array_map(static fn (\Inventory\Standards\StepDef $s): string => $s->slug, $steps),
+        );
+        $this->assertSame(10.0001, $steps[1]->position);
+    }
+
+    public function testRefusesAPositionWithMoreThanFourDecimalPlaces(): void
+    {
+        $files = self::GOOD;
+        $files[self::STEP] = str_replace('position: 10', 'position: 10.00001', $files[self::STEP]);
+
+        $this->refuses($files, '/four decimal places/');
+    }
+
+    public function testRefusesAPositionWithAPointAndNothingAfterIt(): void
+    {
+        $files = self::GOOD;
+        $files[self::STEP] = str_replace('position: 10', 'position: 10.', $files[self::STEP]);
+
+        $this->refuses($files, '/position/');
     }
 
     public function testARemovedStepIsSimplyAbsentFromTheTree(): void
@@ -160,7 +194,7 @@ final class StandardsStepTreeTest extends Unit
         $this->refuses($files, '/check/');
     }
 
-    public function testRefusesAPositionThatIsNotAPositiveInteger(): void
+    public function testRefusesAPositionThatIsNotANumber(): void
     {
         $files = self::GOOD;
         $files[self::STEP] = str_replace('position: 10', 'position: first', $files[self::STEP]);

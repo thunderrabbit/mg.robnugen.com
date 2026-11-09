@@ -15,9 +15,9 @@ use Inventory\Standards\WhoseMove;
  */
 final class StandardsSiteStandingTest extends Unit
 {
-    private function line(bool $done, WhoseMove $whose = WhoseMove::Agent): StepLine
+    private function line(bool $done, WhoseMove $whose = WhoseMove::Agent, string $track = 'A track'): StepLine
     {
-        return new StepLine('a_step', 'A track', 'A step', $whose, $done, '', false, [], '', '', 'a_check', null);
+        return new StepLine('a_step', $track, 'A step', $whose, $done, '', false, [], '', '', 'a_check', null);
     }
 
     public function testUnreachableComesFirstEvenWhenEverythingElseIsDone(): void
@@ -44,12 +44,73 @@ final class StandardsSiteStandingTest extends Unit
         $this->assertSame('up to date', $standing->summary);
     }
 
-    public function testRobsOpenMoveWins(): void
+    public function testWaitsOnRobWhenEveryAgentStepIsBehindHisMove(): void
     {
-        $standing = SiteStanding::of(true, [$this->line(false), $this->line(false, WhoseMove::Rob)]);
+        $standing = SiteStanding::of(true, [$this->line(false, WhoseMove::Rob), $this->line(false)]);
 
         $this->assertSame(Mark::Info, $standing->mark);
         $this->assertSame('waiting on you', $standing->summary);
+        $this->assertSame(0, $standing->forYou);
+    }
+
+    public function testWaitsOnRobWhenOnlyHisStepsAreOpen(): void
+    {
+        $standing = SiteStanding::of(true, [$this->line(false, WhoseMove::Rob), $this->line(true)]);
+
+        $this->assertSame('waiting on you', $standing->summary);
+    }
+
+    public function testRobsStepBehindAnAgentStepIsNotYetHis(): void
+    {
+        $standing = SiteStanding::of(true, [$this->line(false), $this->line(false, WhoseMove::Rob)]);
+
+        $this->assertSame('2 steps to go', $standing->summary);
+        $this->assertSame(0, $standing->forYou);
+    }
+
+    public function testCountsRobsStepsThatNoAgentStepIsAheadOf(): void
+    {
+        $standing = SiteStanding::of(true, [
+            $this->line(false, WhoseMove::Rob, 'Tooling'),
+            $this->line(false, WhoseMove::Rob, 'Tooling'),
+            $this->line(false, WhoseMove::Agent, 'MLAPHP'),
+            $this->line(false, WhoseMove::Rob, 'MLAPHP'),
+        ]);
+
+        $this->assertSame('4 steps to go', $standing->summary);
+        $this->assertSame(2, $standing->forYou);
+    }
+
+    public function testOrderOnlyMattersInsideATrack(): void
+    {
+        $standing = SiteStanding::of(true, [
+            $this->line(false, WhoseMove::Rob, 'Tooling'),
+            $this->line(false, WhoseMove::Agent, 'MLAPHP'),
+        ]);
+
+        $this->assertSame('2 steps to go', $standing->summary);
+        $this->assertSame(1, $standing->forYou);
+    }
+
+    public function testEveryTrackWaitsOnGroundwork(): void
+    {
+        $standing = SiteStanding::of(true, [
+            $this->line(false, WhoseMove::Rob, 'Groundwork'),
+            $this->line(false, WhoseMove::Agent, 'MLAPHP'),
+        ]);
+
+        $this->assertSame('waiting on you', $standing->summary);
+    }
+
+    public function testAnAgentGroundworkStepHoldsBackRobsStepsElsewhere(): void
+    {
+        $standing = SiteStanding::of(true, [
+            $this->line(false, WhoseMove::Agent, 'Groundwork'),
+            $this->line(false, WhoseMove::Rob, 'MLAPHP'),
+        ]);
+
+        $this->assertSame('2 steps to go', $standing->summary);
+        $this->assertSame(0, $standing->forYou);
     }
 
     public function testRobsDoneMoveDoesNotCountAsWaiting(): void

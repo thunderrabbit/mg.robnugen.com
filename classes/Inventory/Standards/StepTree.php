@@ -157,12 +157,19 @@ final readonly class StepTree
         );
     }
 
-    private static function position(string $path, string $value): int
+    /**
+     * A position is a number from 1 to 65535 with up to four decimal places,
+     * so a new step can go between two others (39.0001 comes after 39 and
+     * before 40) without renumbering any file.
+     */
+    private static function position(string $path, string $value): float
     {
-        if (!ctype_digit($value) || (int) $value < 1 || (int) $value > 65535) {
-            throw new StandardsFormatException("{$path}: position must be a whole number from 1 to 65535");
+        if (preg_match('/^\d+(\.\d{1,4})?$/', $value) !== 1 || (float) $value < 1 || (float) $value >= 65536) {
+            throw new StandardsFormatException(
+                "{$path}: position must be a number from 1 to 65535, with at most four decimal places"
+            );
         }
-        return (int) $value;
+        return (float) $value;
     }
 
     /**

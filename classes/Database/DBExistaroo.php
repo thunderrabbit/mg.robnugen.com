@@ -185,7 +185,7 @@ class DBExistaroo
 
         foreach ($schema_dirs as $schema_dir) {
             $version = basename($schema_dir);   // directory name in $base_dir, e.g. "02_workers"
-            // print_rob($version, false);
+            // \PrintRob\Debug::printRob($version, false);
             $create_files = glob("$schema_dir/*_*.sql") ?: [];
 
             foreach ($create_files as $file) {

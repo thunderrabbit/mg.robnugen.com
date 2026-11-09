@@ -27,7 +27,7 @@ final class Board
     /**
      * Every standard with its sites and its untried ideas.
      *
-     * @return list<array{slug: string, name: string, proven: int, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, host: string, server_where: ?string, web_php: ?string, php_current: ?string, test_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}>, groups: list<array{kind: HostKind, heading: string, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, host: string, server_where: ?string, web_php: ?string, php_current: ?string, test_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}>}>, ideas: list<array{slug: string, track: string, title: string, practising: list<array{shortcode: string, issue: NoteIssue}>}>}>
+     * @return list<array{slug: string, name: string, proven: int, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, host: string, server_where: ?string, web_php: ?string, php_current: ?string, test_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}>, groups: list<array{kind: HostKind, heading: string, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, host: string, server_where: ?string, web_php: ?string, php_current: ?string, test_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}>}>, ideas: list<array{slug: string, track: string, title: string, practising: list<array{shortcode: string, issue: NoteIssue}>, passing: int, checked: int, discussion: ?NoteIssue}>}>
      */
     public function standards(): array
     {
@@ -40,6 +40,7 @@ final class Board
                 $sites[] = $this->site($site);
             }
             $ideas = [];
+            $discussions = $this->discussions();
             foreach ($this->stepsOf($standardId) as $step) {
                 if (RowValue::string($step, 'status') !== StepStatus::Idea->value) {
                     continue;
@@ -52,11 +53,23 @@ final class Board
                         $practising[] = ['shortcode' => $site['shortcode'], 'issue' => $issue];
                     }
                 }
+                $passing = 0;
+                $checked = 0;
+                foreach ($sites as $site) {
+                    $outcome = $site['report']->openOutcome($slug);
+                    if ($outcome !== null) {
+                        $checked++;
+                        $passing += $outcome === 'pass' ? 1 : 0;
+                    }
+                }
                 $ideas[] = [
                     'slug' => $slug,
                     'track' => RowValue::string($step, 'track_name'),
                     'title' => RowValue::string($step, 'title'),
                     'practising' => $practising,
+                    'passing' => $passing,
+                    'checked' => $checked,
+                    'discussion' => $discussions[$slug] ?? null,
                 ];
             }
             $standards[] = [
@@ -343,6 +356,41 @@ final class Board
               ORDER BY t.position, t.slug, s.position, s.slug',
             [$standardId],
         );
+    }
+
+    /**
+     * The issue where each idea is talked over, by step name: an issue titled
+     * exactly the step's name in the newest project whose name starts "Ze ".
+     * A step with no such issue has no discussion yet.
+     *
+     * @return array<string, NoteIssue>
+     */
+    private function discussions(): array
+    {
+        $projects = $this->rows("SELECT project_id FROM projects WHERE name LIKE 'Ze %' ORDER BY project_id DESC LIMIT 1");
+        if ($projects === []) {
+            return [];
+        }
+        $found = [];
+        $rows = $this->rows(
+            'SELECT i.issue_id, i.title, s.slug, s.label
+               FROM issues i JOIN issue_statuses s ON s.status_id = i.status_id
+              WHERE i.project_id = ?
+              ORDER BY i.issue_id DESC',
+            [RowValue::int($projects[0], 'project_id')],
+        );
+        foreach ($rows as $row) {
+            $title = RowValue::string($row, 'title');
+            if (Names::isStepName($title)) {
+                $found[$title] = new NoteIssue(
+                    RowValue::int($row, 'issue_id'),
+                    $title,
+                    RowValue::string($row, 'slug'),
+                    RowValue::string($row, 'label'),
+                );
+            }
+        }
+        return $found;
     }
 
     /**

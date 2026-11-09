@@ -229,6 +229,22 @@ final class StandardsSiteReportTest extends Unit
         $this->assertSame(821, $report->ideaNotes['an_idea_step'][0]->issueId);
     }
 
+    public function testTheScannersOutcomeIsKeptForAnyStep(): void
+    {
+        $report = SiteReport::build(
+            'mg',
+            $this->reachableFacts(),
+            [],
+            ['an_idea_step' => ['outcome' => 'pass', 'detail' => 'fine']],
+            [],
+            ['mg'],
+            ['an_idea_step'],
+        );
+
+        $this->assertSame('pass', $report->openOutcome('an_idea_step'));
+        $this->assertNull($report->openOutcome('never_scanned'));
+    }
+
     public function testNoNotesOnIdeasIsAnEmptyList(): void
     {
         $this->assertSame([], $this->report()->ideaNotes);

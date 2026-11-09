@@ -160,7 +160,7 @@ final class StandardsSiteAnswerTest extends Unit
 
         $this->assertSame(['a_agent', 'b_rob'], array_column($answer['open_steps'], 'slug'));
         $this->assertSame(['agent', 'rob'], array_column($answer['open_steps'], 'whose_move'));
-        $this->assertSame(['mark' => 'info', 'text' => 'waiting on you'], $answer['standing']);
+        $this->assertSame(['mark' => 'info', 'text' => '2 steps to go'], $answer['standing']);
     }
 
     public function testTheAnswerCarriesNoHostingFacts(): void

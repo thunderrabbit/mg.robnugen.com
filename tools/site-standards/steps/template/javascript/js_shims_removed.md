@@ -1,7 +1,7 @@
 ---
 title: No compatibility shims left
 position: 60
-status: idea
+status: proven
 whose_move: agent
 check: js_shims_removed
 ---
