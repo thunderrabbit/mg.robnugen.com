@@ -74,6 +74,25 @@ final class StandardsSiteOrderTest extends Unit
         SiteOrder::plan(['mg' => 'dreamhost'], ['pinned' => ['mg'], 'dreamhost' => ['mg']]);
     }
 
+    public function testBlocksAreReadFromWhatTheDropSent(): void
+    {
+        $sent = \Field::jsonArray('{"blocks": {"pinned": ["mg"], "dreamhost": []}}');
+
+        $this->assertSame(['pinned' => ['mg'], 'dreamhost' => []], SiteOrder::blocksFrom($sent['blocks']));
+    }
+
+    public function testBlocksThatAreNotAnObjectAreRefused(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        SiteOrder::blocksFrom(['mg']);
+    }
+
+    public function testAShortcodeThatIsNotAStringIsRefused(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        SiteOrder::blocksFrom(['pinned' => [['mg']]]);
+    }
+
     public function testNoBlocksIsRefused(): void
     {
         $this->expectException(\InvalidArgumentException::class);

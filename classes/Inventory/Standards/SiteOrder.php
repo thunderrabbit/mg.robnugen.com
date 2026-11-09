@@ -45,6 +45,35 @@ final class SiteOrder
     }
 
     /**
+     * The blocks a drop sent, as plan() takes them: an object of block names,
+     * each a list of shortcodes. Anything else is refused, not tidied.
+     *
+     * @return array<string, list<string>>
+     * @throws \InvalidArgumentException
+     */
+    public static function blocksFrom(mixed $sent): array
+    {
+        if (!is_array($sent) || array_is_list($sent) && $sent !== []) {
+            throw new \InvalidArgumentException('blocks must be an object of block names.');
+        }
+        $blocks = [];
+        foreach ($sent as $block => $shortcodes) {
+            if (!is_array($shortcodes) || !array_is_list($shortcodes)) {
+                throw new \InvalidArgumentException('Each block must be a list of shortcodes.');
+            }
+            $list = [];
+            foreach ($shortcodes as $shortcode) {
+                if (!is_string($shortcode)) {
+                    throw new \InvalidArgumentException('A shortcode must be a string.');
+                }
+                $list[] = $shortcode;
+            }
+            $blocks[(string) $block] = $list;
+        }
+        return $blocks;
+    }
+
+    /**
      * What to store after a drop: every site in each block the drop touched,
      * numbered in its new order.
      *
