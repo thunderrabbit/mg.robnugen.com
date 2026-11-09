@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# memo: commit
 # deploy_script REPO: the repo deploys with base.robnugen.com's
 # deploy_to_dh.sh, filled in for the site's own server.
 #

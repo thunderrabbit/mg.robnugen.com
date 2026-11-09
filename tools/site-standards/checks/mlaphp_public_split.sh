@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# memo: commit
 # mlaphp_public_split REPO: public files are separate from the rest (MLAPHP
 # chapter 13).
 #

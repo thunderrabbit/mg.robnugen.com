@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# memo: commit
 # phpstan_top REPO: PHPStan is at level 10 with no baseline, and a run is clean.
 set -uo pipefail
 . "$(dirname "${BASH_SOURCE[0]}")/../lib.sh"

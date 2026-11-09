@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# memo: commit
 # code_runs_on_php REPO X: every PHP file compiles on PHP X and on the PHP the
 # site is served on today (SITE_PHP_CURRENT, set by the scanner from the
 # sweep), so the code can be deployed before the panel switch without

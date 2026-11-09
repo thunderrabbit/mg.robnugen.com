@@ -8,6 +8,17 @@
 #   2  could not tell (the line says why)
 # A check may run the site's code only through the standards-mcp runner
 # scripts, which mount the repo read-only with no network.
+#
+# A line `# memo: commit` in a check's first 20 lines promises that its answer
+# depends only on the repo at the commit being scanned, the SITE_* facts it is
+# given, lib.sh, the helper files beside the checks and the standards-mcp
+# tools. The scanner then reuses a pass or fail until one of those changes
+# (memo.py; `scan.sh --fresh` reruns anyway). Without the line a check runs on
+# every scan. Never add it to a check that asks a server or the network, reads
+# the clock, runs another check, or reads git history beyond the commit or the
+# checkout's own .git/config. One accepted gap: files git ignores (vendor/)
+# are not in the commit, so they are not in the key. tests/test_memo_headers.py
+# keeps this honest.
 
 STANDARDS_MCP="${STANDARDS_MCP:-$HOME/work/rob/standards-mcp}"
 

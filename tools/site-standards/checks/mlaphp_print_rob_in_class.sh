@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# memo: commit
 # mlaphp_print_rob_in_class REPO: print_rob() is \PrintRob\Debug::printRob()
 # (MLAPHP chapter 4, the template's one loose function, ported).
 #

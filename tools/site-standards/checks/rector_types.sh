@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# memo: commit
 # rector_types REPO: rector.php applies the type-declaration set and a dry run
 # finds nothing left to change.
 set -uo pipefail
