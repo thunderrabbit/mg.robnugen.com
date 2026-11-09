@@ -1,7 +1,7 @@
 ---
 title: Code compiles on the current PHP and on 8.5
 position: 2
-status: idea
+status: proven
 whose_move: agent
 check: code_runs_on_php
 param: 8.5
