@@ -20,6 +20,8 @@ only. What it does, and what it deliberately does not:
   yet, and nothing is reported for it.
 - The check scripts in this checkout must be the ones in that deployed commit,
   or nothing is scanned.
+- A check that opted in with `# memo: commit` is not rerun while its commit,
+  script, inputs and tools are unchanged (memo.py); `--fresh` reruns it anyway.
 - Nothing in a site's repo is written, committed or deployed.
 
 The document it sends is described in tools/import_site_standards.php.
@@ -35,6 +37,8 @@ import sys
 import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)  # python3 -I leaves this directory off sys.path
+import memo  # noqa: E402
 STEPS_DIR = "tools/site-standards/steps/"
 CHECK_NAME = re.compile(r"\A[a-z0-9][a-z0-9_]*\Z")
 OUTCOMES = {0: "pass", 1: "fail", 2: "unknown"}
@@ -127,7 +131,8 @@ def checks_match(mg_repo, ref):
     A check that is not deployed on mg must not tick a step on anyone's site.
     """
     paths = ["tools/site-standards/checks", "tools/site-standards/lib.sh",
-             "tools/site-standards/scan.py", "tools/site-standards/scan.sh"]
+             "tools/site-standards/scan.py", "tools/site-standards/scan.sh",
+             "tools/site-standards/memo.py"]
     changed = subprocess.run(["git", "-C", mg_repo, "diff", "--quiet", ref, "--", *paths]).returncode != 0
     untracked = git(mg_repo, "ls-files", "--others", "--", *paths)[1].strip() != ""
     return not changed and not untracked
@@ -198,8 +203,29 @@ def check_environment(site, env, server_commit=None, server_branch=None):
     return dict(env, **{name: value or "" for name, value in facts.items()})
 
 
-def scan_site(site, files, work_root, env):
-    """One site's entry in the document: its results, or why it was skipped."""
+def run_check(script, repo, param, site_env):
+    """(outcome, detail) of one check script run against a repo; detail is one printable line."""
+    try:
+        done = subprocess.run([script, repo, param], capture_output=True, text=True,
+                              env=site_env, timeout=CHECK_TIMEOUT)
+        outcome = OUTCOMES.get(done.returncode, "unknown")
+        lines = done.stdout.strip().splitlines()
+        detail = lines[0] if lines else ""
+        if done.returncode not in OUTCOMES:
+            detail = f"the check stopped with exit {done.returncode}"
+    except subprocess.TimeoutExpired:
+        outcome, detail = "unknown", "the check took too long"
+    return outcome, "".join(ch for ch in detail if ch.isprintable())[:255]
+
+
+def scan_site(site, files, work_root, env, tool_id=None, fresh=False):
+    """One site's entry in the document: its results, or why it was skipped.
+
+    With a `tool_id`, a check that opted in (memo.is_memoizable) is not rerun
+    while its key is unchanged: the answer the memo holds for the same commit,
+    check, inputs and tools is reused, and said to be remembered on stderr.
+    `fresh` ignores the memo's answers but still writes the new ones.
+    """
     shortcode = site["shortcode"]
 
     server_commit, server_branch = None, None
@@ -242,35 +268,54 @@ def scan_site(site, files, work_root, env):
 
     results = []
     site_env = check_environment(site, env, server_commit, server_branch)
+    cache = None
+    if tool_id is not None:
+        try:
+            cache = memo.Memo(memo.memo_path(shortcode))
+        except ValueError:
+            pass
+    checks_dir = os.path.join(HERE, "checks")
+    helpers = [os.path.join(checks_dir, name) for name in sorted(os.listdir(checks_dir))
+               if not name.endswith(".sh") and os.path.isfile(os.path.join(checks_dir, name))]
+    facts = {name: value for name, value in site_env.items() if name.startswith("SITE_")}
     for name, check, param in checks_for(site["standard"], files):
-        script = os.path.join(HERE, "checks", check + ".sh")
+        script = os.path.join(checks_dir, check + ".sh")
         if not CHECK_NAME.match(check) or not os.path.isfile(script):
             continue
-        try:
-            done = subprocess.run([script, repo, param], capture_output=True, text=True,
-                                  env=site_env, timeout=CHECK_TIMEOUT)
-            outcome = OUTCOMES.get(done.returncode, "unknown")
-            lines = done.stdout.strip().splitlines()
-            detail = lines[0] if lines else ""
-            if done.returncode not in OUTCOMES:
-                detail = f"the check stopped with exit {done.returncode}"
-        except subprocess.TimeoutExpired:
-            outcome, detail = "unknown", "the check took too long"
-        detail = "".join(ch for ch in detail if ch.isprintable())[:255]
-        say(f"  {shortcode}: {name}: {outcome}" + (f" ({detail})" if detail else ""))
+        key, note = None, ""
+        if cache is not None and memo.is_memoizable(script):
+            key = memo.check_key(commit=commit, script=script, lib=os.path.join(HERE, "lib.sh"),
+                                 helpers=helpers, param=param, facts=facts, tool_id=tool_id)
+        remembered = cache.lookup(key) if key is not None and not fresh else None
+        if remembered is not None:
+            outcome, detail = remembered["outcome"], remembered["detail"]
+            note = f" (remembered from {memo.remembered_label(remembered['at_utc'])})"
+        else:
+            outcome, detail = run_check(script, repo, param, site_env)
+            if key is not None:
+                cache.record(key, commit, outcome, detail)
+        say(f"  {shortcode}: {name}: {outcome}" + (f" ({detail})" if detail else "") + note)
         results.append({"step": name, "outcome": outcome, "detail": detail})
+    if cache is not None:
+        cache.save(commit)
 
     return {"shortcode": shortcode, "branch": branch, "commit": commit,
             "server_branch": server_branch, "server_commit": server_commit,
             "skipped_reason": None, "results": results}
 
 
-def main(argv):
-    dry_run = "--dry-run" in argv
-    only = [a for a in argv if a != "--dry-run"]
+def parse_arguments(argv):
+    """(dry_run, fresh, shortcodes) from the command line; stops with usage on an unknown option."""
+    flags = {"--dry-run", "--fresh"}
+    only = [a for a in argv if a not in flags]
     for arg in only:
         if arg.startswith("-"):
-            stop(f"Unknown option: {arg}. Usage: scan.sh [--dry-run] [shortcode ...]")
+            stop(f"Unknown option: {arg}. Usage: scan.sh [--dry-run] [--fresh] [shortcode ...]")
+    return "--dry-run" in argv, "--fresh" in argv, only
+
+
+def main(argv):
+    dry_run, fresh, only = parse_arguments(argv)
 
     mg_repo = git(HERE, "rev-parse", "--show-toplevel")[1].strip()
     if mg_repo == "":
@@ -302,7 +347,9 @@ def main(argv):
         env = dict(os.environ, SCAN_TMP=scan_tmp)
         say(f"Scanning {len(sites)} site(s); {len(files)} step files from {steps_commit[:7]}"
             + ("" if os.environ.get("STEPS_REF") else " (deployed on mg)") + ".")
-        scanned = [scan_site(site, files, work_root, env) for site in sites]
+        standards_mcp = os.environ.get("STANDARDS_MCP") or os.path.expanduser("~/work/rob/standards-mcp")
+        tool_id = memo.tool_identity(standards_mcp) if sites else None
+        scanned = [scan_site(site, files, work_root, env, tool_id, fresh) for site in sites]
 
     document = json.dumps({
         "scanned_at_utc": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),

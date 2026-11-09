@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# memo: commit
 # mlaphp_functions_in_classes REPO: no loose functions (MLAPHP chapter 4).
 #
 # Done when no tracked PHP file outside classes/, Tests/, vendor/ and

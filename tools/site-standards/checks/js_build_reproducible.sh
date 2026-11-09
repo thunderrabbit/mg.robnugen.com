@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# memo: commit
 # js_build_reproducible REPO: a site without package.json passes. One with it
 # has a committed lockfile and an exact Node version (.node-version, .nvmrc or
 # engines.node), and, if it has dependencies the site runs, a `build` script.

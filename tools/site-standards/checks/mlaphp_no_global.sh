@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# memo: commit
 # mlaphp_no_global REPO: no global keyword (MLAPHP chapter 5).
 #
 # Done when no tracked PHP file outside vendor/ uses `global $x` or $GLOBALS.

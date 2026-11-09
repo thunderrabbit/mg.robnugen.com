@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# memo: commit
 # rector_level REPO X: rector.php applies the PHP X level set (for example
 # 8.5 -> UP_TO_PHP_85) and a dry run finds nothing left to change.
 set -uo pipefail

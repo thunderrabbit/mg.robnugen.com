@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# memo: commit
 # mysql84_reserved_words REPO: no query breaks on MySQL 8.4's new reserved
 # words (MANUAL, PARALLEL, QUALIFY, TABLESAMPLE).
 #

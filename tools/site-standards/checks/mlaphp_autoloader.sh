@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# memo: commit
 # mlaphp_autoloader REPO: classes come from an autoloader (MLAPHP chapter 3).
 #
 # Done when classes/ exists, some tracked PHP file registers an autoloader with

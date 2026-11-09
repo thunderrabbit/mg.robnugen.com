@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# memo: commit
 # js_shims_removed REPO: the site loads none of the shims that keep old code
 # running on new libraries: jQuery Migrate, Vue's compat build, core-js,
 # babel-polyfill, or polyfill.io and its copies, nor any shim of its own that

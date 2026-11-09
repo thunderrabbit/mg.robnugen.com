@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# memo: commit
 # js_pinned REPO: every script loaded from another host names an exact x.y.z
 # version, and carries an integrity hash where the browser can check one (a
 # <script src> with crossorigin, or an import-map entry for one file). A copy

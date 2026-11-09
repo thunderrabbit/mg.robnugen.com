@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# memo: commit
 # js_inventory REPO: JS_LIBRARIES.md at the repo root names every script the
 # site loads: each <script src>, import-map target and non-relative import,
 # exactly as the code spells it, and each script PHP names (by the tracked

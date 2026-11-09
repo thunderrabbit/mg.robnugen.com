@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# memo: commit
 # mlaphp_sql_in_gateways REPO: page scripts hold no SQL (MLAPHP chapter 8).
 #
 # Done when no tracked PHP file under wwwroot/ runs a query itself: no

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# memo: commit
 # mlaphp_register_via_user_repository REPO: the register page's one INSERT
 # lives in \Database\UserRepository::create() (MLAPHP chapter 8, the
 # template's one SQL call in a page script, ported).

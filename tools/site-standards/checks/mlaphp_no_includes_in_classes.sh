@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# memo: commit
 # mlaphp_no_includes_in_classes REPO: no class pulls in a code file by name
 # (MLAPHP chapter 12).
 #

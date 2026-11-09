@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# memo: commit
 # tooling_on_php REPO X: the repo's checks run on PHP X (for example 8.5): the
 # pre-commit hook's image, composer.json's php requirement, and the runner
 # image standards-mcp picks for it.

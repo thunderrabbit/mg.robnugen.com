@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# memo: commit
 # js_visual_baseline REPO: a visual differ is in place. JS_LIBRARIES.md names
 # its capture ("Visual capture: <command>") and its ledger of accepted
 # differences ("Visual ledger: <path>"), and the ledger is a tracked JSON
