@@ -121,9 +121,16 @@ no `wwwroot/login/register.php` passes: there is nothing to move.
        $stmt = $mla_database->prepare("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)");
        $stmt->execute([$username, $hash, $role]);
 
-   with
+   with, on a site served on PHP 8.4 or later,
+
+       new \Database\UserRepository($mla_database)->create($username, $hash, $role);
+
+   or, on PHP 8.3 or earlier, which needs the parentheses,
 
        (new \Database\UserRepository($mla_database))->create($username, $hash, $role);
+
+   Both pass the check. On 8.4 or later the first saves a Rector commit
+   later (`NewMethodCallWithoutParenthesesRector`).
 
    Leave the surrounding try/catch (23000 becomes "User already exists")
    alone, and leave `password_hash()` in the page. Run the three standards
