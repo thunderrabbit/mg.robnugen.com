@@ -21,7 +21,7 @@ use Inventory\SweptSpan;
  * or hostname mg has not been told of, or one that names a different
  * directory, is refused whole and nothing is written.
  */
-final class SweepImporter
+final readonly class SweepImporter
 {
     private const array ATTRS = [
         'php_version',
@@ -33,7 +33,7 @@ final class SweepImporter
         'deployed_at_utc',
     ];
 
-    public function __construct(private readonly \PDO $pdo)
+    public function __construct(private \PDO $pdo)
     {
     }
 
