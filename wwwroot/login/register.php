@@ -88,8 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         $role = $creating_admin_user ? "admin" : "user";
-        $stmt = $mla_database->prepare("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)");
-        $stmt->execute([$username, $hash, $role]);
+        (new \Database\UserRepository($mla_database))->create($username, $hash, $role);
 
         // Seed 100 trial API credits for new user
         $new_user_id = $mla_database->lastInsertId();
