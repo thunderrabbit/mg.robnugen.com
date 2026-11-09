@@ -1,7 +1,7 @@
 ---
 title: Every hotfix on the live line is on the upgrade line
 position: 15
-status: idea
+status: proven
 whose_move: agent
 check: js_hotfixes_ported
 ---
