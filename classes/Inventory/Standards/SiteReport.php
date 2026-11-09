@@ -19,13 +19,25 @@ final readonly class SiteReport
      * @param list<NoteIssue> $strays issues titled like a site note that match no site or step here
      * @param array<string, list<NoteIssue>> $ideaNotes this site's notes on steps that are still
      *     ideas, by step slug: the sign that this site is the one practising the idea
+     * @param array<string, string> $outcomes the scanner's current outcome ("pass", "fail" or
+     *     "unknown") for every step it has a word on, by step slug
      */
     private function __construct(
         public Standing $standing,
         public array $lines,
         public array $strays,
         public array $ideaNotes,
+        private array $outcomes,
     ) {
+    }
+
+    /**
+     * What the scanner last said about a step on this site, or null when it
+     * has said nothing (never checked, or a check mg answers without it).
+     */
+    public function openOutcome(string $slug): ?string
+    {
+        return $this->outcomes[$slug] ?? null;
     }
 
     /**
@@ -101,6 +113,8 @@ final readonly class SiteReport
             );
         }
 
-        return new self(SiteStanding::of(HostChecks::reachable($facts), $lines), $lines, $strays, $notes);
+        $outcomes = array_map(static fn (array $state): string => $state['outcome'], $openStates);
+
+        return new self(SiteStanding::of(HostChecks::reachable($facts), $lines), $lines, $strays, $notes, $outcomes);
     }
 }
