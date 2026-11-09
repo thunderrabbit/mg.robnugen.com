@@ -5,7 +5,7 @@
  * crying-laughing face for a site nobody can reach yet.
  *
  * @var array{id: int, swept_on: string, previous_id: int|null, previous_on: string|null}|null $sweep
- * @var list<array{slug: string, name: string, proven: int, sites: list<array<mixed>>, groups: list<array{kind: \Inventory\Standards\HostKind, heading: string, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, host: string, server_where: ?string, web_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: \Inventory\Standards\SiteReport}>}>, ideas: list<array{slug: string, track: string, title: string, practising: list<array{shortcode: string, issue: \Inventory\Standards\NoteIssue}>, passing: int, checked: int, discussion: ?\Inventory\Standards\NoteIssue}>}> $standards
+ * @var list<array{slug: string, name: string, proven: int, sites: list<array<mixed>>, groups: list<array{block: string, kind: ?\Inventory\Standards\HostKind, heading: string, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, pinned: bool, sort_order: ?int, host: string, server_where: ?string, web_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: \Inventory\Standards\SiteReport}>}>, ideas: list<array{slug: string, track: string, title: string, practising: list<array{shortcode: string, issue: \Inventory\Standards\NoteIssue}>, passing: int, checked: int, discussion: ?\Inventory\Standards\NoteIssue}>}> $standards
  */
 
 use Inventory\Standards\Names;
@@ -34,10 +34,17 @@ Sites on EC2 are here too; their servers are entered with site.sh.</small></p>
         <p>No sites entered yet.</p>
     <?php endif; ?>
 
+    <?php if ($standard['groups'] !== []): ?>
+    <div class="StdBlocks" data-standard="<?= $h($standard['slug']) ?>">
+    <p class="StdOrderNote" aria-live="polite"><small>Drag a site by ⋮⋮ to reorder it, or into Pinned to keep it at the top.</small></p>
     <?php foreach ($standard['groups'] as $group): ?>
     <h4 class="StdHost"><?= $h($group['heading']) ?></h4>
+    <div class="StdBlock" data-block="<?= $h($group['block']) ?>">
+        <p class="StdEmpty"><?= $group['kind'] === null ? 'Drag a site here to pin it.' : 'Every site here is pinned.' ?></p>
     <?php foreach ($group['sites'] as $site): ?>
         <?php $report = $site['report']; ?>
+        <div class="StdItem" data-shortcode="<?= $h($site['shortcode']) ?>" data-host="<?= $h($site['host']) ?>">
+        <span class="StdHandle" title="Drag to reorder">⋮⋮</span>
         <details class="StdSite" id="site-<?= $h($site['shortcode']) ?>">
             <summary>
                 <span class="<?= $report->standing->mark->cssClass() ?>"><?= $report->standing->mark->glyph() ?></span>
@@ -151,8 +158,12 @@ Sites on EC2 are here too; their servers are entered with site.sh.</small></p>
                 </small></p>
             <?php endif; ?>
         </details>
+        </div>
     <?php endforeach; ?>
+    </div>
     <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
 
     <?php if ($standard['ideas'] !== []): ?>
         <h4>Ideas</h4>
@@ -189,3 +200,5 @@ Sites on EC2 are here too; their servers are entered with site.sh.</small></p>
     <?php endif; ?>
 </div>
 <?php endforeach; ?>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script src="/js/<?= SEMVER ?>/standards-order.js"></script>
