@@ -1,8 +1,8 @@
 ---
 title: SQL lives in gateway classes
 position: 80
-status: idea
-whose_move: agent
+status: proven
+whose_move: rob
 check: mlaphp_sql_in_gateways
 ---
 Chapter 8. Page scripts do not hold SQL. Each query moves into a method on a
@@ -16,19 +16,23 @@ public-files step first.
 
 ## How to do it
 
-1. Do the tests step first: moving a query without a test that runs it is
-   how a typo reaches production.
-2. List the calls: `tools/site-standards/checks/mlaphp_sql_in_gateways.sh
-   <repo>` names the first; `git ls-files -z 'wwwroot/**/*.php' | xargs -0
-   grep -nE -e '->(prepare|query|exec)\s*\(|mysqli_query\s*\('` lists them
-   all.
-3. For each table, make a gateway class under `classes/` (`UsersGateway`)
-   that takes the database connection in its constructor. Move each query into
-   a method named for what it returns or does (`insertUser`,
-   `findByUsername`), with the SQL copied exactly and its values as
-   parameters.
-4. In the page script, build the gateway and call the method. Change nothing
-   else in the same commit.
-5. The template's `wwwroot/login/register.php` holds one INSERT on every site
-   built from it: move it once in new-DH-user-site and copy that change to
-   each site.
+This step is Rob's: how code is grouped and named is a matter of taste, so
+an agent never does it alone. With Rob, one group at a time:
+
+1. The tests step comes first: moving a query without a test that runs it
+   is how a typo reaches production. List the calls:
+   `tools/site-standards/checks/mlaphp_sql_in_gateways.sh <repo>` names the
+   first; `git ls-files -z 'wwwroot/**/*.php' | xargs -0 grep -nE -e
+   '->(prepare|query|exec)\s*\(|mysqli_query\s*\('` lists them all.
+2. The agent proposes a shape for one group: the gateway class for its table,
+   its method names, and what each returns, with the SQL copied exactly. Rob
+   picks or changes it.
+3. Do that group in its own commits, run the suite, and deploy before the
+   next group.
+
+**A fix chosen once can be ported.** When the same code sits on many sites
+(usually because it came from the new-DH-user-site template), the fix Rob
+chose on the first site is written up as a step of its own, placed before
+this one, with `whose_move: agent` and a check for exactly that code. That
+mini-step is then done on the other sites without Rob, and this step stays
+his for whatever is left.
