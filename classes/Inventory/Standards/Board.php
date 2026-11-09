@@ -27,7 +27,7 @@ final class Board
     /**
      * Every standard with its sites and its untried ideas.
      *
-     * @return list<array{slug: string, name: string, proven: int, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, host: string, server_where: ?string, web_php: ?string, php_current: ?string, test_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}>, groups: list<array{kind: HostKind, heading: string, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, host: string, server_where: ?string, web_php: ?string, php_current: ?string, test_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}>}>, ideas: list<array{slug: string, track: string, title: string, practising: list<array{shortcode: string, issue: NoteIssue}>, passing: int, checked: int, discussion: ?NoteIssue}>}>
+     * @return list<array{slug: string, name: string, proven: int, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, pinned: bool, sort_order: ?int, host: string, server_where: ?string, web_php: ?string, php_current: ?string, test_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}>, groups: list<array{block: string, kind: ?HostKind, heading: string, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, pinned: bool, sort_order: ?int, host: string, server_where: ?string, web_php: ?string, php_current: ?string, test_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}>}>, ideas: list<array{slug: string, track: string, title: string, practising: list<array{shortcode: string, issue: NoteIssue}>, passing: int, checked: int, discussion: ?NoteIssue}>}>
      */
     public function standards(): array
     {
@@ -39,6 +39,7 @@ final class Board
             foreach ($rows as $site) {
                 $sites[] = $this->site($site);
             }
+            $sites = SiteOrder::sort($sites);
             $ideas = [];
             $discussions = $this->discussions();
             foreach ($this->stepsOf($standardId) as $step) {
@@ -127,7 +128,7 @@ final class Board
     /**
      * One site, as the page shows it, plus its standard's slug.
      *
-     * @return array{standard: string, shortcode: string, project_id: ?int, autonomy: string, host: string, server_where: ?string, web_php: ?string, php_current: ?string, test_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}|null
+     * @return array{standard: string, shortcode: string, project_id: ?int, autonomy: string, pinned: bool, sort_order: ?int, host: string, server_where: ?string, web_php: ?string, php_current: ?string, test_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}|null
      */
     public function siteByShortcode(string $shortcode): ?array
     {
@@ -145,7 +146,7 @@ final class Board
 
     /**
      * @param array<mixed> $site a std_sites row
-     * @return array{shortcode: string, project_id: ?int, autonomy: string, host: string, server_where: ?string, web_php: ?string, php_current: ?string, test_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}
+     * @return array{shortcode: string, project_id: ?int, autonomy: string, pinned: bool, sort_order: ?int, host: string, server_where: ?string, web_php: ?string, php_current: ?string, test_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}
      */
     private function site(array $site): array
     {
@@ -316,6 +317,9 @@ final class Board
             'shortcode' => $shortcode,
             'project_id' => $projectId,
             'autonomy' => RowValue::string($site, 'autonomy'),
+            // Absent until migration 53 is applied; the page must work before then.
+            'pinned' => array_key_exists('pinned', $site) && RowValue::int($site, 'pinned') === 1,
+            'sort_order' => array_key_exists('sort_order', $site) ? RowValue::intOrNull($site, 'sort_order') : null,
             'host' => $host->value,
             'server_where' => $serverWhere,
             'web_php' => $webPhp,
