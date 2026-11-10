@@ -27,7 +27,7 @@ final class Board
     /**
      * Every standard with its sites and its untried ideas.
      *
-     * @return list<array{slug: string, name: string, proven: int, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, pinned: bool, sort_order: ?int, host: string, server_where: ?string, web_php: ?string, php_current: ?string, test_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}>, groups: list<array{block: string, kind: ?HostKind, heading: string, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, pinned: bool, sort_order: ?int, host: string, server_where: ?string, web_php: ?string, php_current: ?string, test_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}>}>, ideas: list<array{slug: string, track: string, title: string, practising: list<array{shortcode: string, issue: NoteIssue}>, passing: int, checked: int, discussion: ?NoteIssue}>}>
+     * @return list<array{slug: string, name: string, proven: int, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, pinned: bool, sort_order: ?int, host: string, server_where: ?string, web_php: ?string, php_current: ?string, php_target: ?string, test_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}>, groups: list<array{block: string, kind: ?HostKind, heading: string, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, pinned: bool, sort_order: ?int, host: string, server_where: ?string, web_php: ?string, php_current: ?string, php_target: ?string, test_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}>}>, ideas: list<array{slug: string, track: string, title: string, practising: list<array{shortcode: string, issue: NoteIssue}>, passing: int, checked: int, discussion: ?NoteIssue}>}>
      */
     public function standards(): array
     {
@@ -66,7 +66,7 @@ final class Board
                 $ideas[] = [
                     'slug' => $slug,
                     'track' => RowValue::string($step, 'track_name'),
-                    'title' => RowValue::string($step, 'title'),
+                    'title' => PhpTarget::title(RowValue::string($step, 'title'), null),
                     'practising' => $practising,
                     'passing' => $passing,
                     'checked' => $checked,
@@ -128,7 +128,7 @@ final class Board
     /**
      * One site, as the page shows it, plus its standard's slug.
      *
-     * @return array{standard: string, shortcode: string, project_id: ?int, autonomy: string, pinned: bool, sort_order: ?int, host: string, server_where: ?string, web_php: ?string, php_current: ?string, test_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}|null
+     * @return array{standard: string, shortcode: string, project_id: ?int, autonomy: string, pinned: bool, sort_order: ?int, host: string, server_where: ?string, web_php: ?string, php_current: ?string, php_target: ?string, test_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}|null
      */
     public function siteByShortcode(string $shortcode): ?array
     {
@@ -146,7 +146,7 @@ final class Board
 
     /**
      * @param array<mixed> $site a std_sites row
-     * @return array{shortcode: string, project_id: ?int, autonomy: string, pinned: bool, sort_order: ?int, host: string, server_where: ?string, web_php: ?string, php_current: ?string, test_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}
+     * @return array{shortcode: string, project_id: ?int, autonomy: string, pinned: bool, sort_order: ?int, host: string, server_where: ?string, web_php: ?string, php_current: ?string, php_target: ?string, test_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}
      */
     private function site(array $site): array
     {
@@ -246,12 +246,25 @@ final class Board
                 ];
             }
         }
+        // ss.* because php_target is absent until migration 54 is applied; the
+        // page must work before then.
+        $latest = $this->rows(
+            'SELECT ss.*
+               FROM std_scan_sites ss JOIN std_scans sc ON sc.std_scan_id = ss.std_scan_id
+              WHERE ss.std_site_id = ?
+              ORDER BY sc.scanned_at_utc DESC LIMIT 1',
+            [$siteId],
+        );
+        $phpTarget = $latest !== [] && array_key_exists('php_target', $latest[0])
+            ? RowValue::stringOrNull($latest[0], 'php_target')
+            : null;
         $facts = new SiteFacts(
             $domains,
             RowValue::stringOrNull($site, 'checkout_path'),
             RowValue::stringOrNull($site, 'github_repo'),
             $testDomain,
             $host,
+            $phpTarget,
         );
 
         $openStates = [];
@@ -298,13 +311,6 @@ final class Board
             $knownSteps[] = RowValue::string($step, 'slug');
         }
 
-        $latest = $this->rows(
-            'SELECT ss.skipped_reason, ss.server_branch, ss.server_commit, ss.branch, ss.commit_sha
-               FROM std_scan_sites ss JOIN std_scans sc ON sc.std_scan_id = ss.std_scan_id
-              WHERE ss.std_site_id = ?
-              ORDER BY sc.scanned_at_utc DESC LIMIT 1',
-            [$siteId],
-        );
         $checked = $this->rows(
             'SELECT sc.scanned_at_utc
                FROM std_scan_sites ss JOIN std_scans sc ON sc.std_scan_id = ss.std_scan_id
@@ -324,6 +330,7 @@ final class Board
             'server_where' => $serverWhere,
             'web_php' => $webPhp,
             'php_current' => $phpCurrent,
+            'php_target' => $phpTarget,
             'test_php' => $testDomain['php_version'] ?? null,
             'server_branch' => $latest === [] ? null : RowValue::stringOrNull($latest[0], 'server_branch'),
             'server_commit' => $latest === [] ? null : RowValue::stringOrNull($latest[0], 'server_commit'),

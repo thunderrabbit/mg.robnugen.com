@@ -218,7 +218,7 @@ final class StandardsImporter
     }
 
     /**
-     * @param array{shortcode: string, branch: ?string, commit: ?string, serverBranch: ?string, serverCommit: ?string, skippedReason: ?string, results: list<array{step: string, outcome: Outcome, detail: string}>} $site
+     * @param array{shortcode: string, branch: ?string, commit: ?string, serverBranch: ?string, serverCommit: ?string, phpTarget: ?string, skippedReason: ?string, results: list<array{step: string, outcome: Outcome, detail: string}>} $site
      */
     private function importSite(array $site, int $scanId): void
     {
@@ -245,8 +245,9 @@ final class StandardsImporter
 
         $this->run(
             'INSERT INTO std_scan_sites
-                    (std_scan_id, std_site_id, branch, commit_sha, skipped_reason, server_branch, server_commit)
-             VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    (std_scan_id, std_site_id, branch, commit_sha, skipped_reason, server_branch, server_commit,
+                     php_target)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
             [
                 $scanId,
                 $siteId,
@@ -255,6 +256,7 @@ final class StandardsImporter
                 $site['skippedReason'],
                 $site['serverBranch'],
                 $site['serverCommit'],
+                $site['phpTarget'],
             ],
         );
         if ($site['skippedReason'] !== null) {

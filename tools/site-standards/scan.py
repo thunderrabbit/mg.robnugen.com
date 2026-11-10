@@ -22,6 +22,11 @@ only. What it does, and what it deliberately does not:
   or nothing is scanned.
 - A check that opted in with `# memo: commit` is not rerun while its commit,
   script, inputs and tools are unchanged (memo.py); `--fresh` reruns it anyway.
+- A step whose param is `target` is checked against the PHP the site is
+  moving to: its `php_target` in standards-mcp's repos.yaml (the same
+  registry the runner scripts pick their image from). A site the registry
+  gives no target gets "could not tell" for those steps. The target is sent
+  to mg with the site, so mg's own checks use the same one.
 - Nothing in a site's repo is written, committed or deployed.
 
 The document it sends is described in tools/import_site_standards.php.
@@ -138,6 +143,38 @@ def checks_match(mg_repo, ref):
     return not changed and not untracked
 
 
+def php_targets(standards_mcp):
+    """{absolute repo path: php_target} from standards-mcp's repo registry.
+
+    The registry is the one runner-image.sh reads: ~/.config/standards-mcp/
+    repos.yaml when present, else the committed repos.yaml in standards-mcp.
+    Read the way runner-image.sh reads it, as flat lines: each alias block
+    names its path before its php_target. A missing registry gives nothing.
+    """
+    registry = os.path.expanduser("~/.config/standards-mcp/repos.yaml")
+    if not os.path.isfile(registry):
+        registry = os.path.join(standards_mcp, "repos.yaml")
+    try:
+        with open(registry, encoding="utf-8") as handle:
+            lines = handle.read().splitlines()
+    except OSError:
+        return {}
+    targets, path = {}, None
+    for line in lines:
+        if re.match(r"\A[A-Za-z0-9_-]+:\s*\Z", line):
+            path = None
+            continue
+        found = re.match(r"\A\s+(path|php_target):\s*(\S+)", line)
+        if not found:
+            continue
+        value = found.group(2).strip("\"'")
+        if found.group(1) == "path":
+            path = os.path.normpath(os.path.expanduser(value))
+        elif path is not None and re.fullmatch(r"\d+\.\d+", value):
+            targets[path] = value
+    return targets
+
+
 def frontmatter(content):
     """The flat key: value pairs at the top of a step file.
 
@@ -177,19 +214,21 @@ def checks_for(standard, files):
     return wanted
 
 
-def check_environment(site, env, server_commit=None, server_branch=None):
+def check_environment(site, env, server_commit=None, server_branch=None, php_target=None):
     """The environment a site's checks run in: the scan's, plus what mg knows
     and what the server just answered.
 
     Every variable is set, empty when there is nothing to say, so a check
     never has to tell "unset" from "none". A check reads these; the step's one
-    `param` stays the target PHP.
+    `param` stays the target PHP (a `target` param is already replaced by the
+    site's php_target, which is also SITE_PHP_TARGET).
     """
     test = site.get("test") or {}
     server = site.get("server") or {}
     facts = {
         "SITE_SHORTCODE": site["shortcode"],
         "SITE_PHP_CURRENT": site.get("php_current"),
+        "SITE_PHP_TARGET": php_target,
         "SITE_TEST_DOMAIN": test.get("domain"),
         "SITE_TEST_PHP": test.get("php_version"),
         "SITE_TEST_SSH_ALIAS": test.get("ssh_alias"),
@@ -218,27 +257,29 @@ def run_check(script, repo, param, site_env):
     return outcome, "".join(ch for ch in detail if ch.isprintable())[:255]
 
 
-def scan_site(site, files, work_root, env, tool_id=None, fresh=False):
+def scan_site(site, files, work_root, env, tool_id=None, fresh=False, targets=None):
     """One site's entry in the document: its results, or why it was skipped.
 
     With a `tool_id`, a check that opted in (memo.is_memoizable) is not rerun
     while its key is unchanged: the answer the memo holds for the same commit,
     check, inputs and tools is reused, and said to be remembered on stderr.
     `fresh` ignores the memo's answers but still writes the new ones.
+    `targets` is php_targets(): a `target` param becomes the site's own.
     """
     shortcode = site["shortcode"]
 
     server_commit, server_branch = None, None
+    checkout = site.get("checkout_path")
+    repo = os.path.join(work_root, checkout) if checkout else None
+    php_target = (targets or {}).get(os.path.normpath(os.path.abspath(repo))) if repo else None
 
     def skipped(reason, branch=None):
         reason = "".join(ch for ch in reason if ch.isprintable())[:255]
         say(f"  {shortcode}: skipped, {reason}")
         return {"shortcode": shortcode, "branch": branch, "commit": None,
                 "server_branch": server_branch, "server_commit": server_commit,
-                "skipped_reason": reason, "results": []}
+                "php_target": php_target, "skipped_reason": reason, "results": []}
 
-    checkout = site.get("checkout_path")
-    repo = os.path.join(work_root, checkout) if checkout else None
     if repo is None or not os.path.isdir(repo) or git(repo, "rev-parse", "--git-dir")[0] != 0:
         return skipped("no local checkout")
     if site.get("server") is None:
@@ -267,7 +308,7 @@ def scan_site(site, files, work_root, env, tool_id=None, fresh=False):
         return skipped("uncommitted changes", branch)
 
     results = []
-    site_env = check_environment(site, env, server_commit, server_branch)
+    site_env = check_environment(site, env, server_commit, server_branch, php_target)
     cache = None
     if tool_id is not None:
         try:
@@ -282,6 +323,13 @@ def scan_site(site, files, work_root, env, tool_id=None, fresh=False):
         script = os.path.join(checks_dir, check + ".sh")
         if not CHECK_NAME.match(check) or not os.path.isfile(script):
             continue
+        if param == "target":
+            if php_target is None:
+                detail = "standards-mcp's repos.yaml gives this repo no php_target"
+                say(f"  {shortcode}: {name}: unknown ({detail})")
+                results.append({"step": name, "outcome": "unknown", "detail": detail})
+                continue
+            param = php_target
         key, note = None, ""
         if cache is not None and memo.is_memoizable(script):
             key = memo.check_key(commit=commit, script=script, lib=os.path.join(HERE, "lib.sh"),
@@ -301,7 +349,7 @@ def scan_site(site, files, work_root, env, tool_id=None, fresh=False):
 
     return {"shortcode": shortcode, "branch": branch, "commit": commit,
             "server_branch": server_branch, "server_commit": server_commit,
-            "skipped_reason": None, "results": results}
+            "php_target": php_target, "skipped_reason": None, "results": results}
 
 
 def parse_arguments(argv):
@@ -349,7 +397,8 @@ def main(argv):
             + ("" if os.environ.get("STEPS_REF") else " (deployed on mg)") + ".")
         standards_mcp = os.environ.get("STANDARDS_MCP") or os.path.expanduser("~/work/rob/standards-mcp")
         tool_id = memo.tool_identity(standards_mcp) if sites else None
-        scanned = [scan_site(site, files, work_root, env, tool_id, fresh) for site in sites]
+        targets = php_targets(standards_mcp)
+        scanned = [scan_site(site, files, work_root, env, tool_id, fresh, targets) for site in sites]
 
     document = json.dumps({
         "scanned_at_utc": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
