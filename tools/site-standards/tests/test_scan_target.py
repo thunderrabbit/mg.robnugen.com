@@ -141,6 +141,16 @@ class ScanTargetTest(unittest.TestCase):
         self.assertIsNotNone(result["skipped_reason"])
         self.assertEqual(result["php_target"], "8.3")
 
+    def test_a_site_with_an_upgrade_branch_is_still_scanned(self):
+        self.site["upgrade_branch"] = "php85"
+        result = self.scan("8.5", {self.repo: "8.3"})
+        self.assertEqual(result["results"][0]["outcome"], "pass")
+
+    def test_an_upgrade_branch_that_is_not_a_branch_name_skips_the_site(self):
+        self.site["upgrade_branch"] = "php85..master"
+        result = self.scan("8.5", {self.repo: "8.3"})
+        self.assertIn("is not a branch name", result["skipped_reason"])
+
 
 if __name__ == "__main__":
     unittest.main()

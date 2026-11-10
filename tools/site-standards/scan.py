@@ -276,7 +276,7 @@ def scan_site(site, files, work_root, env, tool_id=None, fresh=False, targets=No
     branch = branch.strip() if code == 0 and branch.strip() != "" else None
     commit = git(repo, "rev-parse", "HEAD")[1].strip()
     line = site.get("upgrade_branch")
-    if line and (not BRANCH.match(line) or ".." in line):
+    if line and (not server_facts.BRANCH.match(line) or ".." in line):
         return skipped(f"its upgrade branch on mg, {line!r}, is not a branch name", branch)
     if commit != server_commit:
         if line and branch == line:
