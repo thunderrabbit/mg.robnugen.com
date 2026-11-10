@@ -44,15 +44,11 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)  # python3 -I leaves this directory off sys.path
 import memo  # noqa: E402
+import server_facts  # noqa: E402
 STEPS_DIR = "tools/site-standards/steps/"
 CHECK_NAME = re.compile(r"\A[a-z0-9][a-z0-9_]*\Z")
 OUTCOMES = {0: "pass", 1: "fail", 2: "unknown"}
 CHECK_TIMEOUT = 1800
-SERVER_TIMEOUT = 60
-SSH_ALIAS = re.compile(r"\A[A-Za-z0-9][A-Za-z0-9._-]*\Z")
-SERVER_DIRECTORY = re.compile(r"\A/?[A-Za-z0-9_][A-Za-z0-9._-]*(?:/[A-Za-z0-9._-]+)*\Z")  # relative to home (DreamHost) or absolute (EC2)
-SHA = re.compile(r"\A[0-9a-f]{40}\Z")
-BRANCH = re.compile(r"\A[A-Za-z0-9._/-]{1,100}\Z")
 
 
 def say(message):
@@ -85,28 +81,15 @@ def deployed_commit():
 def ask_server(server):
     """(commit, branch, None) the site's server runs, or (None, None, why not).
 
-    The directory is relative to the user's home, where ssh starts. branch is
-    None on a detached HEAD.
+    The directory is relative to the user's home, where ssh starts, on
+    DreamHost, and absolute on EC2. branch is None on a detached HEAD.
+    server_facts decides how to ask (an EC2 server's <alias>_facts host first).
     """
-    alias, directory = server.get("ssh_alias", ""), server.get("directory", "")
-    if not SSH_ALIAS.match(alias):
-        return None, None, "its ssh alias is not one the scanner will use"
-    if not SERVER_DIRECTORY.match(directory) or ".." in directory.split("/"):
-        return None, None, "its server directory is not one the scanner will use"
-    git_there = "git -c " + shlex.quote("safe.directory=*") + " --no-optional-locks -C " + shlex.quote(directory)
-    remote = f"{git_there} rev-parse HEAD && {{ {git_there} symbolic-ref --short -q HEAD || true; }}"
-    ssh = shlex.split(os.environ.get("SCAN_SSH", "ssh -o BatchMode=yes -o ConnectTimeout=15"))
     try:
-        asked = subprocess.run([*ssh, alias, remote], capture_output=True, text=True,
-                               stdin=subprocess.DEVNULL, timeout=SERVER_TIMEOUT)
-    except subprocess.TimeoutExpired:
-        return None, None, "its server did not answer in time"
-    lines = asked.stdout.strip().splitlines()
-    if asked.returncode != 0 or not lines or not SHA.match(lines[0].strip()):
-        said = (asked.stderr.strip().splitlines() or ["no answer"])[-1]
-        return None, None, "could not ask its server which commit it runs: " + said
-    branch = lines[1].strip() if len(lines) > 1 else ""
-    return lines[0].strip(), (branch if BRANCH.match(branch) else None), None
+        commit, branch = server_facts.head_and_branch(server.get("ssh_alias", ""), server.get("directory", ""))
+    except server_facts.NoAnswer as why:
+        return None, None, str(why)
+    return commit, branch, None
 
 
 def step_files(mg_repo, ref):
@@ -137,7 +120,7 @@ def checks_match(mg_repo, ref):
     """
     paths = ["tools/site-standards/checks", "tools/site-standards/lib.sh",
              "tools/site-standards/scan.py", "tools/site-standards/scan.sh",
-             "tools/site-standards/memo.py"]
+             "tools/site-standards/memo.py", "tools/site-standards/server_facts.py"]
     changed = subprocess.run(["git", "-C", mg_repo, "diff", "--quiet", ref, "--", *paths]).returncode != 0
     untracked = git(mg_repo, "ls-files", "--others", "--", *paths)[1].strip() != ""
     return not changed and not untracked

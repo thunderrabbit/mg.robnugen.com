@@ -2,8 +2,8 @@
 # js_soaked_on_production REPO [DAYS]: the last library change production
 # runs has run there for at least DAYS working days (default 5). A library
 # change is a commit that touched JS_LIBRARIES.md, which names every
-# third-party script's exact version. Asks the server, over the scanner's ssh
-# (SITE_SERVER_SSH_ALIAS, SITE_SERVER_DIRECTORY), for its reflog, and finds
+# third-party script's exact version. Asks the server (SITE_SERVER_SSH_ALIAS,
+# SITE_SERVER_DIRECTORY; server_facts.py decides how) for its reflog, and finds
 # the first deploy that carried that commit; deploys since then that changed
 # no library do not restart the count. A site with no third-party libraries
 # passes.
@@ -31,9 +31,7 @@ alias_="${SITE_SERVER_SSH_ALIAS:-}"
 dir="${SITE_SERVER_DIRECTORY:-}"
 [[ "$alias_" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || unknown "no ssh login for the server to ask when it last changed"
 need_server_dir "$dir" "the server's"
-# shellcheck disable=SC2086
-reflog="$(${SCAN_SSH:-ssh -o BatchMode=yes -o ConnectTimeout=15} "$alias_" \
-  "git -c safe.directory='*' --no-optional-locks -C '$dir' reflog show --date=unix --format='%H %gd' -200 HEAD" 2>/dev/null </dev/null)"
+reflog="$(python3 -I -B "$HERE/../server_facts.py" reflog "$alias_" "$SERVER_DIR" 2>/dev/null </dev/null)"
 [[ "$reflog" =~ ^([0-9a-f]{40})\ HEAD@\{[0-9]+\} ]] \
   || unknown "the server has no record of when HEAD last moved (deployed by copying files?)"
 running="${BASH_REMATCH[1]}"
