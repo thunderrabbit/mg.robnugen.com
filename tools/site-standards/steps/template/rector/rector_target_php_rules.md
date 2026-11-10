@@ -1,19 +1,20 @@
 ---
-title: Rector's PHP 8.5 rules, one per commit
+title: Rector's PHP {target} rules, one per commit
 position: 10
 status: proven
 whose_move: agent
 check: rector_level
-param: 8.5
+param: target
 ---
-`rector.php` applies `LevelSetList::UP_TO_PHP_85`, and a dry run finds nothing
-left to change. The code then uses the language as PHP 8.5 has it, and the
-calls 8.5 deprecates are gone before the server switches.
+`rector.php` applies the level set for the site's target PHP
+(`LevelSetList::UP_TO_PHP_85` for 8.5, `UP_TO_PHP_83` for 8.3), and a dry run
+finds nothing left to change. The code then uses the language as the target
+has it, and the calls the target deprecates are gone.
 
 ## How to do it
 
-1. Do the tooling step first. On an older image Rector skips the 8.5 rules and
-   says there is nothing to do.
+1. Do the tooling step first. On an older image Rector skips the target's rules
+   and says there is nothing to do.
 2. Add `rector/rector` to the dev requirements and a `rector.php` over the same
    paths as `phpcs.xml`, skipping `vendor` and generated test output. Take the
    Rector version composer resolves: the newest ones want a newer PHPStan than
@@ -31,5 +32,7 @@ calls 8.5 deprecates are gone before the server switches.
 6. Read every diff. A rule that changes behaviour, not just spelling, gets a
    test first.
 7. While the server still serves an older PHP, do not apply a rule that emits
-   8.5-only syntax, and lint what Rector rewrote with the server's own `php -l`
-   before deploying.
+   syntax only the target has (typed class constants need 8.3, for example),
+   and lint what Rector rewrote with the PHP the server serves before
+   deploying. A site that must not get ahead of its server leaves this step
+   until it serves the target.
