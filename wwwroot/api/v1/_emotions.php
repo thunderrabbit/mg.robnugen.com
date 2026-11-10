@@ -93,7 +93,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
                 }
                 if ($attempt >= $max_attempts) {
                     // Step 11: escalate after all attempts exhausted
-                    print_roblog("my_id collision exhausted for api_key_id=$auth_key_id after $max_attempts attempts", 'emotional/vocab');
+                    \PrintRob\Debug::printRobLog("my_id collision exhausted for api_key_id=$auth_key_id after $max_attempts attempts", 'emotional/vocab');
                     try {
                         $pdo->prepare(
                             "INSERT INTO omg_rob_this_happened (context, message) VALUES (?, ?)"
@@ -124,7 +124,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
             $my_id = \Field::int($row, 'my_id');
             $decrypted = $ledger->decrypt(\Field::string($row, 'state'));
             if ($decrypted === false) {
-                print_roblog("Decrypt failed for my_id={$my_id} api_key_id=$auth_key_id", 'emotional/vocab');
+                \PrintRob\Debug::printRobLog("Decrypt failed for my_id={$my_id} api_key_id=$auth_key_id", 'emotional/vocab');
                 http_response_code(500);
                 echo json_encode(['error' => 'Decryption failure']);
                 return;
@@ -257,7 +257,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
             ]);
         } catch (\PDOException $e) {
             $pdo->rollBack();
-            print_roblog('POST /emotions/events failed: ' . $e->getMessage(), 'emotional/events');
+            \PrintRob\Debug::printRobLog('POST /emotions/events failed: ' . $e->getMessage(), 'emotional/events');
             http_response_code(500);
             echo json_encode(['error' => 'Failed to log event']);
         }
@@ -326,7 +326,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
             $event_id = \Field::int($row, 'event_id');
             $decrypted = $ledger->decrypt(\Field::string($row, 'encrypted_content'));
             if ($decrypted === false) {
-                print_roblog("Decrypt failed for event_id={$event_id} api_key_id=$auth_key_id", 'emotional/events');
+                \PrintRob\Debug::printRobLog("Decrypt failed for event_id={$event_id} api_key_id=$auth_key_id", 'emotional/events');
                 continue; // skip corrupted row
             }
             $events[] = [
@@ -520,7 +520,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         ]);
     } catch (\PDOException $e) {
         $pdo->rollBack();
-        print_roblog('DELETE /emotions/everything failed: ' . $e->getMessage(), 'emotional/everything');
+        \PrintRob\Debug::printRobLog('DELETE /emotions/everything failed: ' . $e->getMessage(), 'emotional/everything');
         http_response_code(500);
         echo json_encode(['error' => 'Deletion failed']);
     }
