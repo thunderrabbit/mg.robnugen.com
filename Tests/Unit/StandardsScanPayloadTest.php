@@ -39,6 +39,7 @@ final class StandardsScanPayloadTest extends Unit
                     'commit' => self::SHA,
                     'server_branch' => 'master',
                     'server_commit' => self::SHA,
+                    'php_target' => '8.5',
                     'skipped_reason' => null,
                     'results' => [
                         [
@@ -141,6 +142,22 @@ final class StandardsScanPayloadTest extends Unit
 
         $payload = ScanPayload::fromArray($this->withSite(0, 'branch', null));
         $this->assertNull($payload->sites[0]['branch']);
+    }
+
+    public function testCarriesThePhpTargetTheRegistryGave(): void
+    {
+        $payload = ScanPayload::fromArray($this->good());
+        $this->assertSame('8.5', $payload->sites[0]['phpTarget']);
+        $this->assertNull($payload->sites[1]['phpTarget'], 'a site may leave php_target out');
+
+        $payload = ScanPayload::fromArray($this->withSite(0, 'php_target', null));
+        $this->assertNull($payload->sites[0]['phpTarget'], 'the registry may give no target');
+    }
+
+    public function testRefusesAPhpTargetThatIsNotMajorMinor(): void
+    {
+        $this->refuses($this->withSite(0, 'php_target', '8.3.1'), '/php_target/');
+        $this->refuses($this->withSite(0, 'php_target', 'latest'), '/php_target/');
     }
 
     public function testRefusesAServerBranchThatIsNotABranchName(): void
