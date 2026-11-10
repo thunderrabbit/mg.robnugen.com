@@ -23,7 +23,7 @@ OPTED_IN = {
     "js_shims_removed", "js_visual_baseline", "mlaphp_autoloader", "mlaphp_functions_in_classes",
     "mlaphp_no_global", "mlaphp_no_includes_in_classes", "mlaphp_print_rob_in_class",
     "mlaphp_public_split", "mlaphp_register_via_user_repository", "mlaphp_sql_in_gateways",
-    "mysql84_reserved_words", "phpstan_top", "rector_level", "rector_types", "tooling_on_php",
+    "mysql84_reserved_words", "phpstan_top", "rector_level", "rector_types",
 }
 
 # Never opted in, and why.
@@ -36,6 +36,7 @@ OPTED_OUT = {
     "js_soaked_on_production": "asks the server over ssh",
     "js_deprecations_clear": "asks a test domain; keeps its own memo",
     "suite_passes_on_php": "asks a test domain; keeps its own memo",
+    "tooling_on_php": "reads the checkout's own .git/config (core.hooksPath)",
 }
 
 # What a memoized check must never do: look outside the repo and the key's inputs.
