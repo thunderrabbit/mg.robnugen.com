@@ -20,7 +20,7 @@ namespace Inbox;
  */
 final class CreatedRange
 {
-    private const FORMAT = '/^(\d{4}-\d{2}-\d{2})(?:[T ](\d{2}:\d{2})(?::(\d{2}))?)?Z?$/';
+    private const string FORMAT = '/^(\d{4}-\d{2}-\d{2})(?:[T ](\d{2}:\d{2})(?::(\d{2}))?)?Z?$/';
 
     /**
      * A bound as a `Y-m-d H:i:s` UTC string for the DATETIME column.
