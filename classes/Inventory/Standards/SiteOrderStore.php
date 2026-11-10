@@ -8,9 +8,9 @@ namespace Inventory\Standards;
  * Saves the order Rob dragged the board into (SiteOrder::plan). The only
  * writes the standards pages make; every other site fact is site.sh's.
  */
-final class SiteOrderStore
+final readonly class SiteOrderStore
 {
-    public function __construct(private readonly \PDO $pdo)
+    public function __construct(private \PDO $pdo)
     {
     }
 
