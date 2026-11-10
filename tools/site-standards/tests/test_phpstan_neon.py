@@ -8,6 +8,8 @@ import tempfile
 import unittest
 
 HERE_TESTS = os.path.dirname(os.path.abspath(__file__))
+# No __pycache__ in checks/: the scanner refuses to run beside a file it did not deploy.
+sys.dont_write_bytecode = True
 sys.path.insert(0, os.path.join(HERE_TESTS, "..", "checks"))
 import phpstan_neon as n  # noqa: E402
 
