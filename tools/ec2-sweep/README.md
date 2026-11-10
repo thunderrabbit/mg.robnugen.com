@@ -19,10 +19,19 @@ line. `deets.sh` also reports whether the directory is a git checkout, what HEAD
 to the web user), and when the directory path itself last changed. It writes
 nothing on the server.
 
-If the machine also has an ssh host named `<alias>_php_version` (a forced-command
-key that only prints the package version), `sweep.sh` asks it too and its answer
-wins over `deets.sh`'s own read. That host's stderr is noisy (PTY and
-shared-connection lines), so only a stdout line starting with a digit counts.
+**The facts host.** If the machine has an ssh host named `<alias>_facts` (say
+`andbeyond_facts`), a key whose `authorized_keys` line is
+`command="/home/<user>/.local/bin/sweep_ec2_deets_for_mg.sh"`, then `sweep.sh`
+asks that host first and `deets.sh` answers as the forced command: the
+`hostname=directory` pairs reach it in `SSH_ORIGINAL_COMMAND`, and it validates
+them like arguments. Everything mg reads over ssh from an EC2 server then
+comes through that one read-only key: the PHP, HEAD, branch, mtime and the
+reflog (up to 200 commit/unix-time pairs), which the scanner's checks read
+through `tools/site-standards/server_facts.py`. The host's stderr is noisy
+(PTY and shared-connection lines), so only a stdout line that starts with `{`
+counts. The reflog is for the checks and is dropped before the import. Without
+a facts host, `sweep.sh` and the scanner use the full `<alias>` as before;
+`install.sh` always needs that full alias.
 
 `sweep.sh` adds the alias and streams the JSON to
 `tools/import_ec2_sweep.php` on mg, which opens and closes `ec2_domain_states`

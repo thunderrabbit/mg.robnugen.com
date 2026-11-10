@@ -10,11 +10,13 @@
 # import. Exits 1 if any server failed. --dry-run imports inside a transaction
 # that is rolled back, so the summary shows what a real run would do.
 #
-# PHP version: if the machine has an ssh host named <alias>_php_version (a
-# forced-command key that only prints the web PHP's package version), its
-# answer wins over deets.sh's own read of the Apache package. That host's
-# stderr is noisy (PTY and shared-connection lines), so only a stdout line
-# that starts with a digit counts, and only its numeric part is kept.
+# Facts host: if the machine has an ssh host named <alias>_facts (a
+# forced-command key whose command is the pinned deets.sh), sweep.sh asks it
+# first, sending the hostname=directory pairs as the command line, which
+# the forced command sees as SSH_ORIGINAL_COMMAND. That host's stderr is noisy
+# (PTY and shared-connection lines), so only a stdout line that starts with
+# "{" counts. Without that host, or if it gives no document, the full <alias>
+# runs the installed copy of deets.sh as before.
 #
 # Overrides for testing: SWEEP_SSH (default ssh -o BatchMode=yes
 # -o ConnectTimeout=15), SWEEP_SITE_CMD (default site.sh beside the scanner),
@@ -58,26 +60,24 @@ while IFS=$'\t' read -r alias_ pairs_tsv; do
     echo "$alias_: no hostnames entered; nothing to sweep" >&2; continue
   fi
   echo "Sweeping $alias_ (${#pairs[@]} hostname(s))..." >&2
-  if ! answer="$("${ssh_cmd[@]}" "$alias_" '~/.local/bin/sweep_ec2_deets_for_mg.sh' "${pairs[@]}")"; then
-    echo "$alias_: the server did not answer; is deets.sh installed there (tools/ec2-sweep/install.sh $alias_)?" >&2
-    failed=1; continue
+  answer="$( ("${ssh_cmd[@]}" -T "${alias_}_facts" "${pairs[*]}" 2>/dev/null </dev/null || true) \
+             | grep -m1 -E '^\{' | tr -d '\r' || true)"
+  if [ -z "$answer" ]; then
+    if ! answer="$("${ssh_cmd[@]}" "$alias_" '~/.local/bin/sweep_ec2_deets_for_mg.sh' "${pairs[@]}")"; then
+      echo "$alias_: the server did not answer; is there an ${alias_}_facts host, or is deets.sh installed (tools/ec2-sweep/install.sh $alias_)?" >&2
+      failed=1; continue
+    fi
   fi
-  # The forced-command host, when there is one, names the web PHP; no answer
-  # (no such host, a refusal, only noise) leaves deets.sh's own reading alone.
-  forced_php="$( ("${ssh_cmd[@]}" -T "${alias_}_php_version" 2>/dev/null </dev/null || true) \
-                 | grep -m1 -E '^[0-9]+\.[0-9]+' | tr -d '\r' || true)"
-  # The server does not know its own alias on this machine; mg needs it.
+  # The server does not know its own alias on this machine; mg needs it. The
+  # reflog is for the scanner's soak check, not for mg's tables.
   if ! document="$(python3 -I -B -c '
-import json, re, sys
+import json, sys
 d = json.load(sys.stdin)
 if not isinstance(d, dict): raise SystemExit("not an object")
 d["ssh_alias"] = sys.argv[1]
-m = re.match(r"\d+\.\d+(\.\d+)?", sys.argv[2])
-if m:
-    for dom in d.get("domains", []):
-        dom["php_version"] = m.group(0); dom["probe_route"] = None; dom["probe_problem"] = ""
+for dom in d.get("domains", []): dom.pop("reflog", None)
 print(json.dumps(d))
-' "$alias_" "$forced_php" <<< "$answer" 2>/dev/null)"; then
+' "$alias_" <<< "$answer" 2>/dev/null)"; then
     echo "$alias_: the server's answer was not a sweep document; is deets.sh installed there cleanly (tools/ec2-sweep/install.sh $alias_)?" >&2
     failed=1; continue
   fi

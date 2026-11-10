@@ -12,7 +12,8 @@
 # covers every hostname, since they share the web server. A server that runs
 # PHP some other way (php-fpm) gets no version and a plain problem line.
 # For each pair it also says whether DIRECTORY exists and is a git checkout,
-# what HEAD is, and when the directory path itself last changed (a `current`
+# what HEAD is, its reflog (up to 200 entries of commit and unix time, for the
+# soak check), and when the directory path itself last changed (a `current`
 # symlink's own time), the clue a non-git deploy leaves. git is told
 # safe.directory='*' for its own reads, since a production directory may be
 # owned by the web user and the sweeping user only in its group.
@@ -21,6 +22,15 @@
 # and python3 (Ubuntu 22.04 has all three); apache2 and php are optional. Diagnostics go
 # to stderr; stdout is the JSON and nothing else.
 set -euo pipefail
+
+# Run as an ssh forced command (command="..." in authorized_keys), the client's
+# pairs arrive in SSH_ORIGINAL_COMMAND instead of as arguments. They are
+# split on whitespace and checked below like any argument, so the key can ask
+# about nothing but a hostname and an absolute directory.
+if [ $# -eq 0 ] && [ -n "${SSH_ORIGINAL_COMMAND:-}" ]; then
+  read -r -a from_ssh <<< "$SSH_ORIGINAL_COMMAND"
+  set -- "${from_ssh[@]}"
+fi
 
 [ $# -ge 1 ] || { echo "usage: $0 HOSTNAME=DIRECTORY [HOSTNAME=DIRECTORY ...]" >&2; exit 2; }
 
@@ -73,21 +83,24 @@ for pair in "$@"; do
   [[ "$host" =~ ^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$ ]] || { echo "not a hostname: $host" >&2; exit 2; }
   [[ "$dir" =~ ^/[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$ && "$dir" != *..* ]] || { echo "not an absolute directory: $dir" >&2; exit 2; }
 
-  directory_exists=false; is_git_checkout=false; head_commit=""; head_branch=""; deployed_at=""
+  directory_exists=false; is_git_checkout=false; head_commit=""; head_branch=""; deployed_at=""; reflog=""
   if [ -d "$dir" ]; then
     directory_exists=true
     if git -c safe.directory="*" --no-optional-locks -C "$dir" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
       is_git_checkout=true
       head_commit="$(git -c safe.directory="*" --no-optional-locks -C "$dir" rev-parse HEAD 2>/dev/null || true)"
       head_branch="$(git -c safe.directory="*" --no-optional-locks -C "$dir" symbolic-ref --short -q HEAD 2>/dev/null || true)"
+      # "commit:unixtime" pairs, newest first, comma-separated.
+      reflog="$( (git -c safe.directory="*" --no-optional-locks -C "$dir" reflog show --date=unix --format='%H %gd' -200 HEAD 2>/dev/null || true) \
+                 | sed -n 's/^\([0-9a-f]\{40\}\) HEAD@{\([0-9]\{1,12\}\)}$/\1:\2/p' | paste -sd, -)"
     fi
     if changed="$(stat -c %Y "$dir" 2>/dev/null)"; then
       deployed_at="$(date -u -d "@$changed" '+%F %T')"
     fi
   fi
-  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
     "$host" "$dir" "$php_version" "" "$(clean "$probe_problem")" \
-    "$directory_exists" "$is_git_checkout" "$head_commit" "$(clean "$head_branch")" "$deployed_at" >> "$records"
+    "$directory_exists" "$is_git_checkout" "$head_commit" "$(clean "$head_branch")" "$deployed_at" "$reflog" >> "$records"
   if [ -n "$head_commit" ]; then at="HEAD ${head_commit:0:7}"; else at="no git checkout"; fi
   echo "$host: ${php_version:-no version (${probe_problem})}; $at" >&2
 done
@@ -102,12 +115,13 @@ def opt(s): return s if s != "" else None
 domains = []
 with open(records, encoding="utf-8") as f:
     for line in f:
-        host, d, php, route, problem, exists, is_git, commit, branch, deployed = line.rstrip("\n").split("\t")
+        host, d, php, route, problem, exists, is_git, commit, branch, deployed, reflog = line.rstrip("\n").split("\t")
         domains.append({
             "domain": host, "directory": d,
             "php_version": opt(php), "probe_route": opt(route), "probe_problem": problem,
             "directory_exists": exists == "true", "is_git_checkout": is_git == "true",
             "head_commit": opt(commit), "head_branch": opt(branch), "deployed_at_utc": opt(deployed),
+            "reflog": [{"commit": c, "unix": int(t)} for c, t in (e.split(":") for e in reflog.split(",") if e)],
         })
 print(json.dumps({"ssh_alias": None, "swept_at_utc": swept_at,
                   "web_server": opt(web_server), "cli_php": opt(cli_php), "domains": domains}))
