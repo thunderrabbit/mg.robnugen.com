@@ -13,6 +13,8 @@ use Db\RowValue;
 final readonly class SiteReport
 {
     public const string NOT_CHECKED = 'not checked yet';
+    /** A step measured against the site's target, on a site the registry gives none. */
+    public const string NO_TARGET = "standards-mcp's repos.yaml gives this repo no php_target";
 
     /**
      * @param list<StepLine> $lines one per proven step, in the order given
@@ -85,11 +87,12 @@ final readonly class SiteReport
             unset($notes[$slug]);
             $nah = array_any($issues, static fn (NoteIssue $i): bool => $i->statusSlug === SiteStanding::NAH_SLUG);
 
-            $answer = HostChecks::answer(
-                RowValue::string($row, 'check_name'),
-                RowValue::stringOrNull($row, 'check_param'),
-                $facts,
-            );
+            $writtenParam = RowValue::stringOrNull($row, 'check_param');
+            $param = PhpTarget::param($writtenParam, $facts->phpTarget);
+            $answer = HostChecks::answer(RowValue::string($row, 'check_name'), $param, $facts);
+            if ($answer !== null && $param === null && PhpTarget::isTargetParam($writtenParam)) {
+                $answer = new CheckResult(Outcome::Unknown, self::NO_TARGET);
+            }
             if ($answer === null) {
                 $state = $openStates[$slug] ?? null;
                 $answer = $state === null
@@ -100,7 +103,7 @@ final readonly class SiteReport
             $lines[] = new StepLine(
                 $slug,
                 RowValue::string($row, 'track_name'),
-                RowValue::string($row, 'title'),
+                PhpTarget::title(RowValue::string($row, 'title'), $facts->phpTarget),
                 RowValue::enum($row, 'whose_move', WhoseMove::class),
                 $nah || $answer->outcome === Outcome::Pass,
                 $answer->detail,
@@ -109,7 +112,7 @@ final readonly class SiteReport
                 RowValue::string($row, 'explanation'),
                 RowValue::string($row, 'how_to'),
                 RowValue::string($row, 'check_name'),
-                RowValue::stringOrNull($row, 'check_param'),
+                $param,
             );
         }
 

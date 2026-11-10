@@ -119,6 +119,61 @@ final class StandardsSiteReportTest extends Unit
         $this->assertSame(Mark::Check, $report->standing->mark);
     }
 
+    private function factsWithTarget(?string $target, string $serves = '8.3'): SiteFacts
+    {
+        $facts = $this->reachableFacts();
+        $domain = ['php_version' => $serves] + $facts->domains[0];
+        return new SiteFacts([$domain], $facts->checkoutPath, $facts->githubRepo, null, $facts->host, $target);
+    }
+
+    public function testAStepMgAnswersItselfIsMeasuredAgainstTheSitesTarget(): void
+    {
+        $step = $this->step('serves_target_php', 'dh_serves_php', 'target', 'rob');
+        $step['title'] = 'Serves PHP {target}';
+        $build = fn (SiteFacts $facts): SiteReport => SiteReport::build(
+            'mg',
+            $facts,
+            [$step],
+            [],
+            [],
+            ['mg'],
+            ['serves_target_php'],
+        );
+
+        $onTarget = $build($this->factsWithTarget('8.3'));
+        $this->assertTrue($onTarget->lines[0]->done, 'a site serving 8.3 has reached a target of 8.3');
+        $this->assertSame('Serves PHP 8.3', $onTarget->lines[0]->title);
+        $this->assertSame('8.3', $onTarget->lines[0]->checkParam);
+
+        $behind = $build($this->factsWithTarget('8.5'));
+        $this->assertFalse($behind->lines[0]->done, 'the same site has not reached a target of 8.5');
+        $this->assertSame('Serves PHP 8.5', $behind->lines[0]->title);
+
+        $none = $build($this->factsWithTarget(null));
+        $this->assertFalse($none->lines[0]->done);
+        $this->assertSame(SiteReport::NO_TARGET, $none->lines[0]->detail);
+        $this->assertSame('Serves PHP (target)', $none->lines[0]->title);
+    }
+
+    public function testAScannedTargetStepShowsTheVersionItWasCheckedAgainst(): void
+    {
+        $step = $this->step('tooling_on_target_php', 'tooling_on_php', 'target');
+        $step['title'] = 'Tooling runs on PHP {target}';
+        $report = SiteReport::build(
+            'mg',
+            $this->factsWithTarget('8.3'),
+            [$step],
+            ['tooling_on_target_php' => ['outcome' => 'fail', 'detail' => 'no hook']],
+            [],
+            ['mg'],
+            ['tooling_on_target_php'],
+        );
+
+        $this->assertSame('Tooling runs on PHP 8.3', $report->lines[0]->title);
+        $this->assertSame('8.3', $report->lines[0]->checkParam);
+        $this->assertSame('no hook', $report->lines[0]->detail);
+    }
+
     public function testAnUnreachableSiteGetsTheFaceAndStillShowsItsSteps(): void
     {
         $report = $this->report(
