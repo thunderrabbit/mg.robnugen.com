@@ -12,6 +12,10 @@
  *                                sender_aiu (filter by sender)
  *                                include_sent (include messages you sent)
  *                                include_archived, include_future
+ *                                created_after, created_before — UTC only, half-open
+ *                                  [after, before) on created_at_utc. Each is
+ *                                  YYYY-MM-DD (midnight UTC) or YYYY-MM-DDTHH:MM[:SS][Z];
+ *                                  an offset or a bad value is a 400. See Inbox\CreatedRange.
  *                                order=newest|urgent|oldest (default: newest)
  *                                  newest: created_at_utc DESC — "did X reply?"
  *                                  urgent: priority DESC, created_at_utc DESC — triage
@@ -65,6 +69,17 @@ if ($is_write_op && ($guard = $guards->permission($auth_actor, 'can_write_inbox'
 
 if ($method === 'GET' && $sub === '/list') {
     // ── List inbox messages ──────────────────────────────────────────────
+    try {
+        [$created_after, $created_before] = \Inbox\CreatedRange::window(
+            \Field::string($_GET, 'created_after'),
+            \Field::string($_GET, 'created_before'),
+        );
+    } catch (\InvalidArgumentException $e) {
+        http_response_code(400);
+        echo json_encode(['error' => $e->getMessage()]);
+        exit;
+    }
+
     $status = trim(\Field::string($_GET, 'status'));   // pending | seen | done | (empty = all)
     $limit  = max(1, min(100, \Field::int($_GET, 'limit', 50)));
     $offset = max(0, \Field::int($_GET, 'offset'));
@@ -112,6 +127,16 @@ if ($method === 'GET' && $sub === '/list') {
     if ($filter_sender_aiu > 0) {
         $where[] = 'i.sender_aiu = ?';
         $params[] = $filter_sender_aiu;
+    }
+
+    // Half-open UTC window on when the message was made: [after, before)
+    if ($created_after !== null) {
+        $where[] = 'i.created_at_utc >= ?';
+        $params[] = $created_after;
+    }
+    if ($created_before !== null) {
+        $where[] = 'i.created_at_utc < ?';
+        $params[] = $created_before;
     }
 
     $include_archived = \Field::int($_GET, 'include_archived');
