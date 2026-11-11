@@ -19,10 +19,11 @@ import memo  # noqa: E402
 
 # Repo-only checks: their answer is a function of the commit and the key's inputs.
 OPTED_IN = {
-    "admin_link_admins_only", "code_runs_on_php", "composer_platform_pinned", "deploy_script", "js_build_reproducible", "js_inventory", "js_pinned",
+    "admin_link_admins_only", "code_runs_on_php", "codeception_layout", "composer_platform_pinned", "deploy_script", "js_build_reproducible", "js_inventory", "js_pinned",
     "js_shims_removed", "js_visual_baseline", "mlaphp_autoloader", "mlaphp_functions_in_classes",
     "mlaphp_no_global", "mlaphp_no_includes_in_classes", "mlaphp_print_rob_in_class",
-    "mlaphp_print_roblog_in_class",
+    "mlaphp_print_roblog_in_class", "mlaphp_csrf_helper", "mlaphp_print_debug_in_class",
+    "phpunit_under_codeception",
     "mlaphp_public_split", "mlaphp_register_via_user_repository", "mlaphp_sql_in_gateways",
     "mysql84_reserved_words", "no_dynamic_properties", "phpstan_php_range", "phpstan_top",
     "rector_level", "rector_types",
