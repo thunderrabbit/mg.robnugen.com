@@ -6,6 +6,8 @@ every script is a plain `<script src>` or an inline block in a template.
 
 Versions were read from the URLs in the code. "Latest" was looked up on
 2026-11-11 at `https://registry.npmjs.org/<package>` (`dist-tags.latest`).
+Each integrity hash is the SHA-384 of the file its URL served that day; the
+`<script>` tags carry the same hash, so the two change together.
 
 ## Third-party libraries
 
@@ -18,6 +20,7 @@ Versions were read from the URLs in the code. "Latest" was looked up on
   - `templates/layout/mg_base.tpl.php:43`
     `https://code.jquery.com/jquery-3.7.1.min.js`
 - **How**: CDN (code.jquery.com)
+- **Integrity**: `sha384-1H217gwSVyLSIfaLxHbE7dRb3v4mYCKbpQvzx0cegeju1MVsGrX5xXxAvs/HgeFs`
 - **Needs**: nothing
 - **Needed by**: FlipClock 0.7.8, `wwwroot/dashboard/dashboard.js`,
   `wwwroot/mg/javascript/meisogambare.js`
@@ -31,9 +34,10 @@ Versions were read from the URLs in the code. "Latest" was looked up on
 - **Loaded at**:
   - `templates/admin/dh/standards.tpl.php:203`
     `https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js`
-  - `templates/dashboard/paid_dashboard.tpl.php:69`
+  - `templates/dashboard/paid_dashboard.tpl.php:71`
     `https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js`
 - **How**: CDN (jsDelivr, from npm)
+- **Integrity**: `sha384-BSxuMLxX+FCbTdYec3TbXlnMGEEM2QXTFdtDaveen71o+jswm2J36+xFqp8k4VHM`
 - **Needs**: nothing
 - **Needed by**: `wwwroot/js/standards-order.js`,
   `wwwroot/dashboard/dashboard.js`
@@ -43,11 +47,12 @@ Versions were read from the URLs in the code. "Latest" was looked up on
 
 - **Version**: 0.7.8
 - **Loaded at**:
-  - `templates/layout/mg_base.tpl.php:44`
+  - `templates/layout/mg_base.tpl.php:46`
     `https://cdn.jsdelivr.net/npm/flipclock@0.7.8/compiled/flipclock.min.js`
   - its stylesheet, `templates/layout/mg_base.tpl.php:33`
     `https://cdn.jsdelivr.net/npm/flipclock@0.7.8/compiled/flipclock.min.css`
 - **How**: CDN (jsDelivr, from npm)
+- **Integrity**: `sha384-Ef+QgU6pxDHG+o4sKcv/pDbh8n/llvn7Bq9TLYv/o37WRuEhAYJkUdly42AMb38+`
 - **Needs**: jQuery (`>=1.7`); it is a jQuery plugin, `$('.clock').FlipClock(...)`
 - **Needed by**: `wwwroot/mg/javascript/meisogambare.js`
 - **Latest**: 1.0.1 (2025-08-24). 0.7.8 is the newest 0.x on npm, so it is
@@ -62,11 +67,11 @@ past DreamHost's 30-day cache.
 | File | What it does | Loaded by |
 |---|---|---|
 | `wwwroot/js/sortable-table.js` | Sorts a `.sortable-table` by a clicked column header | `templates/admin/dh/databases.tpl.php:64`, `templates/admin/dh/domains.tpl.php:45`, `templates/admin/dh/users.tpl.php:37`, `templates/issues/view.tpl.php:147`, `templates/projects/view.tpl.php:121` |
-| `wwwroot/js/standards-order.js` | Drag a site on the standards board to reorder or pin it (SortableJS) | `templates/admin/dh/standards.tpl.php:204` |
+| `wwwroot/js/standards-order.js` | Drag a site on the standards board to reorder or pin it (SortableJS) | `templates/admin/dh/standards.tpl.php:206` |
 | `wwwroot/js/dm_crypto.js` | Decision Matrix encryption in the browser (Web Crypto) | `templates/matrix/add_evidence.tpl.php:39`, `templates/matrix/add_opposite.tpl.php:32`, `templates/matrix/add_problem.tpl.php:26`, `templates/matrix/setup.tpl.php:27`, `templates/matrix/view.tpl.php:30` |
-| `wwwroot/dashboard/dashboard.js` | Dashboard: active sessions and todos (jQuery, SortableJS) | `templates/dashboard/paid_dashboard.tpl.php:70` |
-| `wwwroot/mg/javascript/meisoprefs.js` | Meditation timer preferences | `templates/layout/mg_base.tpl.php:45` |
-| `wwwroot/mg/javascript/meisogambare.js` | Meditation timer (jQuery, FlipClock) | `templates/layout/mg_base.tpl.php:46` |
+| `wwwroot/dashboard/dashboard.js` | Dashboard: active sessions and todos (jQuery, SortableJS) | `templates/dashboard/paid_dashboard.tpl.php:74` |
+| `wwwroot/mg/javascript/meisoprefs.js` | Meditation timer preferences | `templates/layout/mg_base.tpl.php:49` |
+| `wwwroot/mg/javascript/meisogambare.js` | Meditation timer (jQuery, FlipClock) | `templates/layout/mg_base.tpl.php:50` |
 
 ## Inline `<script>` blocks
 
