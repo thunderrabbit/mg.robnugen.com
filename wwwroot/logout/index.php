@@ -34,7 +34,7 @@ $layout->setTemplate("layout/base.tpl.php");
 $layout->set("page_title", "Log out");
 $layout->set(
     "page_content",
-    '<div class="PagePanel"><form method="POST" action="/logout/">' . csrf_field()
+    '<div class="PagePanel"><form method="POST" action="/logout/">' . $csrfProtect->field()
     . '<button type="submit">Log out</button></form></div>'
 );
 $layout->echoToScreen();

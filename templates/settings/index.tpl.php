@@ -224,7 +224,7 @@
                     <td style="padding: 6px;"><?= htmlspecialchars(substr($app['refresh_expires_at_utc'], 0, 16)) ?></td>
                     <td style="padding: 6px;">
                         <form action="/settings/" method="POST" style="display:inline;" onsubmit="return confirm('Revoke this connection? The app will have to be authorized again.');">
-                            <?= csrf_field() ?>
+                            <?= $csrf->field() ?>
                             <input type="hidden" name="api_key_action" value="revoke_connection">
                             <input type="hidden" name="token_id" value="<?= (int)$app['token_id'] ?>">
                             <input type="submit" value="Revoke" class="greyishBtn" style="background: var(--danger); color: var(--text-on-accent);">

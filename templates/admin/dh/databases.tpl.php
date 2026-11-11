@@ -30,7 +30,7 @@ include __DIR__ . '/_nav.tpl.php';
 <div class="PagePanel">
     <h2><?= $empty_only ? 'Still on DreamHost at 0 B: candidates' : 'All databases on DreamHost' ?></h2>
     <form method="post" action="/admin/dh/triage_databases.php">
-    <?= csrf_field() ?>
+    <?= $csrf->field() ?>
     <input type="hidden" name="action" value="mark" />
     <table class="issue-table sortable-table">
         <thead>
@@ -91,7 +91,7 @@ include __DIR__ . '/_nav.tpl.php';
                         </td>
                         <td>
                             <form method="post" action="/admin/dh/triage_databases.php">
-                                <?= csrf_field() ?>
+                                <?= $csrf->field() ?>
                                 <input type="hidden" name="action" value="unmark" />
                                 <input type="hidden" name="dh_database_id[]" value="<?= $h($row['dh_database_id']) ?>" />
                                 <button type="submit">Take back</button>
