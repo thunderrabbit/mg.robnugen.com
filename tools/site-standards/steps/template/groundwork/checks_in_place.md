@@ -22,7 +22,10 @@ Rector is a guess.
    Climbing to the top is its own step.
 4. Give phpcs the excludes it needs to pass today. Clearing them is its own
    step.
-5. Write at least one real Unit test, so the suite is not empty.
+5. Write at least one real Unit test, so the suite is not empty. A site that
+   already has tests somewhere else (lowercase `tests/`, or PHPUnit's own
+   setup) does not start a second suite: the Codeception track's steps say
+   how to bring those to `Tests/Unit/`, and doing that here meets this line.
 6. Switch the hook on: `git config core.hooksPath .githooks` (or whichever
    tracked directory the site keeps its hooks in).
 7. Add the repo to standards-mcp's `repos.yaml` so the runner scripts know its

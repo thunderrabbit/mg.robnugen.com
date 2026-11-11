@@ -20,10 +20,9 @@ or `$GLOBALS`.
    parameter (a constructor argument, for a class), and change each caller to
    pass it.
 3. The template's `csrf_field()` and `csrf_token()` in `prepend.php` read
-   `global $csrfProtect`. Hand the `CSRFProtectaroo` to the templates instead
-   (set it on the `Template` once, so a template writes
-   `<?= $csrf->field() ?>`), then delete the two functions and fix every
-   template that called them.
+   `global $csrfProtect`. They are two steps of their own, before this one
+   (`csrf_field() comes from the template's $csrf` and its sibling), so by
+   now they are gone.
 4. A template that reads `global` gets those values set on it by its page
    script, like any other template variable.
 5. Run the suite, then submit a form on the test domain: a missing token is a
