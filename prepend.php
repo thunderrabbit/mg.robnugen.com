@@ -37,17 +37,6 @@ $csrfProtect = new \Security\CSRFProtectaroo($mla_request);
 $csrfProtect->getToken();
 
 /**
- * The hidden CSRF input for any POST form. Templates write <?= csrf_field() ?>
- * inside the <form>; no page-level set() is needed.
- */
-function csrf_field(): string
-{
-    /** @var \Security\CSRFProtectaroo $csrfProtect */
-    global $csrfProtect;
-    return $csrfProtect->field();
-}
-
-/**
  * The bare token, for JavaScript that sends it as the X-CSRF-Token header.
  * Always json_encode() it into JS or htmlspecialchars() it into an attribute.
  */
