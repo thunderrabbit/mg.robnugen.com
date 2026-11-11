@@ -83,7 +83,7 @@
     <p>Logged in as: <strong><?= htmlspecialchars($username) ?></strong></p>
     <p><a href="/profile/devices/">Signed-in devices</a></p>
     <form method="POST" action="/logout/" class="menu-logout-form">
-        <?= csrf_field() ?>
+        <?= $csrf->field() ?>
         <button type="submit" class="menu-link-button">Logout</button>
     </form>
 </div>

@@ -16,6 +16,7 @@ include_once $matches[1] . '/prepend.php';
  *
  * @var \Config $config
  * @var \Auth\IsLoggedIn $is_logged_in
+ * @var \Security\CSRFProtectaroo $csrfProtect
  */
 
 // Auth gate — admin or paid only
@@ -34,11 +35,11 @@ $caller   = $projects->humanCaller($is_logged_in->loggedInID());
 // The account's active projects its human is a member of, with open issue counts.
 $summaries = $caller === null ? [] : $projects->summaries($caller);
 
-$page = new \Template($config, $is_logged_in);
+$page = new \Template($config, $is_logged_in, $csrfProtect);
 $page->setTemplate("layout/base.tpl.php");
 $page->set("page_title", "Projects - Meiso Gambare");
 
-$inner_page = new \Template($config, $is_logged_in);
+$inner_page = new \Template($config, $is_logged_in, $csrfProtect);
 $inner_page->setTemplate("projects/index.tpl.php");
 $inner_page->set("projects", $summaries);
 if (isset($_GET['msg'])) {

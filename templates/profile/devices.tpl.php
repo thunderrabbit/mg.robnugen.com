@@ -47,7 +47,7 @@ $when = function (?\DateTimeImmutable $instant) use ($now): string {
                         <a class="DeviceNameLink" href="/profile/devices/?rename=1"
                            title="Rename this device"<?= $renaming ? ' hidden' : '' ?>><?= htmlspecialchars($device->label()) ?></a>
                         <form class="DeviceRename" action="/profile/devices/" method="POST"<?= $renaming ? '' : ' hidden' ?>>
-                            <?= csrf_field() ?>
+                            <?= $csrf->field() ?>
                             <input type="hidden" name="action" value="rename" />
                             <input type="text" name="device_name" maxlength="<?= \Auth\DeviceName::MAX_LENGTH ?>"
                                    value="<?= htmlspecialchars($device->device_name ?? '') ?>"
@@ -72,7 +72,7 @@ $when = function (?\DateTimeImmutable $instant) use ($now): string {
                 <?php /* No button on this device: /logout/ signs out every device, not just this one. */ ?>
                 <?php if (!$device->is_current): ?>
                     <form action="/profile/devices/" method="POST">
-                        <?= csrf_field() ?>
+                        <?= $csrf->field() ?>
                         <input type="hidden" name="action" value="revoke" />
                         <input type="hidden" name="cookie_id" value="<?= (int) $device->cookie_id ?>" />
                         <input type="submit" value="Sign out" class="greyishBtn" />
@@ -84,7 +84,7 @@ $when = function (?\DateTimeImmutable $instant) use ($now): string {
 
     <?php if ($others > 0): ?>
         <form action="/profile/devices/" method="POST">
-            <?= csrf_field() ?>
+            <?= $csrf->field() ?>
             <input type="hidden" name="action" value="revoke_others" />
             <input type="submit" value="Sign out every other device" class="greyishBtn" />
         </form>

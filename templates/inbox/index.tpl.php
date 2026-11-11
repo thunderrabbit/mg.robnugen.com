@@ -146,8 +146,7 @@
 
     <?php
     // Helper to build query string, toggling/setting a single param
-    function inbox_url($overrides = [], $removes = []) {
-        global $show_archived, $show_future, $filter_priority, $filter_status, $sort_by, $sort_dir, $filter_to, $filter_from;
+    $inbox_url = function ($overrides = [], $removes = []) use ($show_archived, $show_future, $filter_priority, $filter_status, $sort_by, $sort_dir, $filter_to, $filter_from) {
         $params = [];
         if ($show_archived) $params['show_archived'] = '';
         if ($show_future) $params['show_future'] = '';
@@ -176,16 +175,15 @@
             $parts[] = $v === '' ? htmlspecialchars($k) : htmlspecialchars($k) . '=' . htmlspecialchars($v);
         }
         return '/inbox/?' . implode('&', $parts);
-    }
+    };
 
-    function sort_link($label, $field) {
-        global $sort_by, $sort_dir;
+    $sort_link = function ($label, $field) use ($sort_by, $sort_dir, $inbox_url) {
         $active = ($sort_by === $field);
         $new_dir = ($active && $sort_dir === 'desc') ? 'asc' : 'desc';
         $arrow = $active ? ($sort_dir === 'asc' ? ' &#9650;' : ' &#9660;') : '';
         $cls = $active ? 'inbox-filter-active' : '';
-        return '<a href="' . inbox_url(['sort' => $field, 'dir' => $new_dir]) . '" class="' . $cls . '">' . $label . $arrow . '</a>';
-    }
+        return '<a href="' . $inbox_url(['sort' => $field, 'dir' => $new_dir]) . '" class="' . $cls . '">' . $label . $arrow . '</a>';
+    };
     ?>
 
     <?php if (!empty($messages) || $filter_priority || $filter_status): ?>
@@ -194,14 +192,14 @@
             <h2>Messages</h2>
             <div style="display: flex; gap: 1rem; font-size: 0.85rem;">
                 <?php if ($show_archived): ?>
-                    <a href="<?= inbox_url([], ['show_archived']) ?>">Hide archived</a>
+                    <a href="<?= $inbox_url([], ['show_archived']) ?>">Hide archived</a>
                 <?php else: ?>
-                    <a href="<?= inbox_url(['show_archived' => '']) ?>">Show archived</a>
+                    <a href="<?= $inbox_url(['show_archived' => '']) ?>">Show archived</a>
                 <?php endif; ?>
                 <?php if ($show_future): ?>
-                    <a href="<?= inbox_url([], ['show_future']) ?>">Hide future</a>
+                    <a href="<?= $inbox_url([], ['show_future']) ?>">Hide future</a>
                 <?php else: ?>
-                    <a href="<?= inbox_url(['show_future' => '']) ?>">Show future</a>
+                    <a href="<?= $inbox_url(['show_future' => '']) ?>">Show future</a>
                 <?php endif; ?>
             </div>
         </div>
@@ -209,21 +207,21 @@
         <div class="inbox-controls">
             <div class="inbox-control-group">
                 <span class="inbox-control-label">Sort:</span>
-                <?= sort_link('ID', 'id') ?>
-                <?= sort_link('Priority', 'priority') ?>
-                <?= sort_link('Date', 'date') ?>
-                <?= sort_link('Status', 'status') ?>
+                <?= $sort_link('ID', 'id') ?>
+                <?= $sort_link('Priority', 'priority') ?>
+                <?= $sort_link('Date', 'date') ?>
+                <?= $sort_link('Status', 'status') ?>
                 <?php if (!($sort_by === 'id' && $sort_dir === 'desc')): ?>
-                    <a href="<?= inbox_url([], ['sort', 'dir']) ?>" class="inbox-filter-clear">reset</a>
+                    <a href="<?= $inbox_url([], ['sort', 'dir']) ?>" class="inbox-filter-clear">reset</a>
                 <?php endif; ?>
             </div>
             <div class="inbox-control-group">
                 <span class="inbox-control-label">Priority:</span>
                 <?php foreach (['high', 'normal', 'low'] as $p): ?>
                     <?php if ($filter_priority === $p): ?>
-                        <a href="<?= inbox_url([], ['priority']) ?>" class="inbox-filter-active"><?= $p ?> &times;</a>
+                        <a href="<?= $inbox_url([], ['priority']) ?>" class="inbox-filter-active"><?= $p ?> &times;</a>
                     <?php else: ?>
-                        <a href="<?= inbox_url(['priority' => $p]) ?>"><?= $p ?></a>
+                        <a href="<?= $inbox_url(['priority' => $p]) ?>"><?= $p ?></a>
                     <?php endif; ?>
                 <?php endforeach; ?>
             </div>
@@ -231,9 +229,9 @@
                 <span class="inbox-control-label">Status:</span>
                 <?php foreach (['pending', 'seen', 'done', 'archived'] as $s): ?>
                     <?php if ($filter_status === $s): ?>
-                        <a href="<?= inbox_url([], ['status']) ?>" class="inbox-filter-active"><?= $s ?> &times;</a>
+                        <a href="<?= $inbox_url([], ['status']) ?>" class="inbox-filter-active"><?= $s ?> &times;</a>
                     <?php else: ?>
-                        <a href="<?= inbox_url(['status' => $s]) ?>"><?= $s ?></a>
+                        <a href="<?= $inbox_url(['status' => $s]) ?>"><?= $s ?></a>
                     <?php endif; ?>
                 <?php endforeach; ?>
             </div>
@@ -241,9 +239,9 @@
                 <span class="inbox-control-label">To:</span>
                 <?php foreach (['me' => 'Me', 'broadcast' => 'Broadcast'] as $tv => $tl): ?>
                     <?php if ($filter_to === $tv): ?>
-                        <a href="<?= inbox_url([], ['to']) ?>" class="inbox-filter-active"><?= $tl ?> &times;</a>
+                        <a href="<?= $inbox_url([], ['to']) ?>" class="inbox-filter-active"><?= $tl ?> &times;</a>
                     <?php else: ?>
-                        <a href="<?= inbox_url(['to' => $tv]) ?>"><?= $tl ?></a>
+                        <a href="<?= $inbox_url(['to' => $tv]) ?>"><?= $tl ?></a>
                     <?php endif; ?>
                 <?php endforeach; ?>
             </div>
@@ -251,9 +249,9 @@
                 <span class="inbox-control-label">From:</span>
                 <?php foreach ($inbox_actors as $a): ?>
                     <?php if ($filter_from === (int)$a['aiu_id']): ?>
-                        <a href="<?= inbox_url([], ['from']) ?>" class="inbox-filter-active"><?= htmlspecialchars($a['name']) ?> &times;</a>
+                        <a href="<?= $inbox_url([], ['from']) ?>" class="inbox-filter-active"><?= htmlspecialchars($a['name']) ?> &times;</a>
                     <?php else: ?>
-                        <a href="<?= inbox_url(['from' => $a['aiu_id']]) ?>"><?= htmlspecialchars($a['name']) ?></a>
+                        <a href="<?= $inbox_url(['from' => $a['aiu_id']]) ?>"><?= htmlspecialchars($a['name']) ?></a>
                     <?php endif; ?>
                 <?php endforeach; ?>
             </div>
@@ -361,7 +359,7 @@
         <?php if ($total_pages > 1): ?>
         <div class="inbox-pagination">
             <?php if ($current_page > 1): ?>
-                <a href="<?= inbox_url(['page' => $current_page - 1]) ?>">&laquo; Prev</a>
+                <a href="<?= $inbox_url(['page' => $current_page - 1]) ?>">&laquo; Prev</a>
             <?php else: ?>
                 <span class="inbox-page-disabled">&laquo; Prev</span>
             <?php endif; ?>
@@ -369,7 +367,7 @@
             <span class="inbox-page-info">Page <?= $current_page ?> of <?= $total_pages ?> (<?= $total_messages ?> messages)</span>
 
             <?php if ($current_page < $total_pages): ?>
-                <a href="<?= inbox_url(['page' => $current_page + 1]) ?>">Next &raquo;</a>
+                <a href="<?= $inbox_url(['page' => $current_page + 1]) ?>">Next &raquo;</a>
             <?php else: ?>
                 <span class="inbox-page-disabled">Next &raquo;</span>
             <?php endif; ?>

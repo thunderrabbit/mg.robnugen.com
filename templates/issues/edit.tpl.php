@@ -25,7 +25,7 @@
         <?php endif; ?>
 
         <form method="POST" action="/issues/edit.php">
-            <?= csrf_field() ?>
+            <?= $csrf->field() ?>
             <input type="hidden" name="issue_id" value="<?= $issue->issueId ?>">
 
             <div class="form-field">

@@ -17,6 +17,7 @@ include_once $matches[1] . '/prepend.php';
  *
  * @var \Config $config
  * @var \Auth\IsLoggedIn $is_logged_in
+ * @var \Security\CSRFProtectaroo $csrfProtect
  */
 
 if (!$is_logged_in->isLoggedIn()) {
@@ -49,11 +50,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$page = new \Template($config, $is_logged_in);
+$page = new \Template($config, $is_logged_in, $csrfProtect);
 $page->setTemplate("layout/base.tpl.php");
 $page->set("page_title", "Create Project - Meiso Gambare");
 
-$inner = new \Template($config, $is_logged_in);
+$inner = new \Template($config, $is_logged_in, $csrfProtect);
 $inner->setTemplate("projects/create.tpl.php");
 if ($error !== null) {
     $inner->set("error", $error);

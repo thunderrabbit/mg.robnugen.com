@@ -13,6 +13,7 @@ include_once $matches[1] . '/prepend.php';
  * @var \Config $config
  * @var \Auth\IsLoggedIn $is_logged_in
  * @var \PDO $mla_database
+ * @var \Security\CSRFProtectaroo $csrfProtect
  */
 
 \Inventory\AdminPage::guard($is_logged_in);
@@ -21,7 +22,7 @@ $sweep = $browse->latestSweep();
 
 $type = \Field::string($_GET, 'type');
 $php = \Field::string($_GET, 'php');
-\Inventory\AdminPage::render($config, $is_logged_in, 'admin/dh/domains.tpl.php', 'DreamHost domains', [
+\Inventory\AdminPage::render($config, $is_logged_in, $csrfProtect, 'admin/dh/domains.tpl.php', 'DreamHost domains', [
     'sweep' => $sweep,
     'filter_type' => $type,
     'filter_php' => $php,

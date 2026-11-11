@@ -62,7 +62,7 @@ document.getElementById('setup-form').addEventListener('submit', async function(
     const csrf = document.createElement('input');
     csrf.type = 'hidden';
     csrf.name = 'csrf_token';
-    csrf.value = <?= json_encode(csrf_token()) ?>;
+    csrf.value = <?= json_encode($csrf->getToken()) ?>;
     form.appendChild(csrf);
     document.body.appendChild(form);
     form.submit();

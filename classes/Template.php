@@ -9,9 +9,14 @@ class Template
     /** @var array<string, mixed> */
     protected array $vars;
 
+    /**
+     * @param \Security\CSRFProtectaroo $csrf Reaches the template as $csrf: a form
+     *        writes <?= $csrf->field() ?>, a fetch() caller json_encode($csrf->getToken()).
+     */
     public function __construct(
         \Config $config,
-        ?\Auth\IsLoggedIn $is_logged_in = null
+        ?\Auth\IsLoggedIn $is_logged_in,
+        private readonly \Security\CSRFProtectaroo $csrf,
     ) {
         $this->template_location = "{$config->app_path}/templates";
 
@@ -59,6 +64,7 @@ class Template
     {
         $charEncode = "UTF-8";
         extract($this->vars);              // Extract the vars to local namespace
+        $csrf = $this->csrf;               // After extract(), so a set('csrf') cannot replace it
 
         ob_start();                        // Start output buffering
 

@@ -200,5 +200,7 @@ Sites on EC2 are here too; their servers are entered with site.sh.</small></p>
     <?php endif; ?>
 </div>
 <?php endforeach; ?>
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"
+    integrity="sha384-BSxuMLxX+FCbTdYec3TbXlnMGEEM2QXTFdtDaveen71o+jswm2J36+xFqp8k4VHM"
+    crossorigin="anonymous"></script>
 <script src="/js/<?= SEMVER ?>/standards-order.js"></script>

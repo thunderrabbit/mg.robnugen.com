@@ -1,7 +1,7 @@
 <?php
 // Included in the <head> of every layout whose pages run prepend.php.
 ?>
-    <meta name="csrf-token" content="<?= htmlspecialchars(csrf_token()) ?>">
+    <meta name="csrf-token" content="<?= htmlspecialchars($csrf->getToken()) ?>">
     <script>
     // prepend.php refuses a POST (or PUT, PATCH, DELETE) without the session's
     // CSRF token. Forms carry it as a hidden field; this adds it as the

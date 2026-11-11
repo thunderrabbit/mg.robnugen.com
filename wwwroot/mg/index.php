@@ -12,6 +12,7 @@ include_once $matches[1] . '/prepend.php';
  *
  * @var \Config $config
  * @var \Auth\IsLoggedIn $is_logged_in
+ * @var \Security\CSRFProtectaroo $csrfProtect
  */
 
 // Check URL for session key pattern: /mg/{session_key}
@@ -63,12 +64,12 @@ if ($todo_id && $is_logged_in->isLoggedIn()) {
 }
 
 // Use Template system for rendering
-$page = new \Template(config: $config, is_logged_in: $is_logged_in);
+$page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect);
 $page->setTemplate("layout/mg_base.tpl.php");
 $page->set("page_title", "Meditation Timer - Meiso Gambare");
 
 // Get the inner content
-$inner_page = new \Template(config: $config, is_logged_in: $is_logged_in);
+$inner_page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect);
 $inner_page->setTemplate("mg/timer.tpl.php");
 
 $page->set("page_content", $inner_page->grabTheGoods());

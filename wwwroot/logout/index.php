@@ -12,6 +12,7 @@ include_once $matches[1] . '/prepend.php';
  *
  * @var \Config $config
  * @var \Auth\IsLoggedIn $is_logged_in
+ * @var \Security\CSRFProtectaroo $csrfProtect
  */
 
 // Only a POST logs out: prepend.php checks its CSRF token, so another site
@@ -28,12 +29,12 @@ if (!$is_logged_in->isLoggedIn()) {
     exit;
 }
 
-$layout = new \Template(config: $config, is_logged_in: $is_logged_in);
+$layout = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect);
 $layout->setTemplate("layout/base.tpl.php");
 $layout->set("page_title", "Log out");
 $layout->set(
     "page_content",
-    '<div class="PagePanel"><form method="POST" action="/logout/">' . csrf_field()
+    '<div class="PagePanel"><form method="POST" action="/logout/">' . $csrfProtect->field()
     . '<button type="submit">Log out</button></form></div>'
 );
 $layout->echoToScreen();

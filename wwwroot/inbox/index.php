@@ -11,6 +11,7 @@ include_once $matches[1] . '/prepend.php';
  * @var \Config $config
  * @var \Auth\IsLoggedIn $is_logged_in
  * @var \PDO $mla_database
+ * @var \Security\CSRFProtectaroo $csrfProtect
  */
 
 // Must be logged in
@@ -271,7 +272,7 @@ $actors_stmt = $mla_database->prepare(
 $actors_stmt->execute([$user_id]);
 $inbox_actors = $actors_stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-$page = new \Template(config: $config, is_logged_in: $is_logged_in);
+$page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect);
 $page->setTemplate('inbox/index.tpl.php');
 $page->set('error_message', $error_message);
 $page->set('success_message', $success_message);
@@ -292,7 +293,7 @@ $page->set('total_pages', $total_pages);
 $page->set('total_messages', $total_messages);
 $inner = $page->grabTheGoods();
 
-$layout = new \Template(config: $config, is_logged_in: $is_logged_in);
+$layout = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect);
 $layout->setTemplate('layout/base.tpl.php');
 $layout->set('page_title', 'Agent Inbox - Meiso Gambare');
 $layout->set('page_content', $inner);

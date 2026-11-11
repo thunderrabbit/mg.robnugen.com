@@ -23,6 +23,7 @@ include_once $matches[1] . '/prepend.php';
  *
  * @var \Config $config
  * @var \Auth\IsLoggedIn $is_logged_in
+ * @var \Security\CSRFProtectaroo $csrfProtect
  */
 
 if (!$is_logged_in->isLoggedIn()) {
@@ -76,11 +77,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && \Field::int($item, 'can_write')) {
     }
 }
 
-$page = new \Template($config, $is_logged_in);
+$page = new \Template($config, $is_logged_in, $csrfProtect);
 $page->setTemplate("layout/base.tpl.php");
 $page->set("page_title", htmlspecialchars(\Field::string($item, 'title')) . " — Exterminal — Meiso Gambare");
 
-$inner = new \Template($config, $is_logged_in);
+$inner = new \Template($config, $is_logged_in, $csrfProtect);
 $inner->setTemplate("exterm/view.tpl.php");
 $inner->set("item", $item);
 if (isset($_GET['msg'])) {
