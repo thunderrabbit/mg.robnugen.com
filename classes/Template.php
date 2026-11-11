@@ -10,13 +10,13 @@ class Template
     protected array $vars;
 
     /**
-     * @param \Security\CSRFProtectaroo|null $csrf Reaches the template as $csrf: a form
+     * @param \Security\CSRFProtectaroo $csrf Reaches the template as $csrf: a form
      *        writes <?= $csrf->field() ?>, a fetch() caller json_encode($csrf->getToken()).
      */
     public function __construct(
         \Config $config,
-        ?\Auth\IsLoggedIn $is_logged_in = null,
-        private readonly ?\Security\CSRFProtectaroo $csrf = null,
+        ?\Auth\IsLoggedIn $is_logged_in,
+        private readonly \Security\CSRFProtectaroo $csrf,
     ) {
         $this->template_location = "{$config->app_path}/templates";
 
