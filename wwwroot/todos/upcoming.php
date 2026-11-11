@@ -15,6 +15,7 @@ include_once $matches[1] . '/prepend.php';
  *
  * @var \Config $config
  * @var \Auth\IsLoggedIn $is_logged_in
+ * @var \Security\CSRFProtectaroo $csrfProtect
  */
 
 // Authentication Check - Allow admins and paid users only
@@ -58,11 +59,11 @@ if ($page_num === 1) {
 }
 
 // Prepare View
-$page = new \Template($config, $is_logged_in);
+$page = new \Template($config, $is_logged_in, $csrfProtect);
 $page->setTemplate("layout/base.tpl.php");
 $page->set("page_title", "Upcoming Todos - Meiso Gambare");
 
-$inner_page = new \Template($config, $is_logged_in);
+$inner_page = new \Template($config, $is_logged_in, $csrfProtect);
 $inner_page->setTemplate("todos/upcoming.tpl.php");
 $inner_page->set("upcoming", $upcoming);
 $inner_page->set("current_page", $page_num);

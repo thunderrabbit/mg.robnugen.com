@@ -118,12 +118,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         new \Auth\LoginThrottle($mla_database),
     );
     $is_logged_in->resumeFromCookie($mla_request);
-    $page = new \Template(config: $config, is_logged_in: $is_logged_in);
+    $page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect);
     $page->setTemplate("layout/welcome_base.tpl.php");
     $page->set("page_title", "Create Account - Meiso Gambare");
 
     // Get the inner content
-    $inner_page = new \Template(config: $config, is_logged_in: $is_logged_in);
+    $inner_page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect);
     $inner_page->setTemplate("login/register_content.tpl.php");
     $inner_page->set("csrf_field", $csrfProtect->field());
     $page->set("page_content", $inner_page->grabTheGoods());

@@ -16,6 +16,7 @@ include_once $matches[1] . '/prepend.php';
  *
  * @var \Config $config
  * @var \Auth\IsLoggedIn $is_logged_in
+ * @var \Security\CSRFProtectaroo $csrfProtect
  */
 
 if (!$is_logged_in->isLoggedIn()) {
@@ -46,11 +47,11 @@ $stmt = $pdo->prepare(
 $stmt->execute($params);
 $repositories = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-$page = new \Template($config, $is_logged_in);
+$page = new \Template($config, $is_logged_in, $csrfProtect);
 $page->setTemplate("layout/base.tpl.php");
 $page->set("page_title", "Repositories - Meiso Gambare");
 
-$inner_page = new \Template($config, $is_logged_in);
+$inner_page = new \Template($config, $is_logged_in, $csrfProtect);
 $inner_page->setTemplate("repositories/index.tpl.php");
 $inner_page->set("repositories", $repositories);
 $inner_page->set("include_inactive", $include_inactive);

@@ -10,6 +10,7 @@ include_once $matches[1] . '/prepend.php';
  *
  * @var \Config $config
  * @var \Auth\IsLoggedIn $is_logged_in
+ * @var \Security\CSRFProtectaroo $csrfProtect
  */
 
 if (!$is_logged_in->isLoggedIn()) {
@@ -25,11 +26,11 @@ $stmt = $pdo->prepare("SELECT COUNT(*) FROM dm_user_config WHERE user_id = ?");
 $stmt->execute([$user_id]);
 $has_config = $stmt->fetchColumn() > 0;
 
-$page = new \Template($config, $is_logged_in);
+$page = new \Template($config, $is_logged_in, $csrfProtect);
 $page->setTemplate("layout/base.tpl.php");
 $page->set("page_title", "Decision Matrix - Meiso Gambare");
 
-$inner_page = new \Template($config, $is_logged_in);
+$inner_page = new \Template($config, $is_logged_in, $csrfProtect);
 
 if (!$has_config) {
     $inner_page->setTemplate("matrix/empty.tpl.php");

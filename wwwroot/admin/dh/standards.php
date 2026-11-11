@@ -13,12 +13,13 @@ include_once $matches[1] . '/prepend.php';
  * @var \Config $config
  * @var \Auth\IsLoggedIn $is_logged_in
  * @var \PDO $mla_database
+ * @var \Security\CSRFProtectaroo $csrfProtect
  */
 
 \Inventory\AdminPage::guard($is_logged_in);
 $browse = new \Inventory\Browse($mla_database);
 
-\Inventory\AdminPage::render($config, $is_logged_in, 'admin/dh/standards.tpl.php', 'Site standards', [
+\Inventory\AdminPage::render($config, $is_logged_in, $csrfProtect, 'admin/dh/standards.tpl.php', 'Site standards', [
     'sweep' => $browse->latestSweep(),
     'standards' => new \Inventory\Standards\Board($mla_database)->standards(),
 ]);

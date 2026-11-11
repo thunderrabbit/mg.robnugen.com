@@ -13,6 +13,7 @@ include_once $matches[1] . '/prepend.php';
  * @var \Config $config
  * @var \Auth\IsLoggedIn $is_logged_in
  * @var \PDO $mla_database
+ * @var \Security\CSRFProtectaroo $csrfProtect
  */
 
 \Inventory\AdminPage::guard($is_logged_in);
@@ -25,7 +26,7 @@ if ($user === null) {
     exit('No such user.');
 }
 $user_id = \Field::int($user, 'dh_user_id');
-\Inventory\AdminPage::render($config, $is_logged_in, 'admin/dh/user.tpl.php', 'DreamHost user', [
+\Inventory\AdminPage::render($config, $is_logged_in, $csrfProtect, 'admin/dh/user.tpl.php', 'DreamHost user', [
     'sweep' => $sweep,
     'user' => $user,
     'states' => $browse->userStates($user_id),

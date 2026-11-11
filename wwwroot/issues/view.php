@@ -18,6 +18,7 @@ include_once $matches[1] . '/prepend.php';
  *
  * @var \Config $config
  * @var \Auth\IsLoggedIn $is_logged_in
+ * @var \Security\CSRFProtectaroo $csrfProtect
  */
 
 if (!$is_logged_in->isLoggedIn()) {
@@ -72,11 +73,11 @@ if ($issue->parentIssueId !== null) {
     }
 }
 
-$page = new \Template($config, $is_logged_in);
+$page = new \Template($config, $is_logged_in, $csrfProtect);
 $page->setTemplate("layout/base.tpl.php");
 $page->set("page_title", $issue->title . " - Meiso Gambare");
 
-$inner_page = new \Template($config, $is_logged_in);
+$inner_page = new \Template($config, $is_logged_in, $csrfProtect);
 $inner_page->setTemplate("issues/view.tpl.php");
 $inner_page->set("issue", $issue);
 $inner_page->set("comments", $comments);

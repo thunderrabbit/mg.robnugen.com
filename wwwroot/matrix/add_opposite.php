@@ -10,6 +10,7 @@ include_once $matches[1] . '/prepend.php';
  *
  * @var \Config $config
  * @var \Auth\IsLoggedIn $is_logged_in
+ * @var \Security\CSRFProtectaroo $csrfProtect
  */
 
 if (!$is_logged_in->isLoggedIn()) {
@@ -60,11 +61,11 @@ $stmt->execute([$user_id]);
 $verify = $stmt->fetchColumn();
 $verify_blob = base64_encode(is_string($verify) ? $verify : '');
 
-$page = new \Template($config, $is_logged_in);
+$page = new \Template($config, $is_logged_in, $csrfProtect);
 $page->setTemplate("layout/base.tpl.php");
 $page->set("page_title", "Find the Opposite - Decision Matrix");
 
-$inner_page = new \Template($config, $is_logged_in);
+$inner_page = new \Template($config, $is_logged_in, $csrfProtect);
 $inner_page->setTemplate("matrix/add_opposite.tpl.php");
 $inner_page->set("verify_blob", $verify_blob);
 $inner_page->set("problem_blob", base64_encode(\Field::string($problem, 'problem')));

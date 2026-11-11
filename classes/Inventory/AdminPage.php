@@ -34,18 +34,19 @@ final class AdminPage
     public static function render(
         \Config $config,
         \Auth\IsLoggedIn $is_logged_in,
+        \Security\CSRFProtectaroo $csrf,
         string $template,
         string $title,
         array $vars,
     ): never {
-        $page = new \Template(config: $config, is_logged_in: $is_logged_in);
+        $page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrf);
         $page->setTemplate($template);
         foreach ($vars as $name => $value) {
             $page->set(name: $name, value: $value);
         }
         $inner = $page->grabTheGoods();
 
-        $layout = new \Template(config: $config, is_logged_in: $is_logged_in);
+        $layout = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrf);
         $layout->setTemplate('layout/base.tpl.php');
         $layout->set('page_title', $title);
         $layout->set('page_content', $inner);
