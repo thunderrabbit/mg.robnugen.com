@@ -38,7 +38,9 @@ class CSRFProtectaroo
     }
 
     /**
-     * The session's token, minted on first call.
+     * The session's token, minted on first call. A template that needs the
+     * bare token reads $csrf->getToken(): always json_encode() it into
+     * JavaScript or htmlspecialchars() it into an attribute.
      *
      * @throws \DomainException If $_SESSION is not set (Request refuses to
      *         hand out a session that was never started, so the token can

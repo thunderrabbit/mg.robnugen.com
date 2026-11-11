@@ -169,6 +169,7 @@ An actor with `agent_inbox_user.todos_limited = 1` is a "limited actor": a third
 ## Development Notes
 
 - No runtime dependencies — pure PHP with custom autoloader. `composer.json` holds dev tools (Codeception, phpcs, PHPStan) plus the platform requirement (PHP 8.5 and the extensions in `Startup\RequiredExtensions`; `prepend.php` fails by name if one is missing, so keep the two lists in step); `vendor/` is never deployed
+- CSRF: `prepend.php` checks the token on every state-changing browser request. Every `Template` takes the protector (`csrf: $csrfProtect`) and shows it to its template as `$csrf`: a form writes `<?= $csrf->field() ?>`, JavaScript gets `json_encode($csrf->getToken())`. A page must not `set('csrf', ...)`; the template's own `$csrf` replaces it
 - `?debug=1` URL parameter enables debug output; `\PrintRob\Debug::printRob($var)` echoes `<pre>` dump and exits; `\PrintRob\Debug::printRobLog($var, $label)` appends to `~/rob.log`
 
 ### Including prepend.php
