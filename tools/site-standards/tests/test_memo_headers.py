@@ -21,7 +21,8 @@ import memo  # noqa: E402
 OPTED_IN = {
     "admin_link_admins_only", "code_runs_on_php", "codeception_layout", "composer_platform_pinned", "deploy_script", "js_build_reproducible", "js_inventory", "js_pinned",
     "js_shims_removed", "js_visual_baseline", "mlaphp_autoloader", "mlaphp_functions_in_classes",
-    "mlaphp_no_global", "mlaphp_no_includes_in_classes", "mlaphp_print_rob_in_class",
+    "mlaphp_no_global", "mlaphp_no_includes_in_classes", "mlaphp_one_database_namespace",
+    "mlaphp_print_rob_in_class",
     "mlaphp_print_roblog_in_class", "mlaphp_csrf_helper", "mlaphp_print_debug_in_class",
     "mlaphp_unused_function_removed",
     "phpunit_under_codeception",
