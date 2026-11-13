@@ -45,22 +45,12 @@ $exterm     = new \Exterm\Items($pdo);
 
 function exterm_error(int $code, string $msg): void
 {
-    http_response_code($code);
-    echo json_encode(['error' => $msg]);
-    exit;
+    \Exterm\ApiErrors::send($code, $msg);
 }
 
 function exterm_dispatch_exception(\Exterm\AccessException|\Exterm\NotFoundException|\Exterm\ValidationException $e): void
 {
-    if ($e instanceof \Exterm\NotFoundException) {
-        exterm_error(404, $e->getMessage());
-    }
-    if ($e instanceof \Exterm\AccessException) {
-        exterm_error(403, $e->getMessage());
-    }
-    if ($e instanceof \Exterm\ValidationException) {
-        exterm_error(400, $e->getMessage());
-    }
+    \Exterm\ApiErrors::fromException($e);
 }
 
 // ── GET /exterm/list ──────────────────────────────────────────────────────────
