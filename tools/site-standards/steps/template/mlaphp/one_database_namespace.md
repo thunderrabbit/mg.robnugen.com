@@ -1,0 +1,36 @@
+---
+title: One namespace means "database"
+position: 79.5
+status: idea
+whose_move: rob
+check: mlaphp_one_database_namespace
+---
+The classes that talk to the database sit under one top-level namespace,
+`Database`, the name the template gives it. A second namespace that means the
+same thing (`Db` beside `Database`) makes every new class a coin toss, and the
+SQL step that follows this one creates many new classes that need a home.
+
+The check reads the `namespace` line of every tracked PHP file outside
+`vendor/` and fails on a first segment that is another word for the database:
+`Db`, `Dbal`, `Sql`, `MySQL`, `Pdo`, `Data`, `Datastore` or `Persistence`, in
+any letter case. It does not look at how `Database` is divided inside, nor at
+a repository that lives with its feature (`Orders\OrderRepository`).
+
+## How to do it
+
+This step is Rob's: what a namespace is called is a matter of taste, so an
+agent never does it alone.
+
+1. Run `tools/site-standards/checks/mlaphp_one_database_namespace.sh <repo>`.
+   It names the namespace and the first file in it.
+2. The agent lists the classes in that namespace and proposes where each
+   goes under `Database`, usually the same sub-namespace it has now
+   (`Db\Row\OrderRow` becomes `Database\Row\OrderRow`). Rob picks or changes it.
+3. Move the files with `git mv`, change each `namespace` line, then every
+   `use` line and fully qualified name that mentions the old one, including
+   any generator or template that writes such classes. A rename and nothing
+   else: no class changes what it does in these commits.
+4. Run the suite and the gates.
+
+A namespace that only looks like a database word, and holds something else,
+stays as it is: mark the step NAh for that site.
