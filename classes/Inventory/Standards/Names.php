@@ -7,22 +7,47 @@ namespace Inventory\Standards;
 /**
  * What the names on the standards page may look like.
  *
- * A step name is its file's name without ".md": lowercase letters, digits and
- * underscores. A shortcode names a site: lowercase letters and digits in
- * groups joined by single hyphens. A site's notes on a step are an issue in
- * that site's project titled "<step>.<shortcode>". Underscores belong to
- * steps and hyphens to shortcodes, so the one dot always separates them.
+ * A step file is "<number>_<name>.md". The number is the step's position on
+ * the page: digits, with up to four more after a dot (038.9996), from 0 up to
+ * but not including 65536. The name is what results and issues are matched
+ * on: lowercase letters, digits and underscores, starting with a letter, so
+ * the number ends at one underscore and nowhere else. Renumbering a file
+ * therefore never changes its step's name.
+ *
+ * A shortcode names a site: lowercase letters and digits in groups joined by
+ * single hyphens. A site's notes on a step are an issue in that site's
+ * project titled "<step>.<shortcode>". Underscores belong to steps and
+ * hyphens to shortcodes, so the one dot always separates them.
  */
 final class Names
 {
     public const int SHORTCODE_MAX = 24;
 
-    private const string STEP = '[a-z0-9][a-z0-9_]{0,63}';
+    private const string STEP = '[a-z][a-z0-9_]{0,63}';
+    private const float POSITION_END = 65536.0;
     private const string SHORTCODE = '[a-z0-9]+(?:-[a-z0-9]+)*';
 
     public static function isStepName(string $s): bool
     {
         return preg_match('/\A' . self::STEP . '\z/', $s) === 1;
+    }
+
+    /**
+     * The position and step name a step file's name (without ".md") gives, or
+     * null when it is not a number, one underscore and a step name.
+     *
+     * @return array{position: float, name: string}|null
+     */
+    public static function stepFile(string $stem): ?array
+    {
+        if (preg_match('/\A(\d+(?:\.\d{1,4})?)_(' . self::STEP . ')\z/', $stem, $m) !== 1) {
+            return null;
+        }
+        $position = (float) $m[1];
+        if ($position >= self::POSITION_END) {
+            return null;
+        }
+        return ['position' => $position, 'name' => $m[2]];
     }
 
     public static function isShortcode(string $s): bool

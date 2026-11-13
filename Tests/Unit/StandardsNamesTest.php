@@ -19,6 +19,46 @@ final class StandardsNamesTest extends Unit
         $this->assertFalse(Names::isStepName('_track'));
         $this->assertFalse(Names::isStepName('Has-Hyphen'));
         $this->assertFalse(Names::isStepName(''));
+        $this->assertTrue(Names::isStepName('phpstan_level_0'));
+        $this->assertFalse(Names::isStepName('5_foo'));
+    }
+
+    public function testAStepFileIsANumberThenAName(): void
+    {
+        $this->assertSame(['position' => 30.0, 'name' => 'autoloader'], Names::stepFile('030_autoloader'));
+        $this->assertSame(
+            ['position' => 38.9996, 'name' => 'remove_unused_print_robs'],
+            Names::stepFile('038.9996_remove_unused_print_robs'),
+        );
+        $this->assertSame(['position' => 0.0, 'name' => 'phpstan_level_0'], Names::stepFile('000_phpstan_level_0'));
+        $this->assertSame(
+            ['position' => 5.0, 'name' => 'composer_platform_pinned'],
+            Names::stepFile('05_composer_platform_pinned'),
+        );
+        $this->assertSame(['position' => 65535.9999, 'name' => 'last'], Names::stepFile('65535.9999_last'));
+    }
+
+    public function testWhatIsNotAStepFile(): void
+    {
+        foreach (
+            [
+                'autoloader',          // no number
+                '10_5_foo',            // underscore typed for a dot
+                '10.5.1_foo',          // two dots
+                '1.00001_foo',         // five decimals
+                '1._foo',              // a point and nothing after it
+                '.5_foo',              // nothing before the point
+                '65536_foo',           // out of range
+                '10_',                 // no name
+                '10_Foo',              // capital
+                '10_has-hyphen',
+                '10-foo',
+                '-1_foo',
+                '10_' . str_repeat('a', 65),
+            ] as $stem
+        ) {
+            $this->assertNull(Names::stepFile($stem), $stem);
+        }
     }
 
     public function testShortcodes(): void
