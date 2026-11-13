@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # memo: commit
-# phpstan_level REPO LEVEL: PHPStan is at LEVEL (1 to 10) or above with no
+# phpstan_level REPO LEVEL: PHPStan is at LEVEL (0 to 10) or above with no
 # baseline, and a run is clean. A site further up the ladder has done every
 # level below it.
 set -uo pipefail
@@ -8,7 +8,7 @@ set -uo pipefail
 need_repo "${1:-}"
 
 want="${2:-}"
-[[ "$want" =~ ^([1-9]|10)$ ]] || unknown "phpstan_level needs a level from 1 to 10"
+[[ "$want" =~ ^([0-9]|10)$ ]] || unknown "phpstan_level needs a level from 0 to 10"
 
 config="$REPO/phpstan.neon"
 [ -f "$config" ] || config="$REPO/phpstan.neon.dist"
