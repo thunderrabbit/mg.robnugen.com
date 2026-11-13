@@ -72,7 +72,8 @@ Skip reasons under rule 3, each naming both commits where it has them:
 
 The site's entry in the document gains `test_commit`: the 40-character commit
 the test domain answered with, or null when it was not asked or did not
-answer. `SITE_TEST_COMMIT` is added to the check environment the same way.
+answer. Nothing is added to the check environment: every `SITE_*` fact is
+part of a remembered check's key, and no check needs this one.
 
 ### Importer (`ScanPayload`, `StandardsImporter`)
 
@@ -117,7 +118,7 @@ rule in two sentences.
 - `js_hotfixes_ported` is left alone. The ancestor guard in rule 3 covers the
   same risk for a one-line site.
 - `suite_passes_on_php` already asks the test domain for its commit; it keeps
-  doing so itself rather than reading `SITE_TEST_COMMIT`.
+  doing so itself.
 
 ## Tests
 
