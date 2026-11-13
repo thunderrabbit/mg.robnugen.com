@@ -1,6 +1,6 @@
 ---
 title: Classes declare every property they use
-position: 1.5
+position: 15
 status: idea
 whose_move: agent
 check: no_dynamic_properties

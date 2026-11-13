@@ -1,6 +1,6 @@
 ---
 title: The site's safe suite passes on PHP {target}
-position: 6
+position: 60
 status: idea
 whose_move: agent
 check: suite_passes_on_php

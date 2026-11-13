@@ -1,6 +1,6 @@
 ---
 title: Code compiles on the current PHP and on {target}
-position: 2
+position: 20
 status: proven
 whose_move: agent
 check: code_runs_on_php

@@ -1,6 +1,6 @@
 ---
 title: Test domain serves PHP {target}
-position: 4
+position: 40
 status: idea
 whose_move: rob
 check: dh_test_serves_php
