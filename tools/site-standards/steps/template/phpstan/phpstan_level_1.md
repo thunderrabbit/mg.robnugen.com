@@ -9,27 +9,23 @@ param: 1
 `phpstan.neon` is at level 1 or above, there is no baseline file, and a run is
 clean.
 
-Level 1 is where PHPStan starts: it brings level 0's basics (unknown classes
-and functions, unknown methods on `$this`, wrong argument counts, variables
-that are never defined) and adds variables that might be undefined and unknown
-magic methods and properties on classes with `__call` and `__get`. Most of
-what it finds on a site new to PHPStan is a real bug or a missing include.
+Level 1 adds variables that might be undefined, and unknown magic methods
+and properties on classes with `__call` and `__get`. A variable set in only
+one branch of an `if` and read after it is the usual finding.
 
 ## How to do it
 
-1. If the site has no PHPStan yet, add it to `require-dev` and write a
-   `phpstan.neon` with `level: 0` and the paths the site's own code lives in.
-   Level 0's findings are fixed in this same bubble, as one more rule.
+1. Do level 0 first. Climb one level per bubble; do not jump.
 2. Open the bubble with `BEGIN PHPStan level 1`: the site's usual tiny version
    uptick and nothing else.
 3. List the findings without changing the config: run PHPStan with
    `--level 1` in the site's runner image.
-   Until the last commit the level stays where it was (0, or none).
+   Leave `level:` at 0 until the last commit, so every commit on
+   the way still passes the hook.
 4. Sort the findings by rule: the identifier PHPStan gives each one, or one
    cause when a single kind of fix answers several identifiers. At this level
    the rules tend to be:
-   undefined variables in entry scripts, calls to functions that no longer
-   exist.
+   variables set in only one branch, magic properties nothing declares.
 5. A rule whose fixes span several files, each worth its own commit, gets a
    nested bubble inside this one:
    - `BEGIN Level 1: <what the rule's fixes do>`, again only a version
