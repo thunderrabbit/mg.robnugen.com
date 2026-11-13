@@ -43,23 +43,13 @@ $sub        = preg_replace('#^/exterm#', '', $path) ?: '/';
 $caller_aiu = \Field::int($auth_actor, 'aiu_id');
 $exterm     = new \Exterm\Items($pdo);
 
-function exterm_error(int $code, string $msg): void
-{
-    \Exterm\ApiErrors::send($code, $msg);
-}
-
-function exterm_dispatch_exception(\Exterm\AccessException|\Exterm\NotFoundException|\Exterm\ValidationException $e): void
-{
-    \Exterm\ApiErrors::fromException($e);
-}
-
 // ── GET /exterm/list ──────────────────────────────────────────────────────────
 if ($sub === '/list' && $method === 'GET') {
     try {
         $items = $exterm->listItems($auth_user_id, $caller_aiu, $_GET);
         echo json_encode($items);
     } catch (\Exterm\AccessException | \Exterm\NotFoundException | \Exterm\ValidationException $e) {
-        exterm_dispatch_exception($e);
+        \Exterm\ApiErrors::fromException($e);
     }
     exit;
 }
@@ -68,12 +58,12 @@ if ($sub === '/list' && $method === 'GET') {
 if ($sub === '/get' && $method === 'GET') {
     $id = \Field::int($_GET, 'exterm_item_id');
     if (!$id) {
-        exterm_error(400, "exterm_item_id is required");
+        \Exterm\ApiErrors::send(400, "exterm_item_id is required");
     }
     try {
         echo json_encode($exterm->getItem($id, $auth_user_id, $caller_aiu));
     } catch (\Exterm\AccessException | \Exterm\NotFoundException | \Exterm\ValidationException $e) {
-        exterm_dispatch_exception($e);
+        \Exterm\ApiErrors::fromException($e);
     }
     exit;
 }
@@ -86,7 +76,7 @@ if ($sub === '/search' && $method === 'GET') {
     try {
         echo json_encode($exterm->searchItems($auth_user_id, $caller_aiu, $query, $project_id, $limit));
     } catch (\Exterm\AccessException | \Exterm\NotFoundException | \Exterm\ValidationException $e) {
-        exterm_dispatch_exception($e);
+        \Exterm\ApiErrors::fromException($e);
     }
     exit;
 }
@@ -103,7 +93,7 @@ if ($sub === '/create' && $method === 'POST') {
         http_response_code(201);
         echo json_encode($item);
     } catch (\Exterm\AccessException | \Exterm\NotFoundException | \Exterm\ValidationException $e) {
-        exterm_dispatch_exception($e);
+        \Exterm\ApiErrors::fromException($e);
     }
     exit;
 }
@@ -112,13 +102,13 @@ if ($sub === '/create' && $method === 'POST') {
 if ($sub === '/update' && $method === 'PATCH') {
     $id = \Field::int($body, 'exterm_item_id');
     if (!$id) {
-        exterm_error(400, "exterm_item_id is required");
+        \Exterm\ApiErrors::send(400, "exterm_item_id is required");
     }
     require_credit($pdo, $auth_user_id, $auth_key_id, '/exterm/update', $auth_token_id);
     try {
         echo json_encode($exterm->updateItem($auth_user_id, $caller_aiu, $id, $body));
     } catch (\Exterm\AccessException | \Exterm\NotFoundException | \Exterm\ValidationException $e) {
-        exterm_dispatch_exception($e);
+        \Exterm\ApiErrors::fromException($e);
     }
     exit;
 }
@@ -127,15 +117,15 @@ if ($sub === '/update' && $method === 'PATCH') {
 if ($sub === '/delete' && $method === 'DELETE') {
     $id = \Field::int($body, 'exterm_item_id');
     if (!$id) {
-        exterm_error(400, "exterm_item_id is required");
+        \Exterm\ApiErrors::send(400, "exterm_item_id is required");
     }
     require_credit($pdo, $auth_user_id, $auth_key_id, '/exterm/delete', $auth_token_id);
     try {
         echo json_encode($exterm->deleteItem($auth_user_id, $caller_aiu, $id));
     } catch (\Exterm\AccessException | \Exterm\NotFoundException | \Exterm\ValidationException $e) {
-        exterm_dispatch_exception($e);
+        \Exterm\ApiErrors::fromException($e);
     }
     exit;
 }
 
-exterm_error(404, "Unknown exterm endpoint: {$sub}");
+\Exterm\ApiErrors::send(404, "Unknown exterm endpoint: {$sub}");
