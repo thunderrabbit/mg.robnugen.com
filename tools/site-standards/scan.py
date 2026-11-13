@@ -15,6 +15,11 @@ only. What it does, and what it deliberately does not:
   clean at that branch's tip instead, the results describe that line, and
   the page says so beside what the server runs. The importer refuses an
   off-server scan on any other branch.
+- A second exception, for a site with a test domain on mg and no upgrade
+  branch: its checkout is also checked when it is clean at the commit the
+  test domain runs (asked over ssh, sent as test_commit) and that commit
+  holds everything the server runs. Deploying to the test domain is then
+  enough to move the site on the page.
 - A step file is <number>_<name>.md. The number is its position on the page
   and the name is the step, which is what a result is reported under.
 - A step's check is run only if checks/<check>.sh exists. A step whose check
@@ -265,7 +270,7 @@ def scan_site(site, files, work_root, env, tool_id=None, fresh=False, targets=No
     """
     shortcode = site["shortcode"]
 
-    server_commit, server_branch = None, None
+    server_commit, server_branch, test_commit = None, None, None
     checkout = site.get("checkout_path")
     repo = os.path.join(work_root, checkout) if checkout else None
     php_target = (targets or {}).get(os.path.normpath(os.path.abspath(repo))) if repo else None
@@ -275,7 +280,7 @@ def scan_site(site, files, work_root, env, tool_id=None, fresh=False, targets=No
         say(f"  {shortcode}: skipped, {reason}")
         return {"shortcode": shortcode, "branch": branch, "commit": None,
                 "server_branch": server_branch, "server_commit": server_commit,
-                "php_target": php_target, "skipped_reason": reason, "results": []}
+                "test_commit": test_commit, "php_target": php_target, "skipped_reason": reason, "results": []}
 
     if repo is None or not os.path.isdir(repo) or git(repo, "rev-parse", "--git-dir")[0] != 0:
         return skipped("no local checkout")
@@ -290,6 +295,7 @@ def scan_site(site, files, work_root, env, tool_id=None, fresh=False, targets=No
     branch = branch.strip() if code == 0 and branch.strip() != "" else None
     commit = git(repo, "rev-parse", "HEAD")[1].strip()
     line = site.get("upgrade_branch")
+    test = site.get("test") or {}
     if line and (not server_facts.BRANCH.match(line) or ".." in line):
         return skipped(f"its upgrade branch on mg, {line!r}, is not a branch name", branch)
     if commit != server_commit:
@@ -297,6 +303,20 @@ def scan_site(site, files, work_root, env, tool_id=None, fresh=False, targets=No
             say(f"  {shortcode}: checking {line}, the line it is preparing; its server runs {on}")
         elif git(repo, "cat-file", "-e", server_commit + "^{commit}")[0] != 0:
             return skipped(f"its server runs {on}, which this checkout does not have", branch)
+        elif not line and test.get("ssh_alias") and test.get("directory"):
+            # No upgrade branch, but a test domain: a checkout at what the test
+            # domain runs is read, as long as it holds everything the server runs.
+            test_commit, _, problem = ask_server(test)
+            if problem is not None:
+                return skipped(f"its server runs {on}; its test domain could not be asked: {problem}", branch)
+            if commit != test_commit:
+                return skipped(f"its server runs {on} and its test domain runs {test_commit[:7]}; "
+                               f"the checkout is at {commit[:7]}", branch)
+            if git(repo, "merge-base", "--is-ancestor", server_commit, commit)[0] != 0:
+                return skipped(f"its server runs {on}, which the test domain's {test_commit[:7]} "
+                               f"does not include", branch)
+            say(f"  {shortcode}: checking what {test.get('domain') or 'its test domain'} runs "
+                f"({commit[:7]}); its server runs {on}")
         else:
             hint = f", not on {line}" if line else ""
             return skipped(f"its server runs {on}; the checkout is at {commit[:7]}{hint}", branch)
@@ -346,7 +366,7 @@ def scan_site(site, files, work_root, env, tool_id=None, fresh=False, targets=No
 
     return {"shortcode": shortcode, "branch": branch, "commit": commit,
             "server_branch": server_branch, "server_commit": server_commit,
-            "php_target": php_target, "skipped_reason": None, "results": results}
+            "test_commit": test_commit, "php_target": php_target, "skipped_reason": None, "results": results}
 
 
 def parse_arguments(argv):

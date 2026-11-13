@@ -5,7 +5,7 @@
  * crying-laughing face for a site nobody can reach yet.
  *
  * @var array{id: int, swept_on: string, previous_id: int|null, previous_on: string|null}|null $sweep
- * @var list<array{slug: string, name: string, proven: int, sites: list<array<mixed>>, groups: list<array{block: string, kind: ?\Inventory\Standards\HostKind, heading: string, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, pinned: bool, sort_order: ?int, host: string, server_where: ?string, web_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: \Inventory\Standards\SiteReport}>}>, ideas: list<array{slug: string, track: string, title: string, practising: list<array{shortcode: string, issue: \Inventory\Standards\NoteIssue}>, passing: int, checked: int, discussion: ?\Inventory\Standards\NoteIssue}>}> $standards
+ * @var list<array{slug: string, name: string, proven: int, sites: list<array<mixed>>, groups: list<array{block: string, kind: ?\Inventory\Standards\HostKind, heading: string, sites: list<array{shortcode: string, project_id: ?int, autonomy: string, pinned: bool, sort_order: ?int, host: string, server_where: ?string, web_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, test_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: \Inventory\Standards\SiteReport}>}>, ideas: list<array{slug: string, track: string, title: string, practising: list<array{shortcode: string, issue: \Inventory\Standards\NoteIssue}>, passing: int, checked: int, discussion: ?\Inventory\Standards\NoteIssue}>}> $standards
  */
 
 use Inventory\Standards\Names;
@@ -131,7 +131,11 @@ Sites on EC2 are here too; their servers are entered with site.sh.</small></p>
                     <?php endif; ?>
                     <code><?= $h(substr($site['server_commit'], 0, 7)) ?></code>;
                 <?php endif; ?>
-                <?php if ($site['checked_commit'] !== null && $site['checked_commit'] !== $site['server_commit']): ?>
+                <?php if ($site['checked_commit'] !== null && $site['checked_commit'] === $site['test_commit'] && $site['checked_commit'] !== $site['server_commit']): ?>
+                    the checks read
+                    <code><?= $h(substr($site['checked_commit'], 0, 7)) ?></code>,
+                    which its test domain runs;
+                <?php elseif ($site['checked_commit'] !== null && $site['checked_commit'] !== $site['server_commit']): ?>
                     the checks read
                     <?php if ($site['checked_branch'] !== null): ?>
                         <code><?= $h($site['checked_branch']) ?></code> at

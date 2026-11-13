@@ -218,36 +218,42 @@ final class StandardsImporter
     }
 
     /**
-     * @param array{shortcode: string, branch: ?string, commit: ?string, serverBranch: ?string, serverCommit: ?string, phpTarget: ?string, skippedReason: ?string, results: list<array{step: string, outcome: Outcome, detail: string}>} $site
+     * @param array{shortcode: string, branch: ?string, commit: ?string, serverBranch: ?string, serverCommit: ?string, testCommit: ?string, phpTarget: ?string, skippedReason: ?string, results: list<array{step: string, outcome: Outcome, detail: string}>} $site
      */
     private function importSite(array $site, int $scanId): void
     {
         $found = $this->rows(
-            'SELECT std_site_id, std_standard_id, upgrade_branch FROM std_sites WHERE shortcode = ?',
+            'SELECT std_site_id, std_standard_id, upgrade_branch,
+                    COALESCE(test_site_domain_id, test_ec2_site_domain_id) AS named_test
+               FROM std_sites WHERE shortcode = ?',
             [$site['shortcode']],
         );
         if ($found === []) {
             throw new ScanRefusedException("no site has the shortcode {$site['shortcode']}");
         }
         $siteId = RowValue::int($found[0], 'std_site_id');
-        if ($site['skippedReason'] === null && $site['commit'] !== $site['serverCommit']) {
-            // Off the server's commit is allowed on one branch only: the one the
-            // site is preparing, as mg has it on record.
-            $line = RowValue::stringOrNull($found[0], 'upgrade_branch');
-            if ($line === null || $site['branch'] !== $line) {
-                $on = $site['branch'] === null ? 'a detached HEAD' : "branch {$site['branch']}";
-                throw new ScanRefusedException(
-                    "site {$site['shortcode']} was checked on {$on}, not at the commit its server runs, "
-                    . ($line === null ? 'and has no upgrade branch on record' : "and its upgrade branch is {$line}")
-                );
+        $commit = $site['commit'];
+        if ($site['skippedReason'] === null && $commit !== null && $commit !== $site['serverCommit']) {
+            // Off the server's commit: only on the branch the site is preparing,
+            // or at the commit its test domain runs, each as mg has it on record.
+            $refusal = OffServerScan::refusal(
+                $site['shortcode'],
+                $site['branch'],
+                $commit,
+                $site['testCommit'],
+                RowValue::stringOrNull($found[0], 'upgrade_branch'),
+                $found[0]['named_test'] !== null,
+            );
+            if ($refusal !== null) {
+                throw new ScanRefusedException($refusal);
             }
         }
 
         $this->run(
             'INSERT INTO std_scan_sites
                     (std_scan_id, std_site_id, branch, commit_sha, skipped_reason, server_branch, server_commit,
-                     php_target)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                     test_commit, php_target)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
                 $scanId,
                 $siteId,
@@ -256,6 +262,7 @@ final class StandardsImporter
                 $site['skippedReason'],
                 $site['serverBranch'],
                 $site['serverCommit'],
+                $site['testCommit'],
                 $site['phpTarget'],
             ],
         );
