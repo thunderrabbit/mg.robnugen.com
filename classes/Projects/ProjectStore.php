@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Projects;
 
-use Db\Row\ProjectRow;
+use Database\Row\ProjectRow;
 use Issues\Caller;
 use Issues\Membership;
 use Projects\Command\AddMember;

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Projects;
 
-use Db\Row\ProjectRow;
+use Database\Row\ProjectRow;
 
 /**
  * One line of the projects index: a project and how many issues are open in it.

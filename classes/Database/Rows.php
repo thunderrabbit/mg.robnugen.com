@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Db;
+namespace Database;
 
 /**
  * Narrows what PDO hands back. fetch() answers false on an empty result set,

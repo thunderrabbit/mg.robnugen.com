@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Issues;
 
-use Db\Row\IssueRow;
-use Db\Row\IssueStatusRow;
+use Database\Row\IssueRow;
+use Database\Row\IssueStatusRow;
 
 /**
  * One row of a project page's issue table: the issue, its status, who it is

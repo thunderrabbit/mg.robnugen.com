@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit;
 
 use Codeception\Test\Unit;
-use Db\Enum\IssuePriority;
+use Database\Enum\IssuePriority;
 use Input\Absent;
 use Input\BodyEncoding;
 use Input\Input;

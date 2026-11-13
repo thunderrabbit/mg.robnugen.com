@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Issues;
 
-use Db\Row\IssueTimerRow;
+use Database\Row\IssueTimerRow;
 
 /**
  * A timer as a reader sees it: the row, its worker's name, and how long it has

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Db;
+namespace Database;
 
 /**
  * Strict readers for one column of a PDO::FETCH_ASSOC row. The row classes

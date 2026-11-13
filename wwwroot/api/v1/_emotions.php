@@ -117,7 +117,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
             'SELECT my_id, state FROM my_ids_for_my_users_state WHERE api_key_id = ?'
         );
         $stmt->execute([$auth_key_id]);
-        $rows = \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+        $rows = \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
 
         $vocab = [];
         foreach ($rows as $row) {
@@ -319,7 +319,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
 
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
-        $rows = \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+        $rows = \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
 
         $events = [];
         foreach ($rows as $row) {
@@ -462,7 +462,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
-    $rows = \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+    $rows = \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
 
     $sessions = [];
     foreach ($rows as $row) {

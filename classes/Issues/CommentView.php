@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Issues;
 
-use Db\Row\IssueCommentRow;
+use Database\Row\IssueCommentRow;
 
 /**
  * A comment as a reader sees it: the row plus its author's name, which lives in

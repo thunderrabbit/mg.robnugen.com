@@ -140,6 +140,6 @@ class ApiKey
         );
         $stmt->execute([$user_id]);
 
-        return \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+        return \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 }

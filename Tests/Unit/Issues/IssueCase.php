@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Issues;
 
 use Codeception\Test\Unit;
-use Db\Row\IssueRow;
+use Database\Row\IssueRow;
 use Issues\Caller;
 use Issues\Command\CreateIssue;
 use Issues\Command\UpdateIssue;

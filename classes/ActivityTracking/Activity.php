@@ -56,7 +56,7 @@ class Activity
             $stmt->execute();
         }
 
-        return \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+        return \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     /**

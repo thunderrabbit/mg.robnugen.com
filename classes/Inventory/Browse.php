@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Inventory;
 
-use Db\RowValue;
-use Db\Rows;
+use Database\RowValue;
+use Database\Rows;
 
 /**
  * Read-only queries behind the inventory pages. "Current" means a state whose

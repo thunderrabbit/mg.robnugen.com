@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Tests\Unit;
 
 use Codeception\Test\Unit;
-use Db\Rows;
+use Database\Rows;
 
 /**
- * Hermetic unit tests for Db\Rows, which narrows what PDO hands back into a
+ * Hermetic unit tests for Database\Rows, which narrows what PDO hands back into a
  * shape the analyser can follow. PDO::fetch() answers false when there is no
  * row, and both fetch() and fetchAll() are typed as mixed, so without this
  * every caller repeats the same is_array() dance before reading a column with

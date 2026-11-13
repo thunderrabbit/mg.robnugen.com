@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Projects;
 
-use Db\Row\ProjectRow;
+use Database\Row\ProjectRow;
 use Issues\AccessException;
 use Issues\Caller;
 use Issues\ConflictException;

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Projects;
 
-use Db\Row\IssueRow;
-use Db\Row\IssueStatusRow;
-use Db\Row\ProjectMemberRow;
-use Db\Row\ProjectRow;
-use Db\RowValue;
+use Database\Row\IssueRow;
+use Database\Row\IssueStatusRow;
+use Database\Row\ProjectMemberRow;
+use Database\Row\ProjectRow;
+use Database\RowValue;
 use Input\Absent;
 use Issues\Caller;
 use Issues\Membership;

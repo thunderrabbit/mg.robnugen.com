@@ -17,7 +17,7 @@ final readonly class IssueDetail
         public ?int $parentIssueId,
         public string $projectName,
         public string $title,
-        public \Db\Enum\IssuePriority $priority,
+        public \Database\Enum\IssuePriority $priority,
         public ?string $description,
         public int $statusId,
         public string $statusLabel,

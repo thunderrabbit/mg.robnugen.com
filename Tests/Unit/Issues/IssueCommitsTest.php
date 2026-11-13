@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Issues;
 
-use Db\Row\IssueRow;
+use Database\Row\IssueRow;
 use Issues\AccessException;
 use Issues\Caller;
 use Issues\Command\AddCommit;

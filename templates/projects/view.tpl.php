@@ -4,7 +4,7 @@
  * One project: its description, its open (and optionally done) issues, and
  * its members.
  *
- * @var \Db\Row\ProjectRow $project
+ * @var \Database\Row\ProjectRow $project
  * @var list<\Issues\BoardIssue> $issues
  * @var list<\Issues\BoardIssue> $done_issues
  * @var bool $show_done
@@ -46,7 +46,7 @@
         </header>
         <?php
         $priority_rank = ['high' => 0, 'normal' => 1, 'low' => 2];
-        $fmt = \Db\RowValue::DATETIME_FORMAT;
+        $fmt = \Database\RowValue::DATETIME_FORMAT;
         // One table for open and done issues; done ones swap Updated for Done.
         $issue_table = function (array $rows, bool $done) use ($priority_rank, $fmt): void {
             ?>

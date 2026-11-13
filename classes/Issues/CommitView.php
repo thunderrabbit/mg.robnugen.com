@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Issues;
 
-use Db\Row\IssueCommitRow;
+use Database\Row\IssueCommitRow;
 
 /**
  * A commit link as a reader sees it: the row plus the repository it points at

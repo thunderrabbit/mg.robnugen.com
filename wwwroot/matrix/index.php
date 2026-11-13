@@ -38,7 +38,7 @@ if (!$has_config) {
     // Load encrypted matrix data for client-side decryption
     $stmt = $pdo->prepare("SELECT dm_mp, problem FROM dm_my_problems WHERE user_id = ? ORDER BY created_at");
     $stmt->execute([$user_id]);
-    $problems = \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+    $problems = \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
 
     // Base64-encode blobs for JSON transport
     foreach ($problems as &$p) {
@@ -52,7 +52,7 @@ if (!$has_config) {
         if ($opp) {
             $stmt3 = $pdo->prepare("SELECT dm_me, evidence FROM dm_my_evidence WHERE dm_mo = ? AND user_id = ? ORDER BY created_at");
             $stmt3->execute([\Field::int($opp, 'dm_mo'), $user_id]);
-            $evs = \Db\Rows::all($stmt3->fetchAll(\PDO::FETCH_ASSOC));
+            $evs = \Database\Rows::all($stmt3->fetchAll(\PDO::FETCH_ASSOC));
             foreach ($evs as &$e) {
                 $e['evidence'] = base64_encode(\Field::string($e, 'evidence'));
             }

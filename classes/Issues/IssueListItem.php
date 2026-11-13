@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Issues;
 
-use Db\Row\IssueRow;
-use Db\Row\IssueStatusRow;
-use Db\RowValue;
+use Database\Row\IssueRow;
+use Database\Row\IssueStatusRow;
+use Database\RowValue;
 
 /**
  * One row of an issue list: the issue and the status it points at.

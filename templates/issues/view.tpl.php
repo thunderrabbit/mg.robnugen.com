@@ -7,7 +7,7 @@
  * @var list<\Issues\CommentView> $comments
  * @var list<\Issues\IssueListItem> $children
  * @var \Issues\IssueDetail|null $parent
- * @var list<\Db\Row\IssueStatusRow> $statuses
+ * @var list<\Database\Row\IssueStatusRow> $statuses
  * @var string $msg
  */
 
@@ -82,7 +82,7 @@
     <?php if ($children !== []): ?>
         <?php
         $priority_rank = ['high' => 0, 'normal' => 1, 'low' => 2];
-        $fmt = \Db\RowValue::DATETIME_FORMAT;
+        $fmt = \Database\RowValue::DATETIME_FORMAT;
         // One filter box per status the children use, in status order.
         $child_statuses = [];
         foreach ($children as $child) {
@@ -180,7 +180,7 @@
                     <li class="comment-item">
                         <div class="comment-meta">
                             <strong class="comment-author"><?= htmlspecialchars($view->authorName) ?></strong>
-                            <span class="comment-date"><?= htmlspecialchars($view->comment->createdAtUtc->format(\Db\RowValue::DATETIME_FORMAT)) ?></span>
+                            <span class="comment-date"><?= htmlspecialchars($view->comment->createdAtUtc->format(\Database\RowValue::DATETIME_FORMAT)) ?></span>
                         </div>
                         <div class="comment-body">
                             <?= Utilities::renderMarkdown($view->comment->body) ?>

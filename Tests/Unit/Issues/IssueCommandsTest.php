@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Issues;
 
 use Codeception\Test\Unit;
-use Db\Enum\IssuePriority;
+use Database\Enum\IssuePriority;
 use Input\Absent;
 use Input\InvalidInput;
 use Issues\Command\AddComment;

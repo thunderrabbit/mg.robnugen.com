@@ -211,8 +211,8 @@ class DBExistaroo
         $stmt = $this->pdo->prepare("SELECT applied_version FROM applied_DB_versions");
         $stmt->execute();
 
-        foreach (\Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC)) as $row) {
-            $versions[] = \Db\RowValue::string($row, 'applied_version');
+        foreach (\Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC)) as $row) {
+            $versions[] = \Database\RowValue::string($row, 'applied_version');
         }
         return $versions;
     }

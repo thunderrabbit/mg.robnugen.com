@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Issues;
 
-use Db\Row\IssueRow;
+use Database\Row\IssueRow;
 use Issues\AccessException;
 use Issues\Caller;
 use Issues\Command\AddComment;
@@ -114,7 +114,7 @@ final class IssueCommentsTest extends IssueCase
 
         $this->assertThrows(
             AccessException::class,
-            fn(): \Db\Row\IssueCommentRow => $this->service->editComment(
+            fn(): \Database\Row\IssueCommentRow => $this->service->editComment(
                 $other,
                 EditComment::fromInput(['issue_comment_id' => $id, 'body' => 'not mine to edit']),
             ),
@@ -125,7 +125,7 @@ final class IssueCommentsTest extends IssueCase
     {
         $this->assertThrows(
             NotFoundException::class,
-            fn(): \Db\Row\IssueCommentRow => $this->service->editComment(
+            fn(): \Database\Row\IssueCommentRow => $this->service->editComment(
                 $this->writer,
                 EditComment::fromInput(['issue_comment_id' => 4242, 'body' => 'nothing there']),
             ),

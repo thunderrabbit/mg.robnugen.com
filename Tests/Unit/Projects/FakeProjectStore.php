@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Projects;
 
-use Db\Row\ProjectMemberRow;
-use Db\Row\ProjectRow;
+use Database\Row\ProjectMemberRow;
+use Database\Row\ProjectRow;
 use Input\Absent;
 use Issues\Caller;
 use Issues\Membership;
@@ -142,7 +142,7 @@ final class FakeProjectStore implements ProjectStore
     #[\Override]
     public function nameTaken(int $userId, string $name, ?int $exceptProjectId = null): bool
     {
-        return array_any($this->projects, fn(\Db\Row\ProjectRow $project): bool => $project->userId === $userId && $project->name === $name && $project->projectId !== $exceptProjectId);
+        return array_any($this->projects, fn(\Database\Row\ProjectRow $project): bool => $project->userId === $userId && $project->name === $name && $project->projectId !== $exceptProjectId);
     }
 
     #[\Override]

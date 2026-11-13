@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Issues\Command;
 
-use Db\Enum\IssuePriority;
+use Database\Enum\IssuePriority;
 use Input\Absent;
 use Input\Input;
 use Input\InvalidInput;

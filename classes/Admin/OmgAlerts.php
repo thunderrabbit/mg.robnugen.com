@@ -22,7 +22,7 @@ class OmgAlerts
                  ORDER BY created_at DESC"
             );
             $stmt->execute();
-            return \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+            return \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
         } catch (\PDOException) {
             // Table doesn't exist yet — migration not applied. Return empty silently.
             return [];

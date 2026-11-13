@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Issues;
 
-use Db\Row\IssueCommentRow;
-use Db\Row\IssueCommitRow;
-use Db\Row\IssueRow;
-use Db\Row\IssueStatusRow;
-use Db\Row\IssueTimerRow;
+use Database\Row\IssueCommentRow;
+use Database\Row\IssueCommitRow;
+use Database\Row\IssueRow;
+use Database\Row\IssueStatusRow;
+use Database\Row\IssueTimerRow;
 use Issues\Command\AddComment;
 use Issues\Command\AddCommit;
 use Issues\Command\CreateIssue;

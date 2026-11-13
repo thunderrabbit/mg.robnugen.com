@@ -18,7 +18,7 @@
  *        standards-codeception-runner:php8.5 \
  *        php tools/generate-row-classes.php columns.tsv issues issue_statuses
  *
- * Writes classes/Db/Row/<Name>Row.php and classes/Db/Enum/<Name><Column>.php.
+ * Writes classes/Database/Row/<Name>Row.php and classes/Database/Enum/<Name><Column>.php.
  * A column type with no mapping yet stops the run, so nothing is guessed.
  */
 
@@ -117,8 +117,8 @@ function mapColumn(array $col, string $rowName): array
             'enum'  => null,
         ],
         $col['dataType'] === 'enum' && !$n => [
-            'php'   => '\Db\Enum\\' . $rowName . studly($col['column']),
-            'read'  => "RowValue::enum(\$row, {$key}, \\Db\\Enum\\{$rowName}" . studly($col['column']) . '::class)',
+            'php'   => '\Database\Enum\\' . $rowName . studly($col['column']),
+            'read'  => "RowValue::enum(\$row, {$key}, \\Database\\Enum\\{$rowName}" . studly($col['column']) . '::class)',
             'json'  => "{$prop}->value",
             'shape' => 'string',
             'enum'  => $rowName . studly($col['column']),
@@ -169,14 +169,14 @@ function renderTable(string $table, array $cols): array
                     . ' = ' . var_export($v, true) . ';',
                 enumValues($col['columnType']),
             );
-            $files["classes/Db/Enum/{$map['enum']}.php"] = HEADER . "namespace Db\\Enum;\n\n"
+            $files["classes/Database/Enum/{$map['enum']}.php"] = HEADER . "namespace Database\\Enum;\n\n"
                 . "/**\n * Values of `{$table}`.`{$col['column']}`.\n */\n"
                 . "enum {$map['enum']}: string\n{\n" . implode("\n", $cases) . "\n}\n";
         }
     }
 
-    $files["classes/Db/Row/{$rowName}Row.php"] = HEADER
-        . "namespace Db\\Row;\n\nuse Db\\RowValue;\n\n"
+    $files["classes/Database/Row/{$rowName}Row.php"] = HEADER
+        . "namespace Database\\Row;\n\nuse Database\\RowValue;\n\n"
         . "/**\n * One row of the `{$table}` table.\n */\n"
         . "final readonly class {$rowName}Row implements \\JsonSerializable\n{\n"
         . "    public function __construct(\n" . implode("\n", $params) . "\n    ) {\n    }\n\n"

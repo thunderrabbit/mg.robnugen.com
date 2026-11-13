@@ -79,7 +79,7 @@ class Todo
         ");
 
         $stmt->execute([$user_id, $dayOfWeek, $dayOfMonth, $todayDate, $todayDate, $todayDate, $todayDate, $todayDate]);
-        return \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+        return \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     /**
@@ -121,7 +121,7 @@ class Todo
         ");
 
         $stmt->execute([$todo_id, $date]);
-        return \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+        return \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     /**
@@ -320,7 +320,7 @@ class Todo
         ");
 
         $stmt->execute([$user_id]);
-        return \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+        return \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     /**
@@ -492,7 +492,7 @@ class Todo
         ");
 
         $stmt->execute([$user_id]);
-        return \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+        return \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     /**
@@ -542,7 +542,7 @@ class Todo
         ");
 
         $stmt->execute([$user_id, $limit, $offset]);
-        return \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+        return \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     /**
@@ -575,7 +575,7 @@ class Todo
         ");
 
         $stmt->execute([$user_id, $todayDate, $todayDate, $limit, $offset]);
-        return \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+        return \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
     /**
      * Get days-between todos with their computed next-due dates
@@ -603,16 +603,16 @@ class Todo
         ");
 
         $stmt->execute([$user_id]);
-        $todos = \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+        $todos = \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
 
         foreach ($todos as &$todo) {
-            $n = \Db\RowValue::int($todo, 'do_every_n_days');
-            $last_completed = \Db\RowValue::stringOrNull($todo, 'last_completed_date');
+            $n = \Database\RowValue::int($todo, 'do_every_n_days');
+            $last_completed = \Database\RowValue::stringOrNull($todo, 'last_completed_date');
             if ($last_completed !== null) {
                 $todo['next_due_date'] = date('Y-m-d', (int) strtotime("{$last_completed} + {$n} days"));
             } else {
                 // Never completed: start recurring from due_date, not today
-                $due_date = \Db\RowValue::stringOrNull($todo, 'due_date');
+                $due_date = \Database\RowValue::stringOrNull($todo, 'due_date');
                 $start = ($due_date !== null && $due_date !== '')
                     ? date('Y-m-d', (int) strtotime($due_date))
                     : $todayDate;
@@ -660,6 +660,6 @@ class Todo
         ");
 
         $stmt->execute([$user_id, $limit, $offset]);
-        return \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+        return \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 }

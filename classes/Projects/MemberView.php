@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Projects;
 
-use Db\Row\ProjectMemberRow;
-use Db\RowValue;
+use Database\Row\ProjectMemberRow;
+use Database\RowValue;
 
 /**
  * One member of a project with the actor behind it, as /projects/members

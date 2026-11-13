@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Inventory;
 
-use Db\RowValue;
-use Db\Rows;
+use Database\RowValue;
+use Database\Rows;
 
 /**
  * Writes one checked sweep (mg #775): finds or creates each thing's identity

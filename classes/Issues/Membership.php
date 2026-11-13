@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Issues;
 
-use Db\Row\ProjectMemberRow;
+use Database\Row\ProjectMemberRow;
 
 /**
  * A caller's rights on one project, from their project_members row.

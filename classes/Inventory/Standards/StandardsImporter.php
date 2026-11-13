@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Inventory\Standards;
 
-use Db\Rows;
-use Db\RowValue;
+use Database\Rows;
+use Database\RowValue;
 use Inventory\OpenSpan;
 use Inventory\SpanPlan;
 use Inventory\SweptSpan;

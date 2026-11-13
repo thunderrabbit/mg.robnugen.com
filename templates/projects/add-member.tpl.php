@@ -3,7 +3,7 @@
 /**
  * Pick actors to add to a project.
  *
- * @var \Db\Row\ProjectRow $project
+ * @var \Database\Row\ProjectRow $project
  * @var list<\Projects\Actor> $available Shown up front, most-used first.
  * @var list<\Projects\Actor> $hidden test_* / auto_* actors behind "show all".
  * @var string $error

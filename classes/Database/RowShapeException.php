@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Db;
+namespace Database;
 
 /**
  * A database row didn't have the shape its row class expects: a column is

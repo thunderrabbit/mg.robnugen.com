@@ -156,12 +156,12 @@ class IsLoggedIn
         ";
         $stmt = $this->di_pdo->prepare($sql);
         $stmt->execute([$user_id]);
-        $row = \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC))[0] ?? null;
+        $row = \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC))[0] ?? null;
 
         if ($row !== null) {
-            $this->loggedInUsername = \Db\RowValue::stringOrNull($row, 'username') ?? 'ummmmmm wtf';
-            $this->siteTitle = \Db\RowValue::stringOrNull($row, 'site_title') ?? '';
-            $this->siteSubtitle = \Db\RowValue::stringOrNull($row, 'site_subtitle') ?? '';
+            $this->loggedInUsername = \Database\RowValue::stringOrNull($row, 'username') ?? 'ummmmmm wtf';
+            $this->siteTitle = \Database\RowValue::stringOrNull($row, 'site_title') ?? '';
+            $this->siteSubtitle = \Database\RowValue::stringOrNull($row, 'site_subtitle') ?? '';
         }
     }
 
@@ -192,10 +192,10 @@ class IsLoggedIn
 
         $stmt = $this->di_pdo->prepare("SELECT `role` FROM `users` WHERE `user_id` = ? LIMIT 1");
         $stmt->execute([$this->who_is_logged_in]);
-        $row = \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC))[0] ?? null;
+        $row = \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC))[0] ?? null;
 
         if ($row !== null) {
-            return \Db\RowValue::stringOrNull($row, 'role') ?? '';
+            return \Database\RowValue::stringOrNull($row, 'role') ?? '';
         }
         return '';
     }
@@ -244,7 +244,7 @@ class IsLoggedIn
         $stmt = $this->di_pdo->prepare("SELECT `user_id`, `password_hash` FROM `users` WHERE LOWER(`username`) = LOWER(?) LIMIT 1");
         $stmt->execute([$username]);
 
-        return \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC))[0] ?? [];
+        return \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC))[0] ?? [];
     }
     /**
      * Looks up hashed password for username, and checks it against the password provided

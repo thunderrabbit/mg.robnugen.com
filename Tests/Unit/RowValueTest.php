@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Tests\Unit;
 
 use Codeception\Test\Unit;
-use Db\RowShapeException;
-use Db\RowValue;
+use Database\RowShapeException;
+use Database\RowValue;
 
 /**
- * Hermetic unit tests for Db\RowValue, the strict reader behind the generated
+ * Hermetic unit tests for Database\RowValue, the strict reader behind the generated
  * row classes. Unlike the lenient \Field, a database row whose column is
  * missing or has the wrong type means the schema and the code disagree, so it
  * throws instead of defaulting.

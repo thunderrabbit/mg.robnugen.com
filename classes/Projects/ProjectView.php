@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Projects;
 
-use Db\Row\ProjectRow;
-use Db\RowValue;
+use Database\Row\ProjectRow;
+use Database\RowValue;
 use Issues\Membership;
 
 /**

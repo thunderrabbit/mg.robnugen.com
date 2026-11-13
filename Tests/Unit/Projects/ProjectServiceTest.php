@@ -149,13 +149,13 @@ final class ProjectServiceTest extends Unit
         $role = $this->service->get($this->rob, $project->projectId)->membership;
         $this->assertTrue($role->canRead && $role->canWrite);
 
-        $this->assertThrows(AccessException::class, fn(): \Db\Row\ProjectRow => $this->service->create($this->writer, new CreateProject('x')));
+        $this->assertThrows(AccessException::class, fn(): \Database\Row\ProjectRow => $this->service->create($this->writer, new CreateProject('x')));
         $this->assertSame(['projects/create'], $this->charged);
     }
 
     public function testANameIsUniqueWithinAnAccountOnly(): void
     {
-        $this->assertThrows(ConflictException::class, fn(): \Db\Row\ProjectRow => $this->service->create($this->rob, new CreateProject('jikan')));
+        $this->assertThrows(ConflictException::class, fn(): \Database\Row\ProjectRow => $this->service->create($this->rob, new CreateProject('jikan')));
         $this->assertSame([], $this->charged);
 
         $this->assertSame('jikan', $this->service->create($this->neighbour, new CreateProject('jikan'))->name);

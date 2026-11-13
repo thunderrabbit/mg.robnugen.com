@@ -144,7 +144,7 @@ class Items
              ORDER BY p.name ASC"
         );
         $stmt->execute([$caller_aiu, $user_id]);
-        return \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+        return \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     // ── CRUD ─────────────────────────────────────────────────────────────────
@@ -199,7 +199,7 @@ class Items
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
-        return \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+        return \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     /**
@@ -359,6 +359,6 @@ class Items
              LIMIT ?"
         );
         $stmt->execute($params);
-        return \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+        return \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 }

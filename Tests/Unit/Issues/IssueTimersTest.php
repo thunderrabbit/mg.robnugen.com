@@ -42,14 +42,14 @@ final class IssueTimersTest extends IssueCase
 
         $this->assertThrows(
             AccessException::class,
-            fn(): \Db\Row\IssueTimerRow => $this->service->startTimer(
+            fn(): \Database\Row\IssueTimerRow => $this->service->startTimer(
                 $this->reader,
                 StartTimer::fromInput(['issue_id' => $issue->issueId]),
             ),
         );
         $this->assertThrows(
             NotFoundException::class,
-            fn(): \Db\Row\IssueTimerRow => $this->service->startTimer(
+            fn(): \Database\Row\IssueTimerRow => $this->service->startTimer(
                 $this->stranger,
                 StartTimer::fromInput(['issue_id' => $issue->issueId]),
             ),
@@ -65,7 +65,7 @@ final class IssueTimersTest extends IssueCase
         $stopped = $this->service->stopTimer($this->writer, $id);
         $this->assertNotNull($stopped->stoppedAtUtc);
 
-        $this->assertThrows(ConflictException::class, fn(): \Db\Row\IssueTimerRow => $this->service->stopTimer($this->writer, $id));
+        $this->assertThrows(ConflictException::class, fn(): \Database\Row\IssueTimerRow => $this->service->stopTimer($this->writer, $id));
     }
 
     public function testAHumanMayStopAnAgentsTimerButAnotherAgentMayNot(): void
@@ -75,12 +75,12 @@ final class IssueTimersTest extends IssueCase
         $theirs = $this->store->startTimer($issue->issueId, workerAiu: 36);
 
         $this->assertNotNull($this->service->stopTimer($this->human, $mine)->stoppedAtUtc);
-        $this->assertThrows(AccessException::class, fn(): \Db\Row\IssueTimerRow => $this->service->stopTimer($this->writer, $theirs));
+        $this->assertThrows(AccessException::class, fn(): \Database\Row\IssueTimerRow => $this->service->stopTimer($this->writer, $theirs));
     }
 
     public function testStoppingAnUnknownTimerIsNotFound(): void
     {
-        $this->assertThrows(NotFoundException::class, fn(): \Db\Row\IssueTimerRow => $this->service->stopTimer($this->writer, 4242));
+        $this->assertThrows(NotFoundException::class, fn(): \Database\Row\IssueTimerRow => $this->service->stopTimer($this->writer, 4242));
     }
 
     public function testANoteCanBeRewrittenOrCleared(): void

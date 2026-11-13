@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Inventory\Standards;
 
-use Db\Rows;
-use Db\RowValue;
+use Database\Rows;
+use Database\RowValue;
 
 /**
  * The facts about a site that are kept by hand: its shortcode and standard,

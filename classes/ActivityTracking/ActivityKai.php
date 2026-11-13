@@ -75,7 +75,7 @@ class ActivityKai
         ");
 
         $stmt->execute([$user_id]);
-        $expiredSessions = \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+        $expiredSessions = \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
 
         if (empty($expiredSessions)) {
             return 0;
@@ -90,7 +90,7 @@ class ActivityKai
             $checkStmt = $this->pdo->prepare("
                 SELECT 1 FROM todo_logs WHERE ak_id = ?
             ");
-            $checkStmt->execute([\Db\RowValue::int($session, 'ak_id')]);
+            $checkStmt->execute([\Database\RowValue::int($session, 'ak_id')]);
 
             if ($checkStmt->fetchColumn()) {
                 continue; // Already processed
@@ -98,12 +98,12 @@ class ActivityKai
 
             // Fetch timezone string
             $tzStmt = $this->pdo->prepare("SELECT iana_name FROM timezones WHERE timezone_id = ?");
-            $tzStmt->execute([\Db\RowValue::int($session, 'timezone_id')]);
+            $tzStmt->execute([\Database\RowValue::int($session, 'timezone_id')]);
             $tz_name = $tzStmt->fetchColumn();
             $timezone = is_string($tz_name) && $tz_name !== '' ? $tz_name : 'UTC';
 
             // Mark todo as complete
-            $todo_id = \Db\RowValue::int($session, 'todo_id');
+            $todo_id = \Database\RowValue::int($session, 'todo_id');
 
             // Log date calculation
             $date_logged = date('Y-m-d H:i:s');
@@ -124,8 +124,8 @@ class ActivityKai
                 $nth,
                 $date_logged,
                 $timezone,
-                \Db\RowValue::int($session, 'intended_sec'),
-                \Db\RowValue::int($session, 'ak_id')
+                \Database\RowValue::int($session, 'intended_sec'),
+                \Database\RowValue::int($session, 'ak_id')
             );
 
             $count++;
@@ -223,7 +223,7 @@ class ActivityKai
         ");
 
         $stmt->execute([$user_id, $limit]);
-        return \Db\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+        return \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
 
     /**

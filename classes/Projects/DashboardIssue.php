@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Projects;
 
-use Db\Row\IssueRow;
-use Db\Row\IssueStatusRow;
-use Db\RowValue;
+use Database\Row\IssueRow;
+use Database\Row\IssueStatusRow;
+use Database\RowValue;
 
 /**
  * One open issue on the /projects/dashboard: the caller's own work, or the
