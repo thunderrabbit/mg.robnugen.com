@@ -1,7 +1,7 @@
 ---
 title: Composer installs for the PHP the server runs
 position: 5
-status: idea
+status: proven
 whose_move: agent
 check: composer_platform_pinned
 ---
@@ -11,6 +11,10 @@ that pin. Composer then picks only packages the server can run, whatever PHP
 the machine running Composer has. Without the pin, a lock made on a newer
 PHP (a laptop, or the target's runner image) can bring in a package that
 fails on the server.
+
+This is for a site that deploys Composer packages. A site whose `require`
+names only PHP and its extensions keeps `vendor/` for dev tools that never
+reach the server, so it has nothing to pin and passes with a line saying so.
 
 When the server moves to a newer PHP the pin moves too, and this step opens
 again until it does. Same major.minor is enough (`8.1.2` and `8.1` both hold
