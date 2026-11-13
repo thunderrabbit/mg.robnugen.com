@@ -116,7 +116,7 @@ class ScanTargetTest(unittest.TestCase):
             os.environ["SCAN_SSH"] = saved
 
     def scan(self, param, targets):
-        files = {"std/track/a_step.md": f"---\ncheck: echo\nparam: {param}\n---\n"}
+        files = {"std/track/10_a_step.md": f"---\ncheck: echo\nparam: {param}\n---\n"}
         with contextlib.redirect_stderr(io.StringIO()):
             return scan.scan_site(self.site, files, self.work, dict(os.environ), targets=targets)
 
@@ -150,6 +150,24 @@ class ScanTargetTest(unittest.TestCase):
         self.site["upgrade_branch"] = "php85..master"
         result = self.scan("8.5", {self.repo: "8.3"})
         self.assertIn("is not a branch name", result["skipped_reason"])
+
+
+class StepNameTest(unittest.TestCase):
+    """A step file is <number>_<name>.md; mg matches results on the name."""
+
+    def test_the_number_is_dropped(self):
+        self.assertEqual(scan.step_name("030_autoloader"), "autoloader")
+        self.assertEqual(scan.step_name("038.9996_remove_unused_print_robs"), "remove_unused_print_robs")
+        self.assertEqual(scan.step_name("000_phpstan_level_0"), "phpstan_level_0")
+        self.assertEqual(scan.step_name("05_composer_platform_pinned"), "composer_platform_pinned")
+
+    def test_anything_else_is_left_alone(self):
+        for stem in ("autoloader", "10_5_foo", "10.5.1_foo", "1.00001_foo", "1._foo", "10_", "10_Foo"):
+            self.assertEqual(scan.step_name(stem), stem)
+
+    def test_checks_for_reports_the_name(self):
+        files = {"std/track/038.9996_a_step.md": "---\ncheck: echo\n---\n"}
+        self.assertEqual(scan.checks_for("std", files), [("a_step", "echo", "")])
 
 
 if __name__ == "__main__":
