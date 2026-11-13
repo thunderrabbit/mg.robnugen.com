@@ -1,50 +1,30 @@
 #!/usr/bin/env bash
 # memo: commit
-# deploy_script REPO: the repo deploys with base.robnugen.com's
-# deploy_to_dh.sh, filled in for the site's own server.
+# deploy_script REPO: the repo has a tracked, executable deploy script that
+# deploys by git.
 #
-# Done when deploy_to_dh.sh is tracked and executable, sets DEST, DEST_PATH
-# and PULL_URL, no longer says DEST="example", and no longer carries the old
-# header that installs a site with rsync. When the scanner hands over the
-# site's server (SITE_SERVER_SSH_ALIAS, SITE_SERVER_DIRECTORY), DEST must be
-# that alias and DEST_PATH that directory or one above it: a server
-# directory of x.com/wwwroot is a project root of x.com. Run by hand
-# without them, the server is not compared and the line says so.
+# The script is judged by what it does, never by its name or by how it
+# spells its variables: it pushes with git, then pulls with git over a
+# remote shell in a directory on a server, and copies nothing with rsync or
+# scp. A script named for its site, deploy_<slug>_to_dh.sh, is the preferred
+# form and is read first; deploy_to_dh.sh and any other deploy*.sh at the
+# repo's root are read after it, and pass with a line naming the preferred
+# form.
+#
+# When the scanner hands over the site's server (SITE_SERVER_SSH_ALIAS,
+# SITE_SERVER_DIRECTORY), the script must deploy to that alias, in that
+# directory or one above it: a server directory of x.com/wwwroot is a
+# project root of x.com. Run by hand without them, the server is not
+# compared and the line says so. deploy_script.py holds the reading.
 set -uo pipefail
-. "$(dirname "${BASH_SOURCE[0]}")/../lib.sh"
+HERE="$(dirname "${BASH_SOURCE[0]}")"
+. "$HERE/../lib.sh"
 need_repo "${1:-}"
 
-script='deploy_to_dh.sh'
-mode="$(git -C "$REPO" ls-files -s -- "$script" 2>/dev/null | cut -d' ' -f1)"
-[ -n "$mode" ] || not_yet "no tracked $script; copy base.robnugen.com's"
-[ "$mode" = 100755 ] || not_yet "$script is tracked but not executable: git update-index --chmod=+x $script"
-
-body="$(git -C "$REPO" show "HEAD:$script" 2>/dev/null)" || unknown "could not read $script at HEAD"
-
-value() {
-  printf '%s\n' "$body" | sed -n -E "s/^$1=\"([^\"]*)\".*/\\1/p" | head -1
-}
-grep -Eq '^PULL_URL=' <<<"$body" || not_yet "$script sets no PULL_URL; it is older than base.robnugen.com's"
-dest="$(value DEST)"
-dest_path="$(value DEST_PATH)"
-pull_url="$(value PULL_URL)"
-[ -n "$dest" ] && [ -n "$dest_path" ] || not_yet "$script does not set both DEST and DEST_PATH"
-[ "$dest" != example ] || not_yet "$script still says DEST=\"example\""
-case "$pull_url" in
-  ''|origin) ;;
-  *) not_yet "$script has PULL_URL=\"$pull_url\"; it is \"origin\" or empty" ;;
+rc=0
+line="$(python3 -I -B "$HERE/deploy_script.py" "$REPO")" || rc=$?
+case "$rc" in
+  0) pass "$line" ;;
+  1) not_yet "$line" ;;
+  *) unknown "${line:-could not read the deploy script}" ;;
 esac
-! grep -q 'rsync -a ./' <<<"$body" || not_yet "$script has the old rsync header; copy base.robnugen.com's"
-
-alias="${SITE_SERVER_SSH_ALIAS:-}"
-dir="${SITE_SERVER_DIRECTORY:-}"
-if [ -z "$alias" ] || [ -z "$dir" ]; then
-  pass "$script deploys to $dest:$dest_path (not compared with a server)"
-fi
-[ "$dest" = "$alias" ] || not_yet "$script has DEST=\"$dest\", but the site's server is $alias"
-dir="${dir%/}"
-case "$dir" in
-  "$dest_path"|"$dest_path"/*) ;;
-  *) not_yet "$script has DEST_PATH=\"$dest_path\", but the site's server directory is $dir" ;;
-esac
-pass "$script deploys to $dest:$dest_path, the site's server"
