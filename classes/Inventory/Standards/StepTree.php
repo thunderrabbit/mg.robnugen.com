@@ -9,8 +9,13 @@ namespace Inventory\Standards;
  *
  *     <standard>/_standard.md          frontmatter: name
  *     <standard>/<track>/_track.md     frontmatter: name, position
- *     <standard>/<track>/<step>.md     frontmatter: title, position, status,
- *                                      whose_move, check, param (optional)
+ *     <standard>/<track>/<number>_<step>.md
+ *                                      frontmatter: title, status, whose_move,
+ *                                      check, param (optional)
+ *
+ * A step's position is the number its filename starts with (0 to 65535.9999,
+ * up to four decimal places) and its name is what follows the underscore, as
+ * Names::stepFile() splits them. A step file has no "position" line.
  *
  * Frontmatter is a leading block between two "---" lines of flat
  * "key: value" pairs. In a step file the text up to a line reading
@@ -60,10 +65,14 @@ final readonly class StepTree
                 $standardFiles[$standard] = $content;
             } elseif ($name === '_track') {
                 $trackFiles[$standard][$track] = $content;
-            } elseif (Names::isStepName($name)) {
-                $stepFiles[$standard][$track][$name] = (string) $path;
             } else {
-                throw new StandardsFormatException("{$path}: \"{$name}\" is not a valid step name");
+                $named = Names::stepFile($name);
+                if ($named === null) {
+                    throw new StandardsFormatException(
+                        "{$path}: a step file is named <number>_<name>.md, like 030_autoloader.md"
+                    );
+                }
+                $stepFiles[$standard][$track][] = ['path' => (string) $path] + $named;
             }
         }
 
@@ -99,15 +108,15 @@ final readonly class StepTree
                 )['fields'];
 
                 $steps = [];
-                foreach ($stepFiles[$standard][$track] ?? [] as $name => $path) {
-                    $name = (string) $name;
+                foreach ($stepFiles[$standard][$track] ?? [] as $stepFile) {
+                    ['path' => $path, 'name' => $name, 'position' => $position] = $stepFile;
                     if (isset($stepNames[$name])) {
                         throw new StandardsFormatException(
                             "{$path}: the step name \"{$name}\" is already used by {$stepNames[$name]}"
                         );
                     }
                     $stepNames[$name] = $path;
-                    $steps[] = self::step($name, $path, $files[$path]);
+                    $steps[] = self::step($name, $position, $path, $files[$path]);
                 }
                 usort($steps, static fn (StepDef $a, StepDef $b): int => [$a->position, $a->slug] <=> [$b->position, $b->slug]);
                 $tracks[] = new TrackDef(
@@ -124,12 +133,12 @@ final readonly class StepTree
         return new self($standards);
     }
 
-    private static function step(string $name, string $path, string $content): StepDef
+    private static function step(string $name, float $position, string $path, string $content): StepDef
     {
         $parsed = self::frontmatter(
             $path,
             $content,
-            ['title', 'position', 'status', 'whose_move', 'check'],
+            ['title', 'status', 'whose_move', 'check'],
             ['param'],
         );
         $fields = $parsed['fields'];
@@ -146,7 +155,7 @@ final readonly class StepTree
 
         return new StepDef(
             $name,
-            self::position($path, $fields['position']),
+            $position,
             $fields['title'],
             trim(implode("\n", $explanation)),
             trim(implode("\n", $howTo)),
@@ -158,9 +167,8 @@ final readonly class StepTree
     }
 
     /**
-     * A position is a number from 1 to 65535 with up to four decimal places,
-     * so a new step can go between two others (39.0001 comes after 39 and
-     * before 40) without renumbering any file.
+     * A track's position, from its _track.md: a number from 1 to 65535 with up
+     * to four decimal places. A step's position comes from its filename.
      */
     private static function position(string $path, string $value): float
     {

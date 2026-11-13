@@ -16,13 +16,13 @@ use Inventory\Standards\WhoseMove;
  */
 final class StandardsStepTreeTest extends Unit
 {
-    private const string STEP = 'template/rector/rector_php_8_5_rules.md';
+    private const string STEP = 'template/rector/10_rector_php_8_5_rules.md';
 
     private const array GOOD = [
         'template/_standard.md' => "---\nname: Template sites\n---\n",
         'template/rector/_track.md' => "---\nname: Rector\nposition: 30\n---\n",
         self::STEP =>
-            "---\ntitle: \"Rector's 8.5 rules, one per commit\"\nposition: 10\nstatus: proven\n"
+            "---\ntitle: \"Rector's 8.5 rules, one per commit\"\nstatus: proven\n"
             . "whose_move: agent\ncheck: rector_level\nparam: 8.5\n---\nWhy it matters.\n\n"
             . "## How to do it\n\n1. Do this.\n",
     ];
@@ -86,8 +86,8 @@ final class StandardsStepTreeTest extends Unit
     {
         $files = self::GOOD + [
             'template/groundwork/_track.md' => "---\nname: Groundwork\nposition: 10\n---\n",
-            'template/rector/a_later_step.md' => str_replace('position: 10', 'position: 20', self::GOOD[self::STEP]),
-            'template/rector/an_earlier_step.md' => str_replace('position: 10', 'position: 5', self::GOOD[self::STEP]),
+            'template/rector/20_a_later_step.md' => self::GOOD[self::STEP],
+            'template/rector/5_an_earlier_step.md' => self::GOOD[self::STEP],
         ];
 
         $tracks = StepTree::fromFiles($files)->standards[0]->tracks;
@@ -102,10 +102,10 @@ final class StandardsStepTreeTest extends Unit
     public function testAStepCanSitBetweenTwoWholePositions(): void
     {
         $files = self::GOOD + [
-            'template/rector/just_after.md' => str_replace('position: 10', 'position: 10.0001', self::GOOD[self::STEP]),
-            'template/rector/just_before.md' => str_replace('position: 10', 'position: 10.9999', self::GOOD[self::STEP]),
-            'template/rector/whole_eleven.md' => str_replace('position: 10', 'position: 11', self::GOOD[self::STEP]),
-            'template/rector/half_way.md' => str_replace('position: 10', 'position: 10.5', self::GOOD[self::STEP]),
+            'template/rector/10.0001_just_after.md' => self::GOOD[self::STEP],
+            'template/rector/10.9999_just_before.md' => self::GOOD[self::STEP],
+            'template/rector/11_whole_eleven.md' => self::GOOD[self::STEP],
+            'template/rector/10.5_half_way.md' => self::GOOD[self::STEP],
         ];
 
         $steps = StepTree::fromFiles($files)->standards[0]->tracks[0]->steps;
@@ -117,20 +117,43 @@ final class StandardsStepTreeTest extends Unit
         $this->assertSame(10.0001, $steps[1]->position);
     }
 
-    public function testRefusesAPositionWithMoreThanFourDecimalPlaces(): void
+    public function testPositionZeroIsAllowed(): void
     {
-        $files = self::GOOD;
-        $files[self::STEP] = str_replace('position: 10', 'position: 10.00001', $files[self::STEP]);
+        $files = self::GOOD + ['template/rector/000_first_of_all.md' => self::GOOD[self::STEP]];
 
-        $this->refuses($files, '/four decimal places/');
+        $steps = StepTree::fromFiles($files)->standards[0]->tracks[0]->steps;
+
+        $this->assertSame('first_of_all', $steps[0]->slug);
+        $this->assertSame(0.0, $steps[0]->position);
     }
 
-    public function testRefusesAPositionWithAPointAndNothingAfterIt(): void
+    public function testRefusesAStepFileWithNoNumber(): void
+    {
+        $files = self::GOOD + ['template/rector/no_number.md' => self::GOOD[self::STEP]];
+
+        $this->refuses($files, '#template/rector/no_number\.md.*<number>_<name>\.md#');
+    }
+
+    public function testRefusesAStepFileWithFiveDecimals(): void
+    {
+        $files = self::GOOD + ['template/rector/1.00001_too_fine.md' => self::GOOD[self::STEP]];
+
+        $this->refuses($files, '#1\.00001_too_fine\.md#');
+    }
+
+    public function testRefusesAPositionLineInAStepFile(): void
     {
         $files = self::GOOD;
-        $files[self::STEP] = str_replace('position: 10', 'position: 10.', $files[self::STEP]);
+        $files[self::STEP] = str_replace("status: proven\n", "status: proven\nposition: 10\n", $files[self::STEP]);
 
-        $this->refuses($files, '/position/');
+        $this->refuses($files, '#10_rector_php_8_5_rules\.md.*position#');
+    }
+
+    public function testRefusesTheSameStepUnderTwoNumbers(): void
+    {
+        $files = self::GOOD + ['template/rector/20_rector_php_8_5_rules.md' => self::GOOD[self::STEP]];
+
+        $this->refuses($files, '#rector_php_8_5_rules.*already used#');
     }
 
     public function testARemovedStepIsSimplyAbsentFromTheTree(): void
@@ -150,7 +173,7 @@ final class StandardsStepTreeTest extends Unit
     {
         $this->refuses(self::GOOD + [
             'template/tooling/_track.md' => "---\nname: Tooling\nposition: 20\n---\n",
-            'template/tooling/rector_php_8_5_rules.md' => self::GOOD[self::STEP],
+            'template/tooling/10_rector_php_8_5_rules.md' => self::GOOD[self::STEP],
         ], '/rector_php_8_5_rules/');
     }
 
@@ -194,10 +217,10 @@ final class StandardsStepTreeTest extends Unit
         $this->refuses($files, '/check/');
     }
 
-    public function testRefusesAPositionThatIsNotANumber(): void
+    public function testRefusesATrackPositionThatIsNotANumber(): void
     {
         $files = self::GOOD;
-        $files[self::STEP] = str_replace('position: 10', 'position: first', $files[self::STEP]);
+        $files['template/rector/_track.md'] = "---\nname: Rector\nposition: first\n---\n";
 
         $this->refuses($files, '/position/');
     }
@@ -205,7 +228,7 @@ final class StandardsStepTreeTest extends Unit
     public function testRefusesAStepNameWithAHyphen(): void
     {
         $files = self::GOOD;
-        $files['template/rector/has-hyphen.md'] = $files[self::STEP];
+        $files['template/rector/10_has-hyphen.md'] = $files[self::STEP];
 
         $this->refuses($files, '/has-hyphen/');
     }
@@ -220,6 +243,6 @@ final class StandardsStepTreeTest extends Unit
 
     public function testRefusesAFileAtTheWrongDepth(): void
     {
-        $this->refuses(self::GOOD + ['template/rector/deeper/extra.md' => self::GOOD[self::STEP]], '/deeper/');
+        $this->refuses(self::GOOD + ['template/rector/deeper/10_extra.md' => self::GOOD[self::STEP]], '/deeper/');
     }
 }
