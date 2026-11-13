@@ -1,6 +1,5 @@
 ---
 title: No repeated logic in page scripts
-position: 150
 status: idea
 whose_move: agent
 check: mlaphp_no_repeated_logic

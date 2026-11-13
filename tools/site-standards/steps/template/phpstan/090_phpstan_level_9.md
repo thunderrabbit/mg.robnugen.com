@@ -1,6 +1,5 @@
 ---
 title: PHPStan level 9, no baseline
-position: 90
 status: proven
 whose_move: agent
 check: phpstan_level

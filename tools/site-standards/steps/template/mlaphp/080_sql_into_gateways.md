@@ -1,6 +1,5 @@
 ---
 title: SQL lives in gateway classes
-position: 80
 status: proven
 whose_move: rob
 check: mlaphp_sql_in_gateways

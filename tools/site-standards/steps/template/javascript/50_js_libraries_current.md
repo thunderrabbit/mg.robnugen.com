@@ -1,6 +1,5 @@
 ---
 title: Every library on a supported release
-position: 50
 status: idea
 whose_move: agent
 check: js_libraries_current

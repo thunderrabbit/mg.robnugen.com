@@ -1,6 +1,5 @@
 ---
 title: Public files are separate from the rest
-position: 130
 status: proven
 whose_move: agent
 check: mlaphp_public_split

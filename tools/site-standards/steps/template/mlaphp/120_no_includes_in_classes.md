@@ -1,6 +1,5 @@
 ---
 title: Classes do not include code files
-position: 120
 status: proven
 whose_move: agent
 check: mlaphp_no_includes_in_classes

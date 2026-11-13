@@ -1,6 +1,5 @@
 ---
 title: Checks in place (phpcs, PHPStan, unit tests)
-position: 40
 status: proven
 whose_move: agent
 check: checks_in_place

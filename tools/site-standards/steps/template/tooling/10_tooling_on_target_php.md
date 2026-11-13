@@ -1,6 +1,5 @@
 ---
 title: Tooling runs on PHP {target}
-position: 10
 status: proven
 whose_move: agent
 check: tooling_on_php

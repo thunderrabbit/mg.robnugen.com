@@ -1,6 +1,5 @@
 ---
 title: PHPStan checks the current PHP and {target} in one run
-position: 10
 status: idea
 whose_move: agent
 check: phpstan_php_range

@@ -1,6 +1,5 @@
 ---
 title: Functions are moved into classes
-position: 40
 status: proven
 whose_move: rob
 check: mlaphp_functions_in_classes

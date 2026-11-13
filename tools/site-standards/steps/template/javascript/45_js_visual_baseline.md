@@ -1,6 +1,5 @@
 ---
 title: A visual differ can show what a move changed
-position: 45
 status: idea
 whose_move: agent
 check: js_visual_baseline

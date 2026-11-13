@@ -1,6 +1,5 @@
 ---
 title: One front controller
-position: 140
 status: idea
 whose_move: agent
 check: mlaphp_front_controller

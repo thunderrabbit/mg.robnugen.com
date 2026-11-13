@@ -1,6 +1,5 @@
 ---
 title: No global keyword
-position: 50
 status: proven
 whose_move: agent
 check: mlaphp_no_global

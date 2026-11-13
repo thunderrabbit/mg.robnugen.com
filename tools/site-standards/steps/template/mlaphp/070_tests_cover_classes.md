@@ -1,6 +1,5 @@
 ---
 title: The classes have tests
-position: 70
 status: idea
 whose_move: agent
 check: mlaphp_tests

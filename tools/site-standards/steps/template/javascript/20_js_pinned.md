@@ -1,6 +1,5 @@
 ---
 title: Every third-party script names its exact version
-position: 20
 status: proven
 whose_move: agent
 check: js_pinned

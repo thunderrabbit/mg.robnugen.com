@@ -1,6 +1,5 @@
 ---
 title: A build, if there is one, can be repeated
-position: 70
 status: proven
 whose_move: agent
 check: js_build_reproducible

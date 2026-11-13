@@ -1,6 +1,5 @@
 ---
 title: Deploys by git with its own deploy script
-position: 35
 status: proven
 whose_move: agent
 check: deploy_script

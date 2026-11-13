@@ -1,6 +1,5 @@
 ---
 title: The Admin Dashboard link is shown to admins only
-position: 25
 status: proven
 whose_move: agent
 check: admin_link_admins_only

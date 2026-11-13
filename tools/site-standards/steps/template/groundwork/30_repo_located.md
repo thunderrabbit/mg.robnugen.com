@@ -1,6 +1,5 @@
 ---
 title: Repo located
-position: 30
 status: proven
 whose_move: rob
 check: repo_located

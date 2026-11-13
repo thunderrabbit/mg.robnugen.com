@@ -1,6 +1,5 @@
 ---
 title: Output lives in view files
-position: 100
 status: idea
 whose_move: agent
 check: mlaphp_views

@@ -1,6 +1,5 @@
 ---
 title: A dependency injection container
-position: 160
 status: idea
 whose_move: agent
 check: mlaphp_di_container

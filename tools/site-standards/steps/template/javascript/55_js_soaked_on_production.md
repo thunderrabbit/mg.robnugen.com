@@ -1,6 +1,5 @@
 ---
 title: Production has run the last library change for five working days
-position: 55
 status: idea
 whose_move: agent
 check: js_soaked_on_production

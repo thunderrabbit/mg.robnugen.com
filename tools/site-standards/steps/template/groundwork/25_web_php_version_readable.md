@@ -1,6 +1,5 @@
 ---
 title: Web PHP version readable
-position: 25
 status: proven
 whose_move: agent
 check: host_php_probe

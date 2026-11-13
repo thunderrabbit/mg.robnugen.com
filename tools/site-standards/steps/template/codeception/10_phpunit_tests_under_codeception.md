@@ -1,6 +1,5 @@
 ---
 title: PHPUnit tests run under Codeception
-position: 10
 status: idea
 whose_move: agent
 check: phpunit_under_codeception

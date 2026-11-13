@@ -1,6 +1,5 @@
 ---
 title: Tests are in Tests/, laid out for Codeception 5
-position: 20
 status: proven
 whose_move: agent
 check: codeception_layout

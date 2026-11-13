@@ -1,6 +1,5 @@
 ---
 title: No deprecation warnings on today's versions
-position: 40
 status: idea
 whose_move: agent
 check: js_deprecations_clear

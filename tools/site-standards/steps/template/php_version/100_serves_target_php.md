@@ -1,6 +1,5 @@
 ---
 title: Serves PHP {target}
-position: 100
 status: proven
 whose_move: rob
 check: dh_serves_php

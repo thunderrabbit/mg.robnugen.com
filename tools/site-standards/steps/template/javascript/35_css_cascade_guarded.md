@@ -1,6 +1,5 @@
 ---
 title: A commit cannot quietly drop a style rule
-position: 35
 status: idea
 whose_move: agent
 check: css_cascade_guarded

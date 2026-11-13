@@ -1,6 +1,5 @@
 ---
 title: Every JavaScript library is written down
-position: 10
 status: proven
 whose_move: agent
 check: js_inventory

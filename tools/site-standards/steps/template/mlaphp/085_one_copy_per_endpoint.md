@@ -1,6 +1,5 @@
 ---
 title: One copy of each endpoint
-position: 85
 status: idea
 whose_move: agent
 check: mlaphp_one_copy_per_endpoint

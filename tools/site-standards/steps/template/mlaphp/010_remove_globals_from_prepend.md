@@ -1,6 +1,5 @@
 ---
 title: Remove globals from prepend.php
-position: 10
 status: idea
 whose_move: agent
 check: mlaphp_no_prepend_globals

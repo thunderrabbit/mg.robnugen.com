@@ -1,6 +1,5 @@
 ---
 title: Queries survive MySQL 8.4's reserved words
-position: 10
 status: proven
 whose_move: agent
 check: mysql84_reserved_words

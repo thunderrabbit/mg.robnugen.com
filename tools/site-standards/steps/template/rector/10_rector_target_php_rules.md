@@ -1,6 +1,5 @@
 ---
 title: Rector's PHP {target} rules, one per commit
-position: 10
 status: proven
 whose_move: agent
 check: rector_level

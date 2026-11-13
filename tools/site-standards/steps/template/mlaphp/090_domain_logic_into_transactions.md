@@ -1,6 +1,5 @@
 ---
 title: Domain logic lives in transaction classes
-position: 90
 status: idea
 whose_move: agent
 check: mlaphp_transactions

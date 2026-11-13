@@ -1,6 +1,5 @@
 ---
 title: Classes come from an autoloader
-position: 30
 status: proven
 whose_move: agent
 check: mlaphp_autoloader

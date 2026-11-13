@@ -1,6 +1,5 @@
 ---
 title: Page scripts become controllers
-position: 110
 status: idea
 whose_move: agent
 check: mlaphp_controllers

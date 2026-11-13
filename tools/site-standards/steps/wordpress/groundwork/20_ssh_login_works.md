@@ -1,6 +1,5 @@
 ---
 title: ssh login works
-position: 20
 status: proven
 whose_move: rob
 check: dh_ssh_login

@@ -1,6 +1,5 @@
 ---
 title: Declare the types Rector can prove
-position: 20
 status: proven
 whose_move: agent
 check: rector_types

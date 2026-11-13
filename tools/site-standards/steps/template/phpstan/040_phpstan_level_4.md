@@ -1,6 +1,5 @@
 ---
 title: PHPStan level 4, no baseline
-position: 40
 status: proven
 whose_move: agent
 check: phpstan_level

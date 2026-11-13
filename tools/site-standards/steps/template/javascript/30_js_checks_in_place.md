@@ -1,6 +1,5 @@
 ---
 title: Checks in place for JavaScript (smoke test, ESLint)
-position: 30
 status: idea
 whose_move: agent
 check: js_checks_in_place

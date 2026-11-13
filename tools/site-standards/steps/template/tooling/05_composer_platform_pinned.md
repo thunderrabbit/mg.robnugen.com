@@ -1,6 +1,5 @@
 ---
 title: Composer installs for the PHP the server runs
-position: 5
 status: proven
 whose_move: agent
 check: composer_platform_pinned

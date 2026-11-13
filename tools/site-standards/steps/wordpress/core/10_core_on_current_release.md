@@ -1,6 +1,5 @@
 ---
 title: WordPress core on the current release
-position: 10
 status: idea
 whose_move: agent
 check: wp_core_current

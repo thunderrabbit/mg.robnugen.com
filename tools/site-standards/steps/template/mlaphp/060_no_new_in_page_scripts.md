@@ -1,6 +1,5 @@
 ---
 title: Objects are handed in, not made in place
-position: 60
 status: idea
 whose_move: agent
 check: mlaphp_no_new_in_pages

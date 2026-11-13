@@ -1,6 +1,5 @@
 ---
 title: Has a domain
-position: 10
 status: proven
 whose_move: rob
 check: dh_has_domain
