@@ -28,8 +28,8 @@ final class StandardsScanPayloadTest extends Unit
             'files' => [
                 'template/_standard.md' => "---\nname: Template sites\n---\n",
                 'template/phpstan/_track.md' => "---\nname: PHPStan\nposition: 40\n---\n",
-                'template/phpstan/phpstan_level_10_no_baseline.md' =>
-                    "---\ntitle: Level 10, no baseline\nposition: 10\nstatus: proven\n"
+                'template/phpstan/100_phpstan_level_10_no_baseline.md' =>
+                    "---\ntitle: Level 10, no baseline\nstatus: proven\n"
                     . "whose_move: agent\ncheck: phpstan_top\n---\nWhy.\n",
             ],
             'sites' => [

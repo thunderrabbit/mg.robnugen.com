@@ -15,6 +15,8 @@ only. What it does, and what it deliberately does not:
   clean at that branch's tip instead, the results describe that line, and
   the page says so beside what the server runs. The importer refuses an
   off-server scan on any other branch.
+- A step file is <number>_<name>.md. The number is its position on the page
+  and the name is the step, which is what a result is reported under.
 - A step's check is run only if checks/<check>.sh exists. A step whose check
   has no script here is either one mg answers itself or an idea with no check
   yet, and nothing is reported for it.
@@ -182,6 +184,17 @@ def frontmatter(content):
     return fields
 
 
+def step_name(stem):
+    """The step a file named <number>_<name>.md is: the name after the number.
+
+    The number is the step's position on the page (038.9996), which mg reads
+    from the filename itself; results are matched on the name. Anything not of
+    that form comes back unchanged, for mg's importer to refuse.
+    """
+    found = re.match(r"\A\d+(?:\.\d{1,4})?_([a-z][a-z0-9_]{0,63})\Z", stem)
+    return found.group(1) if found else stem
+
+
 def checks_for(standard, files):
     """(step name, check, param) for each step file of a standard."""
     wanted = []
@@ -189,9 +202,10 @@ def checks_for(standard, files):
         parts = path.split("/")
         if len(parts) != 3 or parts[0] != standard or not parts[2].endswith(".md"):
             continue
-        name = parts[2][:-3]
-        if name.startswith("_"):
+        stem = parts[2][:-3]
+        if stem.startswith("_"):
             continue
+        name = step_name(stem)
         fields = frontmatter(files[path])
         wanted.append((name, fields.get("check", ""), fields.get("param", "")))
     return wanted
