@@ -26,7 +26,7 @@ OPTED_IN = {
     "mlaphp_unused_function_removed",
     "phpunit_under_codeception",
     "mlaphp_public_split", "mlaphp_register_via_user_repository", "mlaphp_sql_in_gateways",
-    "mysql84_reserved_words", "no_dynamic_properties", "phpstan_php_range", "phpstan_top",
+    "mysql84_reserved_words", "no_dynamic_properties", "phpstan_php_range", "phpstan_level",
     "rector_level", "rector_types",
 }
 

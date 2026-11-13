@@ -3,7 +3,8 @@ title: PHPStan level 10, no baseline
 position: 10
 status: proven
 whose_move: agent
-check: phpstan_top
+check: phpstan_level
+param: 10
 ---
 `phpstan.neon` is at level 10, there is no baseline file, and a run is clean.
 Level 10 is where PHPStan stops trusting `mixed`, which is where request data
