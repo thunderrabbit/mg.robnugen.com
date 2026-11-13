@@ -29,6 +29,13 @@ to 8.1).
    `composer update --lock`, in the stock composer image if the machine has no
    composer. Read the lock diff: a package that moves backwards was too new for
    the server.
-4. Run the Unit suite, then commit both files together.
-5. After the server moves to a newer PHP, change the pin to that PHP and
-   repeat step 3.
+4. A `conflict` rule that exists only to keep a package off a release needing
+   a newer PHP is this pin written by hand, and nothing ever reopens it.
+   Delete the rule once the pin is in and check the lock does not move: the
+   pin now does that job.
+5. Run the Unit suite, then commit both files together.
+6. After the server moves to a newer PHP, change the pin to that PHP and
+   repeat step 3. Then let go of what the old pin held back: `composer
+   outdated` lists it, `composer update <package>` takes each one, and
+   anything the site calls through an updated package is tried once for real
+   before the lock is deployed.
