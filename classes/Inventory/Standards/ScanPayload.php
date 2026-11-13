@@ -21,9 +21,12 @@ namespace Inventory\Standards;
  * server_branch null on a detached HEAD). Both server fields may be left out.
  * php_target is the PHP the site is moving to, as standards-mcp's repos.yaml
  * gave it (major.minor), null or left out when the registry gives none.
+ * test_commit is the commit the site's test domain ran, set only when the
+ * scanner asked it; null or left out otherwise.
  * A scanned site has both commits. They differ only for a site checked on the
- * branch it is preparing; whether that is the branch mg knows for the site is
- * the importer's question, since it has the database.
+ * branch it is preparing or at the commit its test domain runs; whether mg
+ * has that branch or that test domain on record is the importer's question,
+ * since it has the database.
  *
  * Everything is checked here, before the importer opens a transaction.
  */
@@ -32,7 +35,7 @@ final readonly class ScanPayload
     private const int DETAIL_MAX = 255;
 
     /**
-     * @param list<array{shortcode: string, branch: ?string, commit: ?string, serverBranch: ?string, serverCommit: ?string, phpTarget: ?string, skippedReason: ?string, results: list<array{step: string, outcome: Outcome, detail: string}>}> $sites
+     * @param list<array{shortcode: string, branch: ?string, commit: ?string, serverBranch: ?string, serverCommit: ?string, testCommit: ?string, phpTarget: ?string, skippedReason: ?string, results: list<array{step: string, outcome: Outcome, detail: string}>}> $sites
      */
     private function __construct(
         public string $scannedAtUtc,
@@ -90,7 +93,7 @@ final readonly class ScanPayload
 
     /**
      * @param array<mixed> $site
-     * @return array{shortcode: string, branch: ?string, commit: ?string, serverBranch: ?string, serverCommit: ?string, phpTarget: ?string, skippedReason: ?string, results: list<array{step: string, outcome: Outcome, detail: string}>}
+     * @return array{shortcode: string, branch: ?string, commit: ?string, serverBranch: ?string, serverCommit: ?string, testCommit: ?string, phpTarget: ?string, skippedReason: ?string, results: list<array{step: string, outcome: Outcome, detail: string}>}
      */
     private static function site(array $site): array
     {
@@ -103,6 +106,7 @@ final readonly class ScanPayload
         $commit = self::strOrNull($site, 'commit', $where);
         $serverBranch = array_key_exists('server_branch', $site) ? self::strOrNull($site, 'server_branch', $where) : null;
         $serverCommit = array_key_exists('server_commit', $site) ? self::strOrNull($site, 'server_commit', $where) : null;
+        $testCommit = array_key_exists('test_commit', $site) ? self::strOrNull($site, 'test_commit', $where) : null;
         $phpTarget = array_key_exists('php_target', $site) ? self::strOrNull($site, 'php_target', $where) : null;
         $skipped = self::strOrNull($site, 'skipped_reason', $where);
         if ($commit !== null && !self::isSha($commit)) {
@@ -110,6 +114,9 @@ final readonly class ScanPayload
         }
         if ($serverCommit !== null && !self::isSha($serverCommit)) {
             throw new StandardsFormatException("{$where}: server_commit must be a full 40-character commit hash");
+        }
+        if ($testCommit !== null && !self::isSha($testCommit)) {
+            throw new StandardsFormatException("{$where}: test_commit must be a full 40-character commit hash");
         }
         if ($serverBranch !== null && preg_match('#\A[A-Za-z0-9._/-]{1,100}\z#', $serverBranch) !== 1) {
             throw new StandardsFormatException("{$where}: server_branch is not a branch name");
@@ -159,6 +166,7 @@ final readonly class ScanPayload
             'commit' => $commit,
             'serverBranch' => $serverBranch,
             'serverCommit' => $serverCommit,
+            'testCommit' => $testCommit,
             'phpTarget' => $phpTarget,
             'skippedReason' => $skipped,
             'results' => $results,

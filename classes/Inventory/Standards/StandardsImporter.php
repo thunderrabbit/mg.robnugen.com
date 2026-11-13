@@ -218,7 +218,7 @@ final class StandardsImporter
     }
 
     /**
-     * @param array{shortcode: string, branch: ?string, commit: ?string, serverBranch: ?string, serverCommit: ?string, phpTarget: ?string, skippedReason: ?string, results: list<array{step: string, outcome: Outcome, detail: string}>} $site
+     * @param array{shortcode: string, branch: ?string, commit: ?string, serverBranch: ?string, serverCommit: ?string, testCommit: ?string, phpTarget: ?string, skippedReason: ?string, results: list<array{step: string, outcome: Outcome, detail: string}>} $site
      */
     private function importSite(array $site, int $scanId): void
     {

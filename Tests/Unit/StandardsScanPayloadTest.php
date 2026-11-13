@@ -160,6 +160,30 @@ final class StandardsScanPayloadTest extends Unit
         $this->refuses($this->withSite(0, 'php_target', 'latest'), '/php_target/');
     }
 
+    public function testCarriesTheCommitTheTestDomainRuns(): void
+    {
+        $payload = ScanPayload::fromArray($this->withSite(0, 'test_commit', str_repeat('b', 40)));
+        $this->assertSame(str_repeat('b', 40), $payload->sites[0]['testCommit']);
+    }
+
+    public function testTheTestCommitMayBeNullOrLeftOut(): void
+    {
+        // A document from a scanner older than the field has no such key.
+        $payload = ScanPayload::fromArray($this->good());
+        $this->assertNull($payload->sites[0]['testCommit']);
+
+        $payload = ScanPayload::fromArray($this->withSite(0, 'test_commit', null));
+        $this->assertNull($payload->sites[0]['testCommit']);
+    }
+
+    public function testRefusesATestCommitThatIsNotAFullHash(): void
+    {
+        $this->refuses(
+            $this->withSite(0, 'test_commit', 'abc1234'),
+            '/test_commit must be a full 40-character commit hash/',
+        );
+    }
+
     public function testRefusesAServerBranchThatIsNotABranchName(): void
     {
         $this->refuses($this->withSite(0, 'server_branch', 'master; rm -rf'), '/server_branch/');
