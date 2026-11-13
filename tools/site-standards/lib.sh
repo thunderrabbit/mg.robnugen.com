@@ -68,15 +68,35 @@ need_hooks() {
   HOOKS="$REPO/$path"
 }
 
-# Rector's dry run over the repo's own rector.php, run once per repo per scan
-# and remembered under $SCAN_TMP. Sets RECTOR_RC and RECTOR_OUT.
-rector_dry_run() {
-  local repo="$1" key
+# need_scan_tmp: makes sure SCAN_TMP names a directory where one scan
+# remembers a slow run that several checks ask about.
+need_scan_tmp() {
   if [ -z "${SCAN_TMP:-}" ]; then
     # Run by hand, outside a scan: remember nothing beyond this one check.
     SCAN_TMP="$(mktemp -d)"
     trap 'rm -rf "$SCAN_TMP"' EXIT
   fi
+}
+
+# PHPStan over the repo's own config, run once per repo per scan and
+# remembered under $SCAN_TMP: every level's step asks about the same run.
+# Sets PHPSTAN_OUT.
+phpstan_run() {
+  local repo="$1" key
+  need_scan_tmp
+  key="$SCAN_TMP/phpstan-$(printf '%s' "$repo" | sha1sum | cut -c1-12)"
+  if [ ! -f "$key.done" ]; then
+    "$STANDARDS_MCP/run-phpstan.sh" "$repo" > "$key.out" 2>&1 || true
+    : > "$key.done"
+  fi
+  PHPSTAN_OUT="$(cat "$key.out")"
+}
+
+# Rector's dry run over the repo's own rector.php, run once per repo per scan
+# and remembered under $SCAN_TMP. Sets RECTOR_RC and RECTOR_OUT.
+rector_dry_run() {
+  local repo="$1" key
+  need_scan_tmp
   key="$SCAN_TMP/rector-$(printf '%s' "$repo" | sha1sum | cut -c1-12)"
   if [ ! -f "$key.rc" ]; then
     local rc=0
