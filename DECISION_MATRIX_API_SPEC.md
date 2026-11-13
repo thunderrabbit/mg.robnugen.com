@@ -218,7 +218,7 @@ MATRIX_PASSPHRASE=<user's matrix passphrase>
 
 After implementation:
 1. Commit PHP changes in `~/work/rob/mg.robnugen.com/`
-2. Deploy: `bash deploy_on_dh.sh`
+2. Deploy: `bash deploy_mg_to_dh.sh`
 3. Commit Jikan changes in `~/jikan/`
 4. Restart Jikan MCP server
 5. Test from Claude Code: `list_matrix()` should return decrypted entries
