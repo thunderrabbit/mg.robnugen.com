@@ -25,18 +25,11 @@ line; directories carry no number), and any change to the page.
 Would be a failure: a database migration, renamed issues, or a step whose
 name changes the next time Rob renumbers it.
 
-## Approaches
+## Approach
 
 1. **The number is the position, the rest is the name (chosen).**
    `038.9996_remove_unused_print_robs.md` is position 38.9996, step
    `remove_unused_print_robs`. Names never change, so nothing is orphaned.
-2. **The full filename is the name, with a migration.** Rewrites 78 step rows
-   and 11 issue titles now, and every later reorder orphans results again.
-   Dots in step names also blur the one dot in `<step>.<shortcode>`.
-3. **A `renamed_from:` line in each file.** Same repeat problem, plus
-   bookkeeping in 69 files.
-
-Rob picked 1.
 
 ## The design
 
