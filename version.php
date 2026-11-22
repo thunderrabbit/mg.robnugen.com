@@ -1,6 +1,6 @@
 <?php
 
-const SENTIMENTAL_VERSION = "BEGIN deploy script judged by what it does";
-const SEMVER = "0.85.0";
+const SENTIMENTAL_VERSION = "BEGIN images on issues";
+const SEMVER = "0.86.0";
 
 const EMOTIONAL_SESSION_GAP_MINUTES = 30;
