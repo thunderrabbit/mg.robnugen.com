@@ -214,7 +214,7 @@ if ($method === 'POST' && $is_backfill) {
         exit;
     }
 
-    require_credit($pdo, $auth_user_id, $auth_key_id, $path, $auth_token_id);
+    \Auth\ApiGate::requireCredit($pdo, $auth_user_id, $auth_key_id, $path, $auth_token_id);
 
     $timezoneHelper = new \ActivityTracking\Timezone($pdo);
     $timezone_id    = $timezoneHelper->getTimezoneId($timezone_str);
@@ -283,7 +283,7 @@ if ($method === 'POST' && $ak_id === null) {
         exit;
     }
 
-    require_credit($pdo, $auth_user_id, $auth_key_id, $path, $auth_token_id);
+    \Auth\ApiGate::requireCredit($pdo, $auth_user_id, $auth_key_id, $path, $auth_token_id);
 
     $timezoneHelper = new \ActivityTracking\Timezone($pdo);
     $timezone_id    = $timezoneHelper->getTimezoneId($timezone_str);

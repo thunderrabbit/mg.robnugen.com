@@ -70,7 +70,7 @@ $issue_caller  = new \Issues\Caller(
 );
 $issue_service = new \Issues\IssueService(
     new \Issues\PdoIssueStore($pdo),
-    beforeWrite: static fn(string $action) => require_credit($pdo, $auth_user_id, $auth_key_id, $action, $auth_token_id),
+    beforeWrite: static fn(string $action) => \Auth\ApiGate::requireCredit($pdo, $auth_user_id, $auth_key_id, $action, $auth_token_id),
 );
 
 // ─── Sub-route selector ──────────────────────────────────────────────────────

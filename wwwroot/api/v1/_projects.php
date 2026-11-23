@@ -46,7 +46,7 @@ $project_caller  = new \Issues\Caller(
 );
 $project_service = new \Projects\ProjectService(
     new \Projects\PdoProjectStore($pdo),
-    beforeWrite: static fn(string $action) => require_credit($pdo, $auth_user_id, $auth_key_id, $action, $auth_token_id),
+    beforeWrite: static fn(string $action) => \Auth\ApiGate::requireCredit($pdo, $auth_user_id, $auth_key_id, $action, $auth_token_id),
 );
 
 // ─── GET /projects/list ─────────────────────────────────────────────────────
