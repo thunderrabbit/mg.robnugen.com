@@ -320,6 +320,15 @@ class ImageServiceTest extends IssueCase
         );
     }
 
+    public function testTheStorePathSwitchesTheFeatureOnOnlyWhenItIsARealAbsoluteDirectory(): void
+    {
+        $this->assertTrue(ImageService::at($this->root, $this->pdo)->enabled());
+        $this->assertFalse(ImageService::at('', $this->pdo)->enabled());
+        $this->assertFalse(ImageService::at($this->root . '/not-made', $this->pdo)->enabled());
+        $this->assertFalse(ImageService::at('relative/path', $this->pdo)->enabled());
+        $this->assertFalse(ImageService::at('.', $this->pdo)->enabled());
+    }
+
     // ─── Seeing ──────────────────────────────────────────────────────────────
 
     public function testAReaderOfTheIssueMaySeeItsPicture(): void

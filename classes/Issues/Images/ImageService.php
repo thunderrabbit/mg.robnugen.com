@@ -35,6 +35,22 @@ final readonly class ImageService
     ) {
     }
 
+    /**
+     * The service every page and tool uses: on mg's database, with pictures
+     * under Config::$image_store_path. Anything but an existing absolute
+     * directory there leaves the feature off.
+     */
+    public static function at(string $imageStorePath, \PDO $pdo): self
+    {
+        $usable = str_starts_with($imageStorePath, '/') && is_dir($imageStorePath);
+
+        return new self(
+            new IssueService(new \Issues\PdoIssueStore($pdo)),
+            new PdoImageStore($pdo),
+            $usable ? new ImageFiles($imageStorePath) : null,
+        );
+    }
+
     public function enabled(): bool
     {
         return $this->files !== null;
