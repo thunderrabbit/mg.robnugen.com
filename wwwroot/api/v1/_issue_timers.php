@@ -26,8 +26,8 @@ declare(strict_types=1);
 // ─── GET /issues/timers/list ────────────────────────────────────────────────
 
 if ($method === 'GET' && $tsub === '/list') {
-    issues_api(static function () use ($issue_service, $issue_caller): void {
-        echo json_encode(issues_page(
+    \Issues\Api::run(static function () use ($issue_service, $issue_caller): void {
+        echo json_encode(\Issues\Api::page(
             'timers',
             $issue_service->timers($issue_caller, \Issues\Command\ListTimers::fromInput($_GET)),
         ));
@@ -38,7 +38,7 @@ if ($method === 'GET' && $tsub === '/list') {
 // ─── POST /issues/timers/start ──────────────────────────────────────────────
 
 if ($method === 'POST' && $tsub === '/start') {
-    issues_api(static function () use ($issue_service, $issue_caller): void {
+    \Issues\Api::run(static function () use ($issue_service, $issue_caller): void {
         $input = \Input\Input::json((string) file_get_contents('php://input'));
         $timer = $issue_service->startTimer($issue_caller, \Issues\Command\StartTimer::fromInput($input));
 
@@ -51,7 +51,7 @@ if ($method === 'POST' && $tsub === '/start') {
 // ─── PATCH /issues/timers/stop ──────────────────────────────────────────────
 
 if ($method === 'PATCH' && $tsub === '/stop') {
-    issues_api(static function () use ($issue_service, $issue_caller): void {
+    \Issues\Api::run(static function () use ($issue_service, $issue_caller): void {
         $input = \Input\Input::json((string) file_get_contents('php://input'));
         $timer = $issue_service->stopTimer($issue_caller, \Input\Input::positiveId($input, 'issue_timer_id'));
 
@@ -63,7 +63,7 @@ if ($method === 'PATCH' && $tsub === '/stop') {
 // ─── PATCH /issues/timers/edit-note ─────────────────────────────────────────
 
 if ($method === 'PATCH' && $tsub === '/edit-note') {
-    issues_api(static function () use ($issue_service, $issue_caller): void {
+    \Issues\Api::run(static function () use ($issue_service, $issue_caller): void {
         $input = \Input\Input::json((string) file_get_contents('php://input'));
         $timer = $issue_service->editTimerNote($issue_caller, \Issues\Command\EditTimerNote::fromInput($input));
 
@@ -75,7 +75,7 @@ if ($method === 'PATCH' && $tsub === '/edit-note') {
 // ─── DELETE /issues/timers/delete ───────────────────────────────────────────
 
 if ($method === 'DELETE' && $tsub === '/delete') {
-    issues_api(static function () use ($issue_service, $issue_caller): void {
+    \Issues\Api::run(static function () use ($issue_service, $issue_caller): void {
         $input = \Input\Input::json((string) file_get_contents('php://input'));
         $issue_service->deleteTimer($issue_caller, \Input\Input::positiveId($input, 'issue_timer_id'));
 
