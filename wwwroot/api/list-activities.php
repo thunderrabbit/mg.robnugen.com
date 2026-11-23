@@ -26,14 +26,7 @@ if (!$is_logged_in->isLoggedIn()) {
     // Return all FREE activities for anonymous users
     try {
         $pdo = \Database\Base::getPDO($config);
-        $stmt = $pdo->prepare("
-            SELECT activity_id, activity_name, description
-            FROM activities
-            WHERE is_active = 1 AND type = 'FREE'
-            ORDER BY activity_name
-        ");
-        $stmt->execute();
-        $activities = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $activities = new \ActivityTracking\Activity($pdo)->getFreeActivities();
 
         // If no FREE activities found, default to Meditation
         if (empty($activities)) {
