@@ -68,5 +68,17 @@ $inner_page->set("done_issues", $done_issues);
 $inner_page->set("show_done", $show_done);
 $inner_page->set("members", $members);
 
+// Every picture on any of the project's issues, newest first. Read-only here.
+$pictures    = \Issues\Images\ImageService::forConfig($config, $pdo);
+$image_strip = new \Template($config, $is_logged_in, $csrfProtect);
+$image_strip->setTemplate("issues/image_strip.tpl.php");
+$image_strip->set("images", $pictures->forProject($caller, $project_id));
+$image_strip->set("can_write", false);
+$image_strip->set("issue_id", null);
+$image_strip->set("notes", []);
+$image_strip->set("max_files", \Issues\Images\PostedFiles::MAX_PER_POST);
+$image_strip->set("max_bytes", \Issues\Images\ImageCheck::MAX_BYTES);
+$inner_page->set("image_strip", $image_strip->grabTheGoods());
+
 $page->set("page_content", $inner_page->grabTheGoods());
 $page->echoToScreen();

@@ -84,6 +84,20 @@ $inner_page->set("comments", $comments);
 $inner_page->set("children", $children);
 $inner_page->set("parent", $parent);
 $inner_page->set("statuses", $service->statuses());
+
+// The Images card. What the last upload had to say is shown once.
+$pictures    = \Issues\Images\ImageService::forConfig($config, $pdo);
+$image_notes = \Issues\Images\PostedFiles::takeNotes($_SESSION);
+$image_strip = new \Template($config, $is_logged_in, $csrfProtect);
+$image_strip->setTemplate("issues/image_strip.tpl.php");
+$image_strip->set("images", $pictures->forIssue($caller, $issue_id));
+$image_strip->set("can_write", $issue->canWrite && $pictures->enabled());
+$image_strip->set("issue_id", $issue_id);
+$image_strip->set("notes", $image_notes);
+$image_strip->set("max_files", \Issues\Images\PostedFiles::MAX_PER_POST);
+$image_strip->set("max_bytes", \Issues\Images\ImageCheck::MAX_BYTES);
+$inner_page->set("image_strip", $image_strip->grabTheGoods());
+
 if (isset($_GET['msg']) && is_string($_GET['msg'])) {
     $inner_page->set("msg", $_GET['msg']);
 }

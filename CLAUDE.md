@@ -144,6 +144,17 @@ An actor with `agent_inbox_user.todos_limited = 1` is a "limited actor": a third
 - `Journal\EntryCheck` is the one save check, run by mg on Save and by Lemur 13 before writing. Those classes also run under Lemur 13's PHP 8.1 (no curl extension), so keep them free of 8.2+ syntax.
 - On the server, plain `php` is 8.2; use `/usr/local/php85/bin/php` for CLI tools.
 
+### Images on issues
+
+Pictures can be attached to an issue and show in an Images strip on the issue page and, for every issue of a project, on the project page. Design: `docs/superpowers/specs/2026-11-23-issue-images-design.md`.
+
+- **Files live on the server only**, under `Config::$image_store_path` (a directory beside the checkout, never in git or the web root) at `projects/<project_id>/<yyyy>/issues/<issue_id>/<filename>`: the issue a file was first uploaded to and the UTC year of the upload. A file never moves. An empty or missing `image_store_path` turns the whole feature off.
+- **The URL** is `/images/projects/<project_id>[-<name>]/<yyyy>/issues/<issue_id>/<filename>`. Only the id is read from the project segment, so a link written before a project rename still works. `wwwroot/.htaccess` sends these to `wwwroot/issues/image.php`; nothing named `images` exists under `wwwroot/`.
+- **Who may see a picture:** anyone who can read an issue it is linked to (`issue_image_links`). Every other case is the same bare 404. A picture can be linked to several issues, in any project of the account; embedding one by markdown does not link it.
+- **Two ways in, one set of checks** (`Issues\Images\ImageCheck`: really a PNG, JPEG, GIF or WebP by content, at most 10 MB): the form on the issue page (`wwwroot/issues/images.php`, 20 files a post), and from Lemur 13 `tools/issue-images/upload.sh [--dry-run] [--as=<aiu_id>] <issue_id> <file-or-dir> ...`, which prints the markdown line of each picture. Uploading the same file again stores nothing; a different file of the same name becomes `name-2`.
+- **Rules are in `Issues\Images\ImageService`**, which asks `IssueService` who may read or write an issue. `link.sh` and `unlink.sh` show a picture on another issue or take it off; the page's remove button only unlinks. **Only `tools/issue-images/purge.sh` deletes a file**, and only one no issue shows any more.
+- Tables: `issue_images` (one row per file; its `home_*` columns have no foreign key on purpose) and `issue_image_links` (`db_schemas/56_issue_images/`).
+
 ### Site standards (which sites are behind)
 
 `/admin/dh/standards.php` shows, for each site entered, which written-up steps it has done. Design: `docs/superpowers/specs/2026-11-06-dh-standards-design.md`.
