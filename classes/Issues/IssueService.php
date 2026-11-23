@@ -122,12 +122,21 @@ final readonly class IssueService
      */
     public function board(Caller $caller, int $projectId, bool $done = false): array
     {
+        $this->requireProjectRead($caller, $projectId);
+        return $this->store->board($projectId, $done);
+    }
+
+    /**
+     * Passes when the caller may read the project: NotFoundException when they
+     * are no member of it, AccessException when their read access is off.
+     */
+    public function requireProjectRead(Caller $caller, int $projectId): void
+    {
         $role = $this->store->membership($projectId, $caller)
             ?? throw new NotFoundException("Project {$projectId} not found or no access");
         if (!$role->canRead) {
             throw new AccessException('No read access to this project');
         }
-        return $this->store->board($projectId, $done);
     }
 
     // ─── Issues ──────────────────────────────────────────────────────────────

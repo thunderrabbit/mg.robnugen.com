@@ -254,4 +254,19 @@ final class IssueServiceTest extends IssueCase
 
         $this->assertSame(['open', 'in_progress', 'done'], $slugs);
     }
+
+    public function testRequireProjectReadPassesForAReaderOnly(): void
+    {
+        $this->service->requireProjectRead($this->reader, 7);
+        $this->service->requireProjectRead($this->writer, 7);
+
+        $this->assertThrows(
+            \Issues\NotFoundException::class,
+            fn () => $this->service->requireProjectRead($this->stranger, 7),
+        );
+        $this->assertThrows(
+            \Issues\AccessException::class,
+            fn () => $this->service->requireProjectRead($this->blocked, 7),
+        );
+    }
 }
