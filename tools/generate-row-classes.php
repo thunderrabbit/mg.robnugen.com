@@ -26,7 +26,8 @@ declare(strict_types=1);
 
 const ROOT = __DIR__ . '/..';
 
-require_once ROOT . '/classes/Database/RowClassGenerator.php';
+require_once ROOT . '/classes/Mlaphp/Autoloader.php';
+spl_autoload_register([new \Mlaphp\Autoloader(), 'load']);
 
 $tsv = $argv[1] ?? throw new RuntimeException('usage: generate-row-classes.php columns.tsv table [table ...]');
 $tables = array_slice($argv, 2) ?: throw new RuntimeException('name at least one table to generate');
