@@ -31,13 +31,9 @@ if (!$is_logged_in->isLoggedIn()) {
 }
 
 $user_id = $is_logged_in->loggedInID();
-$pdo     = \Database\Base::getPDO($config);
+$exterm  = new \Exterm\Items(\Database\Base::getPDO($config));
 
-$aiu_stmt = $pdo->prepare(
-    "SELECT aiu_id FROM agent_inbox_user WHERE user_id = ? AND actor_type = 'human' LIMIT 1"
-);
-$aiu_stmt->execute([$user_id]);
-$human_aiu = (int) $aiu_stmt->fetchColumn();
+$human_aiu = $exterm->humanAiu($user_id);
 
 $exterm_item_id = \Field::int($_REQUEST, 'exterm_item_id');
 if (!$exterm_item_id) {
@@ -45,16 +41,7 @@ if (!$exterm_item_id) {
     exit;
 }
 
-$item_stmt = $pdo->prepare(
-    "SELECT ei.*, p.name AS project_name, pm.can_write
-     FROM exterm_items ei
-     JOIN projects p         ON p.project_id  = ei.project_id
-     JOIN project_members pm ON pm.project_id = ei.project_id AND pm.member_aiu = ?
-     WHERE ei.exterm_item_id = ? AND p.user_id = ?
-     LIMIT 1"
-);
-$item_stmt->execute([$human_aiu, $exterm_item_id, $user_id]);
-$item = $item_stmt->fetch(\PDO::FETCH_ASSOC);
+$item = $exterm->itemForEdit($exterm_item_id, $user_id, $human_aiu);
 
 if (!$item) {
     header("Location: /exterm/?msg=not_found");
@@ -76,9 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$error) {
-        $pdo->prepare(
-            "UPDATE exterm_items SET title=?, body=? WHERE exterm_item_id=?"
-        )->execute([$new_title, $new_body, $exterm_item_id]);
+        $exterm->saveTitleAndBody($exterm_item_id, $new_title, $new_body);
         header("Location: /exterm/view.php?exterm_item_id={$exterm_item_id}");
         exit;
     }
