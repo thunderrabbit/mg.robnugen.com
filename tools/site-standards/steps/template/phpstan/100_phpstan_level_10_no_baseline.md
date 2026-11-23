@@ -4,6 +4,7 @@ status: proven
 whose_move: agent
 check: phpstan_level
 param: 10
+model: opus
 ---
 `phpstan.neon` is at level 10, there is no baseline file, and a run is clean.
 

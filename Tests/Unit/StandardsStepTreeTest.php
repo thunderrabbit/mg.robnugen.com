@@ -6,6 +6,7 @@ namespace Tests\Unit;
 
 use Codeception\Test\Unit;
 use Inventory\Standards\StandardsFormatException;
+use Inventory\Standards\StepModel;
 use Inventory\Standards\StepStatus;
 use Inventory\Standards\StepTree;
 use Inventory\Standards\WhoseMove;
@@ -23,7 +24,7 @@ final class StandardsStepTreeTest extends Unit
         'template/rector/_track.md' => "---\nname: Rector\nposition: 30\n---\n",
         self::STEP =>
             "---\ntitle: \"Rector's 8.5 rules, one per commit\"\nstatus: proven\n"
-            . "whose_move: agent\ncheck: rector_level\nparam: 8.5\n---\nWhy it matters.\n\n"
+            . "whose_move: agent\ncheck: rector_level\nparam: 8.5\nmodel: sonnet\n---\nWhy it matters.\n\n"
             . "## How to do it\n\n1. Do this.\n",
     ];
 
@@ -59,6 +60,7 @@ final class StandardsStepTreeTest extends Unit
         $this->assertSame(WhoseMove::Agent, $step->whoseMove);
         $this->assertSame('rector_level', $step->checkName);
         $this->assertSame('8.5', $step->checkParam);
+        $this->assertSame(StepModel::Sonnet, $step->model);
         $this->assertSame('Why it matters.', $step->explanation);
         $this->assertSame('1. Do this.', $step->howTo);
     }
@@ -244,5 +246,98 @@ final class StandardsStepTreeTest extends Unit
     public function testRefusesAFileAtTheWrongDepth(): void
     {
         $this->refuses(self::GOOD + ['template/rector/deeper/10_extra.md' => self::GOOD[self::STEP]], '/deeper/');
+    }
+
+    public function testAStepTakesItsTracksModelWhenItNamesNone(): void
+    {
+        $files = self::GOOD;
+        $files[self::STEP] = str_replace("model: sonnet\n", '', $files[self::STEP]);
+        $files['template/rector/_track.md'] = "---\nname: Rector\nposition: 30\nmodel: opus\n---\n";
+
+        $this->assertSame(StepModel::Opus, StepTree::fromFiles($files)->standards[0]->tracks[0]->steps[0]->model);
+    }
+
+    public function testAStepsOwnModelBeatsItsTracks(): void
+    {
+        $files = self::GOOD;
+        $files['template/rector/_track.md'] = "---\nname: Rector\nposition: 30\nmodel: opus\n---\n";
+
+        $this->assertSame(StepModel::Sonnet, StepTree::fromFiles($files)->standards[0]->tracks[0]->steps[0]->model);
+    }
+
+    public function testEveryModelNameIsAccepted(): void
+    {
+        foreach (['haiku', 'sonnet', 'opus', 'fable'] as $name) {
+            $files = self::GOOD;
+            $files[self::STEP] = str_replace('model: sonnet', "model: {$name}", $files[self::STEP]);
+
+            $this->assertSame($name, StepTree::fromFiles($files)->standards[0]->tracks[0]->steps[0]->model?->value);
+        }
+    }
+
+    public function testRefusesAnUnknownModelOnAStep(): void
+    {
+        $files = self::GOOD;
+        $files[self::STEP] = str_replace('model: sonnet', 'model: gpt', $files[self::STEP]);
+
+        $this->refuses($files, '#10_rector_php_8_5_rules\.md: model must be haiku, sonnet, opus or fable#');
+    }
+
+    public function testRefusesAModelInCapitals(): void
+    {
+        $files = self::GOOD;
+        $files[self::STEP] = str_replace('model: sonnet', 'model: Sonnet', $files[self::STEP]);
+
+        $this->refuses($files, '/model must be/');
+    }
+
+    public function testRefusesAnUnknownModelOnATrackEvenWithNoSteps(): void
+    {
+        $files = self::GOOD + [
+            'template/groundwork/_track.md' => "---\nname: Groundwork\nposition: 10\nmodel: best\n---\n",
+        ];
+
+        $this->refuses($files, '#template/groundwork/_track\.md: model must be#');
+    }
+
+    public function testRefusesAModelOnAStandard(): void
+    {
+        $files = self::GOOD;
+        $files['template/_standard.md'] = "---\nname: Template sites\nmodel: sonnet\n---\n";
+
+        $this->refuses($files, '#_standard\.md: unknown frontmatter key "model"#');
+    }
+
+    public function testRobsStepMayNameNoModel(): void
+    {
+        $files = self::GOOD;
+        $files[self::STEP] = str_replace(
+            ['whose_move: agent', "model: sonnet\n"],
+            ['whose_move: rob', ''],
+            $files[self::STEP],
+        );
+
+        $this->assertNull(StepTree::fromFiles($files)->standards[0]->tracks[0]->steps[0]->model);
+    }
+
+    public function testRefusesAnAgentStepWithNoModel(): void
+    {
+        $files = self::GOOD;
+        $files[self::STEP] = str_replace("model: sonnet\n", '', $files[self::STEP]);
+
+        $this->refuses($files, '#10_rector_php_8_5_rules\.md: an agent step needs a model#');
+    }
+
+    public function testRobsStepInATrackWithAModelIsAccepted(): void
+    {
+        $files = self::GOOD;
+        $files[self::STEP] = str_replace(
+            ['whose_move: agent', "model: sonnet\n"],
+            ['whose_move: rob', ''],
+            $files[self::STEP],
+        );
+        $files['template/rector/_track.md'] = "---\nname: Rector\nposition: 30\nmodel: opus\n---\n";
+
+        $this->assertSame(StepModel::Opus, StepTree::fromFiles($files)->standards[0]->tracks[0]->steps[0]->model);
     }
 }

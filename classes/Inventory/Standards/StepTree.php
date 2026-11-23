@@ -8,10 +8,11 @@ namespace Inventory\Standards;
  * The step files under tools/site-standards/steps/, read into a tree:
  *
  *     <standard>/_standard.md          frontmatter: name
- *     <standard>/<track>/_track.md     frontmatter: name, position
+ *     <standard>/<track>/_track.md     frontmatter: name, position,
+ *                                      model (optional)
  *     <standard>/<track>/<number>_<step>.md
  *                                      frontmatter: title, status, whose_move,
- *                                      check, param (optional)
+ *                                      check, param (optional), model (optional)
  *
  * A step's position is the number its filename starts with (0 to 65535.9999,
  * up to four decimal places) and its name is what follows the underscore, as
@@ -21,6 +22,10 @@ namespace Inventory\Standards;
  * "key: value" pairs. In a step file the text up to a line reading
  * "## How to do it" is the explanation shown on the page, and the rest is the
  * how-to an agent follows.
+ *
+ * A step's model is its own "model" line, else its track's. It names the
+ * model an agent does the step on (StepModel). An agent's step with neither
+ * is refused: there is no default. Rob's step needs none.
  *
  * Anything else is refused, so a typo in a file cannot quietly change what
  * the page says about a site.
@@ -104,8 +109,9 @@ final readonly class StepTree
                     $trackPath,
                     $trackFiles[$standard][$track],
                     ['name', 'position'],
-                    [],
+                    ['model'],
                 )['fields'];
+                $trackModel = self::model($trackPath, $trackFields['model'] ?? null);
 
                 $steps = [];
                 foreach ($stepFiles[$standard][$track] ?? [] as $stepFile) {
@@ -116,7 +122,7 @@ final readonly class StepTree
                         );
                     }
                     $stepNames[$name] = $path;
-                    $steps[] = self::step($name, $position, $path, $files[$path]);
+                    $steps[] = self::step($name, $position, $path, $files[$path], $trackModel);
                 }
                 usort($steps, static fn (StepDef $a, StepDef $b): int => [$a->position, $a->slug] <=> [$b->position, $b->slug]);
                 $tracks[] = new TrackDef(
@@ -133,13 +139,18 @@ final readonly class StepTree
         return new self($standards);
     }
 
-    private static function step(string $name, float $position, string $path, string $content): StepDef
-    {
+    private static function step(
+        string $name,
+        float $position,
+        string $path,
+        string $content,
+        ?StepModel $trackModel,
+    ): StepDef {
         $parsed = self::frontmatter(
             $path,
             $content,
             ['title', 'status', 'whose_move', 'check'],
-            ['param'],
+            ['param', 'model'],
         );
         $fields = $parsed['fields'];
 
@@ -147,6 +158,12 @@ final readonly class StepTree
             ?? throw new StandardsFormatException("{$path}: status must be idea or proven");
         $whoseMove = WhoseMove::tryFrom($fields['whose_move'])
             ?? throw new StandardsFormatException("{$path}: whose_move must be rob or agent");
+        $model = self::model($path, $fields['model'] ?? null) ?? $trackModel;
+        if ($whoseMove === WhoseMove::Agent && $model === null) {
+            throw new StandardsFormatException(
+                "{$path}: an agent step needs a model: add a \"model\" line here or to its track's _track.md"
+            );
+        }
 
         $lines = explode("\n", $parsed['body']);
         $heading = array_search(self::HOW_TO_HEADING, array_map(rtrim(...), $lines), true);
@@ -163,6 +180,7 @@ final readonly class StepTree
             $whoseMove,
             $fields['check'],
             $fields['param'] ?? null,
+            $model,
         );
     }
 
@@ -178,6 +196,18 @@ final readonly class StepTree
             );
         }
         return (float) $value;
+    }
+
+    /**
+     * A "model" line's value as a StepModel; null when the file has no such line.
+     */
+    private static function model(string $path, ?string $value): ?StepModel
+    {
+        if ($value === null) {
+            return null;
+        }
+        return StepModel::tryFrom($value)
+            ?? throw new StandardsFormatException("{$path}: model must be haiku, sonnet, opus or fable");
     }
 
     /**

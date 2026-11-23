@@ -6,6 +6,7 @@ namespace Tests\Unit;
 
 use Codeception\Test\Unit;
 use Inventory\Standards\StepTree;
+use Inventory\Standards\WhoseMove;
 
 /**
  * Hermetic: the step files in this repo are ones mg's importer will accept.
@@ -29,12 +30,19 @@ final class StandardsRealStepFilesTest extends Unit
         }
 
         $steps = 0;
+        $unnamed = [];
         foreach (StepTree::fromFiles($files)->standards as $standard) {
             foreach ($standard->tracks as $track) {
                 $steps += count($track->steps);
+                foreach ($track->steps as $step) {
+                    if ($step->whoseMove === WhoseMove::Agent && $step->model === null) {
+                        $unnamed[] = "{$standard->slug}/{$track->slug}/{$step->slug}";
+                    }
+                }
             }
         }
 
         $this->assertGreaterThan(0, $steps);
+        $this->assertSame([], $unnamed, 'Every agent step names a model, itself or through its track.');
     }
 }
