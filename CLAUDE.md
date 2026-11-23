@@ -99,7 +99,7 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
 ### Database Migration System
 
 - Migrations stored in `db_schemas/` with numbered prefixes (`00_`, `01_`, etc.)
-- Prefixes `00` and `01` applied automatically on boot; `02`+ applied manually via `/admin/migrate_tables.php`
+- Prefixes `00` and `01` are applied automatically on a first install only (when `applied_DB_versions` does not exist yet); everything else, including a file added to `00` or `01` later, is applied manually via `/admin/migrate_tables.php`
 - Schema files must follow `create_*.sql` naming convention (use letter prefixes for ordering within a schema dir, not digits)
 - Applied migrations tracked in `applied_DB_versions` table
 - Manual rollbacks only (no automated rollback — use PHPMyAdmin)
@@ -184,6 +184,7 @@ Pictures can be attached to an issue and show in an Images strip on the issue pa
 - No runtime dependencies — pure PHP with custom autoloader. `composer.json` holds dev tools (Codeception, phpcs, PHPStan) plus the platform requirement (PHP 8.5 and the extensions in `Startup\RequiredExtensions`; `prepend.php` fails by name if one is missing, so keep the two lists in step); `vendor/` is never deployed
 - CSRF: `prepend.php` checks the token on every state-changing browser request. Every `Template` takes the protector (`csrf: $csrfProtect`) and shows it to its template as `$csrf`: a form writes `<?= $csrf->field() ?>`, JavaScript gets `json_encode($csrf->getToken())`. A page must not `set('csrf', ...)`; the template's own `$csrf` replaces it
 - Admin count: `prepend.php` sets `$admin_count` to the number of pending migrations for a logged-in admin and 0 for everyone else. Every `Template` requires it (`admin_count: $admin_count`, beside `csrf:`) and shows it to its template as `$admin_count`, which `templates/partials/menu.tpl.php` draws inside the Admin link when it is above 0. A page must not `set('admin_count', ...)`. A pending migration leaves the count only by being applied at `/admin/migrate_tables.php`
+- Notifications: the count also adds the due rows of the `notifications` table (`db_schemas/01_gumdrop_cloud/create_notifications.sql`, read through `Admin\Notifications`): things an admin must act on that are not migrations. A row is due once its `show_from` has come and its `completed_at` is empty. Every time in the table is UTC, written from PHP, never MySQL `NOW()`. The table is admin-only (no `user_id`), a pending migration is never a row in it, and a missing table counts 0 and stops no page. The step this follows is `tools/site-standards/steps/template/features/20_admin_notifications.md`
 - `?debug=1` URL parameter enables debug output; `\PrintRob\Debug::printRob($var)` echoes `<pre>` dump and exits; `\PrintRob\Debug::printRobLog($var, $label)` appends to `~/rob.log`
 
 ### Including prepend.php
