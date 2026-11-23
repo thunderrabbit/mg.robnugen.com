@@ -22,7 +22,9 @@ case "$level" in
   *) unknown "phpstan.neon's level is $level, which is not one this check knows" ;;
 esac
 [ "$at" -ge "$want" ] || not_yet "PHPStan is at level $level"
-if grep -qi 'baseline' "$config" || compgen -G "$REPO/phpstan*baseline*.neon" > /dev/null; then
+# A comment that says "no baseline" is not a baseline: read only what NEON
+# parses, everything before a # on each line.
+if sed 's/#.*//' "$config" | grep -qi 'baseline' || compgen -G "$REPO/phpstan*baseline*.neon" > /dev/null; then
   not_yet "PHPStan has a baseline"
 fi
 reached="level $want"
