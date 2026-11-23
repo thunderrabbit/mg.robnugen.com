@@ -38,15 +38,7 @@ try {
     $completed_todos = $todoHelper->getFullyCompletedHistory($user_id, $limit, $offset);
 
     // Get total count for pagination (rough optimization: query count separately)
-    $countStmt = $pdo->prepare("
-        SELECT COUNT(*) as total
-        FROM todo_logs tl
-        JOIN todos t ON tl.todo_id = t.todo_id
-        WHERE tl.user_id = ?
-        AND tl.nth >= t.target_count
-    ");
-    $countStmt->execute([$user_id]);
-    $totalCount = \Field::int($countStmt->fetch(\PDO::FETCH_ASSOC), 'total');
+    $totalCount = $todoHelper->getFullyCompletedCount($user_id);
 
     echo json_encode([
         'success' => true,
