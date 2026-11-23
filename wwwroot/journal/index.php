@@ -16,6 +16,7 @@ include_once $matches[1] . '/prepend.php';
  * @var \Config $config
  * @var \Auth\IsLoggedIn $is_logged_in
  * @var \Security\CSRFProtectaroo $csrfProtect
+ * @var int $admin_count
  */
 
 if (!$is_logged_in->isLoggedIn()) {
@@ -41,11 +42,11 @@ foreach ($journal_files->all($user_id) as $row) {
     ];
 }
 
-$page = new \Template($config, $is_logged_in, $csrfProtect);
+$page = new \Template($config, $is_logged_in, $csrfProtect, $admin_count);
 $page->setTemplate("layout/base.tpl.php");
 $page->set("page_title", "Journal — Meiso Gambare");
 
-$inner = new \Template($config, $is_logged_in, $csrfProtect);
+$inner = new \Template($config, $is_logged_in, $csrfProtect, $admin_count);
 $inner->setTemplate("journal/index.tpl.php");
 $inner->set("days", $days);
 $inner->set("last_synced", $journal_files->lastSynced($user_id));

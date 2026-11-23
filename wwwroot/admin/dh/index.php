@@ -14,6 +14,7 @@ include_once $matches[1] . '/prepend.php';
  * @var \Auth\IsLoggedIn $is_logged_in
  * @var \PDO $mla_database
  * @var \Security\CSRFProtectaroo $csrfProtect
+ * @var int $admin_count
  */
 
 \Inventory\AdminPage::guard($is_logged_in);
@@ -21,7 +22,7 @@ $browse = new \Inventory\Browse($mla_database);
 $sweep = $browse->latestSweep();
 
 $swept_on = $sweep['swept_on'] ?? '';
-\Inventory\AdminPage::render($config, $is_logged_in, $csrfProtect, 'admin/dh/index.tpl.php', 'DreamHost inventory', [
+\Inventory\AdminPage::render($config, $is_logged_in, $csrfProtect, $admin_count, 'admin/dh/index.tpl.php', 'DreamHost inventory', [
     'sweep' => $sweep,
     'counts' => $sweep === null ? [] : $browse->counts(),
     'php_summary' => $browse->phpSummary(),

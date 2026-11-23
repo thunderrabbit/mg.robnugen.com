@@ -15,6 +15,7 @@ include_once $matches[1] . '/prepend.php';
  * @var \PDO $mla_database
  * @var \Database\DBExistaroo $dbExistaroo
  * @var \Security\CSRFProtectaroo $csrfProtect
+ * @var int $admin_count
  */
 
 if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
@@ -32,7 +33,7 @@ if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
         }
     }
 
-    $page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect);
+    $page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect, admin_count: $admin_count);
     $page->setTemplate("admin/index.tpl.php");
     $page->set(name: "site_version", value: SENTIMENTAL_VERSION);
     $page->set(name: "username", value: $is_logged_in->getLoggedInUsername());
@@ -46,7 +47,7 @@ if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
 
     $inner = $page->grabTheGoods();
 
-    $layout = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect);
+    $layout = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect, admin_count: $admin_count);
     $layout->setTemplate("layout/base.tpl.php");
     $layout->set("page_title", "Admin Dashboard");
     $layout->set("page_content", $inner);

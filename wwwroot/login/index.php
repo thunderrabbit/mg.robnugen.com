@@ -14,6 +14,7 @@ include_once $matches[1] . '/prepend.php';
  * @var \Auth\IsLoggedIn $is_logged_in
  * @var \Mlaphp\Request $mla_request
  * @var \Security\CSRFProtectaroo $csrfProtect
+ * @var int $admin_count
  */
 
 // This page is the ONLY place credentials are checked.
@@ -59,12 +60,12 @@ if ($is_logged_in->isLoggedIn()) {
     header(header: "Location: $return_url");
     exit;
 } else {
-    $page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect);
+    $page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect, admin_count: $admin_count);
     $page->setTemplate("layout/welcome_base.tpl.php");
     $page->set("page_title", "Log In - Meiso Gambare");
 
     // Get the inner content
-    $inner_page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect);
+    $inner_page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect, admin_count: $admin_count);
     $inner_page->setTemplate("login/login_content.tpl.php");
 
     // Check if user just registered

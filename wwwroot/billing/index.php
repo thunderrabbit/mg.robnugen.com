@@ -12,6 +12,7 @@ include_once $matches[1] . '/prepend.php';
  * @var \Auth\IsLoggedIn $is_logged_in
  * @var \PDO $mla_database
  * @var \Security\CSRFProtectaroo $csrfProtect
+ * @var int $admin_count
  */
 
 if (!$is_logged_in->isLoggedIn()) {
@@ -30,14 +31,14 @@ $credits_remaining = (int)($credits_stmt->fetchColumn() ?: 0);
 
 $stripe_error = !empty($_GET['stripe_error']);
 
-$page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect);
+$page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect, admin_count: $admin_count);
 $page->setTemplate('billing/index.tpl.php');
 $page->set('credits_remaining', $credits_remaining);
 $page->set('stripe_configured', !empty($config->stripe_price_developer));
 $page->set('stripe_error', $stripe_error);
 $inner = $page->grabTheGoods();
 
-$layout = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect);
+$layout = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect, admin_count: $admin_count);
 $layout->setTemplate('layout/base.tpl.php');
 $layout->set('page_title', 'Billing - Meiso Gambare');
 $layout->set('page_content', $inner);

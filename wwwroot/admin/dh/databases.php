@@ -14,6 +14,7 @@ include_once $matches[1] . '/prepend.php';
  * @var \Auth\IsLoggedIn $is_logged_in
  * @var \PDO $mla_database
  * @var \Security\CSRFProtectaroo $csrfProtect
+ * @var int $admin_count
  */
 
 \Inventory\AdminPage::guard($is_logged_in);
@@ -27,7 +28,7 @@ $databases = $browse->databases($sweep['id'] ?? null, $sweep['previous_id'] ?? n
 $emptyCount = count(array_filter($databases, $isEmpty));
 $emptyOnly = \Field::int($_GET, 'empty') === 1;
 
-\Inventory\AdminPage::render($config, $is_logged_in, $csrfProtect, 'admin/dh/databases.tpl.php', 'DreamHost databases', [
+\Inventory\AdminPage::render($config, $is_logged_in, $csrfProtect, $admin_count, 'admin/dh/databases.tpl.php', 'DreamHost databases', [
     'sweep' => $sweep,
     'databases' => $emptyOnly ? array_values(array_filter($databases, $isEmpty)) : $databases,
     'empty_count' => $emptyCount,

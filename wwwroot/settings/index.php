@@ -12,6 +12,7 @@ include_once $matches[1] . '/prepend.php';
  * @var \Auth\IsLoggedIn $is_logged_in
  * @var \PDO $mla_database
  * @var \Security\CSRFProtectaroo $csrfProtect
+ * @var int $admin_count
  */
 
 if (!$is_logged_in->isLoggedIn()) {
@@ -145,7 +146,7 @@ $credits_stmt = $mla_database->prepare(
 $credits_stmt->execute([$user_id]);
 $credits_remaining = (int)($credits_stmt->fetchColumn() ?: 0);
 
-$page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect);
+$page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect, admin_count: $admin_count);
 $page->setTemplate('settings/index.tpl.php');
 $page->set('error_message', $error_message);
 $page->set('success_message', $success_message);
@@ -156,7 +157,7 @@ $page->set('credits_remaining', $credits_remaining);
 $page->set('actors', $actors);
 $inner = $page->grabTheGoods();
 
-$layout = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect);
+$layout = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect, admin_count: $admin_count);
 $layout->setTemplate('layout/base.tpl.php');
 $layout->set('page_title', 'Settings - Meiso Gambare');
 $layout->set('page_content', $inner);

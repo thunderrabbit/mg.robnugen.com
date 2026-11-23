@@ -19,6 +19,7 @@ include_once $matches[1] . '/prepend.php';
  * @var \Config $config
  * @var \Auth\IsLoggedIn $is_logged_in
  * @var \Security\CSRFProtectaroo $csrfProtect
+ * @var int $admin_count
  */
 
 if (!$is_logged_in->isLoggedIn()) {
@@ -73,11 +74,11 @@ if ($issue->parentIssueId !== null) {
     }
 }
 
-$page = new \Template($config, $is_logged_in, $csrfProtect);
+$page = new \Template($config, $is_logged_in, $csrfProtect, $admin_count);
 $page->setTemplate("layout/base.tpl.php");
 $page->set("page_title", $issue->title . " - Meiso Gambare");
 
-$inner_page = new \Template($config, $is_logged_in, $csrfProtect);
+$inner_page = new \Template($config, $is_logged_in, $csrfProtect, $admin_count);
 $inner_page->setTemplate("issues/view.tpl.php");
 $inner_page->set("issue", $issue);
 $inner_page->set("comments", $comments);
@@ -88,7 +89,7 @@ $inner_page->set("statuses", $service->statuses());
 // The Images card. What the last upload had to say is shown once.
 $pictures    = \Issues\Images\ImageService::forConfig($config, $pdo);
 $image_notes = \Issues\Images\PostedFiles::takeNotes($_SESSION);
-$image_strip = new \Template($config, $is_logged_in, $csrfProtect);
+$image_strip = new \Template($config, $is_logged_in, $csrfProtect, $admin_count);
 $image_strip->setTemplate("issues/image_strip.tpl.php");
 $image_strip->set("images", $pictures->forIssue($caller, $issue_id));
 $image_strip->set("can_write", $issue->canWrite && $pictures->enabled());

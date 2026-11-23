@@ -13,6 +13,7 @@ include_once $matches[1] . '/prepend.php';
  * @var \Config $config
  * @var \Auth\IsLoggedIn $is_logged_in
  * @var \Security\CSRFProtectaroo $csrfProtect
+ * @var int $admin_count
  */
 
 if (!$is_logged_in->isLoggedIn()) {
@@ -55,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // with it, clicking the name opens the form in place.
 $renaming = \Field::string($_GET, 'rename') !== '';
 
-$page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect);
+$page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect, admin_count: $admin_count);
 $page->setTemplate("profile/devices.tpl.php");
 $page->set("devices", $is_logged_in->devices());
 $page->set("now", new \DateTimeImmutable());
@@ -65,7 +66,7 @@ $page->set("success_message", $success_message);
 
 $inner = $page->grabTheGoods();
 
-$layout = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect);
+$layout = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect, admin_count: $admin_count);
 $layout->setTemplate("layout/base.tpl.php");
 $layout->set("username", $is_logged_in->getLoggedInUsername());
 $layout->set("page_title", "Signed-in Devices");

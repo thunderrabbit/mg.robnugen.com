@@ -11,6 +11,7 @@ include_once $matches[1] . '/prepend.php';
  * @var \Config $config
  * @var \Auth\IsLoggedIn $is_logged_in
  * @var \Security\CSRFProtectaroo $csrfProtect
+ * @var int $admin_count
  */
 
 if (!$is_logged_in->isLoggedIn()) {
@@ -66,11 +67,11 @@ $stmt = $pdo->prepare("SELECT COUNT(*) FROM dm_my_evidence WHERE dm_mo = ? AND u
 $stmt->execute([$dm_mo, $user_id]);
 $evidence_count = $stmt->fetchColumn();
 
-$page = new \Template($config, $is_logged_in, $csrfProtect);
+$page = new \Template($config, $is_logged_in, $csrfProtect, $admin_count);
 $page->setTemplate("layout/base.tpl.php");
 $page->set("page_title", "Find Evidence - Decision Matrix");
 
-$inner_page = new \Template($config, $is_logged_in, $csrfProtect);
+$inner_page = new \Template($config, $is_logged_in, $csrfProtect, $admin_count);
 $inner_page->setTemplate("matrix/add_evidence.tpl.php");
 $inner_page->set("verify_blob", $verify_blob);
 $inner_page->set("problem_blob", base64_encode(\Field::string($row, 'problem')));

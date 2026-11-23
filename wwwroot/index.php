@@ -13,6 +13,7 @@ include_once $matches[1] . '/prepend.php';
  * @var \Config $config
  * @var \Auth\IsLoggedIn $is_logged_in
  * @var \Security\CSRFProtectaroo $csrfProtect
+ * @var int $admin_count
  */
 
 $debugLevel = \Field::int($_GET, 'debug');
@@ -26,12 +27,12 @@ $uri = parse_url(\Field::string($_SERVER, 'REQUEST_URI', '/'), PHP_URL_PATH);
 if ($uri === '/' || $uri === '' || $uri === '/index.php') {
     if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
         // Admin users - show admin dashboard
-        $page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect);
+        $page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect, admin_count: $admin_count);
         $page->setTemplate("layout/base.tpl.php");
         $page->set("page_title", "Dashboard - Meiso Gambare");
 
         // Get the dashboard content
-        $inner_page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect);
+        $inner_page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect, admin_count: $admin_count);
         $inner_page->setTemplate("dashboard/paid_dashboard.tpl.php");
         $inner_page->set("is_admin", true);
         if (isset($_GET['msg'])) {
@@ -43,12 +44,12 @@ if ($uri === '/' || $uri === '' || $uri === '/index.php') {
         exit;
     } elseif ($is_logged_in->isLoggedIn() && $is_logged_in->isPaid()) {
         // Paid users - show user dashboard (no admin link)
-        $page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect);
+        $page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect, admin_count: $admin_count);
         $page->setTemplate("layout/base.tpl.php");
         $page->set("page_title", "Dashboard - Meiso Gambare");
 
         // Get the dashboard content
-        $inner_page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect);
+        $inner_page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect, admin_count: $admin_count);
         $inner_page->setTemplate("dashboard/paid_dashboard.tpl.php");
         $inner_page->set("is_admin", false);
         if (isset($_GET['msg'])) {
@@ -60,12 +61,12 @@ if ($uri === '/' || $uri === '' || $uri === '/index.php') {
         exit;
     } else {
         // Anonymous or free users - show welcome page
-        $page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect);
+        $page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect, admin_count: $admin_count);
         $page->setTemplate("layout/welcome_base.tpl.php");
         $page->set("page_title", "Meiso Gambare - Meditation Timer");
 
         // Get the welcome content
-        $inner_page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect);
+        $inner_page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect, admin_count: $admin_count);
         $inner_page->setTemplate("welcome.tpl.php");
         $inner_page->set("is_logged_in", $is_logged_in->isLoggedIn());
         $inner_page->set("is_admin", $is_logged_in->isAdmin());

@@ -29,24 +29,26 @@ final class AdminPage
     }
 
     /**
+     * @param int $admin_count prepend.php's count, for the menu's Admin link
      * @param array<string, mixed> $vars handed to the template
      */
     public static function render(
         \Config $config,
         \Auth\IsLoggedIn $is_logged_in,
         \Security\CSRFProtectaroo $csrf,
+        int $admin_count,
         string $template,
         string $title,
         array $vars,
     ): never {
-        $page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrf);
+        $page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrf, admin_count: $admin_count);
         $page->setTemplate($template);
         foreach ($vars as $name => $value) {
             $page->set(name: $name, value: $value);
         }
         $inner = $page->grabTheGoods();
 
-        $layout = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrf);
+        $layout = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrf, admin_count: $admin_count);
         $layout->setTemplate('layout/base.tpl.php');
         $layout->set('page_title', $title);
         $layout->set('page_content', $inner);

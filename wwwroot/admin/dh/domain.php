@@ -14,6 +14,7 @@ include_once $matches[1] . '/prepend.php';
  * @var \Auth\IsLoggedIn $is_logged_in
  * @var \PDO $mla_database
  * @var \Security\CSRFProtectaroo $csrfProtect
+ * @var int $admin_count
  */
 
 \Inventory\AdminPage::guard($is_logged_in);
@@ -26,7 +27,7 @@ if ($domain === null) {
     exit('No such domain.');
 }
 $domain_id = \Field::int($domain, 'dh_domain_id');
-\Inventory\AdminPage::render($config, $is_logged_in, $csrfProtect, 'admin/dh/domain.tpl.php', 'DreamHost domain', [
+\Inventory\AdminPage::render($config, $is_logged_in, $csrfProtect, $admin_count, 'admin/dh/domain.tpl.php', 'DreamHost domain', [
     'sweep' => $sweep,
     'domain' => $domain,
     'sites' => $browse->domainSites($domain_id),

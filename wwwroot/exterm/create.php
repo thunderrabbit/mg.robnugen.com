@@ -25,6 +25,7 @@ include_once $matches[1] . '/prepend.php';
  * @var \Config $config
  * @var \Auth\IsLoggedIn $is_logged_in
  * @var \Security\CSRFProtectaroo $csrfProtect
+ * @var int $admin_count
  */
 
 if (!$is_logged_in->isLoggedIn()) {
@@ -92,11 +93,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$page = new \Template($config, $is_logged_in, $csrfProtect);
+$page = new \Template($config, $is_logged_in, $csrfProtect, $admin_count);
 $page->setTemplate("layout/base.tpl.php");
 $page->set("page_title", "New ET Note — Meiso Gambare");
 
-$inner = new \Template($config, $is_logged_in, $csrfProtect);
+$inner = new \Template($config, $is_logged_in, $csrfProtect, $admin_count);
 $inner->setTemplate("exterm/create.tpl.php");
 $inner->set("project_id", $project_id);
 $inner->set("project_name", $project_name);
