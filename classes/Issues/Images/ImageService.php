@@ -176,6 +176,15 @@ final readonly class ImageService
     }
 
     /**
+     * One picture with its URL and markdown line. Only for a row an upload,
+     * readable() or a strip answered.
+     */
+    public function view(IssueImageRow $image): ImageView
+    {
+        return $this->views([$image])[0];
+    }
+
+    /**
      * The pictures an issue shows: newest upload first, a batch in name order.
      *
      * @return list<ImageView>
