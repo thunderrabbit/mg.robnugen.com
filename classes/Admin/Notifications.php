@@ -12,7 +12,7 @@ namespace Admin;
  * whose table is missing, or any database error, counts nothing and never
  * stops a page.
  */
-final class Notifications
+final readonly class Notifications
 {
     /** The longest message the "Remind me" form takes, in characters. */
     public const int MESSAGE_MAX = 1000;
@@ -20,11 +20,11 @@ final class Notifications
     /** The link column's width. */
     public const int LINK_MAX = 255;
 
-    private readonly \DateTimeImmutable $now;
+    private \DateTimeImmutable $now;
 
     /** @param ?\DateTimeImmutable $now null means now; read in UTC either way */
     public function __construct(
-        private readonly \PDO $pdo,
+        private \PDO $pdo,
         ?\DateTimeImmutable $now = null,
     ) {
         $this->now = ($now ?? new \DateTimeImmutable())->setTimezone(new \DateTimeZone('UTC'));
