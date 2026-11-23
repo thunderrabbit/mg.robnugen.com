@@ -178,7 +178,7 @@ One class holds the checks, and both ways in use it:
 
     tools/issue-images/upload.sh [--dry-run] [--as=<aiu_id>] <issue_id> <file-or-dir> ...
 
-- Sends the files over `ssh mg` to `tools/import_issue_images.php`, which
+- Sends the files over `ssh mg` to `tools/issue_images.php import`, which
   runs the checks and stores them, the way a scan is imported. How the
   bytes travel (a stream, or a temporary directory on the server that the
   importer empties) is the builder's choice; a failed run leaves nothing
