@@ -116,31 +116,7 @@ $todo_grants = new \Auth\TodoGrants($pdo);   // shared by handler includes
 
 function require_credit(\PDO $pdo, int $user_id, ?int $key_id, string $endpoint, ?int $token_id = null): void
 {
-    $stmt = $pdo->prepare(
-        "UPDATE api_credits
-         SET credits_remaining = credits_remaining - 1
-         WHERE user_id = ? AND credits_remaining > 0"
-    );
-    $stmt->execute([$user_id]);
-
-    if ($stmt->rowCount() === 0) {
-        http_response_code(402);
-        echo json_encode([
-            'error'       => 'No credits remaining',
-            'upgrade_url' => 'https://mg.robnugen.com/billing',
-        ]);
-        exit;
-    }
-
-    // Log to api_usage after successful deduction
-    try {
-        $log = $pdo->prepare(
-            "INSERT INTO api_usage (user_id, key_id, token_id, endpoint) VALUES (?, ?, ?, ?)"
-        );
-        $log->execute([$user_id, $key_id, $token_id, $endpoint]);
-    } catch (\Exception) {
-        // Never fail a request over logging
-    }
+    \Auth\ApiGate::requireCredit($pdo, $user_id, $key_id, $endpoint, $token_id);
 }
 
 // Coarse subsystem gate for /projects, /repositories, /issues.
@@ -151,12 +127,7 @@ function require_credit(\PDO $pdo, int $user_id, ?int $key_id, string $endpoint,
  */
 function require_project_perm(array $auth_actor, string $method): void
 {
-    $needs = ($method === 'GET') ? 'can_read_project' : 'can_write_project';
-    if (empty($auth_actor[$needs])) {
-        http_response_code(403);
-        echo json_encode(['error' => "This API key does not have permission ({$needs}) for the project subsystem"]);
-        exit;
-    }
+    \Auth\ApiGate::requireProjectPerm($auth_actor, $method);
 }
 
 // ── Route dispatch ────────────────────────────────────────────────────────────
