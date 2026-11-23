@@ -23,6 +23,10 @@ not:
   never run on a guess.
 - The brief and the rules come from next_step_brief.md beside this file,
   which names no site.
+- `--confirm --base=<commit>` is for after the work, whoever did it. It
+  reports what it finds itself (the branch, the tree, the commits since the
+  base, the check, the gates, what the diff added) and `clean`. The gates
+  are standards-mcp's runner scripts, which mount the repo read-only.
 """
 
 import collections
@@ -96,6 +100,38 @@ SUBAGENT_MODELS = ("haiku", "sonnet")   # a step on any other model is done by t
 PLACEHOLDERS = ("shortcode", "top", "track", "title", "slug", "detail", "served", "explanation", "how_to", "check")
 RULES_MARK = "<!-- rules -->\n"
 SUBAGENT_MARK = "<!-- subagent -->\n"
+
+TRUNKS = ("master", "main")
+GATES = ("run-unit.sh", "run-phpcs.sh", "run-phpstan.sh")
+GATE_TIMEOUT = 1800
+NOT_A_COMMIT = "--base= is not a commit in this checkout."
+ON_BRANCH = "On branch `{branch}`."
+ON_TRUNK = "On `{branch}`, which is the trunk."
+NOT_ON_A_BRANCH = "Not on a branch."
+TREE_CLEAN = "The working tree is clean."
+TREE_CHANGED = "The working tree has uncommitted changes."
+NO_COMMITS = "No commits since `{base}`."
+ONE_COMMIT = "1 commit since `{base}`:"
+COMMITS = "{count} commits since `{base}`:"
+COMMIT_LINE = "- `{commit}` {subject}"
+BASE_OUTSIDE = "HEAD does not contain `{base}`."
+BUBBLE_FROM = 4   # this many commits make a bubble, which a one-file BEGIN commit opens
+BEGIN_FIRST = "The first is a `BEGIN ` commit touching one file."
+BEGIN_NOT_FIRST = "The first is not a `BEGIN ` commit touching one file."
+CHECK_LINE = "Check `{check}`: {outcome} (`{line}`)."
+CHECK_OUTCOMES = {"pass": "pass", "fail": "fail", "unknown": "could not tell"}
+CHECK_MGS_LINE = "Check `{check}` is mg's own; it has no script here."
+GATE_EXIT = "`{gate}`: exit {code}."
+GATE_NOT_SET_UP = "`{gate}`: not set up here."
+GATE_NOT_FOUND = "`{gate}`: not found in standards-mcp."
+GATE_SKIP = "GATE SKIP"   # what a runner script prints, exiting 0, for a repo not set up for it
+IN_THE_DIFF = ("In the diff: {ignores} added `@phpstan-ignore` lines, {baselines} baseline files added or grown, "
+               "{tests_deleted} test files deleted, {tests_skipped} tests newly marked skipped or incomplete.")
+IGNORE = "@phpstan-ignore"
+BASELINE = re.compile(r"baseline.*\.(?:neon|php|xml|json)\Z", re.IGNORECASE)
+TEST_FILE = re.compile(r"(?:Test|Cest|Cept)\.php\Z")
+SKIPPED = re.compile(r"markTestSkipped|markTestIncomplete|#\[(Skip|Incomplete)\b"
+                     r"|\$scenario->(skip|incomplete)\(|@(skip|incomplete)\b")
 
 Options = collections.namedtuple("Options", "shortcode leave_upgrade confirm base session_model")
 # kind: "script" (a check script here), "none" (mg's own check, or an idea with
@@ -469,10 +505,169 @@ def lookup(options, cwd):
     return {"outcome": "do", "say": "\n".join(lines), "model": model, "rules": rules, "base": base}
 
 
+def trunk_of(top):
+    """The branch origin/HEAD points at, when the checkout has one."""
+    code, name = scan.git(top, "symbolic-ref", "--short", "-q", "refs/remotes/origin/HEAD")
+    name = name.strip()
+    return name[len("origin/"):] if code == 0 and name.startswith("origin/") else None
+
+
+def added_lines(top, base):
+    """The lines base..HEAD adds to .php files, without the diff's own headers."""
+    # scan.git's command line, but a site's old PHP file need not be UTF-8.
+    done = subprocess.run(["git", "--no-optional-locks", "-C", top, "diff", "--no-ext-diff", "--no-color",
+                           "--unified=0", base, "HEAD", "--", "*.php"],
+                          capture_output=True, text=True, errors="replace", stdin=subprocess.DEVNULL)
+    added, in_hunk = [], False
+    for line in done.stdout.split("\n"):
+        if line.startswith("diff --git "):
+            in_hunk = False
+        elif line.startswith("@@"):
+            in_hunk = True
+        elif in_hunk and line.startswith("+"):
+            added.append(line[1:])
+    return added
+
+
+def diff_counts(top, base):
+    """What base..HEAD added that hides findings or drops tests. Facts for Rob, not a verdict."""
+    added = added_lines(top, base)
+
+    baselines = 0
+    numstat = scan.git(top, "diff", "--no-ext-diff", "--numstat", "--no-renames", "-z", base, "HEAD")[1]
+    for entry in numstat.split("\0"):
+        parts = entry.split("\t", 2)
+        if len(parts) != 3 or not parts[0].isdigit() or not parts[1].isdigit():
+            continue   # nothing, or a binary file
+        if BASELINE.search(os.path.basename(parts[2])) and int(parts[0]) > int(parts[1]):
+            baselines += 1
+
+    tests_deleted = 0
+    # -M: a test that moved is not a test deleted.
+    deleted = scan.git(top, "diff", "--no-ext-diff", "--name-status", "--diff-filter=D", "-M", "-z", base, "HEAD")[1]
+    fields = deleted.split("\0")
+    for status, path in zip(fields[0::2], fields[1::2]):
+        if status != "D" or not path.endswith(".php"):
+            continue
+        directories = path.split("/")[:-1]
+        if "tests" in directories or "Tests" in directories or TEST_FILE.search(os.path.basename(path)):
+            tests_deleted += 1
+
+    return {"ignores": sum(1 for line in added if IGNORE in line),
+            "baselines": baselines,
+            "tests_deleted": tests_deleted,
+            "tests_skipped": sum(1 for line in added if SKIPPED.search(line))}
+
+
+def run_gates(top):
+    """([line for each gate], whether every gate that ran passed). Each runner mounts the repo read-only."""
+    lines, passed = [], True
+    for gate in GATES:
+        script = os.path.join(standards_mcp(), gate)
+        if not os.path.isfile(script) or not os.access(script, os.X_OK):
+            lines.append(GATE_NOT_FOUND.format(gate=gate))
+            continue
+        try:
+            done = subprocess.run([script, top], capture_output=True, text=True, errors="replace",
+                                  stdin=subprocess.DEVNULL, timeout=GATE_TIMEOUT)
+            code, out = done.returncode, done.stdout
+        except subprocess.TimeoutExpired:
+            code, out = 124, ""
+        if code == 0 and any(line.startswith(GATE_SKIP) for line in out.splitlines()):
+            lines.append(GATE_NOT_SET_UP.format(gate=gate))
+            continue
+        lines.append(GATE_EXIT.format(gate=gate, code=code))
+        passed = passed and code == 0
+    return lines, passed
+
+
+def confirm(options, cwd):
+    """After the work, whoever did it: the facts this script finds itself, and `clean`.
+
+    It trusts no report. `clean` is a rule over the facts and not a verdict
+    on the work; only a clean result lets the session close the bubble.
+    """
+    try:
+        top, relative = checkout(cwd)
+        code, base = scan.git(top, "rev-parse", "--verify", "--quiet", options.base + "^{commit}")
+        base = base.strip()
+        if code != 0 or not scan.server_facts.SHA.match(base):
+            raise Usage(NOT_A_COMMIT)
+        # No scan has run since the lookup, so mg names the same step.
+        site, facts, _ = site_or_stop(ask_mg(options, relative))
+    except Stop as stop:
+        raise Stop(dict(stop.answer, clean=False)) from None
+    step = site["open_steps"][0]
+    lines, clean = [], True
+
+    _, branch = local_head(top)
+    if branch is None:
+        lines.append(NOT_ON_A_BRANCH)
+        clean = False
+    elif branch in TRUNKS or branch == trunk_of(top):
+        lines.append(ON_TRUNK.format(branch=branch))
+        clean = False
+    else:
+        lines.append(ON_BRANCH.format(branch=branch))
+
+    code, changes = scan.git(top, "status", "--porcelain")
+    if code == 0 and changes.strip() == "":
+        lines.append(TREE_CLEAN)
+    else:
+        lines.append(TREE_CHANGED)
+        clean = False
+
+    if scan.git(top, "merge-base", "--is-ancestor", base, "HEAD")[0] != 0:
+        lines.append(BASE_OUTSIDE.format(base=base[:7]))
+        clean = False
+    else:
+        log = scan.git(top, "log", "--reverse", "--format=%H%x09%s", base + "..HEAD")[1]
+        commits = [line.split("\t", 1) for line in log.splitlines() if "\t" in line]
+        if not commits:
+            lines.append(NO_COMMITS.format(base=base[:7]))
+        else:
+            heading = ONE_COMMIT if len(commits) == 1 else COMMITS
+            lines.append(heading.format(count=len(commits), base=base[:7]))
+            lines += [COMMIT_LINE.format(commit=commit[:7], subject=printable(subject)) for commit, subject in commits]
+        if len(commits) >= BUBBLE_FROM:
+            first, subject = commits[0]
+            shown = scan.git(top, "show", "--name-only", "--format=", first)[1]
+            touched = [path for path in shown.splitlines() if path != ""]
+            if subject.startswith("BEGIN ") and len(touched) == 1:
+                lines.append(BEGIN_FIRST)
+            else:   # a bubble that was never opened is not one to close
+                lines.append(BEGIN_NOT_FIRST)
+                clean = False
+
+    server_commit, server_branch = None, None
+    if check_kind(step.get("check")) == "script":
+        _, _, server_commit, server_branch = second_line(site, facts, top, options)
+    check = check_here(step, facts, top, server_commit, server_branch)
+    if check.kind == "none":
+        lines.append(CHECK_MGS_LINE.format(check=step.get("check")))
+    else:
+        lines.append(CHECK_LINE.format(check=step.get("check"), outcome=CHECK_OUTCOMES[check.outcome],
+                                       line=check.line))
+        clean = clean and check.outcome == "pass"
+
+    gate_lines, gates_passed = run_gates(top)
+    lines += gate_lines
+    clean = clean and gates_passed
+
+    counts = diff_counts(top, base)
+    lines.append(IN_THE_DIFF.format(**counts))
+    clean = clean and not any(counts.values())
+
+    return {"outcome": "say", "say": "\n".join(lines), "after": scan_reminder(site["shortcode"], facts),
+            "clean": clean}
+
+
 def answer(argv, cwd=None):
     """The object to print for a command line. A Usage is the caller's to report."""
     options = parse_arguments(argv)
     try:
+        if options.confirm:
+            return confirm(options, cwd or os.getcwd())
         return lookup(options, cwd or os.getcwd())
     except Stop as stop:
         return stop.answer
