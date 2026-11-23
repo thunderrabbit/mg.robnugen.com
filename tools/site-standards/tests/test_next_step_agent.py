@@ -118,6 +118,100 @@ class NextStepAgentTest(NextStepCase):
         self.assertIn("Its server did not say what it runs (`its domains have different checkouts`).",
                       self.run_it()["say"].split("\n"))
 
+    def test_the_never_run_list_is_exactly_the_safe_suite(self):
+        self.assertEqual(next_step.NEVER_RUN_IN_A_LOOKUP,
+                         {"suite_passes_on_php": "only the scan runs a site's safe suite"})
+
+    def test_a_passing_check_is_already_done_with_the_scan_reminder(self):
+        self.server_runs(self.first)
+        self.check("echo", 0, "all there")
+        self.mg_says(self.site([self.step()]))
+        got = self.run_it()
+        self.assertEqual(got["outcome"], "say")
+        self.assertEqual(got["say"].split("\n")[-1], "Already done here; it's waiting on a deploy.")
+        self.assertEqual(got["after"], "Once you've approved and deployed this, run on Lemur 13:\n"
+                                       "`~/work/rob/mg.robnugen.com/tools/site-standards/scan.sh demo`")
+
+    def test_the_reminder_names_the_test_domain_when_that_is_enough(self):
+        self.server_runs(self.first)
+        self.check("echo", 0, "all there")
+        test = {"domain": "demo-test.example", "php_version": "8.5", "ssh_alias": "stage", "directory": "t"}
+        self.mg_says(self.site([self.step()]), self.facts(test=test))
+        self.assertEqual(self.run_it()["after"],
+                         "Once you've approved and deployed this to `demo-test.example`, run on Lemur 13:\n"
+                         "`~/work/rob/mg.robnugen.com/tools/site-standards/scan.sh demo`")
+
+    def test_a_test_domain_beside_an_upgrade_branch_keeps_the_plain_reminder(self):
+        self.server_runs(self.first)
+        self.check("echo", 0, "all there")
+        test = {"domain": "demo-test.example", "php_version": "8.5", "ssh_alias": "stage", "directory": "t"}
+        self.mg_says(self.site([self.step()]), self.facts(test=test, upgrade_branch="green"))
+        self.assertTrue(self.run_it()["after"].startswith("Once you've approved and deployed this, run"))
+
+    def test_a_failing_check_goes_on_without_a_word(self):
+        self.server_runs(self.first)
+        self.mg_says(self.site([self.step()]))      # echo exits 1 from setUp
+        got = self.run_it()
+        self.assertIn(got["outcome"], ("dispatch", "do"))
+        self.assertNotIn("after", got)
+        self.assertNotIn("could not tell", got["say"])
+
+    def test_a_check_that_could_not_tell_is_quoted_and_the_run_goes_on(self):
+        self.server_runs(self.first)
+        self.check("echo", 2, "vendor/ is not installed")
+        self.mg_says(self.site([self.step()]))
+        got = self.run_it()
+        self.assertIn(got["outcome"], ("dispatch", "do"))
+        self.assertIn("The check could not tell: `vendor/ is not installed`", got["say"].split("\n"))
+
+    def test_the_check_gets_the_scanners_environment_and_the_param(self):
+        self.server_runs(self.first)
+        self.check("echo", 2, "$2|$SITE_SHORTCODE|$SITE_PHP_CURRENT|$SITE_TEST_DOMAIN|$SITE_TEST_PHP|"
+                              "$SITE_TEST_SSH_ALIAS|$SITE_TEST_DIRECTORY|$SITE_SERVER_SSH_ALIAS|"
+                              "$SITE_SERVER_DIRECTORY|$SITE_SERVER_COMMIT|$SITE_UPGRADE_BRANCH|$1")
+        test = {"domain": "demo-test.example", "php_version": "8.5", "ssh_alias": "stage", "directory": "t"}
+        self.mg_says(self.site([self.step(check_param="8.5")]), self.facts(test=test, upgrade_branch="green"))
+        said = self.run_it()["say"]
+        self.assertIn(f"`8.5|demo|8.4|demo-test.example|8.5|stage|t|prod|demo.example|{self.first}|green|"
+                      f"{os.path.realpath(self.repo)}`", said)
+
+    def test_a_null_param_reaches_the_check_as_nothing(self):
+        self.server_runs(self.first)
+        self.check("echo", 2, "param=[$2]")
+        self.mg_says(self.site([self.step(check_param=None)]))
+        self.assertIn("`param=[]`", self.run_it()["say"])
+
+    def test_the_sites_php_target_comes_from_the_registry(self):
+        self.server_runs(self.first)
+        write(os.path.join(self.mcp, "repos.yaml"),
+              f"demo:\n  path: {os.path.realpath(self.repo)}\n  php_target: \"8.5\"\n")
+        self.check("echo", 2, "target=$SITE_PHP_TARGET")
+        self.mg_says(self.site([self.step()]))
+        self.assertIn("`target=8.5`", self.run_it()["say"])
+
+    def test_a_safe_suite_is_never_run_in_a_lookup(self):
+        self.server_runs(self.first)
+        marker = os.path.join(self.root, "suite-ran")
+        self.check("suite_passes_on_php", 0, "passed", body=f"touch '{marker}'")
+        self.mg_says(self.site([self.step(check="suite_passes_on_php", check_param="8.5")]))
+        got = self.run_it()
+        self.assertFalse(os.path.exists(marker))
+        self.assertIn(got["outcome"], ("dispatch", "do"))
+        self.assertIn("The check could not tell: `only the scan runs a site's safe suite`",
+                      got["say"].split("\n"))
+
+    def test_a_check_with_no_script_here_is_skipped(self):
+        self.server_runs(self.first)
+        self.mg_says(self.site([self.step(check="dh_serves_php")]))
+        got = self.run_it()
+        self.assertIn(got["outcome"], ("dispatch", "do"))
+        self.assertEqual(len(got["say"].split("\n")), 1)
+
+    def test_a_check_name_that_is_not_a_name_is_never_run(self):
+        self.server_runs(self.first)
+        self.mg_says(self.site([self.step(check="../lib")]))
+        self.assertIn(self.run_it()["outcome"], ("dispatch", "do"))
+
 
 if __name__ == "__main__":
     unittest.main()

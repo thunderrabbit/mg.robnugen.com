@@ -64,7 +64,18 @@ MAY_I_SET = ("The server runs commits this branch lacks, so `{branch}` is a seco
 SERVER_SILENT = "Its server did not say what it runs (`{why}`)."
 NO_SERVER = "there is no server to ask"   # the scanner's words
 
+ALREADY_DONE = "Already done here; it's waiting on a deploy."
+COULD_NOT_TELL = "The check could not tell: `{line}`"
+SCAN_REMINDER = ("Once you've approved and deployed this{where}, run on Lemur 13:\n"
+                 "`~/work/rob/mg.robnugen.com/tools/site-standards/scan.sh {shortcode}`")
+# Checks this script never runs, and what it says in their place.
+NEVER_RUN_IN_A_LOOKUP = {"suite_passes_on_php": "only the scan runs a site's safe suite"}
+
 Options = collections.namedtuple("Options", "shortcode leave_upgrade confirm base session_model")
+# kind: "script" (a check script here), "none" (mg's own check, or an idea with
+# no check yet) or "never" (NEVER_RUN_IN_A_LOOKUP). outcome: pass, fail,
+# unknown, or None when nothing was run.
+Check = collections.namedtuple("Check", "kind outcome line script param site_env")
 
 
 class Stop(Exception):
@@ -145,6 +156,8 @@ def well_formed(reply):
     if not isinstance(site, dict) or not isinstance(reply["facts"], dict):
         return False
     if not isinstance(site.get("shortcode"), str) or not isinstance(site.get("standing"), dict):
+        return False
+    if not isinstance(reply["facts"].get("shortcode"), str):   # check_environment reads it
         return False
     steps = site.get("open_steps")
     return isinstance(steps, list) and all(isinstance(step, dict) for step in steps)
@@ -252,6 +265,49 @@ def second_line(site, facts, top, options):
     return notes, ask, server_commit, server_branch
 
 
+def check_kind(name):
+    """Whether a step's check is a script here, one mg answers itself, or one never run here."""
+    if name in NEVER_RUN_IN_A_LOOKUP:   # decided before looking for the file
+        return "never"
+    if not isinstance(name, str) or not scan.CHECK_NAME.match(name):
+        return "none"
+    return "script" if os.path.isfile(os.path.join(HERE, "checks", name + ".sh")) else "none"
+
+
+def standards_mcp():
+    return os.environ.get("STANDARDS_MCP") or os.path.expanduser("~/work/rob/standards-mcp")
+
+
+def check_here(step, facts, top, server_commit, server_branch, run=True):
+    """The step's check, run against this checkout in the environment a scan gives it.
+
+    With run=False the same Check is built and nothing is run.
+    """
+    name = step.get("check")
+    kind = check_kind(name)
+    if kind == "never":
+        return Check("never", "unknown", NEVER_RUN_IN_A_LOOKUP[name], None, "", None)
+    if kind == "none":
+        return Check("none", None, "", None, "", None)
+    script = os.path.join(HERE, "checks", name + ".sh")
+    param = step.get("check_param") or ""   # what the scanner passes for none; a check reads ${2:-}
+    php_target = scan.php_targets(standards_mcp()).get(os.path.normpath(top))
+    site_env = scan.check_environment(facts, dict(os.environ), server_commit, server_branch, php_target)
+    if not run:
+        return Check("script", None, "", script, param, site_env)
+    outcome, line = scan.run_check(script, top, param, site_env)
+    return Check("script", outcome, line, script, param, site_env)
+
+
+def scan_reminder(shortcode, facts):
+    """The last words once a step is done or found done: what Rob runs after he deploys."""
+    test = facts.get("test")
+    where = ""
+    if isinstance(test, dict) and not facts.get("upgrade_branch"):
+        where = f" to `{test.get('domain')}`"
+    return SCAN_REMINDER.format(where=where, shortcode=shortcode)
+
+
 def lookup(options, cwd):
     top, relative = checkout(cwd)
     site, facts, steps_commit = site_or_stop(ask_mg(options, relative))
@@ -272,6 +328,13 @@ def lookup(options, cwd):
     lines += notes
     if ask is not None:
         return {"outcome": "ask", "say": "\n".join(lines), "ask": ask}
+
+    check = check_here(step, facts, top, server_commit, server_branch)
+    if check.outcome == "pass":
+        lines.append(ALREADY_DONE)
+        return {"outcome": "say", "say": "\n".join(lines), "after": scan_reminder(shortcode, facts)}
+    if check.outcome == "unknown":
+        lines.append(COULD_NOT_TELL.format(line=check.line))
     return {"outcome": "do", "say": "\n".join(lines)}
 
 
