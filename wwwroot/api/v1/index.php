@@ -110,55 +110,6 @@ if ($journal_verdict !== null) {
 }
 $todo_grants = new \Auth\TodoGrants($pdo);   // shared by handler includes
 
-// ── Credit enforcement + usage logging ───────────────────────────────────────
-// Call at the top of any write endpoint before processing.
-// Atomically deducts 1 credit, then logs the call to api_usage.
-
-function require_credit(\PDO $pdo, int $user_id, ?int $key_id, string $endpoint, ?int $token_id = null): void
-{
-    $stmt = $pdo->prepare(
-        "UPDATE api_credits
-         SET credits_remaining = credits_remaining - 1
-         WHERE user_id = ? AND credits_remaining > 0"
-    );
-    $stmt->execute([$user_id]);
-
-    if ($stmt->rowCount() === 0) {
-        http_response_code(402);
-        echo json_encode([
-            'error'       => 'No credits remaining',
-            'upgrade_url' => 'https://mg.robnugen.com/billing',
-        ]);
-        exit;
-    }
-
-    // Log to api_usage after successful deduction
-    try {
-        $log = $pdo->prepare(
-            "INSERT INTO api_usage (user_id, key_id, token_id, endpoint) VALUES (?, ?, ?, ?)"
-        );
-        $log->execute([$user_id, $key_id, $token_id, $endpoint]);
-    } catch (\Exception) {
-        // Never fail a request over logging
-    }
-}
-
-// Coarse subsystem gate for /projects, /repositories, /issues.
-// GET → can_read_project; everything else (POST/PATCH/DELETE) → can_write_project.
-// Fine-grained access within the subsystem continues to flow through project_members.
-/**
- * @param array<mixed> $auth_actor
- */
-function require_project_perm(array $auth_actor, string $method): void
-{
-    $needs = ($method === 'GET') ? 'can_read_project' : 'can_write_project';
-    if (empty($auth_actor[$needs])) {
-        http_response_code(403);
-        echo json_encode(['error' => "This API key does not have permission ({$needs}) for the project subsystem"]);
-        exit;
-    }
-}
-
 // ── Route dispatch ────────────────────────────────────────────────────────────
 
 if ($path === '/sessions' || preg_match('#^/sessions(/|$)#', $path)) {
@@ -176,19 +127,19 @@ if ($path === '/sessions' || preg_match('#^/sessions(/|$)#', $path)) {
 } elseif ($path === '/agents' || preg_match('#^/agents(/|$)#', $path)) {
     include __DIR__ . '/_agents.php';
 } elseif ($path === '/projects' || preg_match('#^/projects(/|$)#', $path)) {
-    require_project_perm($auth_actor, $method);
+    \Auth\ApiGate::requireProjectPerm($auth_actor, $method);
     include __DIR__ . '/_projects.php';
 } elseif ($path === '/repositories' || preg_match('#^/repositories(/|$)#', $path)) {
-    require_project_perm($auth_actor, $method);
+    \Auth\ApiGate::requireProjectPerm($auth_actor, $method);
     include __DIR__ . '/_repositories.php';
 } elseif ($path === '/issues' || preg_match('#^/issues(/|$)#', $path)) {
-    require_project_perm($auth_actor, $method);
+    \Auth\ApiGate::requireProjectPerm($auth_actor, $method);
     include __DIR__ . '/_issues.php';
 } elseif ($path === '/exterm' || preg_match('#^/exterm(/|$)#', $path)) {
-    require_project_perm($auth_actor, $method);
+    \Auth\ApiGate::requireProjectPerm($auth_actor, $method);
     include __DIR__ . '/_exterm.php';
 } elseif ($path === '/standards' || preg_match('#^/standards(/|$)#', $path)) {
-    require_project_perm($auth_actor, $method);
+    \Auth\ApiGate::requireProjectPerm($auth_actor, $method);
     include __DIR__ . '/_standards.php';
 } elseif ($path === '/notify' || preg_match('#^/notify(/|$)#', $path)) {
     include __DIR__ . '/_notify.php';

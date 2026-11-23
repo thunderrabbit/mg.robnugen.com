@@ -272,7 +272,7 @@ if ($method === 'GET' && $sub === '/list') {
     }
 
     // Credit deducted only after validation passes, so invalid requests don't drain credits
-    require_credit($pdo, $auth_user_id, $auth_key_id, 'inbox/send', $auth_token_id);
+    \Auth\ApiGate::requireCredit($pdo, $auth_user_id, $auth_key_id, 'inbox/send', $auth_token_id);
 
     $stmt = $pdo->prepare(
         "INSERT INTO agent_inbox (user_id, message, priority, show_date, sender_timezone, sender_aiu, recipient_aiu)

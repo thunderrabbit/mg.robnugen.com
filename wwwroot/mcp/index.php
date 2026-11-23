@@ -179,7 +179,7 @@ switch ($method) {
         $args = \Field::array($params, 'arguments');
 
         // Every tool reaches the project subsystem, so the same bits REST
-        // checks with require_project_perm() apply: reading tools need
+        // checks with \Auth\ApiGate::requireProjectPerm() apply: reading tools need
         // can_read_project, the rest can_write_project.
         $needs = \Mcp\Tools::readsOnly($tool) ? 'can_read_project' : 'can_write_project';
         if (!\Field::int($auth_actor, $needs)) {

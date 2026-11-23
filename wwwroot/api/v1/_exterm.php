@@ -87,7 +87,7 @@ $body     = \Field::jsonArray($body_raw);
 
 // ── POST /exterm/create ───────────────────────────────────────────────────────
 if ($sub === '/create' && $method === 'POST') {
-    require_credit($pdo, $auth_user_id, $auth_key_id, '/exterm/create', $auth_token_id);
+    \Auth\ApiGate::requireCredit($pdo, $auth_user_id, $auth_key_id, '/exterm/create', $auth_token_id);
     try {
         $item = $exterm->createItem($auth_user_id, $caller_aiu, $body);
         http_response_code(201);
@@ -104,7 +104,7 @@ if ($sub === '/update' && $method === 'PATCH') {
     if (!$id) {
         \Exterm\ApiErrors::send(400, "exterm_item_id is required");
     }
-    require_credit($pdo, $auth_user_id, $auth_key_id, '/exterm/update', $auth_token_id);
+    \Auth\ApiGate::requireCredit($pdo, $auth_user_id, $auth_key_id, '/exterm/update', $auth_token_id);
     try {
         echo json_encode($exterm->updateItem($auth_user_id, $caller_aiu, $id, $body));
     } catch (\Exterm\AccessException | \Exterm\NotFoundException | \Exterm\ValidationException $e) {
@@ -119,7 +119,7 @@ if ($sub === '/delete' && $method === 'DELETE') {
     if (!$id) {
         \Exterm\ApiErrors::send(400, "exterm_item_id is required");
     }
-    require_credit($pdo, $auth_user_id, $auth_key_id, '/exterm/delete', $auth_token_id);
+    \Auth\ApiGate::requireCredit($pdo, $auth_user_id, $auth_key_id, '/exterm/delete', $auth_token_id);
     try {
         echo json_encode($exterm->deleteItem($auth_user_id, $caller_aiu, $id));
     } catch (\Exterm\AccessException | \Exterm\NotFoundException | \Exterm\ValidationException $e) {

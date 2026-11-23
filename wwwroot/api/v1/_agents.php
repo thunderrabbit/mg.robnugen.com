@@ -111,7 +111,7 @@ if ($method === 'POST' && $sub === '') {
         $perms['can_ping_phone'] = 0;
     }
 
-    require_credit($pdo, $auth_user_id, $auth_key_id, 'POST /agents', $auth_token_id);
+    \Auth\ApiGate::requireCredit($pdo, $auth_user_id, $auth_key_id, 'POST /agents', $auth_token_id);
 
     $stmt = $pdo->prepare(
         "INSERT INTO agent_inbox_user (user_id, name, description, actor_type,
@@ -199,7 +199,7 @@ if ($method === 'POST' && $sub === '/visibility') {
         }
     }
 
-    require_credit($pdo, $auth_user_id, $auth_key_id, 'POST /agents/visibility', $auth_token_id);
+    \Auth\ApiGate::requireCredit($pdo, $auth_user_id, $auth_key_id, 'POST /agents/visibility', $auth_token_id);
 
     // Upsert: if row exists, update; otherwise insert
     $existing = $pdo->prepare(
@@ -266,7 +266,7 @@ if ($method === 'POST' && $sub === '/keys') {
         exit;
     }
 
-    require_credit($pdo, $auth_user_id, $auth_key_id, 'POST /agents/keys', $auth_token_id);
+    \Auth\ApiGate::requireCredit($pdo, $auth_user_id, $auth_key_id, 'POST /agents/keys', $auth_token_id);
 
     $apiKeyHelper = new \Auth\ApiKey($pdo);
     try {
