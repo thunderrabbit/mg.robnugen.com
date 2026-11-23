@@ -116,6 +116,21 @@ class NextStepStopsTest(NextStepCase):
         self.assertEqual(got["say"], "`demo`'s next step is yours: **`Switch the panel`** (`still on 8.3`).\n\n"
                                      "Open the panel.\nPick 8.5.")
         self.assertNotIn("after", got)
+        self.assertTrue(got["rules"].startswith("## Rules for this step"))
+        self.assertEqual(sorted(got), ["outcome", "rules", "say"])
+
+    def test_robs_step_with_a_check_script_gets_its_command_unrun(self):
+        marker = os.path.join(self.root, "check-ran")
+        self.check("echo", 0, "all there", body=f"touch '{marker}'")
+        self.server_runs(self.first)
+        self.mg_says(self.site([self.step(whose_move="rob")]))
+        got = self.run_it()
+        self.assertFalse(os.path.exists(marker))
+        self.assertEqual(sorted(got), ["outcome", "rules", "say"])
+        self.assertIn(f"SITE_SERVER_COMMIT={self.first}", got["rules"])
+        self.assertTrue(got["rules"].endswith(
+            f"{os.path.join(self.here, 'checks', 'echo.sh')} {os.path.realpath(self.repo)}"))
+        self.assertNotIn("Just now", got["rules"])
 
     def test_a_skipped_scan_is_said_first(self):
         self.mg_says(self.site([self.step(whose_move="rob")],

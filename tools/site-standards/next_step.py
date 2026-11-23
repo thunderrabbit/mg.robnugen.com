@@ -3,8 +3,10 @@
 Run through next-step.sh, which starts this with `python3 -I -B`, from inside
 a site's checkout. Standard library only. It prints one JSON object whose
 `outcome` says what the /next-mg-step skill does next: `say` (show the words
-and stop) or `ask` (a question only Rob can answer). What it does, and what
-it deliberately does not:
+and stop), `ask` (a question only Rob can answer), `dispatch` (start a
+subagent on the step's model with the `brief`) or `do` (the session does the
+step itself under the `rules`). What it does, and what it deliberately does
+not:
 
 - mg chooses the step. The script asks mg over ssh (`site.sh next-step`) and
   takes the first open step, in the order mg gives, and never any other.
@@ -13,8 +15,14 @@ it deliberately does not:
   and the tests pin each one.
 - It never writes to any repo and never changes anything on mg. Its git
   calls are scan.py's read-only ones, and it never runs `site-set`: it asks.
-- It never runs a site's safe suite.
-- It never guesses a model.
+- The step's check is run here in the environment a scan gives it
+  (scan.py's check_environment), so it answers what it will answer in the
+  scan. A site's safe suite is never run (NEVER_RUN_IN_A_LOOKUP).
+- A step's model is its `model:` line, else its track's, read with git from
+  the step files at the commit mg last scanned. A step with none there is
+  never run on a guess.
+- The brief and the rules come from next_step_brief.md beside this file,
+  which names no site.
 """
 
 import collections
@@ -70,6 +78,24 @@ SCAN_REMINDER = ("Once you've approved and deployed this{where}, run on Lemur 13
                  "`~/work/rob/mg.robnugen.com/tools/site-standards/scan.sh {shortcode}`")
 # Checks this script never runs, and what it says in their place.
 NEVER_RUN_IN_A_LOOKUP = {"suite_passes_on_php": "only the scan runs a site's safe suite"}
+
+NO_MODEL = "mg's last scan has no model for **`{title}`**; a scan will bring it."
+ASKS_FOR = "This step asks for `{model}`; this session runs on `{session}`."
+CHECK_RUN = ("Run this exactly as written. It prints one line and exits 0 when the step is done, "
+             "1 when it is not yet, 2 when it could not tell.\n\n    {command}\n\n{just_now}")
+JUST_SAID = "Just now it said: `{line}`"
+JUST_COULD_NOT = "Just now it could not tell: `{line}`"
+CHECK_IS_MGS = "mg answers this step's check from its own tables; there is nothing to run here."
+CHECK_IS_SCANS = "Only the scan runs this step's check (a site's safe suite). Do not run it."
+SERVED_BRIEF = "served on PHP `{php_current}`"
+NO_SWEEP_BRIEF = "mg has no sweep for its PHP yet"
+CHECK_HEADING = "### The check that decides it"
+STEPS_DIR = "tools/site-standards/steps/"
+STEP_NAME = re.compile(r"\A[a-z][a-z0-9_]{0,63}\Z")     # Names::STEP
+SUBAGENT_MODELS = ("haiku", "sonnet")   # a step on any other model is done by the session
+PLACEHOLDERS = ("shortcode", "top", "track", "title", "slug", "detail", "served", "explanation", "how_to", "check")
+RULES_MARK = "<!-- rules -->\n"
+SUBAGENT_MARK = "<!-- subagent -->\n"
 
 Options = collections.namedtuple("Options", "shortcode leave_upgrade confirm base session_model")
 # kind: "script" (a check script here), "none" (mg's own check, or an idea with
@@ -308,6 +334,92 @@ def scan_reminder(shortcode, facts):
     return SCAN_REMINDER.format(where=where, shortcode=shortcode)
 
 
+def step_model(mg_repo, steps_commit, standard, slug):
+    """The model the step names, else its track's, in the step files at the
+    commit mg last scanned; None when that commit names none.
+
+    Nothing from mg reaches git as anything but a full hash or a plain name.
+    Python reads only the one line: StepTree on mg is the judge of a step file.
+    """
+    if not mg_repo or not all(isinstance(value, str) for value in (steps_commit, standard, slug)):
+        return None
+    if not scan.server_facts.SHA.match(steps_commit) or not STEP_NAME.match(standard) or not STEP_NAME.match(slug):
+        return None
+    prefix = STEPS_DIR + standard + "/"
+    code, listing = scan.git(mg_repo, "ls-tree", "-r", "--name-only", steps_commit, "--", prefix)
+    if code != 0:   # this checkout does not have the commit
+        return None
+
+    def model_in(path):
+        code, content = scan.git(mg_repo, "show", f"{steps_commit}:{path}")
+        model = scan.frontmatter(content).get("model") if code == 0 else None
+        return model if model in MODELS else None
+
+    for path in listing.splitlines():
+        parts = path[len(prefix):].split("/")
+        if not path.startswith(prefix) or len(parts) != 2 or not parts[1].endswith(".md"):
+            continue
+        stem = parts[1][:-3]
+        if stem.startswith("_") or scan.step_name(stem) != slug:
+            continue
+        return model_in(path) or model_in(prefix + parts[0] + "/_track.md")
+    return None
+
+
+def check_text(check, top):
+    """What the brief and the rules say about the step's check: the command the script ran, and its line."""
+    if check.kind == "none":
+        return CHECK_IS_MGS
+    if check.kind == "never":
+        return CHECK_IS_SCANS
+    # The site's facts are in the command: it is printed to the caller and never written to a file.
+    words = ["env"]
+    words += [f"{name}={shlex.quote(value)}" for name, value in sorted(check.site_env.items())
+              if name.startswith("SITE_")]
+    words += [shlex.quote(check.script), shlex.quote(top)]
+    if check.param != "":
+        words.append(shlex.quote(check.param))
+    just_now = ""
+    if check.outcome == "unknown":
+        just_now = JUST_COULD_NOT.format(line=check.line)
+    elif check.outcome is not None:
+        just_now = JUST_SAID.format(line=check.line)
+    return CHECK_RUN.format(command=" ".join(words), just_now=just_now).rstrip()
+
+
+def step_values(site, step, top, check):
+    """What fills the template's placeholders, each one a string."""
+    served = NO_SWEEP_BRIEF
+    if site.get("php_current"):
+        served = SERVED_BRIEF.format(php_current=site["php_current"])
+        if site.get("test_php"):
+            served += TEST_SERVED.format(test_php=site["test_php"])
+    values = {name: str(step.get(name) or "") for name in ("track", "title", "slug", "detail", "explanation", "how_to")}
+    values.update(shortcode=site["shortcode"], top=top, served=served, check=check_text(check, top))
+    return values
+
+
+def render(values):
+    """(brief, rules) from the template beside this script.
+
+    The template has three parts: the step, the rules, and what applies to a
+    subagent only. The brief is all three; the rules are the middle one with
+    the check after it. Each part is filled in one pass, so nothing in a value
+    is read again as a placeholder.
+    """
+    with open(BRIEF, encoding="utf-8") as handle:
+        text = handle.read()
+    the_step, rest = text.split(RULES_MARK)
+    the_rules, for_a_subagent = rest.split(SUBAGENT_MARK)
+
+    def fill(part):
+        return re.sub(r"\{\{([a-z_]+)\}\}", lambda found: values[found.group(1)], part)
+
+    brief = fill(the_step) + fill(the_rules) + fill(for_a_subagent)
+    rules = fill(the_rules).rstrip() + "\n\n" + CHECK_HEADING + "\n\n" + values["check"]
+    return brief.rstrip(), rules.rstrip()
+
+
 def lookup(options, cwd):
     top, relative = checkout(cwd)
     site, facts, steps_commit = site_or_stop(ask_mg(options, relative))
@@ -321,7 +433,14 @@ def lookup(options, cwd):
     if step.get("whose_move") == "rob":
         lines.append(YOURS.format(shortcode=shortcode, title=step.get("title"), detail=step.get("detail")))
         lines.append(step.get("how_to") or "")
-        return {"outcome": "say", "say": "\n\n".join(lines)}
+        # The rules are for a taste step, which the session does once Rob has
+        # picked. Its check is not run now; the server is asked only when the
+        # check is a script here, for the environment its command carries.
+        server_commit, server_branch = None, None
+        if check_kind(step.get("check")) == "script":
+            _, _, server_commit, server_branch = second_line(site, facts, top, options)
+        check = check_here(step, facts, top, server_commit, server_branch, run=False)
+        return {"outcome": "say", "say": "\n\n".join(lines), "rules": render(step_values(site, step, top, check))[1]}
 
     lines.append(step_line(site, step))
     notes, ask, server_commit, server_branch = second_line(site, facts, top, options)
@@ -335,7 +454,19 @@ def lookup(options, cwd):
         return {"outcome": "say", "say": "\n".join(lines), "after": scan_reminder(shortcode, facts)}
     if check.outcome == "unknown":
         lines.append(COULD_NOT_TELL.format(line=check.line))
-    return {"outcome": "do", "say": "\n".join(lines)}
+
+    mg_repo = scan.git(HERE, "rev-parse", "--show-toplevel")[1].strip()
+    model = step_model(mg_repo, steps_commit, site.get("standard"), step.get("slug"))
+    if model is None:   # never run on a guess
+        lines.append(NO_MODEL.format(title=step.get("title")))
+        return {"outcome": "say", "say": "\n".join(lines)}
+    brief, rules = render(step_values(site, step, top, check))
+    base = local_head(top)[0]
+    if model in SUBAGENT_MODELS:
+        return {"outcome": "dispatch", "say": "\n".join(lines), "model": model, "brief": brief, "base": base}
+    if options.session_model and MODELS.index(options.session_model) < MODELS.index(model):
+        lines.append(ASKS_FOR.format(model=model, session=options.session_model))
+    return {"outcome": "do", "say": "\n".join(lines), "model": model, "rules": rules, "base": base}
 
 
 def answer(argv, cwd=None):
