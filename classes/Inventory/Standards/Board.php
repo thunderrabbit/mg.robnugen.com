@@ -145,6 +145,19 @@ final class Board implements SiteSource
     }
 
     /**
+     * The commit whose step files the newest scan was read from, whichever
+     * sites that scan covered; null before any scan. A script on Lemur 13
+     * reads a step's model from that commit, so it sees what mg imported.
+     */
+    public function latestStepsCommit(): ?string
+    {
+        $rows = $this->rows(
+            'SELECT steps_commit FROM std_scans ORDER BY scanned_at_utc DESC, std_scan_id DESC LIMIT 1'
+        );
+        return $rows === [] ? null : RowValue::string($rows[0], 'steps_commit');
+    }
+
+    /**
      * @param array<mixed> $site a std_sites row
      * @return array{shortcode: string, project_id: ?int, autonomy: string, pinned: bool, sort_order: ?int, host: string, server_where: ?string, web_php: ?string, php_current: ?string, php_target: ?string, test_php: ?string, server_branch: ?string, server_commit: ?string, checked_branch: ?string, checked_commit: ?string, test_commit: ?string, last_checked_utc: ?string, skipped_reason: ?string, report: SiteReport}
      */
