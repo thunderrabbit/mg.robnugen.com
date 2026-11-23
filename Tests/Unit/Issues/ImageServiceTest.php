@@ -295,17 +295,31 @@ class ImageServiceTest extends IssueCase
         $this->assertSame([], $this->images->linkedIssueIds($id));
     }
 
-    public function testAFailedWriteLeavesNoStrayFile(): void
+    public function testAFailedWriteIsRefusedAndLeavesNoStrayFile(): void
     {
         $this->pdo->exec('DROP TABLE issue_image_links');
 
-        $this->assertThrows(
-            \PDOException::class,
-            fn () => $this->upload([$this->file('a.png', ImageBytes::png())]),
-        );
+        $results = $this->upload([$this->file('a.png', ImageBytes::png())]);
 
+        $this->assertSame(['refused'], $this->outcomes($results));
+        $this->assertSame('could not be stored', $results[0]->reason);
         $this->assertSame([], $this->onDisk());
         $this->assertNull($this->images->findAtHome($this->issue->issueId, 2026, 'a.png'));
+    }
+
+    public function testAStoreThatCannotBeWrittenRefusesEachFileAndCarriesOn(): void
+    {
+        // A plain file where the store's first directory should go: nothing can be made under it.
+        file_put_contents($this->root . '/projects', 'in the way');
+
+        $results = $this->upload([
+            $this->file('a.png', ImageBytes::png(1)),
+            $this->file('b.png', ImageBytes::png(2)),
+        ]);
+
+        $this->assertSame(['refused', 'refused'], $this->outcomes($results));
+        $this->assertSame('could not be stored', $results[1]->reason);
+        $this->assertSame([], $this->images->forIssue($this->issue->issueId));
     }
 
     public function testUploadingWhileSwitchedOffIsABug(): void
@@ -327,6 +341,27 @@ class ImageServiceTest extends IssueCase
         $this->assertFalse(ImageService::at($this->root . '/not-made', $this->pdo)->enabled());
         $this->assertFalse(ImageService::at('relative/path', $this->pdo)->enabled());
         $this->assertFalse(ImageService::at('.', $this->pdo)->enabled());
+    }
+
+    public function testTheFeatureStaysOffUntilItsTablesExist(): void
+    {
+        $bare = new \PDO('sqlite::memory:');
+        $bare->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+
+        $this->assertFalse(ImageService::at($this->root, $bare)->enabled());
+    }
+
+    public function testAConfigWithoutThePropertyMeansOff(): void
+    {
+        $old = new \stdClass();
+        $new = new \stdClass();
+        $new->image_store_path = $this->root;
+        $odd = new \stdClass();
+        $odd->image_store_path = null;
+
+        $this->assertFalse(ImageService::forConfig($old, $this->pdo)->enabled());
+        $this->assertFalse(ImageService::forConfig($odd, $this->pdo)->enabled());
+        $this->assertTrue(ImageService::forConfig($new, $this->pdo)->enabled());
     }
 
     // ─── Seeing ──────────────────────────────────────────────────────────────

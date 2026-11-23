@@ -22,6 +22,18 @@ final readonly class PdoImageStore implements ImageStore
     }
 
     #[\Override]
+    public function ready(): bool
+    {
+        try {
+            $this->one('SELECT 1 AS there FROM issue_image_links LIMIT 1', []);
+            $this->one('SELECT 1 AS there FROM issue_images LIMIT 1', []);
+            return true;
+        } catch (\PDOException) {
+            return false;
+        }
+    }
+
+    #[\Override]
     public function find(int $issueImageId): ?IssueImageRow
     {
         $row = $this->one('SELECT * FROM issue_images WHERE issue_image_id = ?', [$issueImageId]);

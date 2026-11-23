@@ -36,17 +36,30 @@ final readonly class ImageService
     }
 
     /**
-     * The service every page and tool uses: on mg's database, with pictures
-     * under Config::$image_store_path. Anything but an existing absolute
-     * directory there leaves the feature off.
+     * The service every page and tool uses, from mg's Config. A Config.php
+     * written before this feature has no image_store_path; that means off,
+     * like an empty one, so deploying the code first breaks nothing.
+     */
+    public static function forConfig(object $config, \PDO $pdo): self
+    {
+        $path = get_object_vars($config)['image_store_path'] ?? '';
+
+        return self::at(is_string($path) ? $path : '', $pdo);
+    }
+
+    /**
+     * On mg's database, with pictures under the given directory. The feature
+     * is on only when that is an existing absolute directory and the image
+     * tables have been created.
      */
     public static function at(string $imageStorePath, \PDO $pdo): self
     {
-        $usable = str_starts_with($imageStorePath, '/') && is_dir($imageStorePath);
+        $store = new PdoImageStore($pdo);
+        $usable = str_starts_with($imageStorePath, '/') && is_dir($imageStorePath) && $store->ready();
 
         return new self(
             new IssueService(new \Issues\PdoIssueStore($pdo)),
-            new PdoImageStore($pdo),
+            $store,
             $usable ? new ImageFiles($imageStorePath) : null,
         );
     }
@@ -60,7 +73,7 @@ final readonly class ImageService
 
     /**
      * Adds pictures to an issue. Every file gets a result, in order; a refused
-     * file does not stop the rest. All the pictures stored by one call share
+     * file, or one the disk or database would not take, does not stop the rest. All the pictures stored by one call share
      * $now as their upload time.
      *
      * A name already used in this issue this year: the same bytes are the same
@@ -139,11 +152,16 @@ final readonly class ImageService
                 continue;
             }
 
-            $results[] = new UploadResult(
-                $file['name'],
-                UploadOutcome::Stored,
-                $this->keep($disk, $checked, $path, $caller, $now),
-            );
+            try {
+                $kept = $this->keep($disk, $checked, $path, $caller, $now);
+                $results[] = new UploadResult($file['name'], UploadOutcome::Stored, $kept);
+            } catch (\RuntimeException $failure) {
+                // The disk or the database said no (PDOException is one too).
+                // The person hears that it was not stored; the server's log
+                // gets why, which may name paths.
+                error_log("Issue image {$path->relative()} could not be stored: {$failure->getMessage()}");
+                $results[] = new UploadResult($file['name'], UploadOutcome::Refused, reason: 'could not be stored');
+            }
         }
         return $results;
     }

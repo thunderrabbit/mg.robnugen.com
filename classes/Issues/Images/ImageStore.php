@@ -13,6 +13,12 @@ use Issues\Caller;
  */
 interface ImageStore
 {
+    /**
+     * Whether the image tables are there. False between deploying the code
+     * and applying its migration.
+     */
+    public function ready(): bool;
+
     public function find(int $issueImageId): ?IssueImageRow;
 
     /**
