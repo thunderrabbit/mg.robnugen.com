@@ -71,14 +71,19 @@ class Template
         $csrf = $this->csrf;               // After extract(), so a set('csrf') cannot replace it
         $admin_count = $this->admin_count; // Likewise: only prepend.php's count reaches the menu
 
+        // A template may write nothing (a card with nothing to show), so an empty
+        // result is no error: only a file that is not there is (mg #911).
+        if (!is_file($this->template_location)) {
+            return "Error loading template: {$this->template_location}";
+        }
+
         ob_start();                        // Start output buffering
 
         include($this->template_location);    // Include the file
 
         $ob_result = ob_get_clean();
 
-        // if $ob_result is false, return an error message
-        if (empty($ob_result)) {
+        if ($ob_result === false) {
             return "Error loading template: {$this->template_location}";
         }
 

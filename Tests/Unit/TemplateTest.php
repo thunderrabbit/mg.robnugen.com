@@ -24,6 +24,11 @@ class TemplateTest extends Unit
             $this->app_path . '/templates/count.tpl.php',
             '<?php /** @var int $admin_count */ ?>count=<?= $admin_count ?>',
         );
+        // What the Images card writes when there is nothing to show (mg #911).
+        file_put_contents(
+            $this->app_path . '/templates/nothing.tpl.php',
+            '<?php if (false) : ?>never<?php endif; ?>',
+        );
         // $_SESSION is just an array until session_start(), so this stays session-free.
         $_SESSION = ['csrf_token' => 'template-token'];
     }
@@ -31,12 +36,13 @@ class TemplateTest extends Unit
     protected function _after(): void
     {
         unlink($this->app_path . '/templates/count.tpl.php');
+        unlink($this->app_path . '/templates/nothing.tpl.php');
         rmdir($this->app_path . '/templates');
         rmdir($this->app_path);
         unset($_SESSION);
     }
 
-    private function template(int $admin_count): \Template
+    private function template(int $admin_count, string $template_file = 'count.tpl.php'): \Template
     {
         $config = new \Config();
         $config->app_path = $this->app_path;
@@ -46,7 +52,7 @@ class TemplateTest extends Unit
             csrf: new \Security\CSRFProtectaroo(new \Mlaphp\Request()),
             admin_count: $admin_count,
         );
-        $template->setTemplate('count.tpl.php');
+        $template->setTemplate($template_file);
         return $template;
     }
 
@@ -61,5 +67,18 @@ class TemplateTest extends Unit
         $template->set('admin_count', 99);
 
         $this->assertSame('count=3', $template->grabTheGoods());
+    }
+
+    public function testATemplateThatWritesNothingGivesAnEmptyString(): void
+    {
+        $this->assertSame('', $this->template(0, 'nothing.tpl.php')->grabTheGoods());
+    }
+
+    public function testAMissingTemplateIsNamedInAnError(): void
+    {
+        $this->assertSame(
+            "Error loading template: {$this->app_path}/templates/missing.tpl.php",
+            $this->template(0, 'missing.tpl.php')->grabTheGoods(),
+        );
     }
 }
