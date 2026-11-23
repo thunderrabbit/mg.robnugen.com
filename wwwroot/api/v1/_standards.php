@@ -54,32 +54,15 @@ try {
     exit;
 }
 
-$board = new \Inventory\Standards\Board($pdo);
+$found = \Inventory\Standards\SiteLookup::find($query, new \Inventory\Standards\Board($pdo));
 
-$shortcode = $query->shortcode;
-if ($query->checkoutPath !== null) {
-    $shortcodes = $board->shortcodesAtCheckout($query->checkoutPath);
-    if (count($shortcodes) > 1) {
-        http_response_code(409);
-        echo json_encode([
-            'error' => 'More than one site uses that checkout; pass shortcode',
-            'shortcodes' => $shortcodes,
-        ]);
-        exit;
-    }
-    $shortcode = $shortcodes[0] ?? null;
+if ($found->shortcodes !== []) {
+    http_response_code(409);
+    echo json_encode([
+        'error' => 'More than one site uses that checkout; pass shortcode',
+        'shortcodes' => $found->shortcodes,
+    ]);
+    exit;
 }
 
-$site = $shortcode === null ? null : $board->siteByShortcode($shortcode);
-
-echo json_encode([
-    'site' => $site === null ? null : \Inventory\Standards\SiteAnswer::of(
-        $site['standard'],
-        $site['shortcode'],
-        $site['last_checked_utc'],
-        $site['skipped_reason'],
-        $site['report'],
-        $site['php_current'],
-        $site['test_php'],
-    ),
-]);
+echo json_encode(['site' => $found->site]);
