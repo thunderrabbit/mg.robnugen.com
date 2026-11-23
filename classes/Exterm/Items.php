@@ -361,4 +361,172 @@ class Items
         $stmt->execute($params);
         return \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
+
+    // ── Web pages (wwwroot/exterm/) ──────────────────────────────────────────
+    //
+    // Each method below is one query moved out of a page, its SQL unchanged.
+    // The pages keep their own redirects and permission checks, so nothing
+    // here throws for "not found" or "no access".
+
+    /**
+     * The aiu_id of the account's human actor, 0 when it has none.
+     *
+     * SQL:
+     *
+     *     SELECT aiu_id FROM agent_inbox_user
+     *     WHERE user_id = ? AND actor_type = 'human' LIMIT 1
+     *
+     * The same SQL is also in Projects\PdoProjectStore::humanCaller(),
+     * Issues\PdoIssueStore::humanCaller() and Auth\ApiKey. This copy is the
+     * three pages' own query, moved here as it was; folding the copies into
+     * one is a later job.
+     */
+    public function humanAiu(int $user_id): int
+    {
+        $aiu_stmt = $this->pdo->prepare(
+            "SELECT aiu_id FROM agent_inbox_user WHERE user_id = ? AND actor_type = 'human' LIMIT 1"
+        );
+        $aiu_stmt->execute([$user_id]);
+        return (int) $aiu_stmt->fetchColumn();
+    }
+
+    /**
+     * The caller's can_write and the project's name, for the new-note page.
+     * Null when the caller is not a member or the account does not own it.
+     *
+     * @return array<mixed>|null
+     */
+    public function projectForWriting(int $project_id, int $user_id, int $aiu): ?array
+    {
+        $mem_stmt = $this->pdo->prepare(
+            "SELECT pm.can_write, p.name
+             FROM project_members pm
+             JOIN projects p ON p.project_id = pm.project_id
+             WHERE pm.project_id = ? AND pm.member_aiu = ? AND p.user_id = ? LIMIT 1"
+        );
+        $mem_stmt->execute([$project_id, $aiu, $user_id]);
+        return \Database\Rows::one($mem_stmt->fetch(\PDO::FETCH_ASSOC));
+    }
+
+    /**
+     * Store a note and return its id. The page has already checked the title
+     * and the caller's write access.
+     */
+    public function insertItem(int $project_id, int $author_aiu, string $title, ?string $body): int
+    {
+        $this->pdo->prepare(
+            "INSERT INTO exterm_items (project_id, author_aiu, title, body)
+             VALUES (?, ?, ?, ?)"
+        )->execute([$project_id, $author_aiu, $title, $body]);
+        return (int)$this->pdo->lastInsertId();
+    }
+
+    /**
+     * A note with its project_name and the caller's can_write, for the edit
+     * page. Null when not found or not the caller's to see.
+     *
+     * @return array<mixed>|null
+     */
+    public function itemForEdit(int $exterm_item_id, int $user_id, int $aiu): ?array
+    {
+        $item_stmt = $this->pdo->prepare(
+            "SELECT ei.*, p.name AS project_name, pm.can_write
+             FROM exterm_items ei
+             JOIN projects p         ON p.project_id  = ei.project_id
+             JOIN project_members pm ON pm.project_id = ei.project_id AND pm.member_aiu = ?
+             WHERE ei.exterm_item_id = ? AND p.user_id = ?
+             LIMIT 1"
+        );
+        $item_stmt->execute([$aiu, $exterm_item_id, $user_id]);
+        return \Database\Rows::one($item_stmt->fetch(\PDO::FETCH_ASSOC));
+    }
+
+    /**
+     * Replace a note's title and body. The page has already checked both the
+     * title and the caller's write access.
+     */
+    public function saveTitleAndBody(int $exterm_item_id, string $title, ?string $body): void
+    {
+        $this->pdo->prepare(
+            "UPDATE exterm_items SET title=?, body=? WHERE exterm_item_id=?"
+        )->execute([$title, $body, $exterm_item_id]);
+    }
+
+    /**
+     * The account's own unarchived projects, by name, for the project picker.
+     *
+     * @return list<array<mixed>>
+     */
+    public function ownedProjects(int $user_id): array
+    {
+        $proj_stmt = $this->pdo->prepare(
+            "SELECT project_id, name FROM projects WHERE user_id = ? AND is_archived = 0 ORDER BY name"
+        );
+        $proj_stmt->execute([$user_id]);
+        return \Database\Rows::all($proj_stmt->fetchAll(\PDO::FETCH_ASSOC));
+    }
+
+    /**
+     * The name of a project the account owns, '' when it owns no such project.
+     */
+    public function ownedProjectName(int $project_id, int $user_id): string
+    {
+        $pn_stmt = $this->pdo->prepare("SELECT name FROM projects WHERE project_id = ? AND user_id = ?");
+        $pn_stmt->execute([$project_id, $user_id]);
+        return (string)$pn_stmt->fetchColumn();
+    }
+
+    /**
+     * A project's notes, newest first, 100 at most. The page asks
+     * ownedProjectName() first; this query checks nothing itself.
+     *
+     * @return list<array<mixed>>
+     */
+    public function projectItems(int $project_id): array
+    {
+        $items_stmt = $this->pdo->prepare(
+            "SELECT ei.exterm_item_id, ei.title,
+                    ei.author_aiu, ei.updated_at_utc,
+                    aiu_a.name AS author_name
+             FROM exterm_items ei
+             JOIN agent_inbox_user aiu_a ON aiu_a.aiu_id = ei.author_aiu
+             WHERE ei.project_id = ?
+             ORDER BY ei.updated_at_utc DESC
+             LIMIT 100"
+        );
+        $items_stmt->execute([$project_id]);
+        return \Database\Rows::all($items_stmt->fetchAll(\PDO::FETCH_ASSOC));
+    }
+
+    /**
+     * A note with its project_name, author_name and the caller's can_write,
+     * for the detail page. Null when not found or not the caller's to see.
+     *
+     * @return array<mixed>|null
+     */
+    public function itemForView(int $exterm_item_id, int $user_id, int $aiu): ?array
+    {
+        $item_stmt = $this->pdo->prepare(
+            "SELECT ei.*,
+                    p.name AS project_name, p.project_id,
+                    pm.can_write,
+                    aiu_a.name AS author_name
+             FROM exterm_items ei
+             JOIN projects p         ON p.project_id    = ei.project_id
+             JOIN project_members pm ON pm.project_id   = ei.project_id AND pm.member_aiu = ?
+             JOIN agent_inbox_user aiu_a ON aiu_a.aiu_id = ei.author_aiu
+             WHERE ei.exterm_item_id = ? AND p.user_id = ?
+             LIMIT 1"
+        );
+        $item_stmt->execute([$aiu, $exterm_item_id, $user_id]);
+        return \Database\Rows::one($item_stmt->fetch(\PDO::FETCH_ASSOC));
+    }
+
+    /**
+     * Delete a note. The page has already checked the caller's write access.
+     */
+    public function removeItem(int $exterm_item_id): void
+    {
+        $this->pdo->prepare("DELETE FROM exterm_items WHERE exterm_item_id=?")->execute([$exterm_item_id]);
+    }
 }
