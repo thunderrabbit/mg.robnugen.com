@@ -41,6 +41,9 @@ if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
     $pending = $dbExistaroo->getPendingMigrations();
     $page->set(name: "has_pending_migrations", value: !empty($pending));
 
+    // Due notifications (mg #851), so a count higher than the migration list says why.
+    $page->set(name: "due_notifications", value: new \Admin\Notifications($mla_database)->dueCount());
+
     $omg_alerts = \Admin\OmgAlerts::getUnread($mla_database);
     $page->set(name: "omg_alerts", value: $omg_alerts);
     $page->set(name: "csrf_token", value: $_SESSION['csrf_token']);

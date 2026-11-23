@@ -116,13 +116,15 @@ $is_logged_in = new \Auth\IsLoggedIn(
 $is_logged_in->resumeFromCookie($mla_request);
 
 // What waits for an admin, drawn inside the menu's Admin link by every
-// Template (mg #851). The pending list is read again on purpose: the one
-// checkaroo() built is from before its auto-apply, so it is stale on exactly
-// the requests that change it. Only a cookie login is counted: API keys and
-// OAuth tokens never log in here, so they stay at 0 and no query runs for them.
+// Template: pending migrations plus due notifications (mg #851). The pending
+// list is read again on purpose: the one checkaroo() built is from before its
+// auto-apply, so it is stale on exactly the requests that change it. Only a
+// cookie login is counted: API keys and OAuth tokens never log in here, so
+// they stay at 0 and no query runs for them.
 $admin_count = 0;
 if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
-    $admin_count = count($dbExistaroo->getPendingMigrations());
+    $admin_count = count($dbExistaroo->getPendingMigrations())
+        + new \Admin\Notifications($mla_database)->dueCount();
 }
 
 // Check for and finish expired activity sessions
