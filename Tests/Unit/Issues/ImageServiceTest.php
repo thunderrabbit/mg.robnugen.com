@@ -473,7 +473,7 @@ class ImageServiceTest extends IssueCase
         $this->upload([$this->file('b.png', ImageBytes::png(2))], issue: $other);
 
         $names = array_map(
-            static fn ($view): string => $view->image->filename,
+            static fn (\Issues\Images\ImageView $view): string => $view->image->filename,
             $this->pictures->forProject($this->reader, 7),
         );
 
@@ -568,7 +568,7 @@ class ImageServiceTest extends IssueCase
 
         $purged = $this->pictures->purge(dryRun: false);
 
-        $this->assertSame(['loose.png'], array_map(static fn ($row): string => $row->filename, $dry));
+        $this->assertSame(['loose.png'], array_map(static fn (\Database\Row\IssueImageRow $row): string => $row->filename, $dry));
         $this->assertEquals($dry, $purged);
         $this->assertSame(['kept.png'], $this->onDisk());
         $this->assertNull($this->images->find($loose));

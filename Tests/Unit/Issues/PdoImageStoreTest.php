@@ -52,7 +52,7 @@ class PdoImageStoreTest extends Unit
      */
     private function names(array $rows): array
     {
-        return array_map(static fn ($row): string => $row->filename, $rows);
+        return array_map(static fn (\Database\Row\IssueImageRow $row): string => $row->filename, $rows);
     }
 
     public function testInsertedPictureReadsBackWhole(): void
