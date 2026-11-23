@@ -15,7 +15,7 @@ use Database\RowValue;
  * project membership: these pages are for the account's owner only
  * (Inventory\AdminPage::guard), who owns every project a site points at.
  */
-final class Board
+final class Board implements SiteSource
 {
     /** @var array<int, list<array<mixed>>> live steps by std_standard_id */
     private array $steps = [];
@@ -142,6 +142,19 @@ final class Board
             return null;
         }
         return ['standard' => RowValue::string($rows[0], 'standard_slug')] + $this->site($rows[0]);
+    }
+
+    /**
+     * The commit whose step files the newest scan was read from, whichever
+     * sites that scan covered; null before any scan. A script on Lemur 13
+     * reads a step's model from that commit, so it sees what mg imported.
+     */
+    public function latestStepsCommit(): ?string
+    {
+        $rows = $this->rows(
+            'SELECT steps_commit FROM std_scans ORDER BY scanned_at_utc DESC, std_scan_id DESC LIMIT 1'
+        );
+        return $rows === [] ? null : RowValue::string($rows[0], 'steps_commit');
     }
 
     /**
