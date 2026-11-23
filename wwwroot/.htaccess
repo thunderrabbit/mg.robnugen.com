@@ -8,6 +8,11 @@ RedirectMatch 307 ^/mcp$ /mcp/
     RewriteEngine On
     RewriteCond %{HTTPS} !=on
     RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+    # Pictures on issues live outside the web root, and each request is
+    # checked against who may read the issue. Nothing named images/ exists
+    # under wwwroot, so every URL below it goes to the script that checks.
+    RewriteRule ^images/projects/ /issues/image.php [L]
 </IfModule>
 
 # Security headers on every response, PHP pages included.
