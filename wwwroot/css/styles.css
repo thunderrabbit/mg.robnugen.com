@@ -543,3 +543,85 @@ a:visited {
     list-style: none;
     padding-left: 0;
 }
+
+/* Pictures on issues: the Images card (templates/issues/image_strip.tpl.php) */
+.image-count {
+    color: var(--text-faint);
+    font-weight: normal;
+}
+
+.image-notes {
+    margin: 0 0 1em;
+    padding-left: 1.2em;
+    color: var(--text-muted);
+}
+
+.image-add-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5em;
+    margin-bottom: 1em;
+}
+
+.image-add-problem {
+    flex-basis: 100%;
+    margin: 0;
+    color: var(--danger);
+}
+
+.image-strip {
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    padding-bottom: 0.5em;
+}
+
+.image-strip-item {
+    flex: 0 0 auto;
+    margin: 0;
+    max-width: 16rem;
+}
+
+.image-strip-item img {
+    display: block;
+    height: 160px;
+    width: auto;
+    max-width: 16rem;
+    object-fit: contain;
+    border: 1px solid var(--border-light);
+    border-radius: 4px;
+    background-color: var(--bg-muted);
+}
+
+.image-strip-item figcaption {
+    margin-top: 0.3em;
+    font-size: 0.8em;
+}
+
+.image-name {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-muted);
+}
+
+.image-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+    margin-top: 0.2em;
+}
+
+.image-remove-form {
+    display: inline;
+    margin: 0;
+}
+
+/* A picture embedded by markdown never spills out of its card. */
+.issue-description img,
+.comment-body img {
+    max-width: 100%;
+    height: auto;
+}
