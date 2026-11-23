@@ -24,7 +24,8 @@ namespace Inventory\Standards;
  * how-to an agent follows.
  *
  * A step's model is its own "model" line, else its track's. It names the
- * model an agent does the step on (StepModel).
+ * model an agent does the step on (StepModel). An agent's step with neither
+ * is refused: there is no default. Rob's step needs none.
  *
  * Anything else is refused, so a typo in a file cannot quietly change what
  * the page says about a site.
@@ -158,6 +159,11 @@ final readonly class StepTree
         $whoseMove = WhoseMove::tryFrom($fields['whose_move'])
             ?? throw new StandardsFormatException("{$path}: whose_move must be rob or agent");
         $model = self::model($path, $fields['model'] ?? null) ?? $trackModel;
+        if ($whoseMove === WhoseMove::Agent && $model === null) {
+            throw new StandardsFormatException(
+                "{$path}: an agent step needs a model: add a \"model\" line here or to its track's _track.md"
+            );
+        }
 
         $lines = explode("\n", $parsed['body']);
         $heading = array_search(self::HOW_TO_HEADING, array_map(rtrim(...), $lines), true);

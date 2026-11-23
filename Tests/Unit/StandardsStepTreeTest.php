@@ -319,4 +319,25 @@ final class StandardsStepTreeTest extends Unit
 
         $this->assertNull(StepTree::fromFiles($files)->standards[0]->tracks[0]->steps[0]->model);
     }
+
+    public function testRefusesAnAgentStepWithNoModel(): void
+    {
+        $files = self::GOOD;
+        $files[self::STEP] = str_replace("model: sonnet\n", '', $files[self::STEP]);
+
+        $this->refuses($files, '#10_rector_php_8_5_rules\.md: an agent step needs a model#');
+    }
+
+    public function testRobsStepInATrackWithAModelIsAccepted(): void
+    {
+        $files = self::GOOD;
+        $files[self::STEP] = str_replace(
+            ['whose_move: agent', "model: sonnet\n"],
+            ['whose_move: rob', ''],
+            $files[self::STEP],
+        );
+        $files['template/rector/_track.md'] = "---\nname: Rector\nposition: 30\nmodel: opus\n---\n";
+
+        $this->assertSame(StepModel::Opus, StepTree::fromFiles($files)->standards[0]->tracks[0]->steps[0]->model);
+    }
 }
