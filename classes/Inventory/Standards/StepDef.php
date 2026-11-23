@@ -19,6 +19,7 @@ final readonly class StepDef
         public WhoseMove $whoseMove,
         public string $checkName,
         public ?string $checkParam,
+        public ?StepModel $model,
     ) {
     }
 }
