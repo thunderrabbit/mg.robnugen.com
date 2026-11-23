@@ -9,6 +9,7 @@
  * @var list<\Issues\BoardIssue> $done_issues
  * @var bool $show_done
  * @var list<\Projects\MemberView> $members
+ * @var string $image_strip the Images card, already rendered (issues/image_strip.tpl.php)
  */
 
 ?>
@@ -31,6 +32,8 @@
             <p class="empty-state"><em>No description.</em></p>
         <?php endif; ?>
     </div>
+
+    <?= $image_strip ?>
 
     <div class="card">
         <header class="dashboard-header">
