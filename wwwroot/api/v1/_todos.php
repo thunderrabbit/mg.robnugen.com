@@ -122,13 +122,9 @@ if ($todos_path === '/granted') {
 
         // Days-between: compute next_due_date
         if (!empty($todo['do_every_n_days'])) {
-            $logStmt = $pdo->prepare(
-                'SELECT MAX(DATE(date_logged)) FROM todo_logs WHERE todo_id = ?'
-            );
-            $logStmt->execute([$todo['todo_id']]);
-            $lastDone = $logStmt->fetchColumn();
+            $lastDone = $todoHelper->getLastDoneDate(\Field::int($todo, 'todo_id'));
 
-            if (is_string($lastDone) && $lastDone !== '') {
+            if ($lastDone !== null) {
                 $next = new \DateTime($lastDone, $tz);
                 $next->modify('+' . \Field::int($todo, 'do_every_n_days') . ' days');
                 $todo['next_due_date'] = $next->format('Y-m-d');
