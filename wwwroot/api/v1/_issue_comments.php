@@ -30,8 +30,8 @@ declare(strict_types=1);
 // ─── GET /issues/comments/list ──────────────────────────────────────────────
 
 if ($method === 'GET' && $csub === '/list') {
-    issues_api(static function () use ($issue_service, $issue_caller): void {
-        echo json_encode(issues_page('comments', $issue_service->comments(
+    \Issues\Api::run(static function () use ($issue_service, $issue_caller): void {
+        echo json_encode(\Issues\Api::page('comments', $issue_service->comments(
             $issue_caller,
             \Input\Input::positiveId($_GET, 'issue_id'),
             \Issues\Command\Paging::fromInput($_GET, 100, 200),
@@ -43,7 +43,7 @@ if ($method === 'GET' && $csub === '/list') {
 // ─── POST /issues/comments/add ──────────────────────────────────────────────
 
 if ($method === 'POST' && $csub === '/add') {
-    issues_api(static function () use ($issue_service, $issue_caller): void {
+    \Issues\Api::run(static function () use ($issue_service, $issue_caller): void {
         $input   = \Input\Input::json((string) file_get_contents('php://input'));
         $comment = $issue_service->addComment($issue_caller, \Issues\Command\AddComment::fromInput($input));
 
@@ -56,7 +56,7 @@ if ($method === 'POST' && $csub === '/add') {
 // ─── PATCH /issues/comments/edit ────────────────────────────────────────────
 
 if ($method === 'PATCH' && $csub === '/edit') {
-    issues_api(static function () use ($issue_service, $issue_caller): void {
+    \Issues\Api::run(static function () use ($issue_service, $issue_caller): void {
         $input   = \Input\Input::json((string) file_get_contents('php://input'));
         $comment = $issue_service->editComment($issue_caller, \Issues\Command\EditComment::fromInput($input));
 
@@ -68,7 +68,7 @@ if ($method === 'PATCH' && $csub === '/edit') {
 // ─── DELETE /issues/comments/delete ─────────────────────────────────────────
 
 if ($method === 'DELETE' && $csub === '/delete') {
-    issues_api(static function () use ($issue_service, $issue_caller): void {
+    \Issues\Api::run(static function () use ($issue_service, $issue_caller): void {
         $input = \Input\Input::json((string) file_get_contents('php://input'));
         $issue_service->deleteComment($issue_caller, \Input\Input::positiveId($input, 'issue_comment_id'));
 

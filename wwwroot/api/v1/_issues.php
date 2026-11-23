@@ -73,49 +73,6 @@ $issue_service = new \Issues\IssueService(
     beforeWrite: static fn(string $action) => require_credit($pdo, $auth_user_id, $auth_key_id, $action, $auth_token_id),
 );
 
-// ─── Helpers (file-local) ────────────────────────────────────────────────────
-
-/**
- * Runs one IssueService call, answering its errors with the API's usual codes.
- *
- * @param \Closure(): void $call
- */
-function issues_api(\Closure $call): void
-{
-    try {
-        $call();
-    } catch (\Input\InvalidInput | \Issues\ValidationException $e) {
-        http_response_code(400);
-        echo json_encode(['error' => $e->getMessage()]);
-    } catch (\Issues\NotFoundException $e) {
-        http_response_code(404);
-        echo json_encode(['error' => $e->getMessage()]);
-    } catch (\Issues\AccessException $e) {
-        http_response_code(403);
-        echo json_encode(['error' => $e->getMessage()]);
-    } catch (\Issues\ConflictException $e) {
-        http_response_code(409);
-        echo json_encode(['error' => $e->getMessage()]);
-    }
-}
-
-/**
- * The envelope every list read answers with.
- *
- * @template T of \JsonSerializable
- * @param \Issues\Page<T> $page
- * @return array<string, mixed>
- */
-function issues_page(string $key, \Issues\Page $page): array
-{
-    return [
-        $key     => $page->items,
-        'total'  => $page->total,
-        'limit'  => $page->limit,
-        'offset' => $page->offset,
-    ];
-}
-
 // ─── Sub-route selector ──────────────────────────────────────────────────────
 
 $is_comments = (bool) preg_match('#^/comments(/|$)#', $sub);
@@ -148,8 +105,8 @@ if ($method === 'GET' && $sub === '/statuses') {
 // ─── GET /issues/list ────────────────────────────────────────────────────────
 
 if ($method === 'GET' && $sub === '/list') {
-    issues_api(static function () use ($issue_service, $issue_caller): void {
-        echo json_encode(issues_page(
+    \Issues\Api::run(static function () use ($issue_service, $issue_caller): void {
+        echo json_encode(\Issues\Api::page(
             'issues',
             $issue_service->listIssues($issue_caller, \Issues\Command\ListIssues::fromInput($_GET)),
         ));
@@ -160,7 +117,7 @@ if ($method === 'GET' && $sub === '/list') {
 // ─── GET /issues/get ─────────────────────────────────────────────────────────
 
 if ($method === 'GET' && $sub === '/get') {
-    issues_api(static function () use ($issue_service, $issue_caller): void {
+    \Issues\Api::run(static function () use ($issue_service, $issue_caller): void {
         $view = $issue_service->view($issue_caller, \Input\Input::positiveId($_GET, 'issue_id'));
 
         echo json_encode([
@@ -182,7 +139,7 @@ if ($method === 'GET' && $sub === '/get') {
 // ─── POST /issues/create ─────────────────────────────────────────────────────
 
 if ($method === 'POST' && $sub === '/create') {
-    issues_api(static function () use ($issue_service, $issue_caller): void {
+    \Issues\Api::run(static function () use ($issue_service, $issue_caller): void {
         $input = \Input\Input::json((string) file_get_contents('php://input'));
         $issue = $issue_service->create($issue_caller, \Issues\Command\CreateIssue::fromInput($input));
 
@@ -195,7 +152,7 @@ if ($method === 'POST' && $sub === '/create') {
 // ─── PATCH /issues/update ────────────────────────────────────────────────────
 
 if ($method === 'PATCH' && $sub === '/update') {
-    issues_api(static function () use ($issue_service, $issue_caller): void {
+    \Issues\Api::run(static function () use ($issue_service, $issue_caller): void {
         $input  = \Input\Input::json((string) file_get_contents('php://input'));
         $update = \Issues\Command\UpdateIssue::fromInput($input);
 
@@ -219,7 +176,7 @@ if ($method === 'PATCH' && $sub === '/update') {
 // ─── DELETE /issues/delete ───────────────────────────────────────────────────
 
 if ($method === 'DELETE' && $sub === '/delete') {
-    issues_api(static function () use ($issue_service, $issue_caller): void {
+    \Issues\Api::run(static function () use ($issue_service, $issue_caller): void {
         $input = \Input\Input::json((string) file_get_contents('php://input'));
 
         echo json_encode([

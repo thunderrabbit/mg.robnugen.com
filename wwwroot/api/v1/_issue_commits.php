@@ -24,8 +24,8 @@ declare(strict_types=1);
 // ─── GET /issues/commits/list ───────────────────────────────────────────────
 
 if ($method === 'GET' && $xsub === '/list') {
-    issues_api(static function () use ($issue_service, $issue_caller): void {
-        echo json_encode(issues_page(
+    \Issues\Api::run(static function () use ($issue_service, $issue_caller): void {
+        echo json_encode(\Issues\Api::page(
             'commits',
             $issue_service->commits($issue_caller, \Issues\Command\ListCommits::fromInput($_GET)),
         ));
@@ -36,7 +36,7 @@ if ($method === 'GET' && $xsub === '/list') {
 // ─── POST /issues/commits/add ───────────────────────────────────────────────
 
 if ($method === 'POST' && $xsub === '/add') {
-    issues_api(static function () use ($issue_service, $issue_caller): void {
+    \Issues\Api::run(static function () use ($issue_service, $issue_caller): void {
         $input  = \Input\Input::json((string) file_get_contents('php://input'));
         $commit = $issue_service->addCommit($issue_caller, \Issues\Command\AddCommit::fromInput($input));
 
@@ -49,7 +49,7 @@ if ($method === 'POST' && $xsub === '/add') {
 // ─── DELETE /issues/commits/delete ──────────────────────────────────────────
 
 if ($method === 'DELETE' && $xsub === '/delete') {
-    issues_api(static function () use ($issue_service, $issue_caller): void {
+    \Issues\Api::run(static function () use ($issue_service, $issue_caller): void {
         $input = \Input\Input::json((string) file_get_contents('php://input'));
         $issue_service->deleteCommit($issue_caller, \Input\Input::positiveId($input, 'issue_commit_id'));
 
