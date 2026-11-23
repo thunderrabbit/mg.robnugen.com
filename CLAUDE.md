@@ -182,6 +182,7 @@ Pictures can be attached to an issue and show in an Images strip on the issue pa
 
 - No runtime dependencies — pure PHP with custom autoloader. `composer.json` holds dev tools (Codeception, phpcs, PHPStan) plus the platform requirement (PHP 8.5 and the extensions in `Startup\RequiredExtensions`; `prepend.php` fails by name if one is missing, so keep the two lists in step); `vendor/` is never deployed
 - CSRF: `prepend.php` checks the token on every state-changing browser request. Every `Template` takes the protector (`csrf: $csrfProtect`) and shows it to its template as `$csrf`: a form writes `<?= $csrf->field() ?>`, JavaScript gets `json_encode($csrf->getToken())`. A page must not `set('csrf', ...)`; the template's own `$csrf` replaces it
+- Admin count: `prepend.php` sets `$admin_count` to the number of pending migrations for a logged-in admin and 0 for everyone else. Every `Template` requires it (`admin_count: $admin_count`, beside `csrf:`) and shows it to its template as `$admin_count`, which `templates/partials/menu.tpl.php` draws inside the Admin link when it is above 0. A page must not `set('admin_count', ...)`. A pending migration leaves the count only by being applied at `/admin/migrate_tables.php`
 - `?debug=1` URL parameter enables debug output; `\PrintRob\Debug::printRob($var)` echoes `<pre>` dump and exits; `\PrintRob\Debug::printRobLog($var, $label)` appends to `~/rob.log`
 
 ### Including prepend.php
