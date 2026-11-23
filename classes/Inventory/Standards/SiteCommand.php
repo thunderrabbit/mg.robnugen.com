@@ -10,6 +10,7 @@ namespace Inventory\Standards;
  *
  *     sites
  *     test-candidates
+ *     next-step   --checkout= | --shortcode=
  *     site-add    --shortcode= --standard= [--project=]
  *     site-set    --shortcode= [--project=] [--checkout=] [--server=] [--test=] [--github=] [--autonomy=]
  *                 [--upgrade=]
@@ -20,6 +21,12 @@ namespace Inventory\Standards;
  *     ec2-servers
  *
  * An option given with an empty value (--github=) clears that field.
+ *
+ * next-step is for tools/site-standards/next-step.sh. It prints one JSON
+ * object (NextStepAnswer): the site's open steps as GET /standards/site
+ * gives them, its entry from `sites`, and the commit of the latest scan's
+ * step files. --checkout= is relative to ~/work. A checkout or shortcode no
+ * site has is an answer with a null site, not a refusal.
  *
  * --domain= on site-link and site-unlink is a DreamHost domain or an EC2
  * hostname; a site's links are all of one kind. ec2-server-add enters a
@@ -45,6 +52,7 @@ final class SiteCommand
     private const array COMMANDS = [
         'sites' => ['required' => [], 'optional' => []],
         'test-candidates' => ['required' => [], 'optional' => []],
+        'next-step' => ['required' => [], 'optional' => ['checkout', 'shortcode']],
         'site-add' => ['required' => ['shortcode', 'standard'], 'optional' => ['project']],
         'site-set' => [
             'required' => ['shortcode'],
@@ -89,6 +97,9 @@ final class SiteCommand
                 throw new \InvalidArgumentException("{$command} needs --{$name}=.");
             }
         }
+        if ($command === 'next-step') {
+            self::siteQuery($options);
+        }
 
         return ['command' => $command, 'options' => $options];
     }
@@ -99,7 +110,7 @@ final class SiteCommand
      * @param list<string> $args
      * @throws \InvalidArgumentException with a sentence for the person who typed it
      */
-    public static function run(array $args, SiteStore $store): string
+    public static function run(array $args, SiteStore $store, Board $board): string
     {
         ['command' => $command, 'options' => $o] = self::parse($args);
         $shortcode = $o['shortcode'] ?? '';
@@ -110,6 +121,15 @@ final class SiteCommand
                 return json_encode($store->forScanner(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
             case 'test-candidates':
                 return json_encode($store->testCandidates(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+            case 'next-step':
+                return json_encode(
+                    NextStepAnswer::of(
+                        SiteLookup::find(self::siteQuery($o), $board),
+                        $store->forScanner(),
+                        $board->latestStepsCommit(),
+                    ),
+                    JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES,
+                );
             case 'site-add':
                 $store->add($shortcode, $o['standard'] ?? '', self::projectId($o['project'] ?? ''));
                 return "Added site {$shortcode}.";
@@ -167,5 +187,31 @@ final class SiteCommand
             throw new \InvalidArgumentException('--project= takes a project number.');
         }
         return (int) $value;
+    }
+
+    /**
+     * Which site next-step is asked about: exactly one of --checkout= and
+     * --shortcode=, an empty value counting as absent.
+     *
+     * @param array<string, string> $options
+     */
+    private static function siteQuery(array $options): SiteQuery
+    {
+        $checkout = $options['checkout'] ?? '';
+        $shortcode = $options['shortcode'] ?? '';
+        if ($checkout !== '' && $shortcode !== '') {
+            throw new \InvalidArgumentException('next-step takes --checkout= or --shortcode=, not both.');
+        }
+        if ($checkout === '' && $shortcode === '') {
+            throw new \InvalidArgumentException('next-step needs --checkout= or --shortcode=.');
+        }
+        if ($shortcode !== '' && !Names::isShortcode($shortcode)) {
+            throw new \InvalidArgumentException('--shortcode= is not a shortcode.');
+        }
+        if ($checkout !== '' && !Names::isCheckoutPath($checkout)) {
+            throw new \InvalidArgumentException('--checkout= is relative to ~/work, like rob/example.com.');
+        }
+
+        return SiteQuery::parse(['checkout_path' => $checkout, 'shortcode' => $shortcode]);
     }
 }

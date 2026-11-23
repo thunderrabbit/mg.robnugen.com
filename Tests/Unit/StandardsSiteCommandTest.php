@@ -148,4 +148,68 @@ final class StandardsSiteCommandTest extends Unit
         $this->expectException(\InvalidArgumentException::class);
         SiteCommand::parse(['ec2-servers', '--alias=example-ec2']);
     }
+
+    public function testNextStepTakesACheckout(): void
+    {
+        $parsed = SiteCommand::parse(['next-step', '--checkout=rob/example.test']);
+
+        $this->assertSame('next-step', $parsed['command']);
+        $this->assertSame(['checkout' => 'rob/example.test'], $parsed['options']);
+    }
+
+    public function testNextStepTakesAShortcode(): void
+    {
+        $parsed = SiteCommand::parse(['next-step', '--shortcode=mg']);
+
+        $this->assertSame(['shortcode' => 'mg'], $parsed['options']);
+    }
+
+    public function testNextStepRefusesBoth(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('next-step takes --checkout= or --shortcode=, not both.');
+        SiteCommand::parse(['next-step', '--checkout=rob/example.test', '--shortcode=mg']);
+    }
+
+    public function testNextStepRefusesNeither(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('next-step needs --checkout= or --shortcode=.');
+        SiteCommand::parse(['next-step']);
+    }
+
+    public function testNextStepCountsAnEmptyValueAsAbsent(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('next-step needs --checkout= or --shortcode=.');
+        SiteCommand::parse(['next-step', '--checkout=', '--shortcode=']);
+    }
+
+    public function testNextStepRefusesAnAbsoluteCheckout(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('--checkout= is relative to ~/work, like rob/example.com.');
+        SiteCommand::parse(['next-step', '--checkout=/home/u/work/rob/example.test']);
+    }
+
+    public function testNextStepRefusesACheckoutThatClimbsOut(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('--checkout= is relative to ~/work, like rob/example.com.');
+        SiteCommand::parse(['next-step', '--checkout=rob/../etc']);
+    }
+
+    public function testNextStepRefusesWhatIsNotAShortcode(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('--shortcode= is not a shortcode.');
+        SiteCommand::parse(['next-step', '--shortcode=Not OK']);
+    }
+
+    public function testNextStepTakesNoOtherOption(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('next-step does not take --domain.');
+        SiteCommand::parse(['next-step', '--shortcode=mg', '--domain=example.test']);
+    }
 }
