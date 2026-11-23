@@ -29,4 +29,9 @@ class Config
     // messaging the bot and visiting https://api.telegram.org/bot<TOKEN>/getUpdates
     public string $telegram_bot_token = '';  // 123456789:ABC-DEF...
     public string $telegram_chat_id   = '';  // numeric chat.id from getUpdates response
+
+    // Pictures uploaded to issues. An absolute directory OUTSIDE the checkout
+    // and the web root, e.g. /home/user/mg_files/images, readable only by this
+    // user. Empty turns issue images off: no strip, no upload, every image URL 404s.
+    public string $image_store_path = '';
 }
