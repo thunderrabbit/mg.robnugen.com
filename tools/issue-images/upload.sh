@@ -13,7 +13,7 @@
 # Prints a line per file, then the markdown line of each picture, ready to
 # paste into an issue. Uploading the same files again stores nothing new.
 # Without --as the uploader is the human of the account that owns the issue.
-# Exit 1 when a file was refused.
+# Exit 1 when a file was refused, or a picture was skipped for its name.
 set -euo pipefail
 
 usage() { echo "usage: upload.sh [--dry-run] [--as=<aiu_id>] <issue_id> <file-or-dir> ..." >&2; exit 2; }
@@ -33,6 +33,7 @@ issue="$1"; shift
 
 files=()
 names=" "
+left_out=0
 add() {
   local file="$1" base
   base="$(basename "$file")"
@@ -41,7 +42,9 @@ add() {
     *) echo "skipped        $file  (not a .png .jpg .jpeg .gif .webp file)" >&2; return ;;
   esac
   case "$base" in
-    *[!A-Za-z0-9._\ \(\)-]*|-*) echo "skipped        $file  (rename it: letters, digits, space, . _ - only)" >&2; return ;;
+    *[!A-Za-z0-9._\ \(\)-]*|-*)
+      echo "skipped        $file  (rename it: letters, digits, space, . _ - only)" >&2
+      left_out=1; return ;;
   esac
   case "$names" in
     *"/$base/"*) echo "two files are both named $base; send them separately" >&2; exit 2 ;;
@@ -67,4 +70,9 @@ remote="$(ssh mg 'mktemp -d "${TMPDIR:-/tmp}/mg-issue-images.XXXXXXXX"')"
 trap 'ssh mg "rm -rf -- $remote"' EXIT
 
 scp -q -- "${files[@]}" "mg:$remote/"
-ssh mg "/usr/local/php85/bin/php ~/mg.robnugen.com/tools/issue_images.php import --issue=$issue --dir=$remote ${flags[*]}"
+status=0
+ssh mg "/usr/local/php85/bin/php ~/mg.robnugen.com/tools/issue_images.php import --issue=$issue --dir=$remote ${flags[*]}" \
+  || status=$?
+# A picture left behind for its name is a picture missing from the issue.
+[ "$status" -ne 0 ] || [ "$left_out" -eq 0 ] || status=1
+exit "$status"
