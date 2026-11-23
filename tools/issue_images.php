@@ -30,7 +30,7 @@ spl_autoload_register([new \Mlaphp\Autoloader(), 'load']);
 $config = new \Config();
 $pdo = \Database\Base::getPDO($config);
 $command = new \Issues\Images\ImageCommand(
-    \Issues\Images\ImageService::at($config->image_store_path, $pdo),
+    \Issues\Images\ImageService::forConfig($config, $pdo),
     new \Issues\Images\PdoImageStore($pdo),
     new \Issues\PdoIssueStore($pdo),
     static fn (): \DateTimeImmutable => new \DateTimeImmutable(),

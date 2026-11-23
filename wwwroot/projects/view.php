@@ -69,7 +69,7 @@ $inner_page->set("show_done", $show_done);
 $inner_page->set("members", $members);
 
 // Every picture on any of the project's issues, newest first. Read-only here.
-$pictures    = \Issues\Images\ImageService::at($config->image_store_path, $pdo);
+$pictures    = \Issues\Images\ImageService::forConfig($config, $pdo);
 $image_strip = new \Template($config, $is_logged_in, $csrfProtect);
 $image_strip->setTemplate("issues/image_strip.tpl.php");
 $image_strip->set("images", $pictures->forProject($caller, $project_id));

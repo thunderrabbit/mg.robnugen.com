@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $pdo      = \Database\Base::getPDO($config);
 $caller   = new \Issues\PdoIssueStore($pdo)->humanCaller($is_logged_in->loggedInID());
-$pictures = \Issues\Images\ImageService::at($config->image_store_path, $pdo);
+$pictures = \Issues\Images\ImageService::forConfig($config, $pdo);
 
 try {
     $issue_id = \Input\Input::positiveId($_POST, 'issue_id');

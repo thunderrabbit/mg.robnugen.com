@@ -86,7 +86,7 @@ $inner_page->set("parent", $parent);
 $inner_page->set("statuses", $service->statuses());
 
 // The Images card. What the last upload had to say is shown once.
-$pictures    = \Issues\Images\ImageService::at($config->image_store_path, $pdo);
+$pictures    = \Issues\Images\ImageService::forConfig($config, $pdo);
 $image_notes = \Issues\Images\PostedFiles::takeNotes($_SESSION);
 $image_strip = new \Template($config, $is_logged_in, $csrfProtect);
 $image_strip->setTemplate("issues/image_strip.tpl.php");

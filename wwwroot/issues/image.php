@@ -49,7 +49,7 @@ if ($path === null) {
 
 $pdo      = \Database\Base::getPDO($config);
 $caller   = new \Issues\PdoIssueStore($pdo)->humanCaller($user_id);
-$pictures = \Issues\Images\ImageService::at($config->image_store_path, $pdo);
+$pictures = \Issues\Images\ImageService::forConfig($config, $pdo);
 $image    = $caller === null ? null : $pictures->readable($caller, $path);
 $type     = $image === null ? null : \Issues\Images\ImageType::fromMime($image->mimeType);
 if ($image === null || $type === null) {
