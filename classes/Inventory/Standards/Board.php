@@ -15,7 +15,7 @@ use Database\RowValue;
  * project membership: these pages are for the account's owner only
  * (Inventory\AdminPage::guard), who owns every project a site points at.
  */
-final class Board
+final class Board implements SiteSource
 {
     /** @var array<int, list<array<mixed>>> live steps by std_standard_id */
     private array $steps = [];
