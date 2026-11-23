@@ -35,7 +35,7 @@
     <h3>Admin Tools</h3>
     <ul>
         <li><a href="/admin/auth_log.php">View Authentication Log</a> - Monitor login activity and diagnose logout issues</li>
-        <li>Notifications: <?= (int) ($due_notifications ?? 0) ?> due</li>
+        <li><a href="/admin/notifications/">Notifications</a> - <?= (int) ($due_notifications ?? 0) ?> due; reminders for a later day are set here</li>
         <li><a href="/admin/dh/">DreamHost inventory</a> - Rob only: sites, PHP versions, certificates, registrations, users, databases</li>
     </ul>
 </div>
