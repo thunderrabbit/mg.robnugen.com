@@ -122,13 +122,9 @@ if ($todos_path === '/granted') {
 
         // Days-between: compute next_due_date
         if (!empty($todo['do_every_n_days'])) {
-            $logStmt = $pdo->prepare(
-                'SELECT MAX(DATE(date_logged)) FROM todo_logs WHERE todo_id = ?'
-            );
-            $logStmt->execute([$todo['todo_id']]);
-            $lastDone = $logStmt->fetchColumn();
+            $lastDone = $todoHelper->getLastDoneDate(\Field::int($todo, 'todo_id'));
 
-            if (is_string($lastDone) && $lastDone !== '') {
+            if ($lastDone !== null) {
                 $next = new \DateTime($lastDone, $tz);
                 $next->modify('+' . \Field::int($todo, 'do_every_n_days') . ' days');
                 $todo['next_due_date'] = $next->format('Y-m-d');
@@ -725,15 +721,7 @@ if ($todos_path === '/granted') {
 
     $completed_todos = $todoHelper->getFullyCompletedHistory($auth_user_id, $limit, $offset);
 
-    $countStmt = $pdo->prepare("
-        SELECT COUNT(*) as total
-        FROM todo_logs tl
-        JOIN todos t ON tl.todo_id = t.todo_id
-        WHERE tl.user_id = ?
-        AND tl.nth >= t.target_count
-    ");
-    $countStmt->execute([$auth_user_id]);
-    $totalCount = \Field::int($countStmt->fetch(\PDO::FETCH_ASSOC), 'total');
+    $totalCount = $todoHelper->getFullyCompletedCount($auth_user_id);
 
     echo json_encode([
         'success' => true,
