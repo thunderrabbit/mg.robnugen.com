@@ -171,7 +171,7 @@ switch ($method) {
         exit;
 
     case 'tools/list':
-        echo json_encode(\Mcp\JsonRpc::ok($id, ['tools' => exterm_tool_defs()]));
+        echo json_encode(\Mcp\JsonRpc::ok($id, ['tools' => \Mcp\Tools::defs()]));
         break;
 
     case 'tools/call':
@@ -181,14 +181,14 @@ switch ($method) {
         // Every tool reaches the project subsystem, so the same bits REST
         // checks with require_project_perm() apply: reading tools need
         // can_read_project, the rest can_write_project.
-        $needs = mcp_tool_reads_only($tool) ? 'can_read_project' : 'can_write_project';
+        $needs = \Mcp\Tools::readsOnly($tool) ? 'can_read_project' : 'can_write_project';
         if (!\Field::int($auth_actor, $needs)) {
             echo json_encode(\Mcp\JsonRpc::error($id, -32603, "This connection's agent lacks {$needs}"));
             break;
         }
 
         try {
-            $result = exterm_dispatch(
+            $result = \Mcp\Tools::dispatch(
                 $exterm,
                 $issue_service,
                 $issue_caller,
@@ -209,36 +209,4 @@ switch ($method) {
 
     default:
         echo json_encode(\Mcp\JsonRpc::error($id, -32601, "Method not found: {$method}"));
-}
-
-// ── Tool dispatch ─────────────────────────────────────────────────────────────
-
-function mcp_tool_reads_only(string $tool): bool
-{
-    return \Mcp\Tools::readsOnly($tool);
-}
-
-/**
- * @param array<mixed> $a
- */
-function exterm_dispatch(
-    \Exterm\Items $exterm,
-    \Issues\IssueService $issueService,
-    \Issues\Caller $caller,
-    int $user_id,
-    int $caller_aiu,
-    string $tool,
-    array $a,
-): mixed {
-    return \Mcp\Tools::dispatch($exterm, $issueService, $caller, $user_id, $caller_aiu, $tool, $a);
-}
-
-// ── Tool definitions (JSON Schema) ────────────────────────────────────────────
-
-/**
- * @return array<int, array<string, mixed>>
- */
-function exterm_tool_defs(): array
-{
-    return \Mcp\Tools::defs();
 }
