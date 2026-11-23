@@ -56,21 +56,7 @@ $project_service = new \Projects\ProjectService(
  */
 function projects_api(\Closure $call): void
 {
-    try {
-        $call();
-    } catch (\Input\InvalidInput | \Issues\ValidationException $e) {
-        http_response_code(400);
-        echo json_encode(['error' => $e->getMessage()]);
-    } catch (\Issues\NotFoundException $e) {
-        http_response_code(404);
-        echo json_encode(['error' => $e->getMessage()]);
-    } catch (\Issues\AccessException $e) {
-        http_response_code(403);
-        echo json_encode(['error' => $e->getMessage()]);
-    } catch (\Issues\ConflictException $e) {
-        http_response_code(409);
-        echo json_encode(['error' => $e->getMessage()]);
-    }
+    \Projects\Api::run($call);
 }
 
 /**
@@ -80,7 +66,7 @@ function projects_api(\Closure $call): void
  */
 function projects_body(): array
 {
-    return \Input\Input::json((string) file_get_contents('php://input'));
+    return \Projects\Api::body();
 }
 
 // ─── GET /projects/list ─────────────────────────────────────────────────────
