@@ -49,44 +49,10 @@ $project_service = new \Projects\ProjectService(
     beforeWrite: static fn(string $action) => require_credit($pdo, $auth_user_id, $auth_key_id, $action, $auth_token_id),
 );
 
-/**
- * Runs one ProjectService call, answering its errors with the API's usual codes.
- *
- * @param \Closure(): void $call
- */
-function projects_api(\Closure $call): void
-{
-    try {
-        $call();
-    } catch (\Input\InvalidInput | \Issues\ValidationException $e) {
-        http_response_code(400);
-        echo json_encode(['error' => $e->getMessage()]);
-    } catch (\Issues\NotFoundException $e) {
-        http_response_code(404);
-        echo json_encode(['error' => $e->getMessage()]);
-    } catch (\Issues\AccessException $e) {
-        http_response_code(403);
-        echo json_encode(['error' => $e->getMessage()]);
-    } catch (\Issues\ConflictException $e) {
-        http_response_code(409);
-        echo json_encode(['error' => $e->getMessage()]);
-    }
-}
-
-/**
- * The decoded JSON body of a write.
- *
- * @return array<mixed>
- */
-function projects_body(): array
-{
-    return \Input\Input::json((string) file_get_contents('php://input'));
-}
-
 // ─── GET /projects/list ─────────────────────────────────────────────────────
 
 if ($method === 'GET' && $sub === '/list') {
-    projects_api(static function () use ($project_service, $project_caller): void {
+    \Projects\Api::run(static function () use ($project_service, $project_caller): void {
         $include_archived = isset($_GET['include_archived']) && \Input\Input::flag($_GET, 'include_archived');
         echo json_encode(['projects' => $project_service->list($project_caller, $include_archived)]);
     });
@@ -96,7 +62,7 @@ if ($method === 'GET' && $sub === '/list') {
 // ─── GET /projects/get ──────────────────────────────────────────────────────
 
 if ($method === 'GET' && $sub === '/get') {
-    projects_api(static function () use ($project_service, $project_caller): void {
+    \Projects\Api::run(static function () use ($project_service, $project_caller): void {
         $project_id = \Input\Input::positiveId($_GET, 'project_id');
         echo json_encode(['project' => $project_service->get($project_caller, $project_id)]);
     });
@@ -106,10 +72,10 @@ if ($method === 'GET' && $sub === '/get') {
 // ─── POST /projects/create ──────────────────────────────────────────────────
 
 if ($method === 'POST' && $sub === '/create') {
-    projects_api(static function () use ($project_service, $project_caller): void {
+    \Projects\Api::run(static function () use ($project_service, $project_caller): void {
         $project = $project_service->create(
             $project_caller,
-            \Projects\Command\CreateProject::fromInput(projects_body()),
+            \Projects\Command\CreateProject::fromInput(\Projects\Api::body()),
         );
         http_response_code(201);
         echo json_encode([
@@ -126,8 +92,8 @@ if ($method === 'POST' && $sub === '/create') {
 // ─── PATCH /projects/update ─────────────────────────────────────────────────
 
 if ($method === 'PATCH' && $sub === '/update') {
-    projects_api(static function () use ($project_service, $project_caller): void {
-        $changes = \Projects\Command\UpdateProject::fromInput(projects_body());
+    \Projects\Api::run(static function () use ($project_service, $project_caller): void {
+        $changes = \Projects\Command\UpdateProject::fromInput(\Projects\Api::body());
         echo json_encode(['updated' => $project_service->update($project_caller, $changes)]);
     });
     return;
@@ -136,8 +102,8 @@ if ($method === 'PATCH' && $sub === '/update') {
 // ─── DELETE /projects/delete ────────────────────────────────────────────────
 
 if ($method === 'DELETE' && $sub === '/delete') {
-    projects_api(static function () use ($project_service, $project_caller): void {
-        $project_id = \Input\Input::positiveId(projects_body(), 'project_id');
+    \Projects\Api::run(static function () use ($project_service, $project_caller): void {
+        $project_id = \Input\Input::positiveId(\Projects\Api::body(), 'project_id');
         echo json_encode(['deleted' => $project_service->delete($project_caller, $project_id)]);
     });
     return;
@@ -146,7 +112,7 @@ if ($method === 'DELETE' && $sub === '/delete') {
 // ─── GET /projects/members ──────────────────────────────────────────────────
 
 if ($method === 'GET' && $sub === '/members') {
-    projects_api(static function () use ($project_service, $project_caller): void {
+    \Projects\Api::run(static function () use ($project_service, $project_caller): void {
         $project_id = \Input\Input::positiveId($_GET, 'project_id');
         echo json_encode(['members' => $project_service->members($project_caller, $project_id)]);
     });
@@ -156,8 +122,8 @@ if ($method === 'GET' && $sub === '/members') {
 // ─── POST /projects/add-member ──────────────────────────────────────────────
 
 if ($method === 'POST' && $sub === '/add-member') {
-    projects_api(static function () use ($project_service, $project_caller): void {
-        $member = \Projects\Command\AddMember::fromInput(projects_body());
+    \Projects\Api::run(static function () use ($project_service, $project_caller): void {
+        $member = \Projects\Command\AddMember::fromInput(\Projects\Api::body());
         $project_service->addMember($project_caller, $member);
         http_response_code(201);
         echo json_encode([
@@ -175,8 +141,8 @@ if ($method === 'POST' && $sub === '/add-member') {
 // ─── PATCH /projects/update-member ──────────────────────────────────────────
 
 if ($method === 'PATCH' && $sub === '/update-member') {
-    projects_api(static function () use ($project_service, $project_caller): void {
-        $changes = \Projects\Command\UpdateMember::fromInput(projects_body());
+    \Projects\Api::run(static function () use ($project_service, $project_caller): void {
+        $changes = \Projects\Command\UpdateMember::fromInput(\Projects\Api::body());
         echo json_encode(['updated' => $project_service->updateMember($project_caller, $changes)]);
     });
     return;
@@ -185,8 +151,8 @@ if ($method === 'PATCH' && $sub === '/update-member') {
 // ─── DELETE /projects/remove-member ─────────────────────────────────────────
 
 if ($method === 'DELETE' && $sub === '/remove-member') {
-    projects_api(static function () use ($project_service, $project_caller): void {
-        $input = projects_body();
+    \Projects\Api::run(static function () use ($project_service, $project_caller): void {
+        $input = \Projects\Api::body();
         $removed = $project_service->removeMember(
             $project_caller,
             \Input\Input::positiveId($input, 'project_id'),
@@ -202,7 +168,7 @@ if ($method === 'DELETE' && $sub === '/remove-member') {
 // projects. Both exclude terminal statuses and need can_read.
 
 if ($method === 'GET' && $sub === '/dashboard') {
-    projects_api(static function () use ($project_service, $project_caller): void {
+    \Projects\Api::run(static function () use ($project_service, $project_caller): void {
         $dashboard = $project_service->dashboard($project_caller);
         echo json_encode([
             'my_assigned_issues' => $dashboard['mine'],
