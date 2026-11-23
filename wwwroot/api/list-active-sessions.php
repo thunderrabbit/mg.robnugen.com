@@ -33,27 +33,7 @@ try {
     $user_id = $is_logged_in->loggedInID();
 
     // Get all active sessions (actual_sec IS NULL)
-    $stmt = $pdo->prepare("
-        SELECT
-            ask.session_key,
-            ak.ak_id,
-            ak.activity_id,
-            a.activity_name,
-            ak.start_local_dt,
-            ak.intended_sec,
-            ak.timezone_id,
-            t.iana_name as timezone_iana
-        FROM activity_kai ak
-        JOIN activities a ON ak.activity_id = a.activity_id
-        JOIN timezones t ON ak.timezone_id = t.timezone_id
-        LEFT JOIN activity_session_keys ask ON ak.ak_id = ask.ak_id
-        WHERE ak.user_id = ?
-          AND ak.actual_sec IS NULL
-        ORDER BY ak.created_at_utc DESC
-    ");
-
-    $stmt->execute([$user_id]);
-    $sessions = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    $sessions = new \ActivityTracking\ActivityKai($pdo)->getActiveSessions($user_id);
 
     echo json_encode([
         'success' => true,
