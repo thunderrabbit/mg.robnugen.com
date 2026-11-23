@@ -115,24 +115,6 @@ if ($pinned_name !== null) {
     $pinned_aiu = \Field::toInt($pin_found);
 }
 
-// ── Issue an auth code and redirect back to the client ────────────────────────
-
-function issue_auth_code_and_redirect(\PDO $pdo, int $aiu_id, int $user_id, string $code_challenge, string $redirect_uri, string $state): void
-{
-    $raw_code  = bin2hex(random_bytes(32));
-    $code_hash = hash('sha256', $raw_code);
-
-    $pdo->prepare(
-        "INSERT INTO oauth_auth_codes
-             (aiu_id, user_id, code_hash, code_challenge, redirect_uri, state, expires_at_utc)
-         VALUES (?, ?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 10 MINUTE))"
-    )->execute([$aiu_id, $user_id, $code_hash, $code_challenge, $redirect_uri, $state]);
-
-    $sep = str_contains($redirect_uri, '?') ? '&' : '?';
-    header("Location: {$redirect_uri}{$sep}code={$raw_code}&state=" . urlencode($state));
-    exit;
-}
-
 // ── GET: skip the form if this client+redirect was already approved ──────────
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && $client_id !== '' && \Auth\OAuthClients::remembersConsent($client_id)) {
@@ -145,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $client_id !== '' && \Auth\OAuthClie
     $remembered_aiu = $consent_stmt->fetchColumn();
 
     if ($remembered_aiu !== false) {
-        issue_auth_code_and_redirect($pdo, (int)$remembered_aiu, $user_id, $code_challenge, $redirect_uri, $state);
+        \Auth\AuthCode::issueAndRedirect($pdo, (int)$remembered_aiu, $user_id, $code_challenge, $redirect_uri, $state);
     }
 }
 
@@ -153,7 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && $client_id !== '' && \Auth\OAuthClie
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $pinned_aiu !== null) {
     if (\Field::string($_POST, 'decision') === 'allow') {
-        issue_auth_code_and_redirect($pdo, $pinned_aiu, $user_id, $code_challenge, $redirect_uri, $state);
+        \Auth\AuthCode::issueAndRedirect($pdo, $pinned_aiu, $user_id, $code_challenge, $redirect_uri, $state);
     }
     // $redirect_uri already passed OAuthClients::redirectAllowed above.
     $sep = str_contains($redirect_uri, '?') ? '&' : '?';
@@ -186,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         )->execute([$user_id, $chosen_aiu, $client_id, $redirect_uri]);
     }
 
-    issue_auth_code_and_redirect($pdo, $chosen_aiu, $user_id, $code_challenge, $redirect_uri, $state);
+    \Auth\AuthCode::issueAndRedirect($pdo, $chosen_aiu, $user_id, $code_challenge, $redirect_uri, $state);
 }
 
 // ── GET: show approval form ───────────────────────────────────────────────────
