@@ -9,6 +9,16 @@ gateway class for its table (or group of tables), and the page script calls
 that method. The SQL keeps its behaviour exactly; this step is a move, not a
 rewrite.
 
+A gateway is an object, not a class of static methods. It takes the database
+connection in its constructor and its queries are instance methods; the page
+script makes the gateway and calls it. The book builds every gateway that way
+and says, in chapter 4, "I recommend instance methods over static ones": they
+give a constructor and are easier to test. Gateways are grouped by what they
+hold (`Comments\CommentsGateway`), not in one `Gateway` namespace, and method
+names follow whatever the codebase already uses (`get`, `find`, `select`):
+"While the method name itself does not matter, consistency-of-naming does."
+A site that already has gateway classes adds to them in their own style.
+
 The check counts `->prepare(`, `->query(`, `->exec(` and `mysqli_query(`
 calls in PHP files under `wwwroot/`. A site with no `wwwroot/` does the
 public-files step first.
@@ -23,9 +33,10 @@ an agent never does it alone. With Rob, one group at a time:
    `tools/site-standards/checks/mlaphp_sql_in_gateways.sh <repo>` names the
    first; `git ls-files -z 'wwwroot/**/*.php' | xargs -0 grep -nE -e
    '->(prepare|query|exec)\s*\(|mysqli_query\s*\('` lists them all.
-2. The agent proposes a shape for one group: the gateway class for its table,
-   its method names, and what each returns, with the SQL copied exactly. Rob
-   picks or changes it.
+2. The agent proposes a shape for one group: the gateway class for its table
+   (instance methods, the connection passed to the constructor), its method
+   names in the codebase's existing style, and what each returns, with the
+   SQL copied exactly. Rob picks or changes it.
 3. Do that group in its own commits, run the suite, and deploy before the
    next group.
 
