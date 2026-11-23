@@ -148,7 +148,7 @@ class ImageServiceTest extends IssueCase
     {
         $this->assertThrows(
             AccessException::class,
-            fn () => $this->upload([$this->file('a.png', ImageBytes::png())], $this->reader),
+            fn (): array => $this->upload([$this->file('a.png', ImageBytes::png())], $this->reader),
         );
         $this->assertSame([], $this->onDisk());
     }
@@ -158,7 +158,7 @@ class ImageServiceTest extends IssueCase
         foreach ([$this->stranger, $this->blocked] as $caller) {
             $this->assertThrows(
                 NotFoundException::class,
-                fn () => $this->upload([$this->file('a.png', ImageBytes::png())], $caller),
+                fn (): array => $this->upload([$this->file('a.png', ImageBytes::png())], $caller),
             );
         }
         $this->assertSame([], $this->onDisk());
@@ -330,7 +330,7 @@ class ImageServiceTest extends IssueCase
         $this->assertTrue($this->pictures->enabled());
         $this->assertThrows(
             \LogicException::class,
-            fn () => $off->upload($this->writer, $this->issue->issueId, [], $this->now),
+            fn (): array => $off->upload($this->writer, $this->issue->issueId, [], $this->now),
         );
     }
 
@@ -462,7 +462,7 @@ class ImageServiceTest extends IssueCase
 
         $this->assertThrows(
             NotFoundException::class,
-            fn () => $this->pictures->forIssue($this->stranger, $this->issue->issueId),
+            fn (): array => $this->pictures->forIssue($this->stranger, $this->issue->issueId),
         );
     }
 
@@ -482,8 +482,8 @@ class ImageServiceTest extends IssueCase
 
     public function testTheProjectStripNeedsReadAccess(): void
     {
-        $this->assertThrows(NotFoundException::class, fn () => $this->pictures->forProject($this->stranger, 7));
-        $this->assertThrows(AccessException::class, fn () => $this->pictures->forProject($this->blocked, 7));
+        $this->assertThrows(NotFoundException::class, fn (): array => $this->pictures->forProject($this->stranger, 7));
+        $this->assertThrows(AccessException::class, fn (): array => $this->pictures->forProject($this->blocked, 7));
     }
 
     // ─── Linking and removing ────────────────────────────────────────────────
@@ -506,7 +506,7 @@ class ImageServiceTest extends IssueCase
 
         $this->assertThrows(
             AccessException::class,
-            fn () => $this->pictures->link($this->reader, $id, $other->issueId, $this->now),
+            fn (): bool => $this->pictures->link($this->reader, $id, $other->issueId, $this->now),
         );
         $this->assertSame([$this->issue->issueId], $this->images->linkedIssueIds($id));
     }
@@ -520,11 +520,11 @@ class ImageServiceTest extends IssueCase
 
         $this->assertThrows(
             NotFoundException::class,
-            fn () => $this->pictures->link($this->human, $image->issueImageId, $this->issue->issueId, $this->now),
+            fn (): bool => $this->pictures->link($this->human, $image->issueImageId, $this->issue->issueId, $this->now),
         );
         $this->assertThrows(
             NotFoundException::class,
-            fn () => $this->pictures->link($this->writer, 9999, $this->issue->issueId, $this->now),
+            fn (): bool => $this->pictures->link($this->writer, 9999, $this->issue->issueId, $this->now),
         );
     }
 
@@ -534,11 +534,11 @@ class ImageServiceTest extends IssueCase
 
         $this->assertThrows(
             AccessException::class,
-            fn () => $this->pictures->unlink($this->reader, $id, $this->issue->issueId),
+            fn (): bool => $this->pictures->unlink($this->reader, $id, $this->issue->issueId),
         );
         $this->assertThrows(
             NotFoundException::class,
-            fn () => $this->pictures->unlink($this->stranger, $id, $this->issue->issueId),
+            fn (): bool => $this->pictures->unlink($this->stranger, $id, $this->issue->issueId),
         );
         $this->assertSame([$this->issue->issueId], $this->images->linkedIssueIds($id));
     }
