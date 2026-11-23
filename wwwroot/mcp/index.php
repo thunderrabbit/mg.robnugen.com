@@ -157,7 +157,7 @@ $params = \Field::array($msg, 'params');
  */
 function mcp_ok(mixed $id, array $result): array
 {
-    return ['jsonrpc' => '2.0', 'id' => $id, 'result' => $result];
+    return \Mcp\JsonRpc::ok($id, $result);
 }
 
 /**
@@ -165,7 +165,7 @@ function mcp_ok(mixed $id, array $result): array
  */
 function mcp_error(mixed $id, int $code, string $message): array
 {
-    return ['jsonrpc' => '2.0', 'id' => $id, 'error' => ['code' => $code, 'message' => $message]];
+    return \Mcp\JsonRpc::error($id, $code, $message);
 }
 
 /**
@@ -173,7 +173,7 @@ function mcp_error(mixed $id, int $code, string $message): array
  */
 function mcp_tool_result(mixed $id, mixed $data): array
 {
-    return mcp_ok($id, ['content' => [['type' => 'text', 'text' => json_encode($data)]]]);
+    return \Mcp\JsonRpc::toolResult($id, $data);
 }
 
 // ── Dispatch ──────────────────────────────────────────────────────────────────
