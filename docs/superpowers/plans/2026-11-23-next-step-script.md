@@ -48,19 +48,18 @@ scan.
 - Commits use several `-m` flags, never a heredoc, one layer per commit, and
   end with the `Co-Authored-By` line (written `<attribution line>` below).
 
-## Open for Rob
+## Settled by Rob, 2026-11-23
 
-Each part ends with its own short list. The ones that change behaviour:
+The questions at the end of each part are answered:
 
 1. A `whose_move: rob` step in a track that names a model carries that model
-   in `StepDef`, unread; the spec said null. (Part 1, question 1.)
-2. A step whose check is a safe suite is never `clean`, so its bubble is
-   always left for you. (Part 2, question 2.)
-3. Four or more commits with no one-file BEGIN first is reported but does
-   not make `clean` false; `git close-bubble` then refuses by itself. I
-   would make it false. (Part 2, question 3.)
-4. The script learns the session's model from a `--session-model=` flag the
-   skill passes; it cannot see it otherwise.
+   in `StepDef`, unread. As Part 1 has it.
+2. A step whose check is a safe suite is never `clean`; its bubble is always
+   left for Rob. As Part 2 has it.
+3. Four or more commits with no one-file BEGIN first makes `clean` false.
+   Part 2's Task 7 says so; this overrides its open question 3.
+4. The skill passes `--session-model=`. As Part 2 has it.
+5. `fable` ranks above `opus`.
 
 ---
 
@@ -2841,9 +2840,12 @@ What `say` holds, one fact a line, in this order (the tests pin each):
 clean; HEAD contains the base; the check passed or has no script here; every
 gate that ran exited 0; and the four counts are all 0. A check that could not
 tell, including a safe suite the script will not run, makes `clean` false.
-The bubble line is a fact only and does not enter `clean` (the spec's
-definition leaves it out). A gate that was not set up or not found does not
-enter `clean` either.
+With four or more commits, a first commit that is not a `BEGIN ` commit
+touching one file makes `clean` false (Rob, 2026-11-23): the session must not
+go on to `git close-bubble` for a bubble that was never opened. Add a test,
+`test_four_commits_with_no_begin_first_is_not_clean`, beside the one that
+pins the line. A gate that was not set up or not found does not enter
+`clean`.
 
 - [ ] **Step 1: Failing tests**, class `NextStepConfirmTest(NextStepCase)`.
 `setUp`: `self.check("echo", 0, "all there")`, the three gates written with

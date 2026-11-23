@@ -84,7 +84,8 @@ to 10) where he does redirect.
 - `StepTree` resolves each step's model: its own line, else its track's.
   An agent step that resolves to none is a `StandardsFormatException`, like
   any other malformed step file. A `whose_move: rob` step needs none and
-  gets null. `StepDef` gains `?StepModel $model`.
+  gets null (or its track's model, which nothing reads). `StepDef` gains
+  `?StepModel $model`.
 - **The model is not stored in mg's database.** No column, no migration, no
   change to the importer, `Board`, `StepLine`, `SiteAnswer` or the v1 API.
   mg already keeps the commit whose step files it last imported
@@ -209,7 +210,8 @@ It prints one JSON object on stdout and exits 0 whenever it could decide
   session does the step itself under `rules`, as a taste step is done once
   Rob has picked. If the session runs on a cheaper model than the step
   names, `say` ends with one line saying which model the step asks for; the
-  session goes on. (My call: the script cannot change the session's model,
+  session goes on. The script cannot see its caller's model, so the skill
+  passes `--session-model=<name>`; without it the line is left out. (My call: the script cannot change the session's model,
   and stopping would make the command useless in such a session.)
 - A check that exits 2 ("could not tell") still dispatches (or does), with
   the check's line quoted in `say` and in `brief` or `rules`.
@@ -232,9 +234,11 @@ trusts no report. It prints `say` as a short list of facts it found itself,
   baseline file added or grown, test files deleted, and tests newly marked
   skipped or incomplete.
 
-`clean` is true when the branch and tree are right, the check passed (or
-has no script), every gate that ran passed, and the last group is all
-zeroes. The counts are facts for Rob, not a verdict on the work: a
+`clean` is true when the branch and tree are right, four or more commits
+start with a one-file `BEGIN ` commit, the check passed (or has no script),
+every gate that ran passed, and the last group is all zeroes. A check the
+lookup never runs (a safe suite) could not tell, so that step is never
+`clean`. The counts are facts for Rob, not a verdict on the work: a
 legitimate `@phpstan-ignore` makes `clean` false, and the session then
 shows the facts and leaves the bubble for Rob.
 
