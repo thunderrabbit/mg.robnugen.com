@@ -67,7 +67,7 @@ if (preg_match('/^Bearer\s+(\S+)$/i', $auth_header, $m)) {
 if (!$raw_token) {
     http_response_code(401);
     header('WWW-Authenticate: Bearer realm="Exterminal", resource_metadata="https://mg.robnugen.com/.well-known/oauth-protected-resource"');
-    echo json_encode(mcp_error(null, -32600, 'Missing Bearer token'));
+    echo json_encode(\Mcp\JsonRpc::error(null, -32600, 'Missing Bearer token'));
     exit;
 }
 
@@ -103,7 +103,7 @@ if ($tok_row) {
 if (!$auth_user_id) {
     http_response_code(401);
     header('WWW-Authenticate: Bearer realm="Exterminal", error="invalid_token", resource_metadata="https://mg.robnugen.com/.well-known/oauth-protected-resource"');
-    echo json_encode(mcp_error(null, -32600, 'Invalid or expired token'));
+    echo json_encode(\Mcp\JsonRpc::error(null, -32600, 'Invalid or expired token'));
     exit;
 }
 
@@ -115,13 +115,13 @@ $actor_stmt->execute([$auth_aiu_id, $auth_user_id]);
 $auth_actor  = $actor_stmt->fetch(\PDO::FETCH_ASSOC);
 if (!is_array($auth_actor)) {
     http_response_code(403);
-    echo json_encode(mcp_error(null, -32600, 'This token is not bound to an agent in its account'));
+    echo json_encode(\Mcp\JsonRpc::error(null, -32600, 'This token is not bound to an agent in its account'));
     exit;
 }
 // Limited apps (e.g. BG Bells) hold a token only for their granted todos.
 if (new \Auth\Guards()->isLimited($auth_actor)) {
     http_response_code(403);
-    echo json_encode(mcp_error(null, -32600, 'This app may not use MCP'));
+    echo json_encode(\Mcp\JsonRpc::error(null, -32600, 'This app may not use MCP'));
     exit;
 }
 $caller_aiu  = \Field::int($auth_actor, 'aiu_id');
@@ -141,40 +141,13 @@ $msg      = \Field::jsonArray($raw_body);
 
 if (!isset($msg['method'])) {
     http_response_code(400);
-    echo json_encode(mcp_error(null, -32700, 'Invalid JSON-RPC message'));
+    echo json_encode(\Mcp\JsonRpc::error(null, -32700, 'Invalid JSON-RPC message'));
     exit;
 }
 
 $id     = $msg['id']     ?? null;
 $method = \Field::string($msg, 'method');
 $params = \Field::array($msg, 'params');
-
-// ── JSON-RPC helpers ──────────────────────────────────────────────────────────
-
-/**
- * @param array<string, mixed> $result
- * @return array<string, mixed>
- */
-function mcp_ok(mixed $id, array $result): array
-{
-    return \Mcp\JsonRpc::ok($id, $result);
-}
-
-/**
- * @return array<string, mixed>
- */
-function mcp_error(mixed $id, int $code, string $message): array
-{
-    return \Mcp\JsonRpc::error($id, $code, $message);
-}
-
-/**
- * @return array<string, mixed>
- */
-function mcp_tool_result(mixed $id, mixed $data): array
-{
-    return \Mcp\JsonRpc::toolResult($id, $data);
-}
 
 // ── Dispatch ──────────────────────────────────────────────────────────────────
 
@@ -185,7 +158,7 @@ switch ($method) {
         $proto = version_compare($client_version, '2025-06-18', '>=') ? '2025-06-18' : '2025-03-26';
         // Mcp-Session-Id is required by the Streamable-HTTP spec; we use the token hash as stable ID
         header('Mcp-Session-Id: ' . hash('sha256', $raw_token));
-        echo json_encode(mcp_ok($id, [
+        echo json_encode(\Mcp\JsonRpc::ok($id, [
             'protocolVersion' => $proto,
             'capabilities'    => ['tools' => new stdClass()],
             'serverInfo'      => ['name' => 'Exterminal', 'version' => '2.0.0'],
@@ -198,7 +171,7 @@ switch ($method) {
         exit;
 
     case 'tools/list':
-        echo json_encode(mcp_ok($id, ['tools' => exterm_tool_defs()]));
+        echo json_encode(\Mcp\JsonRpc::ok($id, ['tools' => exterm_tool_defs()]));
         break;
 
     case 'tools/call':
@@ -210,7 +183,7 @@ switch ($method) {
         // can_read_project, the rest can_write_project.
         $needs = mcp_tool_reads_only($tool) ? 'can_read_project' : 'can_write_project';
         if (!\Field::int($auth_actor, $needs)) {
-            echo json_encode(mcp_error($id, -32603, "This connection's agent lacks {$needs}"));
+            echo json_encode(\Mcp\JsonRpc::error($id, -32603, "This connection's agent lacks {$needs}"));
             break;
         }
 
@@ -224,18 +197,18 @@ switch ($method) {
                 $tool,
                 $args,
             );
-            echo json_encode(mcp_tool_result($id, $result));
+            echo json_encode(\Mcp\JsonRpc::toolResult($id, $result));
         } catch (\Exterm\ValidationException | \Issues\ValidationException | \Input\InvalidInput $e) {
-            echo json_encode(mcp_error($id, -32602, $e->getMessage()));
+            echo json_encode(\Mcp\JsonRpc::error($id, -32602, $e->getMessage()));
         } catch (\Exterm\NotFoundException | \Issues\NotFoundException | \Exterm\AccessException | \Issues\AccessException | \Issues\ConflictException $e) {
-            echo json_encode(mcp_error($id, -32603, $e->getMessage()));
+            echo json_encode(\Mcp\JsonRpc::error($id, -32603, $e->getMessage()));
         } catch (\Exception) {
-            echo json_encode(mcp_error($id, -32603, 'Internal error'));
+            echo json_encode(\Mcp\JsonRpc::error($id, -32603, 'Internal error'));
         }
         break;
 
     default:
-        echo json_encode(mcp_error($id, -32601, "Method not found: {$method}"));
+        echo json_encode(\Mcp\JsonRpc::error($id, -32601, "Method not found: {$method}"));
 }
 
 // ── Tool dispatch ─────────────────────────────────────────────────────────────
