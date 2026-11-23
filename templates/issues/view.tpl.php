@@ -8,6 +8,7 @@
  * @var list<\Issues\IssueListItem> $children
  * @var \Issues\IssueDetail|null $parent
  * @var list<\Database\Row\IssueStatusRow> $statuses
+ * @var string $image_strip the Images card, already rendered (issues/image_strip.tpl.php)
  * @var string $msg
  */
 
@@ -78,6 +79,8 @@
             <p class="empty-state"><em>No description.</em></p>
         <?php endif; ?>
     </div>
+
+    <?= $image_strip ?>
 
     <?php if ($children !== []): ?>
         <?php
