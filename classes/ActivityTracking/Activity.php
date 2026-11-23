@@ -97,4 +97,22 @@ class Activity
 
         return false;
     }
+
+    /**
+     * The FREE activities, by name: what a visitor who is not logged in may
+     * pick from.
+     *
+     * @return list<array<mixed>>
+     */
+    public function getFreeActivities(): array
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT activity_id, activity_name, description
+            FROM activities
+            WHERE is_active = 1 AND type = 'FREE'
+            ORDER BY activity_name
+        ");
+        $stmt->execute();
+        return \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+    }
 }

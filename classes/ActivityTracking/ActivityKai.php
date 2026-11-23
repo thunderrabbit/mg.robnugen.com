@@ -313,4 +313,85 @@ class ActivityKai
 
         return $stmt->rowCount() > 0;
     }
+
+    /**
+     * Every session of a user that has not been stopped, newest first, each
+     * with its activity name, timezone and session key.
+     *
+     * @return list<array<mixed>>
+     */
+    public function getActiveSessions(int $user_id): array
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT
+                ask.session_key,
+                ak.ak_id,
+                ak.activity_id,
+                a.activity_name,
+                ak.start_local_dt,
+                ak.intended_sec,
+                ak.timezone_id,
+                t.iana_name as timezone_iana
+            FROM activity_kai ak
+            JOIN activities a ON ak.activity_id = a.activity_id
+            JOIN timezones t ON ak.timezone_id = t.timezone_id
+            LEFT JOIN activity_session_keys ask ON ak.ak_id = ask.ak_id
+            WHERE ak.user_id = ?
+              AND ak.actual_sec IS NULL
+            ORDER BY ak.created_at_utc DESC
+        ");
+
+        $stmt->execute([$user_id]);
+        return \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+    }
+
+    /**
+     * How many sessions a user has stopped.
+     */
+    public function getCompletedCount(int $user_id): int
+    {
+        $countStmt = $this->pdo->prepare("
+            SELECT COUNT(*) as total
+            FROM activity_kai ak
+            WHERE ak.user_id = ?
+              AND ak.actual_sec IS NOT NULL
+        ");
+        $countStmt->execute([$user_id]);
+        return \Field::int($countStmt->fetch(\PDO::FETCH_ASSOC), 'total');
+    }
+
+    /**
+     * One page of a user's stopped sessions, most recently changed first,
+     * each with its activity name, timezone and session key.
+     *
+     * @return list<array<mixed>>
+     */
+    public function getCompletedSessions(int $user_id, int $limit, int $offset): array
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT
+                ask.session_key,
+                ak.ak_id,
+                ak.activity_id,
+                a.activity_name,
+                ak.start_local_dt,
+                ak.intended_sec,
+                ak.actual_sec,
+                ak.bonus_sec,
+                ak.timezone_id,
+                t.iana_name as timezone_iana,
+                ak.updated_at_utc
+            FROM activity_kai ak
+            JOIN activities a ON ak.activity_id = a.activity_id
+            JOIN timezones t ON ak.timezone_id = t.timezone_id
+            LEFT JOIN activity_session_keys ask ON ak.ak_id = ask.ak_id
+            WHERE ak.user_id = ?
+              AND ak.actual_sec IS NOT NULL
+            ORDER BY ak.updated_at_utc DESC
+            LIMIT ? OFFSET ?
+        ");
+
+        $stmt->execute([$user_id, $limit, $offset]);
+        return \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+    }
 }

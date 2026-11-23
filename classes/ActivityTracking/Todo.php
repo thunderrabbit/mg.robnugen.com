@@ -662,4 +662,35 @@ class Todo
         $stmt->execute([$user_id, $limit, $offset]);
         return \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
+
+    /**
+     * How many rows getFullyCompletedHistory() has for a user in all, for
+     * paging.
+     */
+    public function getFullyCompletedCount(int $user_id): int
+    {
+        $countStmt = $this->pdo->prepare("
+            SELECT COUNT(*) as total
+            FROM todo_logs tl
+            JOIN todos t ON tl.todo_id = t.todo_id
+            WHERE tl.user_id = ?
+            AND tl.nth >= t.target_count
+        ");
+        $countStmt->execute([$user_id]);
+        return \Field::int($countStmt->fetch(\PDO::FETCH_ASSOC), 'total');
+    }
+
+    /**
+     * The date (Y-m-d) a todo was last logged, or null when it never was.
+     */
+    public function getLastDoneDate(int $todo_id): ?string
+    {
+        $logStmt = $this->pdo->prepare(
+            'SELECT MAX(DATE(date_logged)) FROM todo_logs WHERE todo_id = ?'
+        );
+        $logStmt->execute([$todo_id]);
+        $lastDone = $logStmt->fetchColumn();
+
+        return is_string($lastDone) && $lastDone !== '' ? $lastDone : null;
+    }
 }
