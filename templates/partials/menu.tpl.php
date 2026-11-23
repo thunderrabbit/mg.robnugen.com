@@ -7,6 +7,8 @@
  * - Paid: Home (/), Timer (/mg/), Todos (/todos/), Projects (/projects/), Repositories (/repositories/), Profile (Dropdown)
  * - Free: Home (/), Timer (/mg/)
  *
+ * An admin's Admin link carries $admin_count when it is above 0.
+ *
  * Note: The "Home" link points to `/` which handles "Welcome" or "Dashboard" based on login status.
  */
 
@@ -24,6 +26,10 @@ if (isset($is_logged_in) && is_object($is_logged_in) && method_exists($is_logged
     if (!$user_is_admin && $is_logged_in->isAdmin()) $user_is_admin = true;
     if (!$user_is_paid && $is_logged_in->isPaid()) $user_is_paid = true;
 }
+
+// What waits for an admin (mg #851): pending migrations, counted by prepend.php
+// and handed over by every Template. Above 0 it is drawn inside the Admin link.
+$menu_admin_count = (int) ($admin_count ?? 0);
 
 
 ?>
@@ -56,7 +62,13 @@ if (isset($is_logged_in) && is_object($is_logged_in) && method_exists($is_logged
         </div>
 
         <?php if ($user_is_admin): ?>
-            | <a href="/admin/">Admin</a>
+            <?php if ($menu_admin_count > 0): ?>
+                <?php // Inside the link, so the chip is clicked too; the label names the count for screen readers. ?>
+                | <a href="/admin/" aria-label="Admin, <?= $menu_admin_count ?> waiting for an admin">Admin
+                    <span class="AdminCount" aria-hidden="true"><?= $menu_admin_count ?></span></a>
+            <?php else: ?>
+                | <a href="/admin/">Admin</a>
+            <?php endif; ?>
             <?php if (is_object($is_logged_in) && method_exists($is_logged_in, 'loggedInID') && $is_logged_in->loggedInID() === 1): ?>
                 | <a href="/admin/dh/">DH</a>
             <?php endif; ?>
