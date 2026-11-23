@@ -38,14 +38,10 @@ if (!$is_logged_in->isAdmin() && !$is_logged_in->isPaid()) {
 }
 
 $user_id = $is_logged_in->loggedInID();
-$pdo     = \Database\Base::getPDO($config);
+$exterm  = new \Exterm\Items(\Database\Base::getPDO($config));
 
 // Get projects the user owns (for the project picker)
-$proj_stmt = $pdo->prepare(
-    "SELECT project_id, name FROM projects WHERE user_id = ? AND is_archived = 0 ORDER BY name"
-);
-$proj_stmt->execute([$user_id]);
-$projects = $proj_stmt->fetchAll(\PDO::FETCH_ASSOC);
+$projects = $exterm->ownedProjects($user_id);
 
 $project_id   = \Field::int($_GET, 'project_id');
 
@@ -53,23 +49,10 @@ $items        = [];
 $project_name = '';
 
 if ($project_id) {
-    $pn_stmt = $pdo->prepare("SELECT name FROM projects WHERE project_id = ? AND user_id = ?");
-    $pn_stmt->execute([$project_id, $user_id]);
-    $project_name = (string)$pn_stmt->fetchColumn();
+    $project_name = $exterm->ownedProjectName($project_id, $user_id);
 
     if ($project_name) {
-        $items_stmt = $pdo->prepare(
-            "SELECT ei.exterm_item_id, ei.title,
-                    ei.author_aiu, ei.updated_at_utc,
-                    aiu_a.name AS author_name
-             FROM exterm_items ei
-             JOIN agent_inbox_user aiu_a ON aiu_a.aiu_id = ei.author_aiu
-             WHERE ei.project_id = ?
-             ORDER BY ei.updated_at_utc DESC
-             LIMIT 100"
-        );
-        $items_stmt->execute([$project_id]);
-        $items = $items_stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $items = $exterm->projectItems($project_id);
     }
 }
 
