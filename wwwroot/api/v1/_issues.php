@@ -82,21 +82,7 @@ $issue_service = new \Issues\IssueService(
  */
 function issues_api(\Closure $call): void
 {
-    try {
-        $call();
-    } catch (\Input\InvalidInput | \Issues\ValidationException $e) {
-        http_response_code(400);
-        echo json_encode(['error' => $e->getMessage()]);
-    } catch (\Issues\NotFoundException $e) {
-        http_response_code(404);
-        echo json_encode(['error' => $e->getMessage()]);
-    } catch (\Issues\AccessException $e) {
-        http_response_code(403);
-        echo json_encode(['error' => $e->getMessage()]);
-    } catch (\Issues\ConflictException $e) {
-        http_response_code(409);
-        echo json_encode(['error' => $e->getMessage()]);
-    }
+    \Issues\Api::run($call);
 }
 
 /**
@@ -108,12 +94,7 @@ function issues_api(\Closure $call): void
  */
 function issues_page(string $key, \Issues\Page $page): array
 {
-    return [
-        $key     => $page->items,
-        'total'  => $page->total,
-        'limit'  => $page->limit,
-        'offset' => $page->offset,
-    ];
+    return \Issues\Api::page($key, $page);
 }
 
 // ─── Sub-route selector ──────────────────────────────────────────────────────
