@@ -24,6 +24,7 @@ include_once $matches[1] . '/prepend.php';
  * @var \Config $config
  * @var \Auth\IsLoggedIn $is_logged_in
  * @var \Security\CSRFProtectaroo $csrfProtect
+ * @var int $admin_count
  */
 
 $is_post = \Field::string($_SERVER, 'REQUEST_METHOD') === 'POST';
@@ -117,11 +118,11 @@ if ($is_post) {
     $journal_reply(200, ['ok' => true, 'problems' => [], 'warnings' => $warnings]);
 }
 
-$page = new \Template($config, $is_logged_in, $csrfProtect);
+$page = new \Template($config, $is_logged_in, $csrfProtect, $admin_count);
 $page->setTemplate("layout/base.tpl.php");
 $page->set("page_title", "Edit journal — Meiso Gambare");
 
-$inner = new \Template($config, $is_logged_in, $csrfProtect);
+$inner = new \Template($config, $is_logged_in, $csrfProtect, $admin_count);
 $inner->setTemplate("journal/edit.tpl.php");
 $inner->set("jf_id", $jf_id);
 $inner->set("text", \Journal\Listing::text($row));

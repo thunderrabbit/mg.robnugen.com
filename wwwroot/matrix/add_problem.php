@@ -11,6 +11,7 @@ include_once $matches[1] . '/prepend.php';
  * @var \Config $config
  * @var \Auth\IsLoggedIn $is_logged_in
  * @var \Security\CSRFProtectaroo $csrfProtect
+ * @var int $admin_count
  */
 
 if (!$is_logged_in->isLoggedIn()) {
@@ -41,11 +42,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$page = new \Template($config, $is_logged_in, $csrfProtect);
+$page = new \Template($config, $is_logged_in, $csrfProtect, $admin_count);
 $page->setTemplate("layout/base.tpl.php");
 $page->set("page_title", "Add a Problem - Decision Matrix");
 
-$inner_page = new \Template($config, $is_logged_in, $csrfProtect);
+$inner_page = new \Template($config, $is_logged_in, $csrfProtect, $admin_count);
 $inner_page->setTemplate("matrix/add_problem.tpl.php");
 $inner_page->set("verify_blob", base64_encode(\Field::string($verify_row, 'passphrase_verify')));
 

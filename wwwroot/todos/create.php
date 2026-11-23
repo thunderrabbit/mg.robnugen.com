@@ -16,6 +16,7 @@ include_once $matches[1] . '/prepend.php';
  * @var \Config $config
  * @var \Auth\IsLoggedIn $is_logged_in
  * @var \Security\CSRFProtectaroo $csrfProtect
+ * @var int $admin_count
  */
 
 // Authentication Check - Allow admins and paid users only
@@ -161,11 +162,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Prepare View
-$page = new \Template($config, $is_logged_in, $csrfProtect);
+$page = new \Template($config, $is_logged_in, $csrfProtect, $admin_count);
 $page->setTemplate("layout/base.tpl.php");
 $page->set("page_title", $page_title);
 
-$inner_page = new \Template($config, $is_logged_in, $csrfProtect);
+$inner_page = new \Template($config, $is_logged_in, $csrfProtect, $admin_count);
 $inner_page->setTemplate("todos/create.tpl.php");
 
 // Pass data to template

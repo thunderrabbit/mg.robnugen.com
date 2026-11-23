@@ -40,6 +40,7 @@ include_once $matches[1] . '/prepend.php';
  * @var \Config $config
  * @var \Auth\IsLoggedIn $is_logged_in
  * @var \Security\CSRFProtectaroo $csrfProtect
+ * @var int $admin_count
  */
 
 // Must be logged in to authorize
@@ -190,7 +191,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // ── GET: show approval form ───────────────────────────────────────────────────
 
-$page = new \Template($config, $is_logged_in, $csrfProtect);
+$page = new \Template($config, $is_logged_in, $csrfProtect, $admin_count);
 $page->setTemplate("layout/base.tpl.php");
 
 if ($pinned_aiu !== null) {
@@ -205,7 +206,7 @@ if ($pinned_aiu !== null) {
         }
     }
     $page->set("page_title", "Connect BG Bells — Meiso Gambare");
-    $app = new \Template($config, $is_logged_in, $csrfProtect);
+    $app = new \Template($config, $is_logged_in, $csrfProtect, $admin_count);
     $app->setTemplate("authorize/app.tpl.php");
     $app->set("app_name", \Auth\OAuthClients::displayName($client_id) ?? $client_id);
     $app->set("todo_titles", $todo_titles);
@@ -221,7 +222,7 @@ if ($pinned_aiu !== null) {
 
 $page->set("page_title", "Authorize MCP Connection — Meiso Gambare");
 
-$inner = new \Template($config, $is_logged_in, $csrfProtect);
+$inner = new \Template($config, $is_logged_in, $csrfProtect, $admin_count);
 $inner->setTemplate("authorize/index.tpl.php");
 $inner->set("client_id", $client_id);
 $inner->set("redirect_uri", $redirect_uri);

@@ -16,6 +16,7 @@ include_once $matches[1] . '/prepend.php';
  * @var \Config $config
  * @var \Auth\IsLoggedIn $is_logged_in
  * @var \Security\CSRFProtectaroo $csrfProtect
+ * @var int $admin_count
  */
 
 // Authentication Check - Allow admins and paid users only
@@ -75,11 +76,11 @@ if ($hide_past_completed) {
 }
 
 // Prepare View
-$page = new \Template($config, $is_logged_in, $csrfProtect);
+$page = new \Template($config, $is_logged_in, $csrfProtect, $admin_count);
 $page->setTemplate("layout/base.tpl.php");
 $page->set("page_title", "My Todos - Meiso Gambare");
 
-$inner_page = new \Template($config, $is_logged_in, $csrfProtect);
+$inner_page = new \Template($config, $is_logged_in, $csrfProtect, $admin_count);
 $inner_page->setTemplate("todos/index.tpl.php");
 $inner_page->set("todos", $todos);
 $inner_page->set("show_archived", $show_archived);
