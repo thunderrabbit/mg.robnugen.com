@@ -47,6 +47,23 @@ SHORTCODE_MAX = 24
 BASE = re.compile(r"\A[0-9a-f]{7,40}\Z")
 MG_TIMEOUT = 60
 
+FROM_SCAN = "These steps come from the scan of `{last_checked_utc}` UTC: {skipped_reason}"
+YOURS = "`{shortcode}`'s next step is yours: **`{title}`** (`{detail}`)."
+STEP_LINE = "`{shortcode}`, track `{track}`, **`{title}`** (`{detail}`)"
+SERVED = ", served on PHP `{php_current}`"
+TEST_SERVED = ", test domain on PHP `{test_php}`"
+NO_SWEEP = "; mg has no sweep for its PHP yet"
+DEPLOY_TO_TEST = "mg will scan `{shortcode}` once this commit is deployed to `{domain}`; production can wait."
+UPGRADE_LEFT = ("`{shortcode}` has `upgrade_branch` set to `{upgrade}` on mg; clearing it "
+                "(`site-set --shortcode={shortcode} --upgrade=`) is your call.")
+SECOND_LINE = "mg will scan `{branch}`'s tip for `{shortcode}`."
+MAY_I_SET = ("The server runs commits this branch lacks, so `{branch}` is a second line being prepared "
+             "beside the live one. May I run `~/work/rob/mg.robnugen.com/tools/site-standards/site.sh "
+             "site-set --shortcode={shortcode} --upgrade={branch}`, so that mg scans `{branch}`'s tip "
+             "for `{shortcode}`?")
+SERVER_SILENT = "Its server did not say what it runs (`{why}`)."
+NO_SERVER = "there is no server to ask"   # the scanner's words
+
 Options = collections.namedtuple("Options", "shortcode leave_upgrade confirm base session_model")
 
 
@@ -176,10 +193,86 @@ def site_or_stop(reply):
     return site, reply["facts"], reply["steps_commit"]
 
 
+def step_line(site, step):
+    """Which step it is, and the PHP the site is served on today, as the sweep saw it."""
+    line = STEP_LINE.format(shortcode=site["shortcode"], track=step.get("track"), title=step.get("title"),
+                            detail=step.get("detail"))
+    if site.get("php_current"):
+        line += SERVED.format(php_current=site["php_current"])
+        if site.get("test_php"):   # said only beside the served PHP, as the skill has it
+            line += TEST_SERVED.format(test_php=site["test_php"])
+    else:
+        line += NO_SWEEP
+    return line + "."
+
+
+def local_head(top):
+    """(commit, branch or None on a detached HEAD) of the checkout, read as scan_site reads them."""
+    commit = scan.git(top, "rev-parse", "HEAD")[1].strip()
+    code, branch = scan.git(top, "symbolic-ref", "--short", "-q", "HEAD")
+    branch = branch.strip() if code == 0 and branch.strip() != "" else None
+    return commit, branch
+
+
+def second_line(site, facts, top, options):
+    """(notes, question or None, server commit, server branch): whether this
+    branch is a second line beside the one the server runs.
+
+    The server is asked the way the scanner asks it. Most sites have one
+    line, and for them `upgrade_branch` is left alone; nothing here sets it.
+    """
+    shortcode = site["shortcode"]
+    server = facts.get("server")
+    if not isinstance(server, dict):
+        return [SERVER_SILENT.format(why=printable(facts.get("server_problem") or NO_SERVER))], None, None, None
+    try:
+        server_commit, server_branch = scan.server_facts.head_and_branch(
+            str(server.get("ssh_alias") or ""), str(server.get("directory") or ""))
+    except scan.server_facts.NoAnswer as why:
+        return [SERVER_SILENT.format(why=printable(str(why)))], None, None, None
+
+    upgrade = facts.get("upgrade_branch")
+    test = facts.get("test")
+    notes, ask = [], None
+    if scan.git(top, "merge-base", "--is-ancestor", server_commit, "HEAD")[0] == 0:
+        # One line: Rob deploys whichever branch is the tip.
+        if isinstance(test, dict) and not upgrade:
+            notes.append(DEPLOY_TO_TEST.format(shortcode=shortcode, domain=test.get("domain")))
+        if upgrade:
+            notes.append(UPGRADE_LEFT.format(shortcode=shortcode, upgrade=upgrade))
+    else:
+        # The server runs commits this branch lacks (or ones this checkout does not have).
+        branch = local_head(top)[1]
+        if branch is None:
+            pass
+        elif upgrade == branch:
+            notes.append(SECOND_LINE.format(branch=branch, shortcode=shortcode))
+        elif not options.leave_upgrade:
+            ask = MAY_I_SET.format(branch=branch, shortcode=shortcode)
+    return notes, ask, server_commit, server_branch
+
+
 def lookup(options, cwd):
     top, relative = checkout(cwd)
     site, facts, steps_commit = site_or_stop(ask_mg(options, relative))
-    raise NotImplementedError
+    shortcode = site["shortcode"]
+    lines = []
+    if site.get("skipped_reason"):
+        lines.append(FROM_SCAN.format(last_checked_utc=site.get("last_checked_utc"),
+                                      skipped_reason=site["skipped_reason"]))
+    step = site["open_steps"][0]   # mg chooses the step: the first, and never any other
+
+    if step.get("whose_move") == "rob":
+        lines.append(YOURS.format(shortcode=shortcode, title=step.get("title"), detail=step.get("detail")))
+        lines.append(step.get("how_to") or "")
+        return {"outcome": "say", "say": "\n\n".join(lines)}
+
+    lines.append(step_line(site, step))
+    notes, ask, server_commit, server_branch = second_line(site, facts, top, options)
+    lines += notes
+    if ask is not None:
+        return {"outcome": "ask", "say": "\n".join(lines), "ask": ask}
+    return {"outcome": "do", "say": "\n".join(lines)}
 
 
 def answer(argv, cwd=None):

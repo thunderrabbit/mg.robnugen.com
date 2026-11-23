@@ -108,6 +108,22 @@ class NextStepStopsTest(NextStepCase):
                    "**`Enter the domain`**\n\nType it in.\n\n"
                    "**`Prove the login`**\n\nRun the sweep."})
 
+    def test_robs_step_gives_title_detail_and_how_to(self):
+        self.mg_says(self.site([self.step(whose_move="rob", title="Switch the panel", detail="still on 8.3",
+                                          how_to="Open the panel.\nPick 8.5.")]))
+        got = self.run_it()
+        self.assertEqual(got["outcome"], "say")
+        self.assertEqual(got["say"], "`demo`'s next step is yours: **`Switch the panel`** (`still on 8.3`).\n\n"
+                                     "Open the panel.\nPick 8.5.")
+        self.assertNotIn("after", got)
+
+    def test_a_skipped_scan_is_said_first(self):
+        self.mg_says(self.site([self.step(whose_move="rob")],
+                               skipped_reason="the latest scan skipped this site; the standards page says why"))
+        self.assertTrue(self.run_it()["say"].startswith(
+            "These steps come from the scan of `2026-11-20 01:02:03` UTC: "
+            "the latest scan skipped this site; the standards page says why\n\n`demo`'s next step is yours"))
+
     def test_unknown_options_are_a_usage_error_not_an_answer(self):
         for argv in (["--nope"], ["--shortcode=Not A Code"], ["--confirm"], ["--base=abc1234"],
                      ["--confirm", "--base=zzz"], ["--session-model=gpt"], ["stray"],
