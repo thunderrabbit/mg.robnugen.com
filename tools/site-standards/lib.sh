@@ -40,6 +40,27 @@ need_repo() {
   REPO="$(cd "$1" && pwd)"
 }
 
+# php_hits PATTERN [PATHSPEC ...]: the lines of tracked files that match the
+# extended regex, as file:line:text, with comment lines left out (a line that
+# opens with an attribute, `#[`, is code). Reads every tracked *.php unless
+# pathspecs say otherwise; never vendor/ or the tests. Prints nothing when
+# nothing matches.
+php_hits() {
+  local pattern="$1"
+  shift
+  [ "$#" -gt 0 ] || set -- '*.php'
+  git -C "$REPO" ls-files -z -- "$@" 2>/dev/null \
+    | grep -zEv '^(vendor|Tests|tests)/' \
+    | (cd "$REPO" && xargs -0 -r grep -EHn -e "$pattern" 2>/dev/null) \
+    | grep -Ev '^[^:]+:[0-9]+:[[:space:]]*(\*|//|/\*|#([^[]|$))' || true
+}
+
+# first_hit HITS: the file:line of the first of php_hits' lines.
+first_hit() { printf '%s\n' "$1" | head -1 | cut -d: -f1,2; }
+
+# files_of HITS: the files php_hits' lines name, one a line, each once.
+files_of() { printf '%s\n' "$1" | cut -d: -f1 | sort -u; }
+
 # need_server_dir VALUE WHOSE: sets SERVER_DIR to a directory on a server the
 # check may ask about, or stops the check with "could not tell". A DreamHost
 # directory is relative to the user's home; an EC2 one is absolute. Either
