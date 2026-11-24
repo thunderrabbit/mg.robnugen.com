@@ -75,38 +75,6 @@ class SignupThrottle
         return true;
     }
 
-    public function isThrottled(string $ip_address): bool
-    {
-        $since = $this->format($this->now->modify('-' . self::WINDOW_SECONDS . ' seconds'));
-
-        $stmt = $this->di_pdo->prepare(
-            "SELECT COUNT(*) FROM `login_attempts` WHERE `username` = ? AND `attempted_at` > ?"
-        );
-        $stmt->execute([self::SIGNUP_MARKER, $since]);
-        if ((int) $stmt->fetchColumn() >= self::MAX_TOTAL) {
-            return true;
-        }
-
-        $ip_bin = IPBin::ipToBinary($ip_address);
-        if ($ip_bin === '') {
-            return false;
-        }
-        $stmt = $this->di_pdo->prepare(
-            "SELECT COUNT(*) FROM `login_attempts` WHERE `username` = ? AND `ip_address` = ? AND `attempted_at` > ?"
-        );
-        $stmt->execute([self::SIGNUP_MARKER, $ip_bin, $since]);
-        return (int) $stmt->fetchColumn() >= self::MAX_PER_IP;
-    }
-
-    public function recordSignup(string $ip_address): void
-    {
-        $ip_bin = IPBin::ipToBinary($ip_address);
-        $stmt = $this->di_pdo->prepare(
-            "INSERT INTO `login_attempts` (`username`, `ip_address`, `attempted_at`) VALUES (?, ?, ?)"
-        );
-        $stmt->execute([self::SIGNUP_MARKER, $ip_bin === '' ? null : $ip_bin, $this->format($this->now)]);
-    }
-
     private function format(\DateTimeImmutable $when): string
     {
         return $when->format('Y-m-d H:i:s');

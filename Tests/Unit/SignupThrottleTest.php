@@ -31,32 +31,6 @@ class SignupThrottleTest extends Unit
         return new \Auth\SignupThrottle($this->pdo, $this->t0->modify("+{$seconds} seconds"));
     }
 
-    public function testThreeSignupsFromOneIpThenRefused(): void
-    {
-        for ($i = 0; $i < \Auth\SignupThrottle::MAX_PER_IP; $i++) {
-            $this->assertFalse($this->at($i)->isThrottled('203.0.113.7'));
-            $this->at($i)->recordSignup('203.0.113.7');
-        }
-        $this->assertTrue($this->at(10)->isThrottled('203.0.113.7'));
-        $this->assertFalse($this->at(10)->isThrottled('198.51.100.1'), 'another IP is unaffected');
-    }
-
-    public function testManyIpsHitTheOverallCap(): void
-    {
-        for ($i = 0; $i < \Auth\SignupThrottle::MAX_TOTAL; $i++) {
-            $this->at($i)->recordSignup("198.51.100.{$i}");
-        }
-        $this->assertTrue($this->at(20)->isThrottled('203.0.113.99'));
-    }
-
-    public function testTheWindowPasses(): void
-    {
-        for ($i = 0; $i < \Auth\SignupThrottle::MAX_PER_IP; $i++) {
-            $this->at(0)->recordSignup('203.0.113.7');
-        }
-        $this->assertFalse($this->at(\Auth\SignupThrottle::WINDOW_SECONDS + 1)->isThrottled('203.0.113.7'));
-    }
-
     public function testAdmitLetsInThreeFromOneIpThenRefuses(): void
     {
         for ($i = 1; $i <= \Auth\SignupThrottle::MAX_PER_IP; $i++) {
@@ -102,7 +76,7 @@ class SignupThrottleTest extends Unit
     public function testSignupsDoNotTouchALoginBucket(): void
     {
         for ($i = 0; $i < 5; $i++) {
-            $this->at(0)->recordSignup('203.0.113.7');
+            $this->at(0)->admit('203.0.113.7');
         }
         $login = new \Auth\LoginThrottle($this->pdo, $this->t0);
         $this->assertFalse($login->isThrottled('signup', '198.51.100.1'));
