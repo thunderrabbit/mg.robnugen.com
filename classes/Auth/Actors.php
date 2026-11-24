@@ -79,6 +79,24 @@ class Actors
     }
 
     /**
+     * The actors of an account that an OAuth client may be given: those
+     * that can read or write projects, the human first, then by name.
+     *
+     * @return list<array<mixed>>
+     */
+    public function getGrantable(int $user_id): array
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT aiu_id, name, actor_type, description
+             FROM agent_inbox_user
+             WHERE user_id = ? AND (can_read_project = 1 OR can_write_project = 1)
+             ORDER BY actor_type DESC, name ASC"
+        );
+        $stmt->execute([$user_id]);
+        return \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+    }
+
+    /**
      * The account's human actor as aiu_id and can_broadcast_inbox, or null
      * when it has none.
      *
