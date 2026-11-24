@@ -300,14 +300,12 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
             return;
         }
 
-        // Build SET clause dynamically — only update fields that were provided
-        $sets = [];
-        $params = [];
+        // Only the fields that were provided are changed
+        $changes = [];
 
         if (array_key_exists('content', $body)) {
             $ledger = new \Emotional\Ledger($pdo, $raw_key, $auth_key_id, $auth_user_id);
-            $sets[] = 'encrypted_content = ?';
-            $params[] = $ledger->encrypt(\Field::string($body, 'content'));
+            $changes['encrypted_content'] = $ledger->encrypt(\Field::string($body, 'content'));
         }
 
         if (array_key_exists('my_id', $body)) {
@@ -319,28 +317,21 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
                     echo json_encode(['error' => 'Unknown my_id']);
                     return;
                 }
-                $sets[] = 'mifmus_id = ?';
-                $params[] = $mifmus_id;
+                $changes['mifmus_id'] = $mifmus_id;
             } else {
-                $sets[] = 'mifmus_id = ?';
-                $params[] = null;
+                $changes['mifmus_id'] = null;
             }
         }
 
-        if (empty($sets)) {
+        if ($changes === []) {
             http_response_code(400);
             echo json_encode(['error' => 'No fields to update (provide "content" and/or "my_id")']);
             return;
         }
 
-        $params[] = \Field::toInt($event_id);
-        $params[] = $auth_key_id;
-        $stmt = $pdo->prepare(
-            'UPDATE interaction_events SET ' . implode(', ', $sets) . ' WHERE event_id = ? AND api_key_id = ?'
-        );
-        $stmt->execute($params);
+        $updated = new \Emotional\Events($pdo)->updateEvent(\Field::toInt($event_id), $auth_key_id, $changes);
 
-        if ($stmt->rowCount() === 0) {
+        if (!$updated) {
             http_response_code(404);
             echo json_encode(['error' => 'Event not found']);
             return;
