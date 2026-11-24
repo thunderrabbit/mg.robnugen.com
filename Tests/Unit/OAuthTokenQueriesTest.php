@@ -119,15 +119,16 @@ class OAuthTokenQueriesTest extends Unit
 
     /**
      * A PDO that accepts one prepare() of exactly this SQL and one execute()
-     * of exactly these parameters (null: executed with none given), and
-     * reports this many rows changed.
+     * of exactly these parameters, compared by type as well as value so a 0
+     * cannot pass for a null (null: executed with none given), and reports
+     * this many rows changed.
      *
      * @param list<mixed>|null $params
      */
     private function pdoExpecting(string $sql, ?array $params, int $row_count = 1): \PDO
     {
         $stmt = $this->createMock(\PDOStatement::class);
-        $stmt->expects($this->once())->method('execute')->with($params)->willReturn(true);
+        $stmt->expects($this->once())->method('execute')->with($this->identicalTo($params))->willReturn(true);
         $stmt->method('rowCount')->willReturn($row_count);
 
         $pdo = $this->createMock(\PDO::class);
