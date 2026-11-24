@@ -91,20 +91,19 @@ class IsLoggedIn
             return LoginResult::BadCredentials;
         }
 
-        if ($this->di_throttle->isThrottled($username, $current_ip)) {
+        // admit() counts this attempt as a failure before anything else, so
+        // parallel guesses cannot slip past the limit together. A correct
+        // password clears it again below.
+        if (!$this->di_throttle->admit($username, $current_ip)) {
             // Do not even look at the password: a throttled guess must cost
             // the attacker nothing in information and us nothing in bcrypt.
             $this->logAuth("user_id: N/A, IP: {$current_ip} - Password login THROTTLED (username: {$username})");
             return LoginResult::Throttled;
         }
 
-        // Count the attempt before the slow bcrypt check, not after it, so a
-        // burst of parallel requests cannot all pass isThrottled() first.
-        // A correct password clears it again below.
-        $this->di_throttle->recordFailure($username, $current_ip);
-
         $user_id = $this->checkPHPHashedPassword($username, $password);
         if ($user_id <= 0) {
+            // The failure admit() recorded stands.
             $this->logAuth("user_id: N/A, IP: {$current_ip} - Password login FAILED (username: {$username})");
             return LoginResult::BadCredentials;
         }

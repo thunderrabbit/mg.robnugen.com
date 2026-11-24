@@ -119,6 +119,17 @@ class LoginFunnelTest extends Unit
         $this->assertFalse($auth->isLoggedIn());
     }
 
+    public function testAThrottledLoginLeavesNoRowOfItsOwn(): void
+    {
+        $auth = $this->isLoggedIn();
+        $max = \Auth\LoginThrottle::MAX_FAILURES_PER_USERNAME;
+        for ($i = 0; $i < $max; $i++) {
+            $auth->attemptPasswordLogin('alice', 'wrong');
+        }
+        $auth->attemptPasswordLogin('alice', 'wrong');
+        $this->assertSame($max, $this->failures(), 'being refused does not lengthen the lock');
+    }
+
     public function testAccentedSpellingIsRefusedBeforeTheLookup(): void
     {
         // MySQL's accent-insensitive collation would match this to Alice;

@@ -76,7 +76,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $signup_throttle = new \Auth\SignupThrottle($mla_database);
     $signup_ip = \Field::string($_SERVER, 'REMOTE_ADDR');
-    if (empty($errors) && $signup_throttle->isThrottled($signup_ip)) {
+    // admit() counts this signup before the account is made, so a burst of
+    // parallel signups cannot all slip in under the limit.
+    if (empty($errors) && !$signup_throttle->admit($signup_ip)) {
         $errors[] = "Too many new accounts were created recently. Please try again in "
             . intdiv(\Auth\SignupThrottle::WINDOW_SECONDS, 60) . " minutes.";
     }
@@ -101,7 +103,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Seed 100 trial API credits for new user
         $new_user_id = (int) $mla_database->lastInsertId();
         new \Billing\Credits($mla_database)->addTrial($new_user_id);
-        $signup_throttle->recordSignup($signup_ip);
 
         // Redirect to login page with success message
         header("Location: /login/?registered=1");
