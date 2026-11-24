@@ -205,24 +205,20 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
             $session_id = $ledger->getOrCreateSession();
 
             // Assign sequence_num atomically
-            $stmt = $pdo->prepare(
-                'SELECT COALESCE(MAX(sequence_num), 0) + 1 FROM interaction_events WHERE session_id = ? FOR UPDATE'
-            );
-            $stmt->execute([$session_id]);
-            $sequence_num = (int) $stmt->fetchColumn();
+            $events = new \Emotional\Events($pdo);
+            $sequence_num = $events->nextSequenceNum($session_id);
 
             $encrypted_content = $ledger->encrypt($content);
 
-            $stmt = $pdo->prepare(
-                'INSERT INTO interaction_events
-                 (session_id, api_key_id, user_id, mifmus_id, event_type, sequence_num, encrypted_content)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)'
+            $event_id = $events->addEvent(
+                $session_id,
+                $auth_key_id,
+                $auth_user_id,
+                $mifmus_id,
+                $event_type,
+                $sequence_num,
+                $encrypted_content
             );
-            $stmt->execute([
-                $session_id, $auth_key_id, $auth_user_id,
-                $mifmus_id, $event_type, $sequence_num, $encrypted_content
-            ]);
-            $event_id = (int) $pdo->lastInsertId();
 
             $pdo->commit();
             echo json_encode([
