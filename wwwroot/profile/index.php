@@ -64,11 +64,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $throttle = new \Auth\LoginThrottle($mla_database);
                 $throttle_name = $is_logged_in->getLoggedInUsername();
                 $throttle_ip = \Field::string($_SERVER, 'REMOTE_ADDR', 'unknown');
-                if ($throttle->isThrottled($throttle_name, $throttle_ip)) {
+                // admit() counts this guess before the password is checked,
+                // so parallel requests cannot all slip in under the limit.
+                if (!$throttle->admit($throttle_name, $throttle_ip)) {
                     $result = ['success' => false, 'message' => 'Too many failed attempts. Wait '
                         . intdiv(\Auth\LoginThrottle::WINDOW_SECONDS, 60) . ' minutes and try again.'];
                 } else {
-                    $throttle->recordFailure($throttle_name, $throttle_ip);
                     // Use PasswordRepository to handle password change
                     $passwordRepository = new \Database\PasswordRepository($mla_database);
                     $result = $passwordRepository->changePassword($user_id, $current_password, $new_password);
