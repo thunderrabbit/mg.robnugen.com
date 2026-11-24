@@ -164,6 +164,8 @@ class MatrixQueriesTest extends Unit
         $opposites = new Opposites($this->pdo);
 
         $this->assertSame(['dm_mo' => 5, 'opposite' => 'opposite-5'], $opposites->getOpposite(1, 1));
+        // Problem 3 of user 2: the one pair that comes back empty if the two are swapped.
+        $this->assertSame(['dm_mo' => 6, 'opposite' => 'opposite-6'], $opposites->getOpposite(3, 2));
         $this->assertNull($opposites->getOpposite(2, 1));
         $this->assertNull($opposites->getOpposite(1, 2));
     }
