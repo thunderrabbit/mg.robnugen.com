@@ -195,18 +195,13 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
             // Resolve my_id → mifmus_id (NULL if no my_id supplied)
             $mifmus_id = null;
             if ($my_id !== null) {
-                $stmt = $pdo->prepare(
-                    'SELECT mifmus_id FROM my_ids_for_my_users_state WHERE api_key_id = ? AND my_id = ?'
-                );
-                $stmt->execute([$auth_key_id, \Field::toInt($my_id)]);
-                $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-                if (!$row) {
+                $mifmus_id = new \Emotional\Vocab($pdo)->mifmusIdOf($auth_key_id, \Field::toInt($my_id));
+                if ($mifmus_id === null) {
                     $pdo->rollBack();
                     http_response_code(400);
                     echo json_encode(['error' => 'Unknown my_id']);
                     return;
                 }
-                $mifmus_id = \Field::int($row, 'mifmus_id');
             }
 
             $session_id = $ledger->getOrCreateSession();
