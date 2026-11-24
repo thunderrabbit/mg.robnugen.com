@@ -146,14 +146,7 @@ if ($method === 'GET' && $sub === '/list') {
     // Validate recipient_aiu if provided
     if ($recipient_aiu !== null) {
         // Check send permission via inbox_visibility
-        $send_stmt = $pdo->prepare(
-            "SELECT can_send FROM inbox_visibility
-             WHERE inbox_user_aiu_id = ?
-             AND (inbox_peer_aiu_id = ? OR inbox_peer_aiu_id IS NULL)"
-        );
-        $send_stmt->execute([$sender_aiu, $recipient_aiu]);
-        $send_row = $send_stmt->fetch(\PDO::FETCH_ASSOC);
-        if (!\Field::int($send_row, 'can_send')) {
+        if (!new \Inbox\Visibility($pdo)->canSendTo($sender_aiu, $recipient_aiu)) {
             http_response_code(403);
             echo json_encode(['error' => 'Not authorized to send to this recipient']);
             return;
@@ -193,12 +186,15 @@ if ($method === 'GET' && $sub === '/list') {
     // Credit deducted only after validation passes, so invalid requests don't drain credits
     \Auth\ApiGate::requireCredit($pdo, $auth_user_id, $auth_key_id, 'inbox/send', $auth_token_id);
 
-    $stmt = $pdo->prepare(
-        "INSERT INTO agent_inbox (user_id, message, priority, show_date, sender_timezone, sender_aiu, recipient_aiu)
-         VALUES (?, ?, ?, ?, ?, ?, ?)"
+    $message_id = new \Inbox\Messages($pdo)->addMessage(
+        $auth_user_id,
+        $message,
+        $priority,
+        $show_date,
+        $sender_timezone ?: null,
+        $sender_aiu,
+        $recipient_aiu
     );
-    $stmt->execute([$auth_user_id, $message, $priority, $show_date, $sender_timezone ?: null, $sender_aiu, $recipient_aiu]);
-    $message_id = (int) $pdo->lastInsertId();
 
     http_response_code(201);
     echo json_encode([
