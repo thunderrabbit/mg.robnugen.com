@@ -222,11 +222,8 @@ $issue_refresh   = $grant_type !== 'client_credentials';
 $raw_refresh     = null;
 $refresh_hash    = null;
 // Sliding window, restarted on every refresh; limited apps get a shorter one.
-$actor_stmt = $pdo->prepare("SELECT * FROM agent_inbox_user WHERE aiu_id = ? AND user_id = ? LIMIT 1");
-$actor_stmt->execute([$aiu_id, $auth_user_id]);
-/** @var array<string, mixed>|false $token_actor */
-$token_actor = $actor_stmt->fetch(\PDO::FETCH_ASSOC);
-$refresh_ttl_days = \Auth\TokenLifetime::refreshDays(is_array($token_actor) ? $token_actor : []);
+$token_actor = new \Auth\Actors($pdo)->getActor($aiu_id, $auth_user_id);
+$refresh_ttl_days = \Auth\TokenLifetime::refreshDays($token_actor ?? []);
 
 if ($issue_refresh) {
     $raw_refresh  = bin2hex(random_bytes(32));
