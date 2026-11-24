@@ -359,34 +359,12 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         $q_limit = 20;
     }
 
-    $where = ['s.api_key_id = ?'];
-    $params = [$auth_key_id];
-
-    if ($q_from !== null) {
-        $where[] = 's.start_time >= ?';
-        $params[] = $q_from;
-    }
-    if ($q_to !== null) {
-        $where[] = 's.start_time <= ?';
-        $params[] = $q_to;
-    }
-    $params[] = $q_limit;
-
-    $where_sql = implode(' AND ', $where);
-    $sql = "SELECT
-                s.session_id, s.start_time, s.last_event_time,
-                TIMESTAMPDIFF(MINUTE, s.start_time, s.last_event_time) AS duration_minutes,
-                COUNT(e.event_id) AS event_count
-            FROM interaction_sessions s
-            LEFT JOIN interaction_events e ON e.session_id = s.session_id
-            WHERE $where_sql
-            GROUP BY s.session_id
-            ORDER BY s.start_time DESC
-            LIMIT ?";
-
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
-    $rows = \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+    $rows = new \Emotional\Sessions($pdo)->getSessions(
+        $auth_key_id,
+        $q_from === null ? null : \Field::toString($q_from),
+        $q_to === null ? null : \Field::toString($q_to),
+        $q_limit
+    );
 
     $sessions = [];
     foreach ($rows as $row) {
