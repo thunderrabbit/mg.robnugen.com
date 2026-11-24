@@ -257,6 +257,27 @@ class Todo
     }
 
     /**
+     * The titles of these todos, in todo_id order. No ids, no query.
+     *
+     * @param list<int> $todo_ids
+     * @return list<string>
+     */
+    public function titlesOf(array $todo_ids): array
+    {
+        if ($todo_ids === []) {
+            return [];
+        }
+        $in = implode(',', array_fill(0, count($todo_ids), '?'));
+        $stmt = $this->pdo->prepare("SELECT title FROM todos WHERE todo_id IN ({$in}) ORDER BY todo_id");
+        $stmt->execute($todo_ids);
+        $titles = [];
+        foreach ($stmt->fetchAll(\PDO::FETCH_COLUMN) as $title) {
+            $titles[] = \Field::toString($title);
+        }
+        return $titles;
+    }
+
+    /**
      * Verify that a todo belongs to a user
      *
      * @param int $todo_id

@@ -47,6 +47,17 @@ class ApiKey
     }
 
     /**
+     * The aiu_id a key acts as: 0 for a key bound to no actor, for an
+     * unknown key and for no key at all.
+     */
+    public function aiuIdOfKey(?int $key_id): int
+    {
+        $stmt = $this->di_pdo->prepare("SELECT aiu_id FROM api_keys WHERE key_id = ? LIMIT 1");
+        $stmt->execute([$key_id]);
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
      * Returns the key_id from the most recent successful validateKey() call.
      * Needed for usage logging without a second DB query.
      */

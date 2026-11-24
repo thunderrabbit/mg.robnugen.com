@@ -84,14 +84,7 @@ if ($oauth_error) {
 
 // ── Load agent identities Rob can grant ──────────────────────────────────────
 
-$aiu_stmt = $pdo->prepare(
-    "SELECT aiu_id, name, actor_type, description
-     FROM agent_inbox_user
-     WHERE user_id = ? AND (can_read_project = 1 OR can_write_project = 1)
-     ORDER BY actor_type DESC, name ASC"
-);
-$aiu_stmt->execute([$user_id]);
-$agent_choices = $aiu_stmt->fetchAll(\PDO::FETCH_ASSOC);
+$agent_choices = new \Auth\Actors($pdo)->getGrantable($user_id);
 
 // ── Pinned client (bgbells): one named actor, own Allow / Deny page ──────────
 
@@ -116,16 +109,10 @@ if ($pinned_name !== null) {
 // ── GET: skip the form if this client+redirect was already approved ──────────
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && $client_id !== '' && \Auth\OAuthClients::remembersConsent($client_id)) {
-    $consent_stmt = $pdo->prepare(
-        "SELECT aiu_id FROM oauth_client_consents
-         WHERE user_id = ? AND client_id = ? AND redirect_uri = ?
-         LIMIT 1"
-    );
-    $consent_stmt->execute([$user_id, $client_id, $redirect_uri]);
-    $remembered_aiu = $consent_stmt->fetchColumn();
+    $remembered_aiu = new \Auth\ClientConsents($pdo)->rememberedAiuOf($user_id, $client_id, $redirect_uri);
 
-    if ($remembered_aiu !== false) {
-        \Auth\AuthCode::issueAndRedirect($pdo, (int)$remembered_aiu, $user_id, $code_challenge, $redirect_uri, $state);
+    if ($remembered_aiu !== null) {
+        \Auth\AuthCode::issueAndRedirect($pdo, $remembered_aiu, $user_id, $code_challenge, $redirect_uri, $state);
     }
 }
 
@@ -145,13 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $chosen_aiu = \Field::int($_POST, 'aiu_id');
 
     // Verify chosen aiu belongs to this user
-    $valid = false;
-    foreach ($agent_choices as $a) {
-        if (\Field::int($a, 'aiu_id') === $chosen_aiu) {
-            $valid = true;
-            break;
-        }
-    }
+    $valid = array_any($agent_choices, fn(array $a): bool => \Field::int($a, 'aiu_id') === $chosen_aiu);
     if (!$valid) {
         http_response_code(400);
         echo "Invalid agent selection.";
@@ -159,11 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($client_id !== '' && \Auth\OAuthClients::remembersConsent($client_id)) {
-        $pdo->prepare(
-            "INSERT INTO oauth_client_consents (user_id, aiu_id, client_id, redirect_uri)
-             VALUES (?, ?, ?, ?)
-             ON DUPLICATE KEY UPDATE aiu_id = VALUES(aiu_id), created_at_utc = NOW()"
-        )->execute([$user_id, $chosen_aiu, $client_id, $redirect_uri]);
+        new \Auth\ClientConsents($pdo)->remember($user_id, $chosen_aiu, $client_id, $redirect_uri);
     }
 
     \Auth\AuthCode::issueAndRedirect($pdo, $chosen_aiu, $user_id, $code_challenge, $redirect_uri, $state);
@@ -176,15 +153,7 @@ $page->setTemplate("layout/base.tpl.php");
 
 if ($pinned_aiu !== null) {
     $todo_ids = new \Auth\TodoGrants($pdo)->todoIds($pinned_aiu);
-    $todo_titles = [];
-    if ($todo_ids !== []) {
-        $in = implode(',', array_fill(0, count($todo_ids), '?'));
-        $title_stmt = $pdo->prepare("SELECT title FROM todos WHERE todo_id IN ({$in}) ORDER BY todo_id");
-        $title_stmt->execute($todo_ids);
-        foreach ($title_stmt->fetchAll(\PDO::FETCH_COLUMN) as $t) {
-            $todo_titles[] = \Field::toString($t);
-        }
-    }
+    $todo_titles = new \ActivityTracking\Todo($pdo)->titlesOf($todo_ids);
     $page->set("page_title", "Connect BG Bells — Meiso Gambare");
     $app = new \Template($config, $is_logged_in, $csrfProtect, $admin_count);
     $app->setTemplate("authorize/app.tpl.php");
