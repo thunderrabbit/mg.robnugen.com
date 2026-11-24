@@ -1,6 +1,6 @@
 <?php
 
-const SENTIMENTAL_VERSION = "BEGIN emotion vocab SQL into its gateway";
-const SEMVER = "0.101.0";
+const SENTIMENTAL_VERSION = "BEGIN emotion events SQL into its gateways";
+const SEMVER = "0.102.0";
 
 const EMOTIONAL_SESSION_GAP_MINUTES = 30;
