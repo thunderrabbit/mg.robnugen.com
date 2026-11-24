@@ -88,112 +88,31 @@ if ($method === 'GET' && $sub === '/list') {
 
     $caller_aiu = \Field::int($auth_actor, 'aiu_id');
 
-    $where = ['i.user_id = ?'];
-    $params = [$auth_user_id];
-
     // ── Visibility filtering via inbox_visibility ─────────────────────
-    // Check if caller has supervisor access (NULL peer = see all)
-    $vis_stmt = $pdo->prepare(
-        "SELECT inbox_peer_aiu_id FROM inbox_visibility
-         WHERE inbox_user_aiu_id = ? AND can_read = 1"
+    // A supervisor (a NULL peer among the readable ones) sees everything;
+    // anyone else sees messages to the peers it may read, plus broadcasts
+    // and, when asked, what it sent itself.
+    $vis_rows = new \Inbox\Visibility($pdo)->readablePeers($caller_aiu);
+    $readable_ids = in_array(null, $vis_rows, true) ? null : array_values(array_filter($vis_rows, is_int(...)));
+
+    $found = new \Inbox\Messages($pdo)->getMessages(
+        $auth_user_id,
+        $readable_ids,
+        $include_sent ? $caller_aiu : null,
+        $filter_sender_aiu,
+        $created_after,
+        $created_before,
+        \Field::int($_GET, 'include_archived') !== 0,
+        \Field::int($_GET, 'include_future') !== 0,
+        $status,
+        \Field::string($_GET, 'order', 'newest'),
+        $limit,
+        $offset
     );
-    $vis_stmt->execute([$caller_aiu]);
-    $vis_rows = $vis_stmt->fetchAll(\PDO::FETCH_COLUMN);
-
-    $is_supervisor = in_array(null, $vis_rows, true);
-
-    if (!$is_supervisor) {
-        // Scoped: see messages addressed to readable peers + broadcasts.
-        // No row has a NULL peer here, or the caller would be a supervisor.
-        $readable_ids = $vis_rows;
-        if (empty($readable_ids)) {
-            // No visibility rows with can_read — see only broadcasts
-            $vis_filter = 'i.recipient_aiu IS NULL';
-        } else {
-            $placeholders = implode(',', array_fill(0, count($readable_ids), '?'));
-            $vis_filter = "(i.recipient_aiu IN ({$placeholders}) OR i.recipient_aiu IS NULL)";
-            $params = array_merge($params, $readable_ids);
-        }
-        // Optional: include messages the caller sent
-        if ($include_sent) {
-            $vis_filter = "({$vis_filter} OR i.sender_aiu = ?)";
-            $params[] = $caller_aiu;
-        }
-        $where[] = $vis_filter;
-    }
-    // Supervisors skip visibility filter — they see everything
-
-    // Optional: filter by sender
-    if ($filter_sender_aiu > 0) {
-        $where[] = 'i.sender_aiu = ?';
-        $params[] = $filter_sender_aiu;
-    }
-
-    // Half-open UTC window on when the message was made: [after, before)
-    if ($created_after !== null) {
-        $where[] = 'i.created_at_utc >= ?';
-        $params[] = $created_after;
-    }
-    if ($created_before !== null) {
-        $where[] = 'i.created_at_utc < ?';
-        $params[] = $created_before;
-    }
-
-    $include_archived = \Field::int($_GET, 'include_archived');
-    if (!$include_archived) {
-        $where[] = 'i.archived_at IS NULL';
-    }
-
-    $include_future = \Field::int($_GET, 'include_future');
-    if (!$include_future) {
-        $where[] = '(i.show_date IS NULL OR i.show_date <= NOW())';
-    }
-
-    if ($status === 'pending') {
-        $where[] = 'i.seen_at IS NULL AND i.done_at IS NULL';
-    } elseif ($status === 'seen') {
-        $where[] = 'i.seen_at IS NOT NULL AND i.done_at IS NULL';
-    } elseif ($status === 'done') {
-        $where[] = 'i.done_at IS NOT NULL';
-    } elseif ($status === 'archived') {
-        $where[] = 'i.archived_at IS NOT NULL';
-    }
-
-    $where_sql = implode(' AND ', $where);
-
-    // Ordering whitelist. Default: newest-first (matches the most common agent
-    // use case of "did X reply to my ping?"). `urgent` keeps the old
-    // priority-weighted triage view. `oldest` preserves FIFO semantics.
-    $order_map = [
-        'newest' => 'i.created_at_utc DESC, i.message_id DESC',
-        'urgent' => "FIELD(i.priority, 'high', 'normal', 'low'), i.created_at_utc DESC, i.message_id DESC",
-        'oldest' => 'i.created_at_utc ASC, i.message_id ASC',
-    ];
-    $order = \Field::string($_GET, 'order', 'newest');
-    if (!isset($order_map[$order])) {
-        $order = 'newest';
-    }
-    $order_clause = $order_map[$order];
-
-    $stmt = $pdo->prepare(
-        "SELECT message_id, message, priority, show_date, sender_timezone, sender_aiu, recipient_aiu, seen_at, done_at, archived_at, response, created_at_utc, updated_at_utc
-         FROM agent_inbox i
-         WHERE {$where_sql}
-         ORDER BY {$order_clause}
-         LIMIT ? OFFSET ?"
-    );
-    $params[] = $limit;
-    $params[] = $offset;
-    $stmt->execute($params);
-
-    $count_stmt = $pdo->prepare(
-        "SELECT COUNT(*) FROM agent_inbox i WHERE {$where_sql}"
-    );
-    $count_stmt->execute(array_slice($params, 0, -2));
-    $total = (int) $count_stmt->fetchColumn();
+    $total = $found['total'];
 
     echo json_encode([
-        'messages' => $stmt->fetchAll(\PDO::FETCH_ASSOC),
+        'messages' => $found['messages'],
         'total'    => $total,
         'limit'    => $limit,
         'offset'   => $offset,
