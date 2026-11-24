@@ -68,9 +68,6 @@
 <script src="https://code.jquery.com/jquery-4.1.0.min.js"
     integrity="sha384-UGSi5euAzE1p4sK41+yKs3vtdPcidmaW6fY2NUITZkjIPyMVUUYB/BV4A5Oa8uu2"
     crossorigin="anonymous"></script>
-<script src="https://code.jquery.com/jquery-migrate-4.0.2.min.js"
-    integrity="sha384-j1JGhEtpRFQa6jnqPcEWt92tLBipLPhYYJxOL/bmH3VrUmV++ZHPOXLcrjVMkuo6"
-    crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"
     integrity="sha384-BSxuMLxX+FCbTdYec3TbXlnMGEEM2QXTFdtDaveen71o+jswm2J36+xFqp8k4VHM"
     crossorigin="anonymous"></script>
