@@ -3,6 +3,58 @@
 	width: 300px; margin: 200px auto;
 }
 
+/* the flip clock drawn by mgflipclock.js */
+.mg-flip-clock {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 6px;
+}
+.mg-flip-group {
+	display: flex;
+	gap: 4px;
+}
+.mg-flip-digit {
+	display: inline-block;
+	width: 0.9em;
+	font-size: 64px;
+	line-height: 1.4em;
+	text-align: center;
+	font-weight: bold;
+	font-family: Helvetica, Arial, sans-serif;
+	color: #fff;
+	background: #333;
+	border-radius: 6px;
+	position: relative;
+	box-shadow: var(--shadow-widget);
+	overflow: hidden;
+}
+.mg-flip-digit::after {
+	content: "";
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 50%;
+	height: 2px;
+	background: rgba(0, 0, 0, 0.6);
+}
+.mg-flip-colon {
+	font-size: 48px;
+	font-weight: bold;
+	color: var(--text-faint);
+}
+.mg-flip-turn .mg-flip-face {
+	display: inline-block;
+	animation: mg-flip-in 0.4s ease-out;
+}
+@keyframes mg-flip-in {
+	from { transform: rotateX(-90deg); opacity: 0; }
+	to { transform: rotateX(0); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+	.mg-flip-turn .mg-flip-face { animation: none; }
+}
+
 /* minutes input label */
 label {
 	color: var(--text-faint);
