@@ -29,7 +29,8 @@ class Credits
 
     /**
      * Gives a new user their 100 trial credits. A user who already has a
-     * credit row throws the PDOException of the primary key.
+     * credit row throws the PDOException of the table's unique index on
+     * user_id.
      */
     public function addTrial(int $user_id): void
     {

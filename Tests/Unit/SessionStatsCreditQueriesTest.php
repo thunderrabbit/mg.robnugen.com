@@ -71,8 +71,9 @@ class SessionStatsCreditQueriesTest extends Unit
     {
         $stmt = $this->createMock(\PDOStatement::class);
         $stmt->expects($this->once())->method('execute')->with($this->identicalTo($params))->willReturn(true);
-        $stmt->method('fetch')->willReturn($row);
-        $stmt->method('fetchAll')->willReturn($all);
+        // The fetch modes are pinned too: the callers rely on rows by name and on a plain list of dates.
+        $stmt->method('fetch')->with(\PDO::FETCH_ASSOC)->willReturn($row);
+        $stmt->method('fetchAll')->with(\PDO::FETCH_COLUMN)->willReturn($all);
 
         $pdo = $this->createMock(\PDO::class);
         $pdo->expects($this->once())->method('prepare')->with($this->callback(
