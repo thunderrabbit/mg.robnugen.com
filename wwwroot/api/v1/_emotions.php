@@ -251,46 +251,15 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
 
         $ledger = new \Emotional\Ledger($pdo, $raw_key, $auth_key_id, $auth_user_id);
 
-        $where = ['e.api_key_id = ?'];
-        $params = [$auth_key_id];
-        $join = 'LEFT JOIN my_ids_for_my_users_state m ON m.mifmus_id = e.mifmus_id';
-
-        if ($q_my_id !== null) {
-            $join = 'INNER JOIN my_ids_for_my_users_state m ON m.mifmus_id = e.mifmus_id AND m.my_id = ?';
-            array_unshift($params, \Field::toInt($q_my_id)); // my_id param goes before api_key_id
-            // Rebuild params: my_id for JOIN, then api_key_id for WHERE
-            $params = [\Field::toInt($q_my_id), $auth_key_id];
-        }
-        if ($q_session_id !== null) {
-            $where[] = 'e.session_id = ?';
-            $params[] = \Field::toInt($q_session_id);
-        }
-        if ($q_from !== null) {
-            $where[] = 'e.event_timestamp >= ?';
-            $params[] = $q_from;
-        }
-        if ($q_to !== null) {
-            $where[] = 'e.event_timestamp <= ?';
-            $params[] = $q_to;
-        }
-        if ($q_event_type !== null) {
-            $where[] = 'e.event_type = ?';
-            $params[] = $q_event_type;
-        }
-        $params[] = $q_limit;
-
-        $where_sql = implode(' AND ', $where);
-        $sql = "SELECT e.event_id, e.session_id, e.sequence_num, e.event_timestamp,
-                       e.event_type, m.my_id, e.encrypted_content
-                FROM interaction_events e
-                $join
-                WHERE $where_sql
-                ORDER BY e.event_timestamp ASC, e.sequence_num ASC
-                LIMIT ?";
-
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute($params);
-        $rows = \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+        $rows = new \Emotional\Events($pdo)->getEvents(
+            $auth_key_id,
+            $q_my_id === null ? null : \Field::toInt($q_my_id),
+            $q_session_id === null ? null : \Field::toInt($q_session_id),
+            $q_from === null ? null : \Field::toString($q_from),
+            $q_to === null ? null : \Field::toString($q_to),
+            $q_event_type === null ? null : \Field::toString($q_event_type),
+            $q_limit
+        );
 
         $events = [];
         foreach ($rows as $row) {
