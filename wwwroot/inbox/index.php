@@ -121,12 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
         // new broadcast decision.
         $is_broadcast_change = false;
         if ($recipient_aiu === null) {
-            $current_recipient_stmt = $mla_database->prepare(
-                "SELECT recipient_aiu FROM agent_inbox WHERE message_id = ? AND user_id = ?"
-            );
-            $current_recipient_stmt->execute([$message_id, $user_id]);
-            $current_recipient = $current_recipient_stmt->fetchColumn();
-            $is_broadcast_change = ($current_recipient !== null && $current_recipient !== false);
+            $is_broadcast_change = $inbox->hasRecipient($message_id, $user_id);
         }
 
         if ($message_id <= 0 || $message === '') {
@@ -144,10 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
             }
             $error_message = 'You do not have permission to broadcast.';
         } else {
-            $stmt = $mla_database->prepare(
-                "UPDATE agent_inbox SET message = ?, priority = ?, recipient_aiu = ?, show_date = ? WHERE message_id = ? AND user_id = ?"
-            );
-            $stmt->execute([$message, $priority, $recipient_aiu, $show_date, $message_id, $user_id]);
+            $inbox->updateForOwner($message_id, $user_id, $message, $priority, $recipient_aiu, $show_date);
 
             if ($is_ajax) {
                 header('Content-Type: application/json');
