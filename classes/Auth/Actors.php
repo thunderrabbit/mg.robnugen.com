@@ -125,6 +125,21 @@ class Actors
     }
 
     /**
+     * An account's actors, oldest first, as whole rows: what the settings
+     * page lists and offers for a key.
+     *
+     * @return list<array<mixed>>
+     */
+    public function getActorRowsOldestFirst(int $user_id): array
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT * FROM agent_inbox_user WHERE user_id = ? ORDER BY created_at_utc ASC"
+        );
+        $stmt->execute([$user_id]);
+        return \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+    }
+
+    /**
      * An account's actors, oldest first, as aiu_id and name: the inbox
      * page's recipient list.
      *
