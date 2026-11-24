@@ -29,18 +29,15 @@ if (!$dm_mp) {
 }
 
 // Verify this problem belongs to the user
-$stmt = $pdo->prepare("SELECT dm_mp, problem FROM dm_my_problems WHERE dm_mp = ? AND user_id = ?");
-$stmt->execute([$dm_mp, $user_id]);
-$problem = $stmt->fetch(\PDO::FETCH_ASSOC);
-if (!$problem) {
+$problem = new \Matrix\Problems($pdo)->getProblem($dm_mp, $user_id);
+if ($problem === null) {
     header("Location: /matrix/");
     exit;
 }
 
 // Check if opposite already exists
-$stmt = $pdo->prepare("SELECT COUNT(*) FROM dm_my_opposites WHERE dm_mp = ?");
-$stmt->execute([$dm_mp]);
-if ($stmt->fetchColumn() > 0) {
+$opposites = new \Matrix\Opposites($pdo);
+if ($opposites->getCountForProblem($dm_mp) > 0) {
     header("Location: /matrix/");
     exit;
 }
@@ -48,19 +45,14 @@ if ($stmt->fetchColumn() > 0) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $encrypted_opposite = \Field::string($_POST, 'encrypted_opposite');
     if ($encrypted_opposite) {
-        $stmt = $pdo->prepare("INSERT INTO dm_my_opposites (dm_mp, user_id, opposite) VALUES (?, ?, ?)");
-        $stmt->execute([$dm_mp, $user_id, base64_decode($encrypted_opposite)]);
-        $dm_mo = $pdo->lastInsertId();
+        $dm_mo = $opposites->addOpposite($dm_mp, $user_id, base64_decode($encrypted_opposite));
         header("Location: /matrix/add_evidence.php?dm_mo=" . $dm_mo);
         exit;
     }
 }
 
 // Get verify blob
-$stmt = $pdo->prepare("SELECT passphrase_verify FROM dm_user_config WHERE user_id = ?");
-$stmt->execute([$user_id]);
-$verify = $stmt->fetchColumn();
-$verify_blob = base64_encode(is_string($verify) ? $verify : '');
+$verify_blob = base64_encode(new \Matrix\UserConfig($pdo)->passphraseVerifyOf($user_id) ?? '');
 
 $page = new \Template($config, $is_logged_in, $csrfProtect, $admin_count);
 $page->setTemplate("layout/base.tpl.php");
