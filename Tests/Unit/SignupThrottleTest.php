@@ -57,6 +57,48 @@ class SignupThrottleTest extends Unit
         $this->assertFalse($this->at(\Auth\SignupThrottle::WINDOW_SECONDS + 1)->isThrottled('203.0.113.7'));
     }
 
+    public function testAdmitLetsInThreeFromOneIpThenRefuses(): void
+    {
+        for ($i = 1; $i <= \Auth\SignupThrottle::MAX_PER_IP; $i++) {
+            $this->assertTrue($this->at($i)->admit('203.0.113.7'), "signup $i is within the limit");
+        }
+        $this->assertFalse($this->at(10)->admit('203.0.113.7'), 'one past the limit');
+        $this->assertTrue($this->at(10)->admit('198.51.100.1'), 'another IP is unaffected');
+    }
+
+    public function testAnAdmittedSignupIsCountedAtOnce(): void
+    {
+        $this->at(0)->admit('203.0.113.7');
+
+        $this->assertSame(1, $this->rows());
+    }
+
+    public function testAdmitHoldsToTheOverallCap(): void
+    {
+        for ($i = 1; $i <= \Auth\SignupThrottle::MAX_TOTAL; $i++) {
+            $this->assertTrue($this->at($i)->admit("198.51.100.{$i}"), "signup $i is within the cap");
+        }
+        $this->assertFalse($this->at(20)->admit('203.0.113.99'));
+    }
+
+    public function testARefusedSignupLeavesNoRow(): void
+    {
+        $max = \Auth\SignupThrottle::MAX_PER_IP;
+        for ($i = 0; $i < $max; $i++) {
+            $this->at(0)->admit('203.0.113.7');
+        }
+        $this->assertFalse($this->at(600)->admit('203.0.113.7'));
+        $this->assertSame($max, $this->rows(), 'being refused does not lengthen the wait');
+        $this->assertTrue($this->at(\Auth\SignupThrottle::WINDOW_SECONDS + 1)->admit('203.0.113.7'));
+    }
+
+    private function rows(): int
+    {
+        $stmt = $this->pdo->query("SELECT COUNT(*) FROM login_attempts");
+        $count = $stmt === false ? false : $stmt->fetchColumn();
+        return is_int($count) ? $count : -1;
+    }
+
     public function testSignupsDoNotTouchALoginBucket(): void
     {
         for ($i = 0; $i < 5; $i++) {
