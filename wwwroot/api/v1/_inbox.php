@@ -391,16 +391,9 @@ if ($method === 'GET' && $sub === '/list') {
 
     // Mutation auth: caller must be sender, recipient, or supervisor
     $caller_aiu = \Field::int($auth_actor, 'aiu_id');
-    $stmt = $pdo->prepare(
-        "DELETE FROM agent_inbox
-         WHERE message_id = ? AND user_id = ?
-           AND (sender_aiu = ? OR recipient_aiu = ? OR EXISTS (
-                SELECT 1 FROM inbox_visibility
-                WHERE inbox_user_aiu_id = ? AND inbox_peer_aiu_id IS NULL AND can_read = 1))"
-    );
-    $stmt->execute([$message_id, $auth_user_id, $caller_aiu, $caller_aiu, $caller_aiu]);
+    $deleted = new \Inbox\Messages($pdo)->delete($message_id, $auth_user_id, $caller_aiu);
 
-    echo json_encode(['deleted' => $stmt->rowCount()]);
+    echo json_encode(['deleted' => $deleted]);
 } elseif ($method === 'GET' && $sub === '/actors') {
     // ── List actors in this account ───────────────────────────────────────
     // Requires can_write_inbox (you only need this if deciding who to send to)
