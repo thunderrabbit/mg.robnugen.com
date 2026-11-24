@@ -77,8 +77,10 @@ class IsLoggedIn
      * BadCredentials has no side effects; the caller shows one generic
      * message for it so a guesser cannot learn which usernames exist.
      */
-    public function attemptPasswordLogin(string $username, string $password): LoginResult
-    {
+    public function attemptPasswordLogin(
+        string $username,
+        #[\SensitiveParameter] string $password,
+    ): LoginResult {
         $current_ip = \Field::string($_SERVER, 'REMOTE_ADDR', 'unknown');
         // Only plain ASCII can name an account (Auth\Username). Anything else
         // is refused before the lookup, where the accent-insensitive collation
@@ -250,8 +252,10 @@ class IsLoggedIn
      * @param $password
      * @return int The user_id, or 0 when the password doesn't match
      */
-    private function checkPHPHashedPassword(string $username, string $password): int
-    {
+    private function checkPHPHashedPassword(
+        string $username,
+        #[\SensitiveParameter] string $password,
+    ): int {
         // get password hash
         $user_id_and_hash_array = $this->getIDandPHPHashedPasswordForUsername($username);
         if (!empty($user_id_and_hash_array)) {
@@ -275,7 +279,7 @@ class IsLoggedIn
 
 
     private function getUserIdForCookieInDatabase(
-        string $cookie,
+        #[\SensitiveParameter] string $cookie,
         string $user_agent
     ): int {
         $cookie_hash = hash('sha256', $cookie);

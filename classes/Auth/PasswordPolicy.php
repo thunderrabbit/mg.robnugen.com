@@ -17,7 +17,7 @@ class PasswordPolicy
     /**
      * Why a new password is refused, for the form; '' when it is fine.
      */
-    public static function problem(string $password): string
+    public static function problem(#[\SensitiveParameter] string $password): string
     {
         if (mb_strlen($password) < self::MIN_LENGTH) {
             return 'Passwords need at least ' . self::MIN_LENGTH . ' characters.';
