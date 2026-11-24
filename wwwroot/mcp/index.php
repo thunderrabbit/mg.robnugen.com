@@ -109,11 +109,8 @@ if (!$auth_user_id) {
 
 // The agent must belong to the token's account: a key or token bound to
 // another account's agent would otherwise act with that agent's identity.
-$actor_stmt = $pdo->prepare("SELECT * FROM agent_inbox_user WHERE aiu_id = ? AND user_id = ? LIMIT 1");
-$actor_stmt->execute([$auth_aiu_id, $auth_user_id]);
-/** @var array<string, mixed>|false $auth_actor */
-$auth_actor  = $actor_stmt->fetch(\PDO::FETCH_ASSOC);
-if (!is_array($auth_actor)) {
+$auth_actor = $auth_aiu_id === null ? null : new \Auth\Actors($pdo)->getActor($auth_aiu_id, $auth_user_id);
+if ($auth_actor === null) {
     http_response_code(403);
     echo json_encode(\Mcp\JsonRpc::error(null, -32600, 'This token is not bound to an agent in its account'));
     exit;

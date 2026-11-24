@@ -55,12 +55,7 @@ if (!empty($raw_key)) {
 
     // Fetch the agent_inbox_user row for this API key's aiu_id.
     // Available to all handler files as $auth_actor.
-    $actor_stmt = $pdo->prepare(
-        "SELECT a.* FROM agent_inbox_user a
-         JOIN api_keys k ON k.aiu_id = a.aiu_id AND a.user_id = k.user_id
-         WHERE k.key_id = ?"
-    );
-    $actor_stmt->execute([$auth_key_id]);
+    $auth_actor = $auth_key_id === null ? null : new \Auth\Actors($pdo)->getActorOfKey($auth_key_id);
 } else {
     // ── Bearer token (OAuth access token from /mcp/token.php) ────────────────
     // Only a todos_limited actor (BG Bells, mg #801) may use one here.
@@ -73,12 +68,9 @@ if (!empty($raw_key)) {
     $auth_user_id  = $token_row['user_id'];
     $auth_token_id = $token_row['token_id'];
 
-    $actor_stmt = $pdo->prepare("SELECT * FROM agent_inbox_user WHERE aiu_id = ? AND user_id = ? LIMIT 1");
-    $actor_stmt->execute([$token_row['aiu_id'], $token_row['user_id']]);
+    $auth_actor = new \Auth\Actors($pdo)->getActor($token_row['aiu_id'], $token_row['user_id']);
 }
-$auth_actor = $actor_stmt->fetch(\PDO::FETCH_ASSOC);
-/** @var array<string, mixed> $auth_actor */
-$auth_actor = is_array($auth_actor) ? $auth_actor : [];
+$auth_actor ??= [];
 
 if ($auth_token_id !== null && !$guards->isLimited($auth_actor)) {
     http_response_code(401);

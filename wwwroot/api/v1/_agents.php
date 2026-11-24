@@ -35,12 +35,10 @@ if (!$caller_aiu) {
     exit;
 }
 
-$sup_stmt = $pdo->prepare(
-    "SELECT 1 FROM inbox_visibility
-     WHERE inbox_user_aiu_id = ? AND inbox_peer_aiu_id IS NULL AND can_read = 1"
-);
-$sup_stmt->execute([$caller_aiu]);
-if (!$sup_stmt->fetch()) {
+$actors = new \Auth\Actors($pdo);
+$visibility = new \Inbox\Visibility($pdo);
+
+if (!$visibility->isSupervisor($caller_aiu)) {
     http_response_code(403);
     echo json_encode(['error' => 'Agent management requires supervisor access']);
     exit;
@@ -52,20 +50,7 @@ $sub = preg_replace('#^/agents#', '', preg_replace('#^/api/v1#', '', rtrim((stri
 // ── GET /agents ──────────────────────────────────────────────────────────────
 
 if ($method === 'GET' && $sub === '') {
-    $stmt = $pdo->prepare(
-        "SELECT aiu_id, name, description, actor_type,
-                can_read_inbox, can_write_inbox,
-                can_read_todos, can_write_todos,
-                can_read_sessions, can_write_sessions,
-                can_read_emotions, can_write_emotions,
-                can_read_project, can_write_project,
-                can_ping_phone,
-                created_at_utc
-         FROM agent_inbox_user WHERE user_id = ? ORDER BY aiu_id"
-    );
-    $stmt->execute([$auth_user_id]);
-
-    echo json_encode(['agents' => $stmt->fetchAll(\PDO::FETCH_ASSOC)]);
+    echo json_encode(['agents' => $actors->getAgents($auth_user_id)]);
     exit;
 }
 
@@ -88,11 +73,7 @@ if ($method === 'POST' && $sub === '') {
     }
 
     // Check for duplicate name
-    $dup = $pdo->prepare(
-        "SELECT aiu_id FROM agent_inbox_user WHERE user_id = ? AND name = ?"
-    );
-    $dup->execute([$auth_user_id, $name]);
-    if ($dup->fetch()) {
+    if ($actors->aiuIdOfName($auth_user_id, $name) !== null) {
         http_response_code(409);
         echo json_encode(['error' => "Agent '$name' already exists"]);
         exit;
@@ -113,40 +94,18 @@ if ($method === 'POST' && $sub === '') {
 
     \Auth\ApiGate::requireCredit($pdo, $auth_user_id, $auth_key_id, 'POST /agents', $auth_token_id);
 
-    $stmt = $pdo->prepare(
-        "INSERT INTO agent_inbox_user (user_id, name, description, actor_type,
-         can_read_inbox, can_write_inbox, can_read_todos, can_write_todos,
-         can_read_sessions, can_write_sessions, can_read_emotions, can_write_emotions,
-         can_read_project, can_write_project, can_ping_phone)
-         VALUES (?, ?, ?, 'agent', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-    );
-    $stmt->execute([
-        $auth_user_id, $name, $desc,
-        $perms['can_read_inbox'], $perms['can_write_inbox'],
-        $perms['can_read_todos'], $perms['can_write_todos'],
-        $perms['can_read_sessions'], $perms['can_write_sessions'],
-        $perms['can_read_emotions'], $perms['can_write_emotions'],
-        $perms['can_read_project'], $perms['can_write_project'],
-        $perms['can_ping_phone'],
-    ]);
-    $new_aiu_id = (int) $pdo->lastInsertId();
+    $new_aiu_id = $actors->addAgent($auth_user_id, $name, $desc, $perms);
 
     // Auto-create self-referencing visibility row (can read own messages)
-    $vis_stmt = $pdo->prepare(
-        "INSERT INTO inbox_visibility (inbox_user_aiu_id, inbox_peer_aiu_id, can_read, can_send) VALUES (?, ?, 1, 0)"
-    );
-    $vis_stmt->execute([$new_aiu_id, $new_aiu_id]);
+    $visibility->addOwnRow($new_aiu_id);
 
     // Create send-to visibility rows for selected peers
     $send_to = $input['can_send_to'] ?? [];
     if (!empty($send_to) && is_array($send_to)) {
-        $send_stmt = $pdo->prepare(
-            "INSERT INTO inbox_visibility (inbox_user_aiu_id, inbox_peer_aiu_id, can_read, can_send) VALUES (?, ?, 0, 1)"
-        );
         foreach ($send_to as $peer_aiu_id) {
             $peer_aiu_id = \Field::toInt($peer_aiu_id);
             if ($peer_aiu_id > 0 && $peer_aiu_id !== $new_aiu_id) {
-                $send_stmt->execute([$new_aiu_id, $peer_aiu_id]);
+                $visibility->addSendRow($new_aiu_id, $peer_aiu_id);
             }
         }
     }
@@ -189,10 +148,8 @@ if ($method === 'POST' && $sub === '/visibility') {
     }
 
     // Verify both agents belong to this user
-    $check = $pdo->prepare("SELECT aiu_id FROM agent_inbox_user WHERE aiu_id = ? AND user_id = ?");
     foreach (['reader' => $reader_aiu, 'peer' => $peer_aiu] as $role => $aiu) {
-        $check->execute([$aiu, $auth_user_id]);
-        if (!$check->fetch()) {
+        if (!$actors->isInAccount($aiu, $auth_user_id)) {
             http_response_code(404);
             echo json_encode(['error' => "{$role}_aiu_id $aiu not found in your account"]);
             exit;
@@ -202,23 +159,10 @@ if ($method === 'POST' && $sub === '/visibility') {
     \Auth\ApiGate::requireCredit($pdo, $auth_user_id, $auth_key_id, 'POST /agents/visibility', $auth_token_id);
 
     // Upsert: if row exists, update; otherwise insert
-    $existing = $pdo->prepare(
-        "SELECT 1 FROM inbox_visibility WHERE inbox_user_aiu_id = ? AND inbox_peer_aiu_id = ?"
-    );
-    $existing->execute([$reader_aiu, $peer_aiu]);
-
-    if ($existing->fetch()) {
-        $upd = $pdo->prepare(
-            "UPDATE inbox_visibility SET can_read = ?, can_send = ?
-             WHERE inbox_user_aiu_id = ? AND inbox_peer_aiu_id = ?"
-        );
-        $upd->execute([$can_read, $can_send, $reader_aiu, $peer_aiu]);
+    if ($visibility->hasRow($reader_aiu, $peer_aiu)) {
+        $visibility->updateRow($reader_aiu, $peer_aiu, $can_read, $can_send);
     } else {
-        $ins = $pdo->prepare(
-            "INSERT INTO inbox_visibility (inbox_user_aiu_id, inbox_peer_aiu_id, can_read, can_send)
-             VALUES (?, ?, ?, ?)"
-        );
-        $ins->execute([$reader_aiu, $peer_aiu, $can_read, $can_send]);
+        $visibility->addRow($reader_aiu, $peer_aiu, $can_read, $can_send);
     }
 
     http_response_code(200);
@@ -249,10 +193,8 @@ if ($method === 'POST' && $sub === '/keys') {
     }
 
     // Verify agent belongs to this user
-    $check = $pdo->prepare("SELECT name, actor_type FROM agent_inbox_user WHERE aiu_id = ? AND user_id = ?");
-    $check->execute([$aiu_id, $auth_user_id]);
-    $agent = $check->fetch(\PDO::FETCH_ASSOC);
-    if (!$agent) {
+    $agent = $actors->nameAndTypeOf($aiu_id, $auth_user_id);
+    if ($agent === null) {
         http_response_code(404);
         echo json_encode(['error' => "aiu_id $aiu_id not found in your account"]);
         exit;
