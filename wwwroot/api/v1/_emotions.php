@@ -353,18 +353,14 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         if (array_key_exists('my_id', $body)) {
             $my_id = $body['my_id'];
             if ($my_id !== null) {
-                $stmt = $pdo->prepare(
-                    'SELECT mifmus_id FROM my_ids_for_my_users_state WHERE api_key_id = ? AND my_id = ?'
-                );
-                $stmt->execute([$auth_key_id, \Field::toInt($my_id)]);
-                $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-                if (!$row) {
+                $mifmus_id = new \Emotional\Vocab($pdo)->mifmusIdOf($auth_key_id, \Field::toInt($my_id));
+                if ($mifmus_id === null) {
                     http_response_code(400);
                     echo json_encode(['error' => 'Unknown my_id']);
                     return;
                 }
                 $sets[] = 'mifmus_id = ?';
-                $params[] = \Field::int($row, 'mifmus_id');
+                $params[] = $mifmus_id;
             } else {
                 $sets[] = 'mifmus_id = ?';
                 $params[] = null;
