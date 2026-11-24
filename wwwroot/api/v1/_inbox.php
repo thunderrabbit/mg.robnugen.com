@@ -243,26 +243,9 @@ if ($method === 'GET' && $sub === '/list') {
 
     // Mutation auth: caller must be sender, recipient, or supervisor
     $caller_aiu = \Field::int($auth_actor, 'aiu_id');
-    $sql = "UPDATE agent_inbox SET done_at = NOW(), seen_at = COALESCE(seen_at, NOW())";
-    $params = [];
-    if ($response !== '') {
-        $sql .= ", response = ?";
-        $params[] = $response;
-    }
-    $sql .= " WHERE message_id = ? AND user_id = ? AND done_at IS NULL
-              AND (sender_aiu = ? OR recipient_aiu = ? OR EXISTS (
-                   SELECT 1 FROM inbox_visibility
-                   WHERE inbox_user_aiu_id = ? AND inbox_peer_aiu_id IS NULL AND can_read = 1))";
-    $params[] = $message_id;
-    $params[] = $auth_user_id;
-    $params[] = $caller_aiu;
-    $params[] = $caller_aiu;
-    $params[] = $caller_aiu;
+    $updated = new \Inbox\Messages($pdo)->markDone($message_id, $auth_user_id, $caller_aiu, $response);
 
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
-
-    echo json_encode(['updated' => $stmt->rowCount()]);
+    echo json_encode(['updated' => $updated]);
 } elseif ($method === 'PATCH' && $sub === '/mark-seen-bulk') {
     // ── Bulk mark messages as seen ────────────────────────────────────────
     $input = \Field::jsonArray((string) file_get_contents('php://input'));
