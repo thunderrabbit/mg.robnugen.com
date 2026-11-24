@@ -1,6 +1,6 @@
 ---
 title: Every library on a supported release
-status: idea
+status: proven
 whose_move: agent
 check: js_libraries_current
 ---
