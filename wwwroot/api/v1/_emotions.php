@@ -162,9 +162,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         }
 
         // Count events that will be untagged
-        $stmt = $pdo->prepare('SELECT COUNT(*) FROM interaction_events WHERE mifmus_id = ?');
-        $stmt->execute([$mifmus_id]);
-        $events_untagged = (int) $stmt->fetchColumn();
+        $events_untagged = new \Emotional\Events($pdo)->getCountTaggedWith($mifmus_id);
 
         // Delete vocab entry — FK ON DELETE SET NULL untags events
         $vocab->deleteEntry($mifmus_id);
