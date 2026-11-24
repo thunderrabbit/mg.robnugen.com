@@ -23,9 +23,8 @@ $user_id = $is_logged_in->loggedInID();
 $pdo = \Database\Base::getPDO($config);
 
 // Check if already set up
-$stmt = $pdo->prepare("SELECT COUNT(*) FROM dm_user_config WHERE user_id = ?");
-$stmt->execute([$user_id]);
-if ($stmt->fetchColumn() > 0) {
+$matrix_config = new \Matrix\UserConfig($pdo);
+if ($matrix_config->getCount($user_id) > 0) {
     header("Location: /matrix/");
     exit;
 }
@@ -34,8 +33,7 @@ if ($stmt->fetchColumn() > 0) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $verify_blob = \Field::string($_POST, 'verify_blob');
     if ($verify_blob) {
-        $stmt = $pdo->prepare("INSERT INTO dm_user_config (user_id, passphrase_verify) VALUES (?, ?)");
-        $stmt->execute([$user_id, base64_decode($verify_blob)]);
+        $matrix_config->addConfig($user_id, base64_decode($verify_blob));
         header("Location: /matrix/add_problem.php");
         exit;
     }
