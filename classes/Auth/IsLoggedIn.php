@@ -266,11 +266,12 @@ class IsLoggedIn
                 $user_id = \Field::int($user_id_and_hash_array, 'user_id');
 
                 // The one moment the plain password is in hand: if the stored hash is
-                // weaker than password_hash() makes today (an older cost), replace it.
-                if (password_needs_rehash($hashed_password, PASSWORD_DEFAULT)) {
+                // behind what PasswordHash makes today (bcrypt from before argon2id,
+                // or an older cost), replace it.
+                if (PasswordHash::needsRehash($hashed_password)) {
                     new \Database\PasswordRepository($this->di_pdo)->updatePasswordHash(
                         $user_id,
-                        password_hash($password, PASSWORD_DEFAULT),
+                        PasswordHash::make($password),
                     );
                 }
 
