@@ -69,6 +69,7 @@ This project is built on a minimalist custom PHP framework tailored for DreamHos
    - Clone to `/home/dh_user/example.com`
    - ⚠️ Be aware of DreamHost system links like `.dh-diag → /dh/web/diag` — **The symlink is owned by `root`**.
    - Copy `classes/ConfigSample.php` to `classes/Config.php` and fill it in. `$domain_name` must equal the browser's `HTTP_HOST`; the login cookie is `__Host-<$cookie_name>`, host-only, with no Domain.
+   - `$display_errors` ships `false`: PHP errors and uncaught exceptions go to the error log (`~/logs/<domain>/https/error.log` on DreamHost), never the page. Set it `true` only on a copy strangers cannot reach.
 
 4. **Customize the templates:**
    - `/templates/layout/admin_base.tpl.php`: Main layout

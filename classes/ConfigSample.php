@@ -9,6 +9,10 @@ class Config
     public int $cookie_lifetime = 60 * 60 * 24 * 30; // 30 days
     public string $app_path = '/home/user/sub.domain.com';
 
+    // Print PHP errors and uncaught exceptions in the page? They are always
+    // logged. Leave false on any site a stranger can reach.
+    public bool $display_errors = false;
+
     public string $dbHost = "eich";
     public string $dbUser = "";
     public string $dbPass = "";
