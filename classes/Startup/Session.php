@@ -5,25 +5,58 @@ declare(strict_types=1);
 namespace Startup;
 
 /**
- * Starts the PHP session with hardened cookie settings. prepend.php and
- * login/register.php (which cannot load prepend) both start sessions here,
- * so the two can never drift apart. Loaded before the autoloader exists.
+ * The PHP session, started the same way everywhere.
+ *
+ * The session holds the CSRF token (Security\CSRFProtectaroo), so whoever can
+ * choose a visitor's session id knows their token. The cookie name's
+ * `__Host-` prefix is what stops that: a browser accepts such a cookie only
+ * over HTTPS, with Path=/ and without a Domain attribute, so a sibling
+ * subdomain cannot set one for this host and the cookie is sent to this host
+ * alone. PHP's default name, PHPSESSID, has no such protection.
+ *
+ * Every option is said here, even the ones PHP defaults to, because a host's
+ * php.ini can say otherwise, and Secure is not a default at all.
+ *
+ * Every session_start() in the app goes through start(): prepend.php,
+ * /login/register.php (which runs without prepend.php) and the fresh session
+ * Auth\IsLoggedIn::logout() opens. prepend.php loads this file before the
+ * autoloader exists. A site served over plain HTTP gets no session and so no
+ * working forms; that is intended.
  */
-class Session
+final class Session
 {
+    public const string NAME = '__Host-session';
+
+    /**
+     * Options for session_start(), which applies them as session.* settings.
+     *
+     * @return array{
+     *     name: string,
+     *     cookie_secure: '1',
+     *     cookie_httponly: '1',
+     *     cookie_samesite: 'Lax',
+     *     cookie_path: '/',
+     *     cookie_domain: '',
+     *     use_strict_mode: '1',
+     *     use_only_cookies: '1'
+     * }
+     */
+    public static function options(): array
+    {
+        return [
+            'name' => self::NAME,
+            'cookie_secure' => '1',
+            'cookie_httponly' => '1',
+            'cookie_samesite' => 'Lax',
+            'cookie_path' => '/',
+            'cookie_domain' => '',
+            'use_strict_mode' => '1',
+            'use_only_cookies' => '1',
+        ];
+    }
+
     public static function start(): void
     {
-        // PHPSESSID holds the CSRF token. Host-only, HTTPS-only, out of reach
-        // of JavaScript, withheld from cross-site subrequests, and never
-        // adopted from an id the server did not issue (strict mode blocks
-        // planting a known id).
-        ini_set('session.use_strict_mode', '1');
-        session_set_cookie_params([
-            'path' => '/',
-            'secure' => true,
-            'httponly' => true,
-            'samesite' => 'Lax',
-        ]);
-        session_start();
+        session_start(self::options());
     }
 }
