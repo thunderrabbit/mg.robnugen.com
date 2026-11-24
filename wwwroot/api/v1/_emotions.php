@@ -135,12 +135,9 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         $ledger = new \Emotional\Ledger($pdo, $raw_key, $auth_key_id, $auth_user_id);
         $encrypted_state = $ledger->encrypt($new_state);
 
-        $stmt = $pdo->prepare(
-            'UPDATE my_ids_for_my_users_state SET state = ? WHERE api_key_id = ? AND my_id = ?'
-        );
-        $stmt->execute([$encrypted_state, $auth_key_id, \Field::toInt($my_id)]);
+        $updated = new \Emotional\Vocab($pdo)->updateState($auth_key_id, \Field::toInt($my_id), $encrypted_state);
 
-        if ($stmt->rowCount() === 0) {
+        if (!$updated) {
             http_response_code(404);
             echo json_encode(['error' => 'Vocab entry not found']);
             return;
