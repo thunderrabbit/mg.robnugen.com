@@ -33,12 +33,7 @@ if (!$is_logged_in->isAdmin() && !$is_logged_in->isPaid()) {
 $user_id = $is_logged_in->loggedInID();
 $pdo = \Database\Base::getPDO($config);
 
-$aiu_stmt = $pdo->prepare(
-    "SELECT aiu_id FROM agent_inbox_user
-     WHERE user_id = ? AND actor_type = 'human' LIMIT 1"
-);
-$aiu_stmt->execute([$user_id]);
-$has_human = (bool) $aiu_stmt->fetchColumn();
+$has_human = new \Auth\Actors($pdo)->hasHumanActor($user_id);
 
 $error = null;
 
@@ -59,16 +54,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (mb_strlen($default_branch) > 100) {
             $error = "Default branch must be 100 characters or fewer.";
         } else {
-            $dup = $pdo->prepare("SELECT repo_id FROM repositories WHERE user_id = ? AND name = ?");
-            $dup->execute([$user_id, $name]);
-            if ($dup->fetch()) {
+            $repositories = new \Issues\Repositories($pdo);
+            if ($repositories->repoIdOfName($user_id, $name) !== null) {
                 $error = "A repository named '" . htmlspecialchars($name) . "' already exists in your account.";
             } else {
-                $ins = $pdo->prepare(
-                    "INSERT INTO repositories (user_id, name, url, default_branch)
-                     VALUES (?, ?, ?, ?)"
-                );
-                $ins->execute([$user_id, $name, $url !== '' ? $url : null, $default_branch]);
+                $repositories->addRepository($user_id, $name, $url !== '' ? $url : null, $default_branch);
                 header("Location: /repositories/?msg=repository_created");
                 exit;
             }

@@ -97,6 +97,19 @@ class Actors
     }
 
     /**
+     * Whether the account has a human actor.
+     */
+    public function hasHumanActor(int $user_id): bool
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT aiu_id FROM agent_inbox_user
+             WHERE user_id = ? AND actor_type = 'human' LIMIT 1"
+        );
+        $stmt->execute([$user_id]);
+        return (bool) $stmt->fetchColumn();
+    }
+
+    /**
      * The account's human actor as aiu_id and can_broadcast_inbox, or null
      * when it has none.
      *
