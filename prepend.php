@@ -5,11 +5,11 @@ declare(strict_types=1);
 require_once __DIR__ . '/version.php';
 
 # Report everything, but to the server's error log, never the page: a shown
-# warning hands visitors file paths, SQL and stack traces.
-ini_set('display_errors', '0');
-ini_set('display_startup_errors', '0');
-ini_set('log_errors', '1');
-error_reporting(E_ALL);
+# warning hands visitors file paths, SQL and stack traces. First, before the
+# autoloader, so the extension and session checks below are hidden too;
+# Config may ask to see them, further down.
+require_once __DIR__ . '/classes/Security/ErrorOutput.php';
+\Security\ErrorOutput::hide();
 
 # Before anything needs them: name a missing extension instead of dying later
 # with "Call to undefined function". The autoloader isn't registered yet.
@@ -72,8 +72,16 @@ try {
     $config = new \Config();
     // @phpstan-ignore catch.neverThrown (the autoloader throws when Config.php is missing)
 } catch (\Exception $e) {
-    echo "Couldn't create Config cause " . $e->getMessage();
+    // The message names the missing file's path, so it is logged, not shown.
+    error_log("Couldn't create Config: " . $e->getMessage());
+    http_response_code(503);
+    echo "<h1>Site unavailable</h1><p>This site is not configured yet.</p>";
     exit;
+}
+
+$show_errors = \Security\ErrorOutput::asked($config);
+if ($show_errors) {
+    \Security\ErrorOutput::show();
 }
 
 $mla_database = \Database\Base::getPDO($config);
@@ -98,12 +106,22 @@ if (
 
 
 if (!empty($errors)) {
-    echo "<h1>Database Errors</h1>";
-    echo "<ul>";
+    // These name the database and the configured domain. The operator reads
+    // them in the error log, or on screen with $display_errors on.
     foreach ($errors as $error) {
-        echo "<li>" . htmlspecialchars($error) . "</li>";
+        error_log("Setup problem: " . $error);
     }
-    echo "</ul>";
+    http_response_code(503);
+    echo "<h1>Site unavailable</h1>";
+    if ($show_errors) {
+        echo "<ul>";
+        foreach ($errors as $error) {
+            echo "<li>" . htmlspecialchars($error) . "</li>";
+        }
+        echo "</ul>";
+    } else {
+        echo "<p>This site is not set up correctly. The details are in its error log.</p>";
+    }
     exit;
 }
 

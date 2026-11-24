@@ -24,6 +24,11 @@ include_once $project_root . '/classes/Mlaphp/Autoloader.php';
 $autoloader = new \Mlaphp\Autoloader();
 spl_autoload_register($autoloader->load(...));
 
+// Errors go to the log, as in prepend.php. Only Stripe reads this response,
+// so $display_errors is not consulted: an uncaught error is a logged line
+// and a 500, which Stripe retries.
+\Security\ErrorOutput::hide();
+
 $config = new \Config();
 $pdo    = \Database\Base::getPDO($config);
 

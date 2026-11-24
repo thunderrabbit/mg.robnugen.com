@@ -14,6 +14,9 @@ include_once $matches[1] . '/version.php';
 $autoloader = new \Mlaphp\Autoloader();
 spl_autoload_register($autoloader->load(...));
 
+// prepend.php does the same; this page runs without it. Errors go to the log
+// until Config says otherwise, below.
+\Security\ErrorOutput::hide();
 
 \Startup\Session::start();
 $mla_request = new \Mlaphp\Request();
@@ -26,8 +29,13 @@ try {
     // @phpstan-ignore catch.neverThrown (the autoloader throws when Config.php is missing)
 } catch (\Exception $e) {
     error_log("Config init failed: " . $e->getMessage());
-    echo "Configuration error. Please contact the administrator.";
+    http_response_code(503);
+    echo "<h1>Site unavailable</h1><p>This site is not configured yet.</p>";
     exit;
+}
+
+if (\Security\ErrorOutput::asked($config)) {
+    \Security\ErrorOutput::show();
 }
 
 $mla_database = \Database\Base::getPDO($config);
