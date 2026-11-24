@@ -369,7 +369,8 @@ function resortTodos() {
     var $container = $('#todos-container');
     var $todos = $container.children('.todo-widget');
 
-    $todos.sort(function(a, b) {
+    // jQuery 4 dropped the undocumented $.fn.sort, so sort a plain array.
+    var sorted = $todos.toArray().sort(function(a, b) {
         var timeA = $(a).find('.todo-time').text().trim();
         var timeB = $(b).find('.todo-time').text().trim();
         var titleA = $(a).find('.todo-title').text().trim().toLowerCase();
@@ -389,7 +390,7 @@ function resortTodos() {
         return timeA.localeCompare(timeB);
     });
 
-    $todos.detach().appendTo($container);
+    $(sorted).detach().appendTo($container);
 }
 
 // Update todo time via API
