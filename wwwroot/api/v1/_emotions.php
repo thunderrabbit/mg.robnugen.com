@@ -394,20 +394,18 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
     try {
         $pdo->beginTransaction();
 
-        $stmt = $pdo->prepare('SELECT COUNT(*) FROM interaction_events WHERE api_key_id = ?');
-        $stmt->execute([$auth_key_id]);
-        $event_count = (int) $stmt->fetchColumn();
+        $events = new \Emotional\Events($pdo);
+        $event_count = $events->getCount($auth_key_id);
 
-        $stmt = $pdo->prepare('SELECT COUNT(*) FROM interaction_sessions WHERE api_key_id = ?');
-        $stmt->execute([$auth_key_id]);
-        $session_count = (int) $stmt->fetchColumn();
+        $sessions = new \Emotional\Sessions($pdo);
+        $session_count = $sessions->getCount($auth_key_id);
 
         $vocab = new \Emotional\Vocab($pdo);
         $vocab_count = $vocab->getCount($auth_key_id);
 
         // Delete in FK-safe order
-        $pdo->prepare('DELETE FROM interaction_events WHERE api_key_id = ?')->execute([$auth_key_id]);
-        $pdo->prepare('DELETE FROM interaction_sessions WHERE api_key_id = ?')->execute([$auth_key_id]);
+        $events->deleteAll($auth_key_id);
+        $sessions->deleteAll($auth_key_id);
         $vocab->deleteAll($auth_key_id);
 
         $pdo->commit();
