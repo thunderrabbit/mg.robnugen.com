@@ -101,16 +101,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $user_id = $is_logged_in->loggedInID();
 
         // Check if settings exist for user
-        $stmt = $mla_database->prepare("SELECT setting_id FROM user_settings WHERE user_id = ?");
-        $stmt->execute([$user_id]);
-        $exists = $stmt->fetch();
+        $user_settings = new \Database\UserSettings($mla_database);
 
-        if ($exists) {
-            $stmt = $mla_database->prepare("UPDATE user_settings SET site_title = ?, site_subtitle = ? WHERE user_id = ?");
-            $stmt->execute([$site_title, $site_subtitle, $user_id]);
+        if ($user_settings->hasSettings($user_id)) {
+            $user_settings->updateSite($user_id, $site_title, $site_subtitle);
         } else {
-            $stmt = $mla_database->prepare("INSERT INTO user_settings (user_id, site_title, site_subtitle) VALUES (?, ?, ?)");
-            $stmt->execute([$user_id, $site_title, $site_subtitle]);
+            $user_settings->addSite($user_id, $site_title, $site_subtitle);
         }
         $success_message = "Site settings updated successfully.";
     }

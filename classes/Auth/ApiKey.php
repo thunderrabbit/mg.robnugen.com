@@ -47,6 +47,18 @@ class ApiKey
     }
 
     /**
+     * Binds one of a user's keys to an actor. The caller checks first that
+     * the actor is the user's own (aiuBelongsToUser).
+     */
+    public function assignActor(int $key_id, int $user_id, int $aiu_id): void
+    {
+        $stmt = $this->di_pdo->prepare(
+            "UPDATE api_keys SET aiu_id = ? WHERE key_id = ? AND user_id = ?"
+        );
+        $stmt->execute([$aiu_id, $key_id, $user_id]);
+    }
+
+    /**
      * The aiu_id a key acts as: 0 for a key bound to no actor, for an
      * unknown key and for no key at all.
      */
