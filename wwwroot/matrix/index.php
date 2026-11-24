@@ -23,9 +23,8 @@ $user_id = $is_logged_in->loggedInID();
 $pdo = \Database\Base::getPDO($config);
 
 // Check if user has set up a passphrase
-$stmt = $pdo->prepare("SELECT COUNT(*) FROM dm_user_config WHERE user_id = ?");
-$stmt->execute([$user_id]);
-$has_config = $stmt->fetchColumn() > 0;
+$matrix_config = new \Matrix\UserConfig($pdo);
+$has_config = $matrix_config->getCount($user_id) > 0;
 
 $page = new \Template($config, $is_logged_in, $csrfProtect, $admin_count);
 $page->setTemplate("layout/base.tpl.php");
@@ -37,23 +36,19 @@ if (!$has_config) {
     $inner_page->setTemplate("matrix/empty.tpl.php");
 } else {
     // Load encrypted matrix data for client-side decryption
-    $stmt = $pdo->prepare("SELECT dm_mp, problem FROM dm_my_problems WHERE user_id = ? ORDER BY created_at");
-    $stmt->execute([$user_id]);
-    $problems = \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+    $problems = new \Matrix\Problems($pdo)->getProblems($user_id);
+    $opposites = new \Matrix\Opposites($pdo);
+    $evidence = new \Matrix\Evidence($pdo);
 
     // Base64-encode blobs for JSON transport
     foreach ($problems as &$p) {
         $p['problem'] = base64_encode(\Field::string($p, 'problem'));
 
-        $stmt2 = $pdo->prepare("SELECT dm_mo, opposite FROM dm_my_opposites WHERE dm_mp = ? AND user_id = ?");
-        $stmt2->execute([$p['dm_mp'], $user_id]);
-        $opp = $stmt2->fetch(\PDO::FETCH_ASSOC);
-        $p['opposite'] = $opp ? ['dm_mo' => \Field::int($opp, 'dm_mo'), 'opposite' => base64_encode(\Field::string($opp, 'opposite'))] : null;
+        $opp = $opposites->getOpposite(\Field::int($p, 'dm_mp'), $user_id);
+        $p['opposite'] = $opp !== null ? ['dm_mo' => \Field::int($opp, 'dm_mo'), 'opposite' => base64_encode(\Field::string($opp, 'opposite'))] : null;
 
-        if ($opp) {
-            $stmt3 = $pdo->prepare("SELECT dm_me, evidence FROM dm_my_evidence WHERE dm_mo = ? AND user_id = ? ORDER BY created_at");
-            $stmt3->execute([\Field::int($opp, 'dm_mo'), $user_id]);
-            $evs = \Database\Rows::all($stmt3->fetchAll(\PDO::FETCH_ASSOC));
+        if ($opp !== null) {
+            $evs = $evidence->getEvidence(\Field::int($opp, 'dm_mo'), $user_id);
             foreach ($evs as &$e) {
                 $e['evidence'] = base64_encode(\Field::string($e, 'evidence'));
             }
@@ -66,10 +61,7 @@ if (!$has_config) {
     unset($p);
 
     // Get passphrase verify blob
-    $stmt = $pdo->prepare("SELECT passphrase_verify FROM dm_user_config WHERE user_id = ?");
-    $stmt->execute([$user_id]);
-    $verify = $stmt->fetchColumn();
-    $verify_blob = base64_encode(is_string($verify) ? $verify : '');
+    $verify_blob = base64_encode($matrix_config->passphraseVerifyOf($user_id) ?? '');
 
     $inner_page->setTemplate("matrix/view.tpl.php");
     $inner_page->set("problems_json", json_encode($problems));

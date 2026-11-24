@@ -29,22 +29,18 @@ if (!$dm_mo) {
 }
 
 // Verify this opposite belongs to the user
-$stmt = $pdo->prepare("SELECT o.dm_mo, o.opposite, o.dm_mp, p.problem
-    FROM dm_my_opposites o
-    JOIN dm_my_problems p ON o.dm_mp = p.dm_mp
-    WHERE o.dm_mo = ? AND o.user_id = ?");
-$stmt->execute([$dm_mo, $user_id]);
-$row = $stmt->fetch(\PDO::FETCH_ASSOC);
-if (!$row) {
+$row = new \Matrix\Opposites($pdo)->getOppositeWithProblem($dm_mo, $user_id);
+if ($row === null) {
     header("Location: /matrix/");
     exit;
 }
 
+$evidence = new \Matrix\Evidence($pdo);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $encrypted_evidence = \Field::string($_POST, 'encrypted_evidence');
     if ($encrypted_evidence) {
-        $stmt = $pdo->prepare("INSERT INTO dm_my_evidence (dm_mo, user_id, evidence) VALUES (?, ?, ?)");
-        $stmt->execute([$dm_mo, $user_id, base64_decode($encrypted_evidence)]);
+        $evidence->addEvidence($dm_mo, $user_id, base64_decode($encrypted_evidence));
 
         $action = $_POST['action'] ?? 'done';
         if ($action === 'another') {
@@ -57,15 +53,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Get verify blob
-$stmt = $pdo->prepare("SELECT passphrase_verify FROM dm_user_config WHERE user_id = ?");
-$stmt->execute([$user_id]);
-$verify = $stmt->fetchColumn();
-$verify_blob = base64_encode(is_string($verify) ? $verify : '');
+$verify_blob = base64_encode(new \Matrix\UserConfig($pdo)->passphraseVerifyOf($user_id) ?? '');
 
 // Get existing evidence count
-$stmt = $pdo->prepare("SELECT COUNT(*) FROM dm_my_evidence WHERE dm_mo = ? AND user_id = ?");
-$stmt->execute([$dm_mo, $user_id]);
-$evidence_count = $stmt->fetchColumn();
+$evidence_count = $evidence->getCount($dm_mo, $user_id);
 
 $page = new \Template($config, $is_logged_in, $csrfProtect, $admin_count);
 $page->setTemplate("layout/base.tpl.php");
