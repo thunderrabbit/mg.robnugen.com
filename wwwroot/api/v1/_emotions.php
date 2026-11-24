@@ -62,15 +62,13 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         $ledger = new \Emotional\Ledger($pdo, $raw_key, $auth_key_id, $auth_user_id);
         $encrypted_state = $ledger->encrypt($body['state']);
 
-        $stmt = $pdo->prepare(
-            'INSERT INTO my_ids_for_my_users_state (api_key_id, my_id, state) VALUES (?, ?, ?)'
-        );
+        $vocab = new \Emotional\Vocab($pdo);
 
         $max_attempts = 5;
         for ($attempt = 1; $attempt <= $max_attempts; $attempt++) {
             $my_id = random_int(100000, 9999999999);
             try {
-                $stmt->execute([$auth_key_id, $my_id, $encrypted_state]);
+                $vocab->addEntry($auth_key_id, $my_id, $encrypted_state);
                 echo json_encode(['my_id' => $my_id]);
                 return;
             } catch (\PDOException $e) {
@@ -79,12 +77,10 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
                         // 2 consecutive collisions in ~10 billion ID space is statistically remarkable.
                         // Warn now while 3 attempts remain — don't wait for crisis.
                         try {
-                            $pdo->prepare(
-                                "INSERT INTO omg_rob_this_happened (context, message) VALUES (?, ?)"
-                            )->execute([
+                            new \Admin\OmgAlerts($pdo)->add(
                                 'emotional/vocab',
                                 "2 consecutive my_id collisions for api_key_id $auth_key_id — ID space may be getting crowded. Check SELECT COUNT(*) FROM my_ids_for_my_users_state WHERE api_key_id = $auth_key_id"
-                            ]);
+                            );
                         } catch (\PDOException) {
                             // Table may not exist yet
                         }
@@ -95,12 +91,10 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
                     // Step 11: escalate after all attempts exhausted
                     \PrintRob\Debug::printRobLog("my_id collision exhausted for api_key_id=$auth_key_id after $max_attempts attempts", 'emotional/vocab');
                     try {
-                        $pdo->prepare(
-                            "INSERT INTO omg_rob_this_happened (context, message) VALUES (?, ?)"
-                        )->execute([
+                        new \Admin\OmgAlerts($pdo)->add(
                             'emotional/vocab',
                             "$max_attempts my_id collisions exhausted for api_key_id $auth_key_id — if < 10k vocab entries in TABLE my_ids_for_my_users_state, likely a bug in the retry loop; if millions of entries, expand random_int range in _emotions.php POST vocab"
-                        ]);
+                        );
                     } catch (\PDOException) {
                         // Table may not exist yet
                     }
