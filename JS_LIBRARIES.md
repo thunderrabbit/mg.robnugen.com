@@ -67,6 +67,7 @@ past DreamHost's 30-day cache.
 | File | What it does | Loaded by |
 |---|---|---|
 | `wwwroot/js/sortable-table.js` | Sorts a `.sortable-table` by a clicked column header | `templates/admin/dh/databases.tpl.php:64`, `templates/admin/dh/domains.tpl.php:45`, `templates/admin/dh/users.tpl.php:37`, `templates/issues/view.tpl.php:147`, `templates/projects/view.tpl.php:121` |
+| `wwwroot/js/issue-images.js` | Images card on issue and project pages: copy a picture's markdown line, confirm a remove, check an upload before it is sent | `templates/issues/image_strip.tpl.php:78` |
 | `wwwroot/js/standards-order.js` | Drag a site on the standards board to reorder or pin it (SortableJS) | `templates/admin/dh/standards.tpl.php:206` |
 | `wwwroot/js/dm_crypto.js` | Decision Matrix encryption in the browser (Web Crypto) | `templates/matrix/add_evidence.tpl.php:39`, `templates/matrix/add_opposite.tpl.php:32`, `templates/matrix/add_problem.tpl.php:26`, `templates/matrix/setup.tpl.php:27`, `templates/matrix/view.tpl.php:30` |
 | `wwwroot/dashboard/dashboard.js` | Dashboard: active sessions and todos (jQuery, SortableJS) | `templates/dashboard/paid_dashboard.tpl.php:74` |
