@@ -307,9 +307,11 @@ class InboxMessageQueriesTest extends Unit
 
     public function testMarkSeenBulkTouchesOnlyTheUnseenOnesTheCallerMayTouch(): void
     {
-        $this->assertSame(3, new Messages($this->pdo)->markSeenBulk([1, 2, 5, 6, 7], 1, 11));
+        // 3 is a broadcast actor 11 neither sent nor may supervise; 2 is seen; 7 is another account's.
+        $this->assertSame(3, new Messages($this->pdo)->markSeenBulk([1, 2, 3, 5, 6, 7], 1, 11));
 
         $this->assertSame(self::NOW, $this->message(1)['seen_at']);
+        $this->assertNull($this->message(3)['seen_at']);
         $this->assertSame('2026-06-11 00:00:00', $this->message(2)['seen_at']);
         $this->assertNull($this->message(7)['seen_at']);
     }
@@ -345,6 +347,31 @@ class InboxMessageQueriesTest extends Unit
         $this->assertNull($row['show_date']);
         $this->assertNull($row['recipient_aiu']);
         $this->assertSame('m6', $row['message']);
+    }
+
+    public function testAPlainSenderMayEditItsOwnMessage(): void
+    {
+        // Actor 11 sent message 2 and is no supervisor.
+        $this->assertSame(1, new Messages($this->pdo)->updateMessage(2, 1, 11, ['priority' => 'low']));
+        $this->assertSame('low', $this->message(2)['priority']);
+    }
+
+    public function testNoOneChangesAnotherAccountsMessage(): void
+    {
+        $messages = new Messages($this->pdo);
+
+        // Actor 10 supervises account 1; message 7 is account 2's.
+        $this->assertSame(0, $messages->updateMessage(7, 1, 10, ['message' => 'reached across']));
+        $this->assertSame(0, $messages->markDone(7, 1, 10, ''));
+        $this->assertSame(0, $messages->archive(7, 1, 10));
+        $this->pdo->exec("UPDATE agent_inbox SET seen_at = '2026-06-11 00:00:00' WHERE message_id = 7");
+        $this->assertSame(0, $messages->markUnseen(7, 1, 10));
+
+        $row = $this->message(7);
+        $this->assertSame('m7', $row['message']);
+        $this->assertNull($row['done_at']);
+        $this->assertNull($row['archived_at']);
+        $this->assertSame('2026-06-11 00:00:00', $row['seen_at']);
     }
 
     public function testASupervisorMayEditAnothersMessage(): void
