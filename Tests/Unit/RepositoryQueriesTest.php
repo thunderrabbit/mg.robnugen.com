@@ -126,6 +126,10 @@ class RepositoryQueriesTest extends Unit
         $row = $this->repo(1);
         $this->assertSame(['zeta2', 'https://example.test/z2', 'dev'], [$row['name'], $row['url'], $row['default_branch']]);
 
+        // Repository 2 of account 1: the pair that finds nothing if the two ids are swapped.
+        $this->assertSame(1, $repos->updateRepository(2, 1, ['default_branch' => 'trunk']));
+        $this->assertSame('trunk', $this->repo(2)['default_branch']);
+
         $this->assertSame(0, $repos->updateRepository(4, 1, ['name' => 'reached across']));
         $this->assertSame('alpha', $this->repo(4)['name']);
     }
