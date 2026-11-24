@@ -13,19 +13,37 @@ Each integrity hash is the SHA-384 of the file its URL served that day; the
 
 ### jQuery
 
-- **Version**: 3.7.1
+- **Version**: 4.1.0
 - **Loaded at**:
   - `templates/dashboard/paid_dashboard.tpl.php:68`
-    `https://code.jquery.com/jquery-3.7.1.min.js`
+    `https://code.jquery.com/jquery-4.1.0.min.js`
   - `templates/layout/mg_base.tpl.php:42`
-    `https://code.jquery.com/jquery-3.7.1.min.js`
+    `https://code.jquery.com/jquery-4.1.0.min.js`
 - **How**: CDN (code.jquery.com)
-- **Integrity**: `sha384-1H217gwSVyLSIfaLxHbE7dRb3v4mYCKbpQvzx0cegeju1MVsGrX5xXxAvs/HgeFs`
+- **Integrity**: `sha384-UGSi5euAzE1p4sK41+yKs3vtdPcidmaW6fY2NUITZkjIPyMVUUYB/BV4A5Oa8uu2`
 - **Needs**: nothing
 - **Needed by**: `wwwroot/dashboard/dashboard.js`,
   `wwwroot/mg/javascript/meisogambare.js`
-- **Latest**: 4.0.0 (2026-01-18). The newest 3.x is 3.7.1, the one in use.
-  Nothing here has been tried on it yet.
+- **Latest**: 4.1.0 (read from the npm registry on 2026-11-24), the one in
+  use. The upgrade guide for 4.0 was checked against every `$` use in the
+  two scripts above; the one removed call found, `$.fn.sort` in
+  `resortTodos()`, now sorts a plain array. No inline template script uses
+  jQuery.
+
+### jQuery Migrate
+
+- **Version**: 4.0.2
+- **Loaded at**:
+  - `templates/dashboard/paid_dashboard.tpl.php:71`
+    `https://code.jquery.com/jquery-migrate-4.0.2.min.js`
+  - `templates/layout/mg_base.tpl.php:48`
+    `https://code.jquery.com/jquery-migrate-4.0.2.min.js`
+- **How**: CDN (code.jquery.com), straight after jQuery
+- **Integrity**: `sha384-j1JGhEtpRFQa6jnqPcEWt92tLBipLPhYYJxOL/bmH3VrUmV++ZHPOXLcrjVMkuo6`
+- **Needs**: jQuery 4
+- **Needed by**: nothing. It is there only for the jQuery 3 to 4 move, so a
+  missed call still works; take it out once the move has soaked.
+- **Latest**: 4.0.2
 
 ### SortableJS
 
@@ -33,7 +51,7 @@ Each integrity hash is the SHA-384 of the file its URL served that day; the
 - **Loaded at**:
   - `templates/admin/dh/standards.tpl.php:203`
     `https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js`
-  - `templates/dashboard/paid_dashboard.tpl.php:71`
+  - `templates/dashboard/paid_dashboard.tpl.php:74`
     `https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js`
 - **How**: CDN (jsDelivr, from npm)
 - **Integrity**: `sha384-BSxuMLxX+FCbTdYec3TbXlnMGEEM2QXTFdtDaveen71o+jswm2J36+xFqp8k4VHM`
@@ -54,10 +72,10 @@ past DreamHost's 30-day cache.
 | `wwwroot/js/issue-images.js` | Images card on issue and project pages: copy a picture's markdown line, confirm a remove, check an upload before it is sent | `templates/issues/image_strip.tpl.php:78` |
 | `wwwroot/js/standards-order.js` | Drag a site on the standards board to reorder or pin it (SortableJS) | `templates/admin/dh/standards.tpl.php:206` |
 | `wwwroot/js/dm_crypto.js` | Decision Matrix encryption in the browser (Web Crypto) | `templates/matrix/add_evidence.tpl.php:39`, `templates/matrix/add_opposite.tpl.php:32`, `templates/matrix/add_problem.tpl.php:26`, `templates/matrix/setup.tpl.php:27`, `templates/matrix/view.tpl.php:30` |
-| `wwwroot/dashboard/dashboard.js` | Dashboard: active sessions and todos (jQuery, SortableJS) | `templates/dashboard/paid_dashboard.tpl.php:74` |
-| `wwwroot/mg/javascript/meisoprefs.js` | Meditation timer preferences | `templates/layout/mg_base.tpl.php:46` |
-| `wwwroot/mg/javascript/mgflipclock.js` | The timer's minutes:seconds flip clock (no library) | `templates/layout/mg_base.tpl.php:45` |
-| `wwwroot/mg/javascript/meisogambare.js` | Meditation timer (jQuery) | `templates/layout/mg_base.tpl.php:47` |
+| `wwwroot/dashboard/dashboard.js` | Dashboard: active sessions and todos (jQuery, SortableJS) | `templates/dashboard/paid_dashboard.tpl.php:77` |
+| `wwwroot/mg/javascript/meisoprefs.js` | Meditation timer preferences | `templates/layout/mg_base.tpl.php:49` |
+| `wwwroot/mg/javascript/mgflipclock.js` | The timer's minutes:seconds flip clock (no library) | `templates/layout/mg_base.tpl.php:48` |
+| `wwwroot/mg/javascript/meisogambare.js` | Meditation timer (jQuery) | `templates/layout/mg_base.tpl.php:50` |
 
 ## Inline `<script>` blocks
 
