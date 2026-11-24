@@ -68,6 +68,7 @@ This project is built on a minimalist custom PHP framework tailored for DreamHos
 3. **Clone this repo on your server**:
    - Clone to `/home/dh_user/example.com`
    - ⚠️ Be aware of DreamHost system links like `.dh-diag → /dh/web/diag` — **The symlink is owned by `root`**.
+   - Copy `classes/ConfigSample.php` to `classes/Config.php` and fill it in. `$domain_name` must equal the browser's `HTTP_HOST`; the login cookie is `__Host-<$cookie_name>`, host-only, with no Domain.
 
 4. **Customize the templates:**
    - `/templates/layout/admin_base.tpl.php`: Main layout

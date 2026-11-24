@@ -123,6 +123,7 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
 - Session-based with database-stored cookies
 - First-time setup redirects to admin user creation unless visiting `/login/register.php`
 - Login state managed by `Auth\IsLoggedIn` class
+- The remember-me cookie is host-only and named `__Host-<cookie_name>` (`Auth\CookieOptions::name()`). Never give it a `domain`: that sends the login token to every subdomain, and browsers drop a `__Host-` cookie that has one. `$config->domain_name` is only the `HTTP_HOST` check (`DBExistaroo`) now. The step this follows is `tools/site-standards/steps/template/security/020_login_cookie_host_only.md`
 
 ### Connected apps (limited actors)
 

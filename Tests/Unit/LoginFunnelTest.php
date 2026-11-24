@@ -144,7 +144,7 @@ class LoginFunnelTest extends Unit
     public function testResumeFromCookieLogsInTheCookiesOwner(): void
     {
         new \Database\CookieRepository($this->pdo)->issue(7, hash('sha256', 'tok-123'), md5(self::UA), 3600);
-        $_COOKIE = ['mg_test' => 'tok-123'];
+        $_COOKIE = ['__Host-mg_test' => 'tok-123'];
 
         $auth = $this->isLoggedIn();
         $auth->resumeFromCookie(new \Mlaphp\Request());
@@ -152,6 +152,17 @@ class LoginFunnelTest extends Unit
         $this->assertTrue($auth->isLoggedIn());
         $this->assertSame(7, $auth->loggedInID());
         $this->assertSame('Alice', $auth->getLoggedInUsername());
+    }
+
+    public function testACookieUnderTheOldBareNameIsIgnored(): void
+    {
+        new \Database\CookieRepository($this->pdo)->issue(7, hash('sha256', 'tok-123'), md5(self::UA), 3600);
+        $_COOKIE = ['mg_test' => 'tok-123'];
+
+        $auth = $this->isLoggedIn();
+        $auth->resumeFromCookie(new \Mlaphp\Request());
+
+        $this->assertFalse($auth->isLoggedIn(), 'only the __Host- name is read');
     }
 
     public function testResumeWithoutACookieIsNobody(): void
