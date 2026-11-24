@@ -421,16 +421,9 @@ if ($method === 'GET' && $sub === '/list') {
 
     // Mutation auth: caller must be sender, recipient, or supervisor
     $caller_aiu = \Field::int($auth_actor, 'aiu_id');
-    $stmt = $pdo->prepare(
-        "UPDATE agent_inbox SET seen_at = NULL
-         WHERE message_id = ? AND user_id = ? AND done_at IS NULL
-           AND (sender_aiu = ? OR recipient_aiu = ? OR EXISTS (
-                SELECT 1 FROM inbox_visibility
-                WHERE inbox_user_aiu_id = ? AND inbox_peer_aiu_id IS NULL AND can_read = 1))"
-    );
-    $stmt->execute([$message_id, $auth_user_id, $caller_aiu, $caller_aiu, $caller_aiu]);
+    $updated = new \Inbox\Messages($pdo)->markUnseen($message_id, $auth_user_id, $caller_aiu);
 
-    echo json_encode(['updated' => $stmt->rowCount()]);
+    echo json_encode(['updated' => $updated]);
 } else {
     http_response_code(404);
     echo json_encode(['error' => 'Not found', 'hint' => 'GET /list, GET /actors, POST /send, PATCH /mark-seen, PATCH /mark-seen-bulk, PATCH /mark-done, PATCH /mark-unseen, DELETE /delete']);
