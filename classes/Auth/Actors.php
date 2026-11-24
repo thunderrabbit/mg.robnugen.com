@@ -79,6 +79,21 @@ class Actors
     }
 
     /**
+     * An account's actors in name order, as aiu_id, name and description:
+     * what a sender needs to pick a recipient.
+     *
+     * @return list<array<mixed>>
+     */
+    public function getActorsByName(int $user_id): array
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT aiu_id, name, description FROM agent_inbox_user WHERE user_id = ? ORDER BY name"
+        );
+        $stmt->execute([$user_id]);
+        return \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+    }
+
+    /**
      * The aiu_id of the account's actor of that name, or null when it has
      * none.
      */
