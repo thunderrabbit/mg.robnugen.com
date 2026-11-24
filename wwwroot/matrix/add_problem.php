@@ -23,10 +23,8 @@ $user_id = $is_logged_in->loggedInID();
 $pdo = \Database\Base::getPDO($config);
 
 // Must have config set up
-$stmt = $pdo->prepare("SELECT passphrase_verify FROM dm_user_config WHERE user_id = ?");
-$stmt->execute([$user_id]);
-$verify_row = $stmt->fetch(\PDO::FETCH_ASSOC);
-if (!$verify_row) {
+$verify = new \Matrix\UserConfig($pdo)->passphraseVerifyOf($user_id);
+if ($verify === null) {
     header("Location: /matrix/setup.php");
     exit;
 }
@@ -34,9 +32,7 @@ if (!$verify_row) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $encrypted_problem = \Field::string($_POST, 'encrypted_problem');
     if ($encrypted_problem) {
-        $stmt = $pdo->prepare("INSERT INTO dm_my_problems (user_id, problem) VALUES (?, ?)");
-        $stmt->execute([$user_id, base64_decode($encrypted_problem)]);
-        $dm_mp = $pdo->lastInsertId();
+        $dm_mp = new \Matrix\Problems($pdo)->addProblem($user_id, base64_decode($encrypted_problem));
         header("Location: /matrix/add_opposite.php?dm_mp=" . $dm_mp);
         exit;
     }
@@ -48,7 +44,7 @@ $page->set("page_title", "Add a Problem - Decision Matrix");
 
 $inner_page = new \Template($config, $is_logged_in, $csrfProtect, $admin_count);
 $inner_page->setTemplate("matrix/add_problem.tpl.php");
-$inner_page->set("verify_blob", base64_encode(\Field::string($verify_row, 'passphrase_verify')));
+$inner_page->set("verify_blob", base64_encode($verify));
 
 $page->set("page_content", $inner_page->grabTheGoods());
 $page->echoToScreen();
