@@ -30,7 +30,6 @@
     </script>
     <link rel="stylesheet" href="/css/<?= SEMVER ?>/theme.css">
     <link rel="stylesheet" href="/css/<?= SEMVER ?>/styles.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flipclock@0.7.8/compiled/flipclock.min.css">
     <link rel="stylesheet" href="/mg/css/<?= SEMVER ?>/meisogambare.css">
     <link rel="stylesheet" href="/css/<?= SEMVER ?>/menu.css">
 </head>
@@ -43,9 +42,7 @@
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"
     integrity="sha384-1H217gwSVyLSIfaLxHbE7dRb3v4mYCKbpQvzx0cegeju1MVsGrX5xXxAvs/HgeFs"
     crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flipclock@0.7.8/compiled/flipclock.min.js"
-    integrity="sha384-Ef+QgU6pxDHG+o4sKcv/pDbh8n/llvn7Bq9TLYv/o37WRuEhAYJkUdly42AMb38+"
-    crossorigin="anonymous"></script>
+    <script src="/mg/javascript/<?= SEMVER ?>/mgflipclock.js"></script>
     <script src="/mg/javascript/<?= SEMVER ?>/meisoprefs.js"></script>
     <script src="/mg/javascript/<?= SEMVER ?>/meisogambare.js"></script>
 </body>

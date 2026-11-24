@@ -608,10 +608,8 @@ $(document).ready(function() {
 		console.log('Session key found in URL:', currentSessionKey);
 	}
 
-	clock = $('.clock').FlipClock({
-		clockFace: 'MinuteCounter',
+	clock = MgFlipClock(document.querySelector('.clock'), {
 		countdown: true,
-		autoStart: false,
 		callbacks: {
 			interval: function() {
 				if(clock.getTime().time == 0 && !reachedGoalTime) {
