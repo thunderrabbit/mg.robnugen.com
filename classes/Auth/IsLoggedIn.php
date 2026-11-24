@@ -48,7 +48,7 @@ class IsLoggedIn
      */
     public function resumeFromCookie(\Mlaphp\Request $mla_request): void
     {
-        $cookie = \Field::string($mla_request->cookie, $this->di_config->cookie_name);
+        $cookie = \Field::string($mla_request->cookie, $this->cookieName());
         if ($cookie === '') {
             return;
         }
@@ -229,7 +229,7 @@ class IsLoggedIn
         $cookie_options = \Auth\CookieOptions::build(
             time() + $this->di_config->cookie_lifetime // 30 days
         );
-        setcookie($this->di_config->cookie_name, $cookie, $cookie_options);
+        setcookie($this->cookieName(), $cookie, $cookie_options);
     }
 
 
@@ -359,7 +359,7 @@ class IsLoggedIn
      */
     private function presentedCookieHash(): ?string
     {
-        $presented = \Field::string($_COOKIE, $this->di_config->cookie_name);
+        $presented = \Field::string($_COOKIE, $this->cookieName());
         return $presented !== '' ? hash('sha256', $presented) : null;
     }
 
@@ -381,7 +381,16 @@ class IsLoggedIn
     private function killCookie(): void
     {
         $cookie_options = \Auth\CookieOptions::build(time() - 3600);
-        setcookie($this->di_config->cookie_name, '', $cookie_options);
+        setcookie($this->cookieName(), '', $cookie_options);
         $this->who_is_logged_in = 0;
+    }
+
+    /**
+     * The remember-me cookie's name in the browser: Config's cookie_name
+     * behind the __Host- prefix. Every read and write of the cookie uses it.
+     */
+    private function cookieName(): string
+    {
+        return CookieOptions::name($this->di_config->cookie_name);
     }
 }
