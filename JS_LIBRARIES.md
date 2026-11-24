@@ -17,16 +17,15 @@ Each integrity hash is the SHA-384 of the file its URL served that day; the
 - **Loaded at**:
   - `templates/dashboard/paid_dashboard.tpl.php:68`
     `https://code.jquery.com/jquery-3.7.1.min.js`
-  - `templates/layout/mg_base.tpl.php:43`
+  - `templates/layout/mg_base.tpl.php:42`
     `https://code.jquery.com/jquery-3.7.1.min.js`
 - **How**: CDN (code.jquery.com)
 - **Integrity**: `sha384-1H217gwSVyLSIfaLxHbE7dRb3v4mYCKbpQvzx0cegeju1MVsGrX5xXxAvs/HgeFs`
 - **Needs**: nothing
-- **Needed by**: FlipClock 0.7.8, `wwwroot/dashboard/dashboard.js`,
+- **Needed by**: `wwwroot/dashboard/dashboard.js`,
   `wwwroot/mg/javascript/meisogambare.js`
 - **Latest**: 4.0.0 (2026-01-18). The newest 3.x is 3.7.1, the one in use.
-  FlipClock 0.7.8 asks for `jquery >=1.7`, which 4.0.0 satisfies on paper;
-  nobody has tried it here.
+  Nothing here has been tried on it yet.
 
 ### SortableJS
 
@@ -43,21 +42,6 @@ Each integrity hash is the SHA-384 of the file its URL served that day; the
   `wwwroot/dashboard/dashboard.js`
 - **Latest**: 1.15.7 (2026-02-11)
 
-### FlipClock
-
-- **Version**: 0.7.8
-- **Loaded at**:
-  - `templates/layout/mg_base.tpl.php:46`
-    `https://cdn.jsdelivr.net/npm/flipclock@0.7.8/compiled/flipclock.min.js`
-  - its stylesheet, `templates/layout/mg_base.tpl.php:33`
-    `https://cdn.jsdelivr.net/npm/flipclock@0.7.8/compiled/flipclock.min.css`
-- **How**: CDN (jsDelivr, from npm)
-- **Integrity**: `sha384-Ef+QgU6pxDHG+o4sKcv/pDbh8n/llvn7Bq9TLYv/o37WRuEhAYJkUdly42AMb38+`
-- **Needs**: jQuery (`>=1.7`); it is a jQuery plugin, `$('.clock').FlipClock(...)`
-- **Needed by**: `wwwroot/mg/javascript/meisogambare.js`
-- **Latest**: 1.0.1 (2025-08-24). 0.7.8 is the newest 0.x on npm, so it is
-  also the newest that still works as a jQuery plugin.
-
 ## The site's own scripts
 
 A template writes these as `/js/<?= SEMVER ?>/name.js`; the `.htaccess` in
@@ -71,8 +55,9 @@ past DreamHost's 30-day cache.
 | `wwwroot/js/standards-order.js` | Drag a site on the standards board to reorder or pin it (SortableJS) | `templates/admin/dh/standards.tpl.php:206` |
 | `wwwroot/js/dm_crypto.js` | Decision Matrix encryption in the browser (Web Crypto) | `templates/matrix/add_evidence.tpl.php:39`, `templates/matrix/add_opposite.tpl.php:32`, `templates/matrix/add_problem.tpl.php:26`, `templates/matrix/setup.tpl.php:27`, `templates/matrix/view.tpl.php:30` |
 | `wwwroot/dashboard/dashboard.js` | Dashboard: active sessions and todos (jQuery, SortableJS) | `templates/dashboard/paid_dashboard.tpl.php:74` |
-| `wwwroot/mg/javascript/meisoprefs.js` | Meditation timer preferences | `templates/layout/mg_base.tpl.php:49` |
-| `wwwroot/mg/javascript/meisogambare.js` | Meditation timer (jQuery, FlipClock) | `templates/layout/mg_base.tpl.php:50` |
+| `wwwroot/mg/javascript/meisoprefs.js` | Meditation timer preferences | `templates/layout/mg_base.tpl.php:46` |
+| `wwwroot/mg/javascript/mgflipclock.js` | The timer's minutes:seconds flip clock (no library) | `templates/layout/mg_base.tpl.php:45` |
+| `wwwroot/mg/javascript/meisogambare.js` | Meditation timer (jQuery) | `templates/layout/mg_base.tpl.php:47` |
 
 ## Inline `<script>` blocks
 
@@ -97,11 +82,9 @@ None of these uses a library, except where noted.
 
 ## Notes for later steps
 
-- FlipClock 1.x is a rewrite that depends on `solid-js`, `date-fns` and
-  `goober` and ships as UMD/ES modules, not as a jQuery plugin. Moving to it
-  means rewriting the clock code in `meisogambare.js`, not a version bump.
-- jQuery is on mg only for the meditation timer and the dashboard. FlipClock
-  0.7.8 holds the timer to it.
+- FlipClock was replaced by `mgflipclock.js` (its 0.7.8 was a jQuery plugin
+  and 1.x is a rewrite on solid-js). jQuery is on mg only for the meditation
+  timer's page code and the dashboard.
 - jQuery comes from code.jquery.com and the other two from jsDelivr: two CDN
   hosts for any Content-Security-Policy to name.
 - There is no browser smoke test for the JavaScript yet.
