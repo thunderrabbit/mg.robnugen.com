@@ -300,8 +300,7 @@ if ($method === 'GET' && $sub === '/list') {
         return;
     }
 
-    $sets = [];
-    $params = [];
+    $changes = [];
     if ($message !== null) {
         if ($message === '') {
             http_response_code(400);
@@ -313,8 +312,7 @@ if ($method === 'GET' && $sub === '/list') {
             echo json_encode(['error' => $guard['error']]);
             return;
         }
-        $sets[] = 'message = ?';
-        $params[] = $message;
+        $changes['message'] = $message;
     }
     if ($priority !== null) {
         if (!in_array($priority, ['low', 'normal', 'high'], true)) {
@@ -322,8 +320,7 @@ if ($method === 'GET' && $sub === '/list') {
             echo json_encode(['error' => 'priority must be low, normal, or high']);
             return;
         }
-        $sets[] = 'priority = ?';
-        $params[] = $priority;
+        $changes['priority'] = $priority;
     }
     if ($show_date !== 'NOT_SET') {
         if ($show_date !== null && $show_date !== '') {
@@ -334,10 +331,9 @@ if ($method === 'GET' && $sub === '/list') {
                 echo json_encode(['error' => 'show_date must be YYYY-MM-DD format']);
                 return;
             }
-            $sets[] = 'show_date = ?';
-            $params[] = $show_date;
+            $changes['show_date'] = $show_date;
         } else {
-            $sets[] = 'show_date = NULL';
+            $changes['show_date'] = null;
         }
     }
     if ($recipient_aiu !== null) {
@@ -347,46 +343,25 @@ if ($method === 'GET' && $sub === '/list') {
                 echo json_encode(['error' => $guard['error']]);
                 return;
             }
-            $sets[] = 'recipient_aiu = NULL';
+            $changes['recipient_aiu'] = null;
         } else {
             $sender_aiu = \Field::int($auth_actor, 'aiu_id');
-            $send_stmt = $pdo->prepare(
-                "SELECT can_send FROM inbox_visibility
-                 WHERE inbox_user_aiu_id = ?
-                 AND (inbox_peer_aiu_id = ? OR inbox_peer_aiu_id IS NULL)"
-            );
-            $send_stmt->execute([$sender_aiu, $recipient_aiu]);
-            $send_row = $send_stmt->fetch(\PDO::FETCH_ASSOC);
-            if (!\Field::int($send_row, 'can_send')) {
+            if (!new \Inbox\Visibility($pdo)->canSendTo($sender_aiu, $recipient_aiu)) {
                 http_response_code(403);
                 echo json_encode(['error' => 'Not authorized to send to this recipient']);
                 return;
             }
-            $sets[] = 'recipient_aiu = ?';
-            $params[] = $recipient_aiu;
+            $changes['recipient_aiu'] = $recipient_aiu;
         }
     }
 
-    $set_sql = implode(', ', $sets);
-    $params[] = $message_id;
-    $params[] = $auth_user_id;
     // Only the sender, or a supervisor (a NULL-peer visibility row), may edit:
     // otherwise any agent with can_write_inbox could rewrite a message that
-    // still shows Rob or Boss Claude as its sender.
+    // still shows Rob or Boss Claude as its sender. The gateway's query says so.
     $caller_aiu = \Field::int($auth_actor, 'aiu_id');
-    $params[] = $caller_aiu;
-    $params[] = $caller_aiu;
+    $updated = new \Inbox\Messages($pdo)->updateMessage($message_id, $auth_user_id, $caller_aiu, $changes);
 
-    $stmt = $pdo->prepare(
-        "UPDATE agent_inbox SET {$set_sql}
-         WHERE message_id = ? AND user_id = ?
-           AND (sender_aiu = ? OR EXISTS (
-                SELECT 1 FROM inbox_visibility
-                WHERE inbox_user_aiu_id = ? AND inbox_peer_aiu_id IS NULL AND can_read = 1))"
-    );
-    $stmt->execute($params);
-
-    echo json_encode(['updated' => $stmt->rowCount()]);
+    echo json_encode(['updated' => $updated]);
 } elseif ($method === 'PATCH' && $sub === '/archive') {
     // ── Archive a message ────────────────────────────────────────────────
     $input = \Field::jsonArray((string) file_get_contents('php://input'));
