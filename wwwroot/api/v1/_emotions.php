@@ -62,15 +62,13 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         $ledger = new \Emotional\Ledger($pdo, $raw_key, $auth_key_id, $auth_user_id);
         $encrypted_state = $ledger->encrypt($body['state']);
 
-        $stmt = $pdo->prepare(
-            'INSERT INTO my_ids_for_my_users_state (api_key_id, my_id, state) VALUES (?, ?, ?)'
-        );
+        $vocab = new \Emotional\Vocab($pdo);
 
         $max_attempts = 5;
         for ($attempt = 1; $attempt <= $max_attempts; $attempt++) {
             $my_id = random_int(100000, 9999999999);
             try {
-                $stmt->execute([$auth_key_id, $my_id, $encrypted_state]);
+                $vocab->addEntry($auth_key_id, $my_id, $encrypted_state);
                 echo json_encode(['my_id' => $my_id]);
                 return;
             } catch (\PDOException $e) {
@@ -79,12 +77,10 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
                         // 2 consecutive collisions in ~10 billion ID space is statistically remarkable.
                         // Warn now while 3 attempts remain — don't wait for crisis.
                         try {
-                            $pdo->prepare(
-                                "INSERT INTO omg_rob_this_happened (context, message) VALUES (?, ?)"
-                            )->execute([
+                            new \Admin\OmgAlerts($pdo)->add(
                                 'emotional/vocab',
                                 "2 consecutive my_id collisions for api_key_id $auth_key_id — ID space may be getting crowded. Check SELECT COUNT(*) FROM my_ids_for_my_users_state WHERE api_key_id = $auth_key_id"
-                            ]);
+                            );
                         } catch (\PDOException) {
                             // Table may not exist yet
                         }
@@ -95,12 +91,10 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
                     // Step 11: escalate after all attempts exhausted
                     \PrintRob\Debug::printRobLog("my_id collision exhausted for api_key_id=$auth_key_id after $max_attempts attempts", 'emotional/vocab');
                     try {
-                        $pdo->prepare(
-                            "INSERT INTO omg_rob_this_happened (context, message) VALUES (?, ?)"
-                        )->execute([
+                        new \Admin\OmgAlerts($pdo)->add(
                             'emotional/vocab',
                             "$max_attempts my_id collisions exhausted for api_key_id $auth_key_id — if < 10k vocab entries in TABLE my_ids_for_my_users_state, likely a bug in the retry loop; if millions of entries, expand random_int range in _emotions.php POST vocab"
-                        ]);
+                        );
                     } catch (\PDOException) {
                         // Table may not exist yet
                     }
@@ -113,11 +107,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         }
     } elseif ($method === 'GET') {
         $ledger = new \Emotional\Ledger($pdo, $raw_key, $auth_key_id, $auth_user_id);
-        $stmt = $pdo->prepare(
-            'SELECT my_id, state FROM my_ids_for_my_users_state WHERE api_key_id = ?'
-        );
-        $stmt->execute([$auth_key_id]);
-        $rows = \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+        $rows = new \Emotional\Vocab($pdo)->getEntries($auth_key_id);
 
         $vocab = [];
         foreach ($rows as $row) {
@@ -145,12 +135,9 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         $ledger = new \Emotional\Ledger($pdo, $raw_key, $auth_key_id, $auth_user_id);
         $encrypted_state = $ledger->encrypt($new_state);
 
-        $stmt = $pdo->prepare(
-            'UPDATE my_ids_for_my_users_state SET state = ? WHERE api_key_id = ? AND my_id = ?'
-        );
-        $stmt->execute([$encrypted_state, $auth_key_id, \Field::toInt($my_id)]);
+        $updated = new \Emotional\Vocab($pdo)->updateState($auth_key_id, \Field::toInt($my_id), $encrypted_state);
 
-        if ($stmt->rowCount() === 0) {
+        if (!$updated) {
             http_response_code(404);
             echo json_encode(['error' => 'Vocab entry not found']);
             return;
@@ -166,17 +153,13 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         }
 
         // Resolve my_id → mifmus_id
-        $stmt = $pdo->prepare(
-            'SELECT mifmus_id FROM my_ids_for_my_users_state WHERE api_key_id = ? AND my_id = ?'
-        );
-        $stmt->execute([$auth_key_id, \Field::toInt($my_id)]);
-        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        $vocab = new \Emotional\Vocab($pdo);
+        $mifmus_id = $vocab->mifmusIdOf($auth_key_id, \Field::toInt($my_id));
 
-        if (!$row) {
+        if ($mifmus_id === null) {
             echo json_encode(['deleted' => 0, 'events_untagged' => 0]);
             return;
         }
-        $mifmus_id = \Field::int($row, 'mifmus_id');
 
         // Count events that will be untagged
         $stmt = $pdo->prepare('SELECT COUNT(*) FROM interaction_events WHERE mifmus_id = ?');
@@ -184,8 +167,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         $events_untagged = (int) $stmt->fetchColumn();
 
         // Delete vocab entry — FK ON DELETE SET NULL untags events
-        $stmt = $pdo->prepare('DELETE FROM my_ids_for_my_users_state WHERE mifmus_id = ?');
-        $stmt->execute([$mifmus_id]);
+        $vocab->deleteEntry($mifmus_id);
 
         echo json_encode(['deleted' => 1, 'events_untagged' => $events_untagged]);
     } else {
@@ -213,18 +195,13 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
             // Resolve my_id → mifmus_id (NULL if no my_id supplied)
             $mifmus_id = null;
             if ($my_id !== null) {
-                $stmt = $pdo->prepare(
-                    'SELECT mifmus_id FROM my_ids_for_my_users_state WHERE api_key_id = ? AND my_id = ?'
-                );
-                $stmt->execute([$auth_key_id, \Field::toInt($my_id)]);
-                $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-                if (!$row) {
+                $mifmus_id = new \Emotional\Vocab($pdo)->mifmusIdOf($auth_key_id, \Field::toInt($my_id));
+                if ($mifmus_id === null) {
                     $pdo->rollBack();
                     http_response_code(400);
                     echo json_encode(['error' => 'Unknown my_id']);
                     return;
                 }
-                $mifmus_id = \Field::int($row, 'mifmus_id');
             }
 
             $session_id = $ledger->getOrCreateSession();
@@ -376,18 +353,14 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         if (array_key_exists('my_id', $body)) {
             $my_id = $body['my_id'];
             if ($my_id !== null) {
-                $stmt = $pdo->prepare(
-                    'SELECT mifmus_id FROM my_ids_for_my_users_state WHERE api_key_id = ? AND my_id = ?'
-                );
-                $stmt->execute([$auth_key_id, \Field::toInt($my_id)]);
-                $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-                if (!$row) {
+                $mifmus_id = new \Emotional\Vocab($pdo)->mifmusIdOf($auth_key_id, \Field::toInt($my_id));
+                if ($mifmus_id === null) {
                     http_response_code(400);
                     echo json_encode(['error' => 'Unknown my_id']);
                     return;
                 }
                 $sets[] = 'mifmus_id = ?';
-                $params[] = \Field::int($row, 'mifmus_id');
+                $params[] = $mifmus_id;
             } else {
                 $sets[] = 'mifmus_id = ?';
                 $params[] = null;
@@ -500,14 +473,13 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         $stmt->execute([$auth_key_id]);
         $session_count = (int) $stmt->fetchColumn();
 
-        $stmt = $pdo->prepare('SELECT COUNT(*) FROM my_ids_for_my_users_state WHERE api_key_id = ?');
-        $stmt->execute([$auth_key_id]);
-        $vocab_count = (int) $stmt->fetchColumn();
+        $vocab = new \Emotional\Vocab($pdo);
+        $vocab_count = $vocab->getCount($auth_key_id);
 
         // Delete in FK-safe order
         $pdo->prepare('DELETE FROM interaction_events WHERE api_key_id = ?')->execute([$auth_key_id]);
         $pdo->prepare('DELETE FROM interaction_sessions WHERE api_key_id = ?')->execute([$auth_key_id]);
-        $pdo->prepare('DELETE FROM my_ids_for_my_users_state WHERE api_key_id = ?')->execute([$auth_key_id]);
+        $vocab->deleteAll($auth_key_id);
 
         $pdo->commit();
 

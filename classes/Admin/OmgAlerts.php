@@ -7,6 +7,25 @@ namespace Admin;
 class OmgAlerts
 {
     /**
+     * Only add() uses the connection given here; the static methods below
+     * still take theirs as an argument.
+     */
+    public function __construct(private readonly \PDO $pdo)
+    {
+    }
+
+    /**
+     * Stores an alert for the admin page to show. Throws the PDOException if
+     * the table does not exist yet; the caller decides whether that matters.
+     */
+    public function add(string $context, string $message): void
+    {
+        $this->pdo->prepare(
+            "INSERT INTO omg_rob_this_happened (context, message) VALUES (?, ?)"
+        )->execute([$context, $message]);
+    }
+
+    /**
      * Returns all unread alerts, newest first.
      * Returns empty array if the table does not exist yet (migration not yet applied).
      *
