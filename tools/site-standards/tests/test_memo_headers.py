@@ -29,6 +29,10 @@ OPTED_IN = {
     "mlaphp_public_split", "mlaphp_register_via_user_repository", "mlaphp_sql_in_gateways",
     "mysql84_reserved_words", "no_dynamic_properties", "phpstan_php_range", "phpstan_level",
     "rector_level", "rector_types",
+    "security_argon2id", "security_errors_hidden", "security_headers", "security_login_cookie",
+    "security_login_counts_first", "security_logout_post_only", "security_no_debug_parameter",
+    "security_password_policy", "security_path_boundary", "security_php_floor",
+    "security_sensitive_parameters", "security_session_cookie", "security_unknown_user_timing",
 }
 
 # Never opted in, and why.
