@@ -5,11 +5,11 @@ declare(strict_types=1);
 require_once __DIR__ . '/version.php';
 
 # Report everything, but to the server's error log, never the page: a shown
-# warning hands visitors file paths, SQL and stack traces.
-ini_set('display_errors', '0');
-ini_set('display_startup_errors', '0');
-ini_set('log_errors', '1');
-error_reporting(E_ALL);
+# warning hands visitors file paths, SQL and stack traces. First, before the
+# autoloader, so the extension and session checks below are hidden too;
+# Config may ask to see them, further down.
+require_once __DIR__ . '/classes/Security/ErrorOutput.php';
+\Security\ErrorOutput::hide();
 
 # Before anything needs them: name a missing extension instead of dying later
 # with "Call to undefined function". The autoloader isn't registered yet.
@@ -74,6 +74,11 @@ try {
 } catch (\Exception $e) {
     echo "Couldn't create Config cause " . $e->getMessage();
     exit;
+}
+
+// @phpstan-ignore nullCoalesce.property (an older Config.php may not declare it)
+if ($config->display_errors ?? false) {
+    \Security\ErrorOutput::show();
 }
 
 $mla_database = \Database\Base::getPDO($config);

@@ -14,6 +14,9 @@ include_once $matches[1] . '/version.php';
 $autoloader = new \Mlaphp\Autoloader();
 spl_autoload_register($autoloader->load(...));
 
+// prepend.php does the same; this page runs without it. Errors go to the log
+// until Config says otherwise, below.
+\Security\ErrorOutput::hide();
 
 \Startup\Session::start();
 $mla_request = new \Mlaphp\Request();
@@ -28,6 +31,11 @@ try {
     error_log("Config init failed: " . $e->getMessage());
     echo "Configuration error. Please contact the administrator.";
     exit;
+}
+
+// @phpstan-ignore nullCoalesce.property (an older Config.php may not declare it)
+if ($config->display_errors ?? false) {
+    \Security\ErrorOutput::show();
 }
 
 $mla_database = \Database\Base::getPDO($config);
