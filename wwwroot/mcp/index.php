@@ -78,15 +78,9 @@ $token_hash   = hash('sha256', $raw_token);
 $auth_user_id = null;
 $auth_aiu_id  = null;
 
-$tok_stmt = $pdo->prepare(
-    "SELECT user_id, aiu_id FROM mcp_tokens
-     WHERE token_hash = ? AND expires_at_utc > NOW()
-     LIMIT 1"
-);
-$tok_stmt->execute([$token_hash]);
-$tok_row = $tok_stmt->fetch(\PDO::FETCH_ASSOC);
+$tok_row = new \Auth\McpTokens($pdo)->userAndActorOf($token_hash);
 
-if ($tok_row) {
+if ($tok_row !== null) {
     $auth_user_id = \Field::int($tok_row, 'user_id');
     $auth_aiu_id  = \Field::int($tok_row, 'aiu_id');
 } else {
@@ -94,9 +88,7 @@ if ($tok_row) {
     $apiKeyAuth   = new \Auth\ApiKey($pdo);
     $auth_user_id = $apiKeyAuth->validateKey($raw_token);
     if ($auth_user_id) {
-        $k_stmt = $pdo->prepare("SELECT aiu_id FROM api_keys WHERE key_id = ? LIMIT 1");
-        $k_stmt->execute([$apiKeyAuth->getLastKeyId()]);
-        $auth_aiu_id = (int) $k_stmt->fetchColumn();
+        $auth_aiu_id = $apiKeyAuth->aiuIdOfKey($apiKeyAuth->getLastKeyId());
     }
 }
 
