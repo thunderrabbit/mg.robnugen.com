@@ -142,7 +142,7 @@ class Messages
 
     /**
      * Adds a message and returns its message_id. A null recipient is a
-     * broadcast.
+     * broadcast; a null sender is the page of an account with no human actor.
      */
     public function addMessage(
         int $user_id,
@@ -150,7 +150,7 @@ class Messages
         string $priority,
         ?string $show_date,
         ?string $sender_timezone,
-        int $sender_aiu,
+        ?int $sender_aiu,
         ?int $recipient_aiu
     ): int {
         $stmt = $this->pdo->prepare(
@@ -319,5 +319,172 @@ class Messages
         );
         $stmt->execute([$message_id, $user_id, $caller_aiu, $caller_aiu, $caller_aiu]);
         return $stmt->rowCount();
+    }
+
+    // ── The account owner's own page ─────────────────────────────────────
+    // These are scoped by account alone. The owner is logged in on the site
+    // and may read and change every message of the account, so none of them
+    // takes a caller's aiu_id.
+
+    /**
+     * How many of an account's messages pass the owner's filter.
+     */
+    public function getCountForOwner(int $user_id, OwnerFilter $filter): int
+    {
+        [$filter_sql, $params] = self::ownerFilterSql($user_id, $filter);
+        $count_stmt = $this->pdo->prepare(
+            "SELECT COUNT(*) FROM agent_inbox i WHERE i.user_id = ? {$filter_sql}"
+        );
+        $count_stmt->execute($params);
+        return (int) $count_stmt->fetchColumn();
+    }
+
+    /**
+     * One page of an account's messages that pass the owner's filter, each
+     * with its sender's and recipient's names. `$sort_by` is id, priority,
+     * date or status; anything else is the page's default order (open ones
+     * first, by priority).
+     *
+     * @return list<array<mixed>>
+     */
+    public function getPageForOwner(
+        int $user_id,
+        OwnerFilter $filter,
+        string $sort_by,
+        bool $ascending,
+        int $per_page,
+        int $offset
+    ): array {
+        [$filter_sql, $params] = self::ownerFilterSql($user_id, $filter);
+        $sort_dir = $ascending ? 'ASC' : 'DESC';
+
+        $order_clauses = match ($sort_by) {
+            'id' => "message_id $sort_dir",
+            'priority' => ($sort_dir === 'ASC'
+                ? "FIELD(priority, 'low', 'normal', 'high'), created_at_utc DESC"
+                : "FIELD(priority, 'high', 'normal', 'low'), created_at_utc DESC"),
+            'date' => "created_at_utc $sort_dir",
+            'status' => "archived_at IS NULL DESC, done_at IS NULL DESC, seen_at IS NULL DESC, created_at_utc DESC",
+            default => "archived_at IS NULL DESC, done_at IS NULL DESC, FIELD(priority, 'high', 'normal', 'low'), created_at_utc DESC",
+        };
+
+        $stmt = $this->pdo->prepare(
+            "SELECT i.message_id, i.message, i.priority, i.show_date, i.sender_timezone, i.sender_aiu, i.recipient_aiu,
+                    i.seen_at, i.done_at, i.archived_at, i.response, i.created_at_utc, i.updated_at_utc,
+                    s.name AS sender_name, r.name AS recipient_name
+             FROM agent_inbox i
+             LEFT JOIN agent_inbox_user s ON i.sender_aiu = s.aiu_id
+             LEFT JOIN agent_inbox_user r ON i.recipient_aiu = r.aiu_id
+             WHERE i.user_id = ? {$filter_sql}
+             ORDER BY {$order_clauses}
+             LIMIT {$per_page} OFFSET {$offset}"
+        );
+        $stmt->execute($params);
+        return \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+    }
+
+    /**
+     * Whether the account has that message and it is addressed to one actor,
+     * so that saving it as a broadcast would be a new broadcast.
+     */
+    public function hasRecipient(int $message_id, int $user_id): bool
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT recipient_aiu FROM agent_inbox WHERE message_id = ? AND user_id = ?"
+        );
+        $stmt->execute([$message_id, $user_id]);
+        $current_recipient = $stmt->fetchColumn();
+        return $current_recipient !== null && $current_recipient !== false;
+    }
+
+    /**
+     * Writes a message's text, priority, recipient and show date as the
+     * owner's edit form gave them. A null recipient is a broadcast.
+     */
+    public function updateForOwner(
+        int $message_id,
+        int $user_id,
+        string $message,
+        string $priority,
+        ?int $recipient_aiu,
+        ?string $show_date
+    ): void {
+        $stmt = $this->pdo->prepare(
+            "UPDATE agent_inbox SET message = ?, priority = ?, recipient_aiu = ?, show_date = ? WHERE message_id = ? AND user_id = ?"
+        );
+        $stmt->execute([$message, $priority, $recipient_aiu, $show_date, $message_id, $user_id]);
+    }
+
+    /**
+     * Archives one of the account's messages that is not archived yet.
+     */
+    public function archiveForOwner(int $message_id, int $user_id): void
+    {
+        $stmt = $this->pdo->prepare(
+            "UPDATE agent_inbox SET archived_at = NOW() WHERE message_id = ? AND user_id = ? AND archived_at IS NULL"
+        );
+        $stmt->execute([$message_id, $user_id]);
+    }
+
+    /**
+     * Deletes one of the account's messages for good.
+     */
+    public function deleteForOwner(int $message_id, int $user_id): void
+    {
+        $stmt = $this->pdo->prepare(
+            "DELETE FROM agent_inbox WHERE message_id = ? AND user_id = ?"
+        );
+        $stmt->execute([$message_id, $user_id]);
+    }
+
+    /**
+     * The owner's filter as the SQL that follows `WHERE i.user_id = ?`, and
+     * the parameters of the whole WHERE.
+     *
+     * @return array{0: string, 1: list<int|string|null>}
+     */
+    private static function ownerFilterSql(int $user_id, OwnerFilter $filter): array
+    {
+        $filters = [];
+        $params = [$user_id];
+
+        // Asking for the archived status shows archived ones whatever show_archived says.
+        if (!$filter->show_archived && $filter->status !== 'archived') {
+            $filters[] = 'AND archived_at IS NULL';
+        }
+        if (!$filter->show_future) {
+            $filters[] = 'AND (show_date IS NULL OR show_date <= NOW())';
+        }
+
+        if (in_array($filter->priority, ['high', 'normal', 'low'], true)) {
+            $filters[] = 'AND priority = ?';
+            $params[] = $filter->priority;
+        }
+
+        if ($filter->status === 'pending') {
+            $filters[] = 'AND seen_at IS NULL AND done_at IS NULL AND archived_at IS NULL';
+        } elseif ($filter->status === 'seen') {
+            $filters[] = 'AND seen_at IS NOT NULL AND done_at IS NULL AND archived_at IS NULL';
+        } elseif ($filter->status === 'done') {
+            $filters[] = 'AND done_at IS NOT NULL AND archived_at IS NULL';
+        } elseif ($filter->status === 'archived') {
+            $filters[] = 'AND archived_at IS NOT NULL';
+        }
+
+        // Recipient filter (to me / broadcast / all)
+        if ($filter->to === 'me') {
+            $filters[] = 'AND i.recipient_aiu = ?';
+            $params[] = $filter->me_aiu;
+        } elseif ($filter->to === 'broadcast') {
+            $filters[] = 'AND i.recipient_aiu IS NULL';
+        }
+
+        // Sender filter
+        if ($filter->from_aiu > 0) {
+            $filters[] = 'AND i.sender_aiu = ?';
+            $params[] = $filter->from_aiu;
+        }
+
+        return [implode(' ', $filters), $params];
     }
 }
