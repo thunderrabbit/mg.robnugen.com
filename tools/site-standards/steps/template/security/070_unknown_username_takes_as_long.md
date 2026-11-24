@@ -1,6 +1,6 @@
 ---
 title: An unknown username takes as long as a wrong password
-status: idea
+status: proven
 whose_move: agent
 check: security_unknown_user_timing
 ---

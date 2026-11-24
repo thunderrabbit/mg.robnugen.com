@@ -1,6 +1,6 @@
 ---
 title: The site refuses to run below PHP 8.6
-status: idea
+status: proven
 whose_move: agent
 check: security_php_floor
 param: 8.6

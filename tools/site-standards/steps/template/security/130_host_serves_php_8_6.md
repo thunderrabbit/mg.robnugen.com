@@ -1,6 +1,6 @@
 ---
 title: Rob update DH to PHP 8.6 for this site
-status: idea
+status: proven
 whose_move: rob
 check: dh_serves_php
 param: 8.6

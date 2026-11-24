@@ -1,6 +1,6 @@
 ---
 title: Every page sends the security headers
-status: idea
+status: proven
 whose_move: agent
 check: security_headers
 model: sonnet

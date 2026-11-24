@@ -1,6 +1,6 @@
 ---
 title: A login attempt is counted before its password is checked
-status: idea
+status: proven
 whose_move: agent
 check: security_login_counts_first
 ---

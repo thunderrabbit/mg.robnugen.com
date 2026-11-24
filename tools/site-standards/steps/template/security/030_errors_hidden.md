@@ -1,6 +1,6 @@
 ---
 title: Errors go to the log, not to the visitor
-status: idea
+status: proven
 whose_move: agent
 check: security_errors_hidden
 ---

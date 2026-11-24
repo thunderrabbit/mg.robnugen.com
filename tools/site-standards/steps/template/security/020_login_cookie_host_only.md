@@ -1,6 +1,6 @@
 ---
 title: The login cookie belongs to the one host that set it
-status: idea
+status: proven
 whose_move: agent
 check: security_login_cookie
 ---

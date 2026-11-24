@@ -1,6 +1,6 @@
 ---
 title: Passwords stay out of stack traces
-status: idea
+status: proven
 whose_move: agent
 check: security_sensitive_parameters
 model: sonnet

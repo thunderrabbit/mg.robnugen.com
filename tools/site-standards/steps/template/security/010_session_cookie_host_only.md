@@ -1,6 +1,6 @@
 ---
 title: The session cookie is one no sibling site can plant
-status: idea
+status: proven
 whose_move: agent
 check: security_session_cookie
 ---

@@ -1,6 +1,6 @@
 ---
 title: New passwords are at least 15 characters
-status: idea
+status: proven
 whose_move: agent
 check: security_password_policy
 ---

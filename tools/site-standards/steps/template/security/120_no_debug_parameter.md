@@ -1,6 +1,6 @@
 ---
 title: No page answers ?debug in the URL
-status: idea
+status: proven
 whose_move: agent
 check: security_no_debug_parameter
 model: sonnet

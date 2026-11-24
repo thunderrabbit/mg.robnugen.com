@@ -1,6 +1,6 @@
 ---
 title: A path containment check ends at a directory boundary
-status: idea
+status: proven
 whose_move: agent
 check: security_path_boundary
 model: sonnet

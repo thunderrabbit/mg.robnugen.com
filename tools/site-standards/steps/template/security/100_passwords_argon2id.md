@@ -1,6 +1,6 @@
 ---
 title: Passwords are hashed with argon2id
-status: idea
+status: proven
 whose_move: agent
 check: security_argon2id
 ---

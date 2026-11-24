@@ -1,6 +1,6 @@
 ---
 title: Only a POST logs anyone out
-status: idea
+status: proven
 whose_move: agent
 check: security_logout_post_only
 ---
