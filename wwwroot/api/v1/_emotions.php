@@ -162,9 +162,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         }
 
         // Count events that will be untagged
-        $stmt = $pdo->prepare('SELECT COUNT(*) FROM interaction_events WHERE mifmus_id = ?');
-        $stmt->execute([$mifmus_id]);
-        $events_untagged = (int) $stmt->fetchColumn();
+        $events_untagged = new \Emotional\Events($pdo)->getCountTaggedWith($mifmus_id);
 
         // Delete vocab entry — FK ON DELETE SET NULL untags events
         $vocab->deleteEntry($mifmus_id);
@@ -207,24 +205,20 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
             $session_id = $ledger->getOrCreateSession();
 
             // Assign sequence_num atomically
-            $stmt = $pdo->prepare(
-                'SELECT COALESCE(MAX(sequence_num), 0) + 1 FROM interaction_events WHERE session_id = ? FOR UPDATE'
-            );
-            $stmt->execute([$session_id]);
-            $sequence_num = (int) $stmt->fetchColumn();
+            $events = new \Emotional\Events($pdo);
+            $sequence_num = $events->nextSequenceNum($session_id);
 
             $encrypted_content = $ledger->encrypt($content);
 
-            $stmt = $pdo->prepare(
-                'INSERT INTO interaction_events
-                 (session_id, api_key_id, user_id, mifmus_id, event_type, sequence_num, encrypted_content)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)'
+            $event_id = $events->addEvent(
+                $session_id,
+                $auth_key_id,
+                $auth_user_id,
+                $mifmus_id,
+                $event_type,
+                $sequence_num,
+                $encrypted_content
             );
-            $stmt->execute([
-                $session_id, $auth_key_id, $auth_user_id,
-                $mifmus_id, $event_type, $sequence_num, $encrypted_content
-            ]);
-            $event_id = (int) $pdo->lastInsertId();
 
             $pdo->commit();
             echo json_encode([
@@ -257,46 +251,15 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
 
         $ledger = new \Emotional\Ledger($pdo, $raw_key, $auth_key_id, $auth_user_id);
 
-        $where = ['e.api_key_id = ?'];
-        $params = [$auth_key_id];
-        $join = 'LEFT JOIN my_ids_for_my_users_state m ON m.mifmus_id = e.mifmus_id';
-
-        if ($q_my_id !== null) {
-            $join = 'INNER JOIN my_ids_for_my_users_state m ON m.mifmus_id = e.mifmus_id AND m.my_id = ?';
-            array_unshift($params, \Field::toInt($q_my_id)); // my_id param goes before api_key_id
-            // Rebuild params: my_id for JOIN, then api_key_id for WHERE
-            $params = [\Field::toInt($q_my_id), $auth_key_id];
-        }
-        if ($q_session_id !== null) {
-            $where[] = 'e.session_id = ?';
-            $params[] = \Field::toInt($q_session_id);
-        }
-        if ($q_from !== null) {
-            $where[] = 'e.event_timestamp >= ?';
-            $params[] = $q_from;
-        }
-        if ($q_to !== null) {
-            $where[] = 'e.event_timestamp <= ?';
-            $params[] = $q_to;
-        }
-        if ($q_event_type !== null) {
-            $where[] = 'e.event_type = ?';
-            $params[] = $q_event_type;
-        }
-        $params[] = $q_limit;
-
-        $where_sql = implode(' AND ', $where);
-        $sql = "SELECT e.event_id, e.session_id, e.sequence_num, e.event_timestamp,
-                       e.event_type, m.my_id, e.encrypted_content
-                FROM interaction_events e
-                $join
-                WHERE $where_sql
-                ORDER BY e.event_timestamp ASC, e.sequence_num ASC
-                LIMIT ?";
-
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute($params);
-        $rows = \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+        $rows = new \Emotional\Events($pdo)->getEvents(
+            $auth_key_id,
+            $q_my_id === null ? null : \Field::toInt($q_my_id),
+            $q_session_id === null ? null : \Field::toInt($q_session_id),
+            $q_from === null ? null : \Field::toString($q_from),
+            $q_to === null ? null : \Field::toString($q_to),
+            $q_event_type === null ? null : \Field::toString($q_event_type),
+            $q_limit
+        );
 
         $events = [];
         foreach ($rows as $row) {
@@ -326,11 +289,8 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
             return;
         }
 
-        $stmt = $pdo->prepare(
-            'DELETE FROM interaction_events WHERE event_id = ? AND api_key_id = ?'
-        );
-        $stmt->execute([\Field::toInt($event_id), $auth_key_id]);
-        echo json_encode(['deleted' => $stmt->rowCount()]);
+        $deleted = new \Emotional\Events($pdo)->deleteEvent(\Field::toInt($event_id), $auth_key_id);
+        echo json_encode(['deleted' => $deleted]);
     } elseif ($method === 'PATCH') {
         $body = \Field::jsonArray((string) file_get_contents('php://input'));
         $event_id = $body['event_id'] ?? null;
@@ -340,14 +300,12 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
             return;
         }
 
-        // Build SET clause dynamically — only update fields that were provided
-        $sets = [];
-        $params = [];
+        // Only the fields that were provided are changed
+        $changes = [];
 
         if (array_key_exists('content', $body)) {
             $ledger = new \Emotional\Ledger($pdo, $raw_key, $auth_key_id, $auth_user_id);
-            $sets[] = 'encrypted_content = ?';
-            $params[] = $ledger->encrypt(\Field::string($body, 'content'));
+            $changes['encrypted_content'] = $ledger->encrypt(\Field::string($body, 'content'));
         }
 
         if (array_key_exists('my_id', $body)) {
@@ -359,28 +317,21 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
                     echo json_encode(['error' => 'Unknown my_id']);
                     return;
                 }
-                $sets[] = 'mifmus_id = ?';
-                $params[] = $mifmus_id;
+                $changes['mifmus_id'] = $mifmus_id;
             } else {
-                $sets[] = 'mifmus_id = ?';
-                $params[] = null;
+                $changes['mifmus_id'] = null;
             }
         }
 
-        if (empty($sets)) {
+        if ($changes === []) {
             http_response_code(400);
             echo json_encode(['error' => 'No fields to update (provide "content" and/or "my_id")']);
             return;
         }
 
-        $params[] = \Field::toInt($event_id);
-        $params[] = $auth_key_id;
-        $stmt = $pdo->prepare(
-            'UPDATE interaction_events SET ' . implode(', ', $sets) . ' WHERE event_id = ? AND api_key_id = ?'
-        );
-        $stmt->execute($params);
+        $updated = new \Emotional\Events($pdo)->updateEvent(\Field::toInt($event_id), $auth_key_id, $changes);
 
-        if ($stmt->rowCount() === 0) {
+        if (!$updated) {
             http_response_code(404);
             echo json_encode(['error' => 'Event not found']);
             return;
@@ -408,34 +359,12 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         $q_limit = 20;
     }
 
-    $where = ['s.api_key_id = ?'];
-    $params = [$auth_key_id];
-
-    if ($q_from !== null) {
-        $where[] = 's.start_time >= ?';
-        $params[] = $q_from;
-    }
-    if ($q_to !== null) {
-        $where[] = 's.start_time <= ?';
-        $params[] = $q_to;
-    }
-    $params[] = $q_limit;
-
-    $where_sql = implode(' AND ', $where);
-    $sql = "SELECT
-                s.session_id, s.start_time, s.last_event_time,
-                TIMESTAMPDIFF(MINUTE, s.start_time, s.last_event_time) AS duration_minutes,
-                COUNT(e.event_id) AS event_count
-            FROM interaction_sessions s
-            LEFT JOIN interaction_events e ON e.session_id = s.session_id
-            WHERE $where_sql
-            GROUP BY s.session_id
-            ORDER BY s.start_time DESC
-            LIMIT ?";
-
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
-    $rows = \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+    $rows = new \Emotional\Sessions($pdo)->getSessions(
+        $auth_key_id,
+        $q_from === null ? null : \Field::toString($q_from),
+        $q_to === null ? null : \Field::toString($q_to),
+        $q_limit
+    );
 
     $sessions = [];
     foreach ($rows as $row) {
@@ -465,20 +394,18 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
     try {
         $pdo->beginTransaction();
 
-        $stmt = $pdo->prepare('SELECT COUNT(*) FROM interaction_events WHERE api_key_id = ?');
-        $stmt->execute([$auth_key_id]);
-        $event_count = (int) $stmt->fetchColumn();
+        $events = new \Emotional\Events($pdo);
+        $event_count = $events->getCount($auth_key_id);
 
-        $stmt = $pdo->prepare('SELECT COUNT(*) FROM interaction_sessions WHERE api_key_id = ?');
-        $stmt->execute([$auth_key_id]);
-        $session_count = (int) $stmt->fetchColumn();
+        $sessions = new \Emotional\Sessions($pdo);
+        $session_count = $sessions->getCount($auth_key_id);
 
         $vocab = new \Emotional\Vocab($pdo);
         $vocab_count = $vocab->getCount($auth_key_id);
 
         // Delete in FK-safe order
-        $pdo->prepare('DELETE FROM interaction_events WHERE api_key_id = ?')->execute([$auth_key_id]);
-        $pdo->prepare('DELETE FROM interaction_sessions WHERE api_key_id = ?')->execute([$auth_key_id]);
+        $events->deleteAll($auth_key_id);
+        $sessions->deleteAll($auth_key_id);
         $vocab->deleteAll($auth_key_id);
 
         $pdo->commit();
