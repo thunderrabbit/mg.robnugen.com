@@ -38,22 +38,9 @@ $is_admin_account = $method !== 'GET' && \Auth\AccountRole::isAdmin($pdo, $auth_
 if ($method === 'GET' && $sub === '/list') {
     $include_inactive = \Field::int($_GET, 'include_inactive');
 
-    $where = ['user_id = ?'];
-    $params = [$auth_user_id];
-    if (!$include_inactive) {
-        $where[] = 'is_active = 1';
-    }
-    $where_sql = implode(' AND ', $where);
+    $repositories = new \Issues\Repositories($pdo)->getRepositories($auth_user_id, $include_inactive !== 0);
 
-    $stmt = $pdo->prepare(
-        "SELECT repo_id, name, url, default_branch, is_active, created_at_utc
-         FROM repositories
-         WHERE {$where_sql}
-         ORDER BY name ASC"
-    );
-    $stmt->execute($params);
-
-    echo json_encode(['repositories' => $stmt->fetchAll(\PDO::FETCH_ASSOC)]);
+    echo json_encode(['repositories' => $repositories]);
     return;
 }
 
@@ -92,9 +79,8 @@ if ($method === 'POST' && $sub === '/create') {
         return;
     }
 
-    $dup = $pdo->prepare("SELECT repo_id FROM repositories WHERE user_id = ? AND name = ?");
-    $dup->execute([$auth_user_id, $name]);
-    if ($dup->fetch()) {
+    $repositories = new \Issues\Repositories($pdo);
+    if ($repositories->repoIdOfName($auth_user_id, $name) !== null) {
         http_response_code(409);
         echo json_encode(['error' => "Repository '$name' already exists"]);
         return;
@@ -102,12 +88,7 @@ if ($method === 'POST' && $sub === '/create') {
 
     \Auth\ApiGate::requireCredit($pdo, $auth_user_id, $auth_key_id, 'repositories/create', $auth_token_id);
 
-    $stmt = $pdo->prepare(
-        "INSERT INTO repositories (user_id, name, url, default_branch)
-         VALUES (?, ?, ?, ?)"
-    );
-    $stmt->execute([$auth_user_id, $name, $url, $default_branch]);
-    $repo_id = (int) $pdo->lastInsertId();
+    $repo_id = $repositories->addRepository($auth_user_id, $name, $url, $default_branch);
 
     http_response_code(201);
     echo json_encode([
@@ -147,16 +128,14 @@ if ($method === 'PATCH' && $sub === '/update') {
         return;
     }
 
-    $sets = [];
-    $params = [];
+    $changes = [];
     if ($name !== null) {
         if ($name === '' || mb_strlen($name) > 100) {
             http_response_code(400);
             echo json_encode(['error' => 'name must be 1-100 characters']);
             return;
         }
-        $sets[] = 'name = ?';
-        $params[] = $name;
+        $changes['name'] = $name;
     }
     if ($url !== 'NOT_SET') {
         if ($url !== '' && mb_strlen($url) > 500) {
@@ -164,8 +143,7 @@ if ($method === 'PATCH' && $sub === '/update') {
             echo json_encode(['error' => 'url must be 500 characters or fewer']);
             return;
         }
-        $sets[] = 'url = ?';
-        $params[] = ($url === '') ? null : $url;
+        $changes['url'] = ($url === '') ? null : $url;
     }
     if ($default_branch !== null) {
         if ($default_branch === '' || mb_strlen($default_branch) > 100) {
@@ -173,19 +151,14 @@ if ($method === 'PATCH' && $sub === '/update') {
             echo json_encode(['error' => 'default_branch must be 1-100 characters']);
             return;
         }
-        $sets[] = 'default_branch = ?';
-        $params[] = $default_branch;
+        $changes['default_branch'] = $default_branch;
     }
 
     \Auth\ApiGate::requireCredit($pdo, $auth_user_id, $auth_key_id, 'repositories/update', $auth_token_id);
 
-    $params[] = $repo_id;
-    $params[] = $auth_user_id;
-    $set_sql = implode(', ', $sets);
-    $stmt = $pdo->prepare("UPDATE repositories SET {$set_sql} WHERE repo_id = ? AND user_id = ?");
-    $stmt->execute($params);
+    $updated = new \Issues\Repositories($pdo)->updateRepository($repo_id, $auth_user_id, $changes);
 
-    echo json_encode(['updated' => $stmt->rowCount()]);
+    echo json_encode(['updated' => $updated]);
     return;
 }
 
@@ -209,12 +182,9 @@ if ($method === 'PATCH' && $sub === '/deactivate') {
 
     \Auth\ApiGate::requireCredit($pdo, $auth_user_id, $auth_key_id, 'repositories/deactivate', $auth_token_id);
 
-    $stmt = $pdo->prepare(
-        "UPDATE repositories SET is_active = 0 WHERE repo_id = ? AND user_id = ?"
-    );
-    $stmt->execute([$repo_id, $auth_user_id]);
+    $updated = new \Issues\Repositories($pdo)->deactivate($repo_id, $auth_user_id);
 
-    echo json_encode(['updated' => $stmt->rowCount()]);
+    echo json_encode(['updated' => $updated]);
     return;
 }
 
