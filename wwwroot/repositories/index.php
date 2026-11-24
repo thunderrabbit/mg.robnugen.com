@@ -33,20 +33,7 @@ $user_id = $is_logged_in->loggedInID();
 $pdo = \Database\Base::getPDO($config);
 
 $include_inactive = !empty($_GET['include_inactive']);
-$where = 'user_id = ?';
-$params = [$user_id];
-if (!$include_inactive) {
-    $where .= ' AND is_active = 1';
-}
-
-$stmt = $pdo->prepare(
-    "SELECT repo_id, name, url, default_branch, is_active, created_at_utc
-     FROM repositories
-     WHERE {$where}
-     ORDER BY name ASC"
-);
-$stmt->execute($params);
-$repositories = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+$repositories = new \Issues\Repositories($pdo)->getRepositories($user_id, $include_inactive);
 
 $page = new \Template($config, $is_logged_in, $csrfProtect, $admin_count);
 $page->setTemplate("layout/base.tpl.php");
