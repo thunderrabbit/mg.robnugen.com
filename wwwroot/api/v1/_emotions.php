@@ -289,11 +289,8 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
             return;
         }
 
-        $stmt = $pdo->prepare(
-            'DELETE FROM interaction_events WHERE event_id = ? AND api_key_id = ?'
-        );
-        $stmt->execute([\Field::toInt($event_id), $auth_key_id]);
-        echo json_encode(['deleted' => $stmt->rowCount()]);
+        $deleted = new \Emotional\Events($pdo)->deleteEvent(\Field::toInt($event_id), $auth_key_id);
+        echo json_encode(['deleted' => $deleted]);
     } elseif ($method === 'PATCH') {
         $body = \Field::jsonArray((string) file_get_contents('php://input'));
         $event_id = $body['event_id'] ?? null;
