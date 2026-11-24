@@ -39,11 +39,8 @@ if (empty($api_keys)) {
 }
 
 // Get the human actor for this user (for sender_aiu on web form sends)
-$aiu_stmt = $mla_database->prepare(
-    "SELECT aiu_id, can_broadcast_inbox FROM agent_inbox_user WHERE user_id = ? AND actor_type = 'human' LIMIT 1"
-);
-$aiu_stmt->execute([$user_id]);
-$aiu_row = $aiu_stmt->fetch(\PDO::FETCH_ASSOC);
+$inbox_actors_gateway = new \Auth\Actors($mla_database);
+$aiu_row = $inbox_actors_gateway->getHumanActor($user_id);
 $web_sender_aiu = \Field::int($aiu_row, 'aiu_id') ?: null;
 $web_can_broadcast = !empty(\Field::int($aiu_row, 'can_broadcast_inbox'));
 
