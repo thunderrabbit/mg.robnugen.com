@@ -125,6 +125,15 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
 - Login state managed by `Auth\IsLoggedIn` class
 - The remember-me cookie is host-only and named `__Host-<cookie_name>` (`Auth\CookieOptions::name()`). Never give it a `domain`: that sends the login token to every subdomain, and browsers drop a `__Host-` cookie that has one. `$config->domain_name` is only the `HTTP_HOST` check (`DBExistaroo`) now. The step this follows is `tools/site-standards/steps/template/security/020_login_cookie_host_only.md`
 
+### Passwords
+
+- **A new password goes through `Auth\PasswordPolicy::problems()`**, at registration and on a password change at `/profile/`; an empty list means acceptable, and every problem is shown at once. Login never asks, so older, shorter passwords keep working. Any new place a password is set (a reset link, an admin form) calls it too.
+- The rules are NIST SP 800-63B-4's for a password that is the only factor: at least 15 characters counted as code points, and **no composition rules**. Don't add "one digit, one symbol"; NIST forbids it. Both forms say the length under the field, read from `PasswordPolicy::MIN_CHARACTERS`.
+- The 72-byte maximum is bcrypt's, which ignores anything longer; refusing is the alternative to truncating, which NIST also forbids. It goes away only with a different algorithm (argon2id). A NUL byte is refused because `password_hash()` throws on it.
+- Not done: checking new passwords against a list of breached ones, which NIST also asks.
+- `password_needs_rehash()` runs at a successful login (`IsLoggedIn::checkPHPHashedPassword`) and upgrades a hash made at an older cost or algorithm.
+- A password parameter is declared `#[\SensitiveParameter]`, so a stack trace shows a placeholder for it; `Tests/Unit/SensitiveParametersTest.php` pins each one.
+
 ### Connected apps (limited actors)
 
 An actor with `agent_inbox_user.todos_limited = 1` is a "limited actor": a third-party app (BG Bells) that may touch only the todos listed for it in `aiu_todo_grants` (`db_schemas/41_aiu_todo_grants/`, read through `Auth\TodoGrants`).

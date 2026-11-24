@@ -17,7 +17,7 @@ class SensitiveParametersTest extends Unit
             'login password' => [\Auth\IsLoggedIn::class, 'attemptPasswordLogin', 'password'],
             'hash check password' => [\Auth\IsLoggedIn::class, 'checkPHPHashedPassword', 'password'],
             'raw login cookie' => [\Auth\IsLoggedIn::class, 'getUserIdForCookieInDatabase', 'cookie'],
-            'policy password' => [\Auth\PasswordPolicy::class, 'problem', 'password'],
+            'policy password' => [\Auth\PasswordPolicy::class, 'problems', 'password'],
             'verified password' => [\Database\PasswordRepository::class, 'verifyPassword', 'password'],
             'current password' => [\Database\PasswordRepository::class, 'changePassword', 'current_password'],
             'new password' => [\Database\PasswordRepository::class, 'changePassword', 'new_password'],

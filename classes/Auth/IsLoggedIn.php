@@ -264,7 +264,16 @@ class IsLoggedIn
             if (password_verify($password, $hashed_password)) {
                 // password is correct, so this user_id has logged in properly
                 $user_id = \Field::int($user_id_and_hash_array, 'user_id');
-                // return user_id
+
+                // The one moment the plain password is in hand: if the stored hash is
+                // weaker than password_hash() makes today (an older cost), replace it.
+                if (password_needs_rehash($hashed_password, PASSWORD_DEFAULT)) {
+                    new \Database\PasswordRepository($this->di_pdo)->updatePasswordHash(
+                        $user_id,
+                        password_hash($password, PASSWORD_DEFAULT),
+                    );
+                }
+
                 return $user_id;
             }
         } else {
