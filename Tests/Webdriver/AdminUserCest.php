@@ -31,6 +31,16 @@ class AdminUserCest
         $I->dontSee('Access Denied');
     }
 
+    public function canSeePasswordHashingOnAdmin(AcceptanceTester $I): void
+    {
+        // Read-only: shows what the served PHP says about argon2id and bcrypt.
+        $I->amOnPage('/admin/');
+        $I->see('Password hashing:', '#password-hashing');
+        $line = \Field::toString($I->grabTextFrom('#password-hashing'));
+        $I->comment($line);
+        codecept_debug($line);
+    }
+
     public function canSeeLoginHistory(AcceptanceTester $I): void
     {
         $I->amOnPage('/admin/auth_log.php');

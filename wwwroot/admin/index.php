@@ -38,6 +38,9 @@ if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
     $page->set(name: "site_version", value: SENTIMENTAL_VERSION);
     $page->set(name: "username", value: $is_logged_in->getLoggedInUsername());
 
+    // Asked here because this is the served PHP; see Auth\Argon2id.
+    $page->set(name: "password_hashing", value: \Auth\Argon2id::report());
+
     $pending = $dbExistaroo->getPendingMigrations();
     $page->set(name: "has_pending_migrations", value: !empty($pending));
 
