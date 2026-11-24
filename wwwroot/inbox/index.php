@@ -200,11 +200,7 @@ $offset = ($current_page - 1) * $per_page;
 $messages = $inbox->getPageForOwner($user_id, $owner_filter, $sort_by, $sort_dir === 'ASC', $per_page, $offset);
 
 // Fetch actors for recipient dropdown
-$actors_stmt = $mla_database->prepare(
-    "SELECT aiu_id, name FROM agent_inbox_user WHERE user_id = ? ORDER BY created_at_utc ASC"
-);
-$actors_stmt->execute([$user_id]);
-$inbox_actors = $actors_stmt->fetchAll(\PDO::FETCH_ASSOC);
+$inbox_actors = $inbox_actors_gateway->getActorsOldestFirst($user_id);
 
 $page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect, admin_count: $admin_count);
 $page->setTemplate('inbox/index.tpl.php');
