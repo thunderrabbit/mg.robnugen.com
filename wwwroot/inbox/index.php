@@ -151,10 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
     } elseif ($_POST['inbox_action'] === 'archive') {
         $message_id = \Field::int($_POST, 'message_id');
         if ($message_id > 0) {
-            $stmt = $mla_database->prepare(
-                "UPDATE agent_inbox SET archived_at = NOW() WHERE message_id = ? AND user_id = ? AND archived_at IS NULL"
-            );
-            $stmt->execute([$message_id, $user_id]);
+            $inbox->archiveForOwner($message_id, $user_id);
             $success_message = 'Message archived.';
         }
     } elseif ($_POST['inbox_action'] === 'delete') {
