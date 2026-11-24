@@ -4,6 +4,13 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/version.php';
 
+# The floor comes first: it needs no autoloader and nothing below it was
+# reviewed on an older PHP. Version\Php is plain, so it is required by hand
+# before the classes that use newer syntax (ErrorOutput's typed constants,
+# RequiredExtensions) are parsed.
+require_once __DIR__ . '/classes/Version/Php.php';
+\Version\Php::requireFloor();
+
 # Report everything, but to the server's error log, never the page: a shown
 # warning hands visitors file paths, SQL and stack traces. First, before the
 # autoloader, so the extension and session checks below are hidden too;

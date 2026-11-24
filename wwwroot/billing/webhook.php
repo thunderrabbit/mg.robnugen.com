@@ -24,6 +24,10 @@ include_once $project_root . '/classes/Mlaphp/Autoloader.php';
 $autoloader = new \Mlaphp\Autoloader();
 spl_autoload_register($autoloader->load(...));
 
+// prepend.php makes the same check; this page runs without it. Below the
+// floor Stripe gets a 503 and retries, which is the right outcome there.
+\Version\Php::requireFloor();
+
 // Errors go to the log, as in prepend.php. Only Stripe reads this response,
 // so $display_errors is not consulted: an uncaught error is a logged line
 // and a 500, which Stripe retries.
