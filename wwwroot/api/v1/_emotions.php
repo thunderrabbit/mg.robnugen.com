@@ -153,17 +153,13 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         }
 
         // Resolve my_id → mifmus_id
-        $stmt = $pdo->prepare(
-            'SELECT mifmus_id FROM my_ids_for_my_users_state WHERE api_key_id = ? AND my_id = ?'
-        );
-        $stmt->execute([$auth_key_id, \Field::toInt($my_id)]);
-        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        $vocab = new \Emotional\Vocab($pdo);
+        $mifmus_id = $vocab->mifmusIdOf($auth_key_id, \Field::toInt($my_id));
 
-        if (!$row) {
+        if ($mifmus_id === null) {
             echo json_encode(['deleted' => 0, 'events_untagged' => 0]);
             return;
         }
-        $mifmus_id = \Field::int($row, 'mifmus_id');
 
         // Count events that will be untagged
         $stmt = $pdo->prepare('SELECT COUNT(*) FROM interaction_events WHERE mifmus_id = ?');
@@ -171,8 +167,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         $events_untagged = (int) $stmt->fetchColumn();
 
         // Delete vocab entry — FK ON DELETE SET NULL untags events
-        $stmt = $pdo->prepare('DELETE FROM my_ids_for_my_users_state WHERE mifmus_id = ?');
-        $stmt->execute([$mifmus_id]);
+        $vocab->deleteEntry($mifmus_id);
 
         echo json_encode(['deleted' => 1, 'events_untagged' => $events_untagged]);
     } else {
