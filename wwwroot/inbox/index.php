@@ -44,6 +44,8 @@ $aiu_row = $inbox_actors_gateway->getHumanActor($user_id);
 $web_sender_aiu = \Field::int($aiu_row, 'aiu_id') ?: null;
 $web_can_broadcast = !empty(\Field::int($aiu_row, 'can_broadcast_inbox'));
 
+$inbox = new \Inbox\Messages($mla_database);
+
 $error_message   = '';
 $success_message = '';
 
@@ -86,11 +88,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
                 }
                 $error_message = 'You do not have permission to broadcast.';
             } else {
-                $stmt = $mla_database->prepare(
-                    "INSERT INTO agent_inbox (user_id, message, priority, show_date, sender_timezone, sender_aiu, recipient_aiu) VALUES (?, ?, ?, ?, ?, ?, ?)"
+                $new_message_id = $inbox->addMessage(
+                    $user_id,
+                    $message,
+                    $priority,
+                    $show_date,
+                    $sender_timezone ?: null,
+                    $web_sender_aiu,
+                    $recipient_aiu
                 );
-                $stmt->execute([$user_id, $message, $priority, $show_date, $sender_timezone ?: null, $web_sender_aiu, $recipient_aiu]);
-                $new_message_id = $mla_database->lastInsertId();
 
                 if ($is_ajax) {
                     header('Content-Type: application/json');
