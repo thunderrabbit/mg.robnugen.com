@@ -157,10 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
     } elseif ($_POST['inbox_action'] === 'delete') {
         $message_id = \Field::int($_POST, 'message_id');
         if ($message_id > 0) {
-            $stmt = $mla_database->prepare(
-                "DELETE FROM agent_inbox WHERE message_id = ? AND user_id = ?"
-            );
-            $stmt->execute([$message_id, $user_id]);
+            $inbox->deleteForOwner($message_id, $user_id);
             $success_message = 'Message deleted.';
         }
     }
