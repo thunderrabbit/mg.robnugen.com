@@ -12,12 +12,6 @@ namespace Auth;
 
 class IsLoggedIn
 {
-    /**
-     * A bcrypt hash of nothing in particular, verified against when the
-     * username does not exist. Same cost as password_hash()'s default.
-     */
-    private const string TIMING_DUMMY_HASH = '$2y$12$rpioDu.X8KGylTtBBuu6Wun5FcZ69ji8f2MrHwx.vy4Ec5CrJD.Qu';
-
     private int $who_is_logged_in = 0;
 
     private string $loggedInUsername = 'YUNOset?'; // default value, should be overwritten if user is logged in
@@ -266,20 +260,23 @@ class IsLoggedIn
                 $user_id = \Field::int($user_id_and_hash_array, 'user_id');
 
                 // The one moment the plain password is in hand: if the stored hash is
-                // weaker than password_hash() makes today (an older cost), replace it.
-                if (password_needs_rehash($hashed_password, PASSWORD_DEFAULT)) {
+                // behind what PasswordHash makes today (bcrypt from before argon2id,
+                // or an older cost), replace it.
+                if (PasswordHash::needsRehash($hashed_password)) {
                     new \Database\PasswordRepository($this->di_pdo)->updatePasswordHash(
                         $user_id,
-                        password_hash($password, PASSWORD_DEFAULT),
+                        PasswordHash::make($password),
                     );
                 }
 
                 return $user_id;
             }
         } else {
-            // Spend the same bcrypt time as for a real user, so how long a
-            // failed login takes does not reveal whether the username exists.
-            password_verify($password, self::TIMING_DUMMY_HASH);
+            // Spend the same time as for a real user, so how long a failed
+            // login takes does not reveal whether the username exists. So
+            // check against a hash of the kind real users have, and throw
+            // the answer away.
+            password_verify($password, PasswordHash::absentUserHash());
             return 0;
         }
 

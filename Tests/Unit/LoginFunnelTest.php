@@ -63,7 +63,7 @@ class LoginFunnelTest extends Unit
             )"
         );
         $stmt = $this->pdo->prepare("INSERT INTO users (user_id, username, password_hash, role) VALUES (?, ?, ?, ?)");
-        $stmt->execute([7, 'Alice', password_hash('right horse', PASSWORD_DEFAULT), 'admin']);
+        $stmt->execute([7, 'Alice', \Auth\PasswordHash::make('right horse'), 'admin']);
     }
 
     protected function _after(): void
@@ -202,8 +202,35 @@ class LoginFunnelTest extends Unit
 
         $new_hash = $this->storedHash();
         $this->assertNotSame($old_hash, $new_hash);
-        $this->assertFalse(password_needs_rehash($new_hash, PASSWORD_DEFAULT));
+        $this->assertFalse(\Auth\PasswordHash::needsRehash($new_hash));
         $this->assertTrue(password_verify('right horse', $new_hash), 'a password shorter than the policy still works');
+    }
+
+    public function testABcryptHashFromBeforeArgon2idStillLogsIn(): void
+    {
+        // Made at today's bcrypt cost, the way every hash was before the change.
+        $bcrypt_hash = password_hash('right horse', PASSWORD_BCRYPT);
+        $this->pdo->prepare("UPDATE users SET password_hash = ? WHERE user_id = 7")->execute([$bcrypt_hash]);
+
+        $check = new \ReflectionMethod(\Auth\IsLoggedIn::class, 'checkPHPHashedPassword');
+        $this->assertSame(7, $check->invoke($this->isLoggedIn(), 'Alice', 'right horse'));
+        $this->assertTrue(password_verify('right horse', $this->storedHash()));
+    }
+
+    public function testThatLoginReplacesTheBcryptHashWhereArgon2idIsInUse(): void
+    {
+        $bcrypt_hash = password_hash('right horse', PASSWORD_BCRYPT);
+        $this->pdo->prepare("UPDATE users SET password_hash = ? WHERE user_id = 7")->execute([$bcrypt_hash]);
+
+        $check = new \ReflectionMethod(\Auth\IsLoggedIn::class, 'checkPHPHashedPassword');
+        $check->invoke($this->isLoggedIn(), 'Alice', 'right horse');
+
+        if (\Auth\PasswordHash::algorithm() === \Auth\PasswordHash::ARGON2ID) {
+            $this->assertStringStartsWith('$argon2id$', $this->storedHash());
+        } else {
+            // A PHP without argon2id has nothing newer to move it to.
+            $this->assertSame($bcrypt_hash, $this->storedHash());
+        }
     }
 
     public function testAWrongPasswordLeavesTheOldHashAlone(): void

@@ -129,9 +129,11 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
 
 - **A new password goes through `Auth\PasswordPolicy::problems()`**, at registration and on a password change at `/profile/`; an empty list means acceptable, and every problem is shown at once. Login never asks, so older, shorter passwords keep working. Any new place a password is set (a reset link, an admin form) calls it too.
 - The rules are NIST SP 800-63B-4's for a password that is the only factor: at least 15 characters counted as code points, and **no composition rules**. Don't add "one digit, one symbol"; NIST forbids it. Both forms say the length under the field, read from `PasswordPolicy::MIN_CHARACTERS`.
-- The 72-byte maximum is bcrypt's, which ignores anything longer; refusing is the alternative to truncating, which NIST also forbids. It goes away only with a different algorithm (argon2id). A NUL byte is refused because `password_hash()` throws on it.
+- **Hash with `Auth\PasswordHash::make()`, never `password_hash()` directly.** It uses argon2id where the PHP lists it and bcrypt where not; `/admin/` shows which, with the time one argon2id and one bcrypt hash took (`Auth\Argon2id`, the only other caller of `password_hash()`). `password_verify()` reads the algorithm from the stored hash, so old bcrypt hashes still verify. `users.password_hash` is `VARCHAR(255)`, room for an argon2id hash (about 97 characters).
+- Under argon2id the maximum is 1024 characters, a bound on the work. Under the bcrypt fallback it is 72 bytes, because bcrypt ignores anything longer and refusing is the alternative to truncating, which NIST also forbids. A NUL byte is refused whatever the algorithm, because bcrypt's `password_hash()` throws on it.
 - Not done: checking new passwords against a list of breached ones, which NIST also asks.
-- `password_needs_rehash()` runs at a successful login (`IsLoggedIn::checkPHPHashedPassword`) and upgrades a hash made at an older cost or algorithm.
+- `PasswordHash::needsRehash()` runs at a successful login (`IsLoggedIn::checkPHPHashedPassword`) and replaces a bcrypt hash, or one made at an older cost, with what `make()` produces today. Nobody resets a password for the change.
+- A username that does not exist is checked against `PasswordHash::absentUserHash()`, one fixed hash per algorithm, so it takes as long as a wrong password. The unit test fails if PHP's default cost moves and those hashes fall behind.
 - A password parameter is declared `#[\SensitiveParameter]`, so a stack trace shows a placeholder for it; `Tests/Unit/SensitiveParametersTest.php` pins each one.
 
 ### PHP floor (8.6)
