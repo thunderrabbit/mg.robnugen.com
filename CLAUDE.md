@@ -134,6 +134,14 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
 - `password_needs_rehash()` runs at a successful login (`IsLoggedIn::checkPHPHashedPassword`) and upgrades a hash made at an older cost or algorithm.
 - A password parameter is declared `#[\SensitiveParameter]`, so a stack trace shows a placeholder for it; `Tests/Unit/SensitiveParametersTest.php` pins each one.
 
+### PHP floor (8.6)
+
+`Version\Php::requireFloor()` answers 503 ("This site needs PHP 8.6 or later") and exits on any older PHP; the running version goes to `error_log()`, never the page. Step `refuses_php_below_8_6`.
+
+- It is the first call in `prepend.php`, before `Security\ErrorOutput` and `Startup\*`, which use newer syntax and are loaded by hand before the autoloader. `Version\Php` has no dependencies and is required by hand for the same reason. `wwwroot/login/register.php` and `wwwroot/billing/webhook.php` run without `prepend.php` and call it straight after their autoloader (a 503 makes Stripe retry, which is right below the floor).
+- Command-line tools under `tools/` do **not** call it: they register the autoloader themselves and the scripts that run them over ssh name `/usr/local/php85/bin/php`, so a floor there would stop the scanner's importer. `classes/Journal/*` and `tools/journal-sync/*` also run on PHP 8.1 elsewhere and gain neither the floor nor newer syntax.
+- The floor is a runtime one only. `composer.json`, `phpstan.neon`, the commit hook and `Startup\RequiredExtensions` stay on the PHP the gates run on (the php8.5 image) while no runner image exists for 8.6; write no 8.6-only syntax. Tests cover `meetsFloor()`; `requireFloor()` exits, so no test runs it.
+
 ### Connected apps (limited actors)
 
 An actor with `agent_inbox_user.todos_limited = 1` is a "limited actor": a third-party app (BG Bells) that may touch only the todos listed for it in `aiu_todo_grants` (`db_schemas/41_aiu_todo_grants/`, read through `Auth\TodoGrants`).
