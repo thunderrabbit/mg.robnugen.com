@@ -72,6 +72,10 @@ function MgFlipClock(element, options) {
 			minuteDigits.push(extra);
 			minutesBox.appendChild(extra.card);
 		}
+		// 100:00 counting down to 99:59 gives a digit back.
+		while (minuteDigits.length > minutes.length) {
+			minutesBox.removeChild(minuteDigits.pop().card);
+		}
 		for (var i = 0; i < minuteDigits.length; i++) {
 			setDigit(minuteDigits[i], minutes.charAt(i));
 		}
