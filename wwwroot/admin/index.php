@@ -38,6 +38,9 @@ if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
     $page->set(name: "site_version", value: SENTIMENTAL_VERSION);
     $page->set(name: "username", value: $is_logged_in->getLoggedInUsername());
 
+    // Asked here because this is the served PHP; see Auth\Argon2id.
+    $page->set(name: "password_hashing", value: \Auth\Argon2id::report());
+
     $pending = $dbExistaroo->getPendingMigrations();
     $page->set(name: "has_pending_migrations", value: !empty($pending));
 
@@ -63,7 +66,8 @@ if ($is_logged_in->isLoggedIn() && $is_logged_in->isAdmin()) {
         echo "<h1>Access Denied</h1>";
         echo "<p>You need administrator privileges to access this page.</p>";
         echo "<p>Logged in as: <strong>" . htmlspecialchars($is_logged_in->getLoggedInUsername()) . "</strong></p>";
-        echo "<p><a href='/mg/'>Return to Meditation Timer</a> | <a href='/logout.php'>Logout</a></p>";
+        echo "<p><a href='/mg/'>Return to Meditation Timer</a></p>";
+        echo "<form method='POST' action='/logout/'>" . $csrfProtect->field() . "<button type='submit'>Logout</button></form>";
         exit;
     }
 

@@ -50,7 +50,14 @@ class Utilities
         $realBase = realpath($appPath . "/db_schemas");
         $realTarget = realpath($fullPath);
 
-        if ($realBase === false || $realTarget === false || !str_starts_with($realTarget, $realBase)) {
+        // The separator matters: without it a sibling such as db_schemas_old
+        // "starts with" db_schemas and would count as inside it. The base
+        // itself is refused too; a migration is always a file below it.
+        if (
+            $realBase === false
+            || $realTarget === false
+            || !str_starts_with($realTarget, $realBase . DIRECTORY_SEPARATOR)
+        ) {
             throw new \Exception("Resolved path escapes base directory: $versionWithFile");
         }
 

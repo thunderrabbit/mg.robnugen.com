@@ -30,6 +30,7 @@
 </div>
 <h1>Welcome to the Meiso Gambare Admin Dashboard</h1>
 <p>This page can show numbers of workers, parts, snippets, etc</p>
+<p id="password-hashing">Password hashing: <?= htmlspecialchars($password_hashing ?? 'not checked') ?>.</p>
 
 <div class="PagePanel">
     <h3>Admin Tools</h3>

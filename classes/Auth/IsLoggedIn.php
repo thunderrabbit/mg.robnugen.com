@@ -12,12 +12,6 @@ namespace Auth;
 
 class IsLoggedIn
 {
-    /**
-     * A bcrypt hash of nothing in particular, verified against when the
-     * username does not exist. Same cost as password_hash()'s default.
-     */
-    private const string TIMING_DUMMY_HASH = '$2y$12$rpioDu.X8KGylTtBBuu6Wun5FcZ69ji8f2MrHwx.vy4Ec5CrJD.Qu';
-
     private int $who_is_logged_in = 0;
 
     private string $loggedInUsername = 'YUNOset?'; // default value, should be overwritten if user is logged in
@@ -48,7 +42,7 @@ class IsLoggedIn
      */
     public function resumeFromCookie(\Mlaphp\Request $mla_request): void
     {
-        $cookie = \Field::string($mla_request->cookie, $this->di_config->cookie_name);
+        $cookie = \Field::string($mla_request->cookie, $this->cookieName());
         if ($cookie === '') {
             return;
         }
@@ -77,8 +71,10 @@ class IsLoggedIn
      * BadCredentials has no side effects; the caller shows one generic
      * message for it so a guesser cannot learn which usernames exist.
      */
-    public function attemptPasswordLogin(string $username, string $password): LoginResult
-    {
+    public function attemptPasswordLogin(
+        string $username,
+        #[\SensitiveParameter] string $password,
+    ): LoginResult {
         $current_ip = \Field::string($_SERVER, 'REMOTE_ADDR', 'unknown');
         // Only plain ASCII can name an account (Auth\Username). Anything else
         // is refused before the lookup, where the accent-insensitive collation
@@ -91,20 +87,19 @@ class IsLoggedIn
             return LoginResult::BadCredentials;
         }
 
-        if ($this->di_throttle->isThrottled($username, $current_ip)) {
+        // admit() counts this attempt as a failure before anything else, so
+        // parallel guesses cannot slip past the limit together. A correct
+        // password clears it again below.
+        if (!$this->di_throttle->admit($username, $current_ip)) {
             // Do not even look at the password: a throttled guess must cost
             // the attacker nothing in information and us nothing in bcrypt.
             $this->logAuth("user_id: N/A, IP: {$current_ip} - Password login THROTTLED (username: {$username})");
             return LoginResult::Throttled;
         }
 
-        // Count the attempt before the slow bcrypt check, not after it, so a
-        // burst of parallel requests cannot all pass isThrottled() first.
-        // A correct password clears it again below.
-        $this->di_throttle->recordFailure($username, $current_ip);
-
         $user_id = $this->checkPHPHashedPassword($username, $password);
         if ($user_id <= 0) {
+            // The failure admit() recorded stands.
             $this->logAuth("user_id: N/A, IP: {$current_ip} - Password login FAILED (username: {$username})");
             return LoginResult::BadCredentials;
         }
@@ -227,10 +222,9 @@ class IsLoggedIn
         );
 
         $cookie_options = \Auth\CookieOptions::build(
-            $this->di_config->domain_name,
             time() + $this->di_config->cookie_lifetime // 30 days
         );
-        setcookie($this->di_config->cookie_name, $cookie, $cookie_options);
+        setcookie($this->cookieName(), $cookie, $cookie_options);
     }
 
 
@@ -252,8 +246,10 @@ class IsLoggedIn
      * @param $password
      * @return int The user_id, or 0 when the password doesn't match
      */
-    private function checkPHPHashedPassword(string $username, string $password): int
-    {
+    private function checkPHPHashedPassword(
+        string $username,
+        #[\SensitiveParameter] string $password,
+    ): int {
         // get password hash
         $user_id_and_hash_array = $this->getIDandPHPHashedPasswordForUsername($username);
         if (!empty($user_id_and_hash_array)) {
@@ -262,13 +258,25 @@ class IsLoggedIn
             if (password_verify($password, $hashed_password)) {
                 // password is correct, so this user_id has logged in properly
                 $user_id = \Field::int($user_id_and_hash_array, 'user_id');
-                // return user_id
+
+                // The one moment the plain password is in hand: if the stored hash is
+                // behind what PasswordHash makes today (bcrypt from before argon2id,
+                // or an older cost), replace it.
+                if (PasswordHash::needsRehash($hashed_password)) {
+                    new \Database\PasswordRepository($this->di_pdo)->updatePasswordHash(
+                        $user_id,
+                        PasswordHash::make($password),
+                    );
+                }
+
                 return $user_id;
             }
         } else {
-            // Spend the same bcrypt time as for a real user, so how long a
-            // failed login takes does not reveal whether the username exists.
-            password_verify($password, self::TIMING_DUMMY_HASH);
+            // Spend the same time as for a real user, so how long a failed
+            // login takes does not reveal whether the username exists. So
+            // check against a hash of the kind real users have, and throw
+            // the answer away.
+            password_verify($password, PasswordHash::absentUserHash());
             return 0;
         }
 
@@ -277,7 +285,7 @@ class IsLoggedIn
 
 
     private function getUserIdForCookieInDatabase(
-        string $cookie,
+        #[\SensitiveParameter] string $cookie,
         string $user_agent
     ): int {
         $cookie_hash = hash('sha256', $cookie);
@@ -360,7 +368,7 @@ class IsLoggedIn
      */
     private function presentedCookieHash(): ?string
     {
-        $presented = \Field::string($_COOKIE, $this->di_config->cookie_name);
+        $presented = \Field::string($_COOKIE, $this->cookieName());
         return $presented !== '' ? hash('sha256', $presented) : null;
     }
 
@@ -375,17 +383,23 @@ class IsLoggedIn
         $this->who_is_logged_in = 0;
         $this->killCookie();
         session_destroy();
-        session_start();
+        \Startup\Session::start();
         session_regenerate_id();
     }
 
     private function killCookie(): void
     {
-        $cookie_options = \Auth\CookieOptions::build(
-            $this->di_config->domain_name,
-            time() - 3600
-        );
-        setcookie($this->di_config->cookie_name, '', $cookie_options);
+        $cookie_options = \Auth\CookieOptions::build(time() - 3600);
+        setcookie($this->cookieName(), '', $cookie_options);
         $this->who_is_logged_in = 0;
+    }
+
+    /**
+     * The remember-me cookie's name in the browser: Config's cookie_name
+     * behind the __Host- prefix. Every read and write of the cookie uses it.
+     */
+    private function cookieName(): string
+    {
+        return CookieOptions::name($this->di_config->cookie_name);
     }
 }

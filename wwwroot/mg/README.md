@@ -12,7 +12,7 @@ http://thunderrabbit.github.io/meisogambare/
 
 ## Credit
 
-Huge thanks to [flipclock.js](http://flipclockjs.com) for the beautiful timer!
+Thanks to [flipclock.js](http://flipclockjs.com) for the timer that inspired the look; the clock is now our own `mgflipclock.js`.
 
 Thanks to Tec Studios for their [bell sound](http://www.freesound.org/people/tec%20studios/sounds/124742/).
 

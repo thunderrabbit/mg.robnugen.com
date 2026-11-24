@@ -30,7 +30,6 @@
     </script>
     <link rel="stylesheet" href="/css/<?= SEMVER ?>/theme.css">
     <link rel="stylesheet" href="/css/<?= SEMVER ?>/styles.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flipclock@0.7.8/compiled/flipclock.min.css">
     <link rel="stylesheet" href="/mg/css/<?= SEMVER ?>/meisogambare.css">
     <link rel="stylesheet" href="/css/<?= SEMVER ?>/menu.css">
 </head>
@@ -40,12 +39,13 @@
         <?= $page_content ?>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"
-    integrity="sha384-1H217gwSVyLSIfaLxHbE7dRb3v4mYCKbpQvzx0cegeju1MVsGrX5xXxAvs/HgeFs"
+    <script src="https://code.jquery.com/jquery-4.1.0.min.js"
+    integrity="sha384-UGSi5euAzE1p4sK41+yKs3vtdPcidmaW6fY2NUITZkjIPyMVUUYB/BV4A5Oa8uu2"
     crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flipclock@0.7.8/compiled/flipclock.min.js"
-    integrity="sha384-Ef+QgU6pxDHG+o4sKcv/pDbh8n/llvn7Bq9TLYv/o37WRuEhAYJkUdly42AMb38+"
+    <script src="https://code.jquery.com/jquery-migrate-4.0.2.min.js"
+    integrity="sha384-j1JGhEtpRFQa6jnqPcEWt92tLBipLPhYYJxOL/bmH3VrUmV++ZHPOXLcrjVMkuo6"
     crossorigin="anonymous"></script>
+    <script src="/mg/javascript/<?= SEMVER ?>/mgflipclock.js"></script>
     <script src="/mg/javascript/<?= SEMVER ?>/meisoprefs.js"></script>
     <script src="/mg/javascript/<?= SEMVER ?>/meisogambare.js"></script>
 </body>

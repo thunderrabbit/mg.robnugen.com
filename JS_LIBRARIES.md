@@ -13,20 +13,37 @@ Each integrity hash is the SHA-384 of the file its URL served that day; the
 
 ### jQuery
 
-- **Version**: 3.7.1
+- **Version**: 4.1.0
 - **Loaded at**:
   - `templates/dashboard/paid_dashboard.tpl.php:68`
-    `https://code.jquery.com/jquery-3.7.1.min.js`
-  - `templates/layout/mg_base.tpl.php:43`
-    `https://code.jquery.com/jquery-3.7.1.min.js`
+    `https://code.jquery.com/jquery-4.1.0.min.js`
+  - `templates/layout/mg_base.tpl.php:42`
+    `https://code.jquery.com/jquery-4.1.0.min.js`
 - **How**: CDN (code.jquery.com)
-- **Integrity**: `sha384-1H217gwSVyLSIfaLxHbE7dRb3v4mYCKbpQvzx0cegeju1MVsGrX5xXxAvs/HgeFs`
+- **Integrity**: `sha384-UGSi5euAzE1p4sK41+yKs3vtdPcidmaW6fY2NUITZkjIPyMVUUYB/BV4A5Oa8uu2`
 - **Needs**: nothing
-- **Needed by**: FlipClock 0.7.8, `wwwroot/dashboard/dashboard.js`,
+- **Needed by**: `wwwroot/dashboard/dashboard.js`,
   `wwwroot/mg/javascript/meisogambare.js`
-- **Latest**: 4.0.0 (2026-01-18). The newest 3.x is 3.7.1, the one in use.
-  FlipClock 0.7.8 asks for `jquery >=1.7`, which 4.0.0 satisfies on paper;
-  nobody has tried it here.
+- **Latest**: 4.1.0 (read from the npm registry on 2026-11-24), the one in
+  use. The upgrade guide for 4.0 was checked against every `$` use in the
+  two scripts above; the one removed call found, `$.fn.sort` in
+  `resortTodos()`, now sorts a plain array. No inline template script uses
+  jQuery.
+
+### jQuery Migrate
+
+- **Version**: 4.0.2
+- **Loaded at**:
+  - `templates/dashboard/paid_dashboard.tpl.php:71`
+    `https://code.jquery.com/jquery-migrate-4.0.2.min.js`
+  - `templates/layout/mg_base.tpl.php:48`
+    `https://code.jquery.com/jquery-migrate-4.0.2.min.js`
+- **How**: CDN (code.jquery.com), straight after jQuery
+- **Integrity**: `sha384-j1JGhEtpRFQa6jnqPcEWt92tLBipLPhYYJxOL/bmH3VrUmV++ZHPOXLcrjVMkuo6`
+- **Needs**: jQuery 4
+- **Needed by**: nothing. It is there only for the jQuery 3 to 4 move, so a
+  missed call still works; take it out once the move has soaked.
+- **Latest**: 4.0.2
 
 ### SortableJS
 
@@ -34,7 +51,7 @@ Each integrity hash is the SHA-384 of the file its URL served that day; the
 - **Loaded at**:
   - `templates/admin/dh/standards.tpl.php:203`
     `https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js`
-  - `templates/dashboard/paid_dashboard.tpl.php:71`
+  - `templates/dashboard/paid_dashboard.tpl.php:74`
     `https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js`
 - **How**: CDN (jsDelivr, from npm)
 - **Integrity**: `sha384-BSxuMLxX+FCbTdYec3TbXlnMGEEM2QXTFdtDaveen71o+jswm2J36+xFqp8k4VHM`
@@ -42,21 +59,6 @@ Each integrity hash is the SHA-384 of the file its URL served that day; the
 - **Needed by**: `wwwroot/js/standards-order.js`,
   `wwwroot/dashboard/dashboard.js`
 - **Latest**: 1.15.7 (2026-02-11)
-
-### FlipClock
-
-- **Version**: 0.7.8
-- **Loaded at**:
-  - `templates/layout/mg_base.tpl.php:46`
-    `https://cdn.jsdelivr.net/npm/flipclock@0.7.8/compiled/flipclock.min.js`
-  - its stylesheet, `templates/layout/mg_base.tpl.php:33`
-    `https://cdn.jsdelivr.net/npm/flipclock@0.7.8/compiled/flipclock.min.css`
-- **How**: CDN (jsDelivr, from npm)
-- **Integrity**: `sha384-Ef+QgU6pxDHG+o4sKcv/pDbh8n/llvn7Bq9TLYv/o37WRuEhAYJkUdly42AMb38+`
-- **Needs**: jQuery (`>=1.7`); it is a jQuery plugin, `$('.clock').FlipClock(...)`
-- **Needed by**: `wwwroot/mg/javascript/meisogambare.js`
-- **Latest**: 1.0.1 (2025-08-24). 0.7.8 is the newest 0.x on npm, so it is
-  also the newest that still works as a jQuery plugin.
 
 ## The site's own scripts
 
@@ -70,9 +72,10 @@ past DreamHost's 30-day cache.
 | `wwwroot/js/issue-images.js` | Images card on issue and project pages: copy a picture's markdown line, confirm a remove, check an upload before it is sent | `templates/issues/image_strip.tpl.php:78` |
 | `wwwroot/js/standards-order.js` | Drag a site on the standards board to reorder or pin it (SortableJS) | `templates/admin/dh/standards.tpl.php:206` |
 | `wwwroot/js/dm_crypto.js` | Decision Matrix encryption in the browser (Web Crypto) | `templates/matrix/add_evidence.tpl.php:39`, `templates/matrix/add_opposite.tpl.php:32`, `templates/matrix/add_problem.tpl.php:26`, `templates/matrix/setup.tpl.php:27`, `templates/matrix/view.tpl.php:30` |
-| `wwwroot/dashboard/dashboard.js` | Dashboard: active sessions and todos (jQuery, SortableJS) | `templates/dashboard/paid_dashboard.tpl.php:74` |
+| `wwwroot/dashboard/dashboard.js` | Dashboard: active sessions and todos (jQuery, SortableJS) | `templates/dashboard/paid_dashboard.tpl.php:77` |
 | `wwwroot/mg/javascript/meisoprefs.js` | Meditation timer preferences | `templates/layout/mg_base.tpl.php:49` |
-| `wwwroot/mg/javascript/meisogambare.js` | Meditation timer (jQuery, FlipClock) | `templates/layout/mg_base.tpl.php:50` |
+| `wwwroot/mg/javascript/mgflipclock.js` | The timer's minutes:seconds flip clock (no library) | `templates/layout/mg_base.tpl.php:48` |
+| `wwwroot/mg/javascript/meisogambare.js` | Meditation timer (jQuery) | `templates/layout/mg_base.tpl.php:50` |
 
 ## Inline `<script>` blocks
 
@@ -97,11 +100,9 @@ None of these uses a library, except where noted.
 
 ## Notes for later steps
 
-- FlipClock 1.x is a rewrite that depends on `solid-js`, `date-fns` and
-  `goober` and ships as UMD/ES modules, not as a jQuery plugin. Moving to it
-  means rewriting the clock code in `meisogambare.js`, not a version bump.
-- jQuery is on mg only for the meditation timer and the dashboard. FlipClock
-  0.7.8 holds the timer to it.
+- FlipClock was replaced by `mgflipclock.js` (its 0.7.8 was a jQuery plugin
+  and 1.x is a rewrite on solid-js). jQuery is on mg only for the meditation
+  timer's page code and the dashboard.
 - jQuery comes from code.jquery.com and the other two from jsDelivr: two CDN
   hosts for any Content-Security-Policy to name.
 - There is no browser smoke test for the JavaScript yet.

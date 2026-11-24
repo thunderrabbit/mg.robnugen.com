@@ -102,11 +102,13 @@ class AcceptanceTester extends \Codeception\Actor
     }
 
     /**
-     * Logout the current user
+     * Logout the current user: only a POST logs out, so press the button on
+     * /logout/'s confirmation page, which sends the CSRF token.
      */
     public function logout(): void
     {
         $I = $this;
-        $I->amOnPage('/login/logout.php');
+        $I->amOnPage('/logout/');
+        $I->click('Log out', '.PagePanel');
     }
 }

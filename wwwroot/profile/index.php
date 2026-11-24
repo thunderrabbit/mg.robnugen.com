@@ -43,14 +43,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if (empty($new_password)) {
             $errors[] = "New password is required.";
+        } else {
+            // Only the new password: the current one may predate the policy.
+            $errors = [...$errors, ...\Auth\PasswordPolicy::problems($new_password)];
         }
         if (empty($confirm_password)) {
             $errors[] = "Password confirmation is required.";
         }
         if ($new_password !== $confirm_password) {
             $errors[] = "New passwords do not match.";
-        } elseif ($new_password !== '' && \Auth\PasswordPolicy::problem($new_password) !== '') {
-            $errors[] = \Auth\PasswordPolicy::problem($new_password);
         }
 
         // If no validation errors, proceed with password change
@@ -64,11 +65,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $throttle = new \Auth\LoginThrottle($mla_database);
                 $throttle_name = $is_logged_in->getLoggedInUsername();
                 $throttle_ip = \Field::string($_SERVER, 'REMOTE_ADDR', 'unknown');
-                if ($throttle->isThrottled($throttle_name, $throttle_ip)) {
+                // admit() counts this guess before the password is checked,
+                // so parallel requests cannot all slip in under the limit.
+                if (!$throttle->admit($throttle_name, $throttle_ip)) {
                     $result = ['success' => false, 'message' => 'Too many failed attempts. Wait '
                         . intdiv(\Auth\LoginThrottle::WINDOW_SECONDS, 60) . ' minutes and try again.'];
                 } else {
-                    $throttle->recordFailure($throttle_name, $throttle_ip);
                     // Use PasswordRepository to handle password change
                     $passwordRepository = new \Database\PasswordRepository($mla_database);
                     $result = $passwordRepository->changePassword($user_id, $current_password, $new_password);

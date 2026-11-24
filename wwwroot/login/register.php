@@ -14,6 +14,12 @@ include_once $matches[1] . '/version.php';
 $autoloader = new \Mlaphp\Autoloader();
 spl_autoload_register($autoloader->load(...));
 
+// prepend.php makes the same check; this page runs without it.
+\Version\Php::requireFloor();
+
+// prepend.php does the same; this page runs without it. Errors go to the log
+// until Config says otherwise, below.
+\Security\ErrorOutput::hide();
 
 \Startup\Session::start();
 $mla_request = new \Mlaphp\Request();
@@ -26,8 +32,13 @@ try {
     // @phpstan-ignore catch.neverThrown (the autoloader throws when Config.php is missing)
 } catch (\Exception $e) {
     error_log("Config init failed: " . $e->getMessage());
-    echo "Configuration error. Please contact the administrator.";
+    http_response_code(503);
+    echo "<h1>Site unavailable</h1><p>This site is not configured yet.</p>";
     exit;
+}
+
+if (\Security\ErrorOutput::asked($config)) {
+    \Security\ErrorOutput::show();
 }
 
 $mla_database = \Database\Base::getPDO($config);
@@ -62,13 +73,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if (empty($password)) {
         $errors[] = "Password is required.";
-    } elseif (\Auth\PasswordPolicy::problem($password) !== '') {
-        $errors[] = \Auth\PasswordPolicy::problem($password);
+    } else {
+        // The first admin's password is held to the policy like anyone's.
+        $errors = [...$errors, ...\Auth\PasswordPolicy::problems($password)];
     }
 
     $signup_throttle = new \Auth\SignupThrottle($mla_database);
     $signup_ip = \Field::string($_SERVER, 'REMOTE_ADDR');
-    if (empty($errors) && $signup_throttle->isThrottled($signup_ip)) {
+    // admit() counts this signup before the account is made, so a burst of
+    // parallel signups cannot all slip in under the limit.
+    if (empty($errors) && !$signup_throttle->admit($signup_ip)) {
         $errors[] = "Too many new accounts were created recently. Please try again in "
             . intdiv(\Auth\SignupThrottle::WINDOW_SECONDS, 60) . " minutes.";
     }
@@ -84,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Hash password
-    $hash = password_hash($password, PASSWORD_DEFAULT);
+    $hash = \Auth\PasswordHash::make($password);
 
     try {
         $role = $creating_admin_user ? "admin" : "user";
@@ -93,7 +107,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Seed 100 trial API credits for new user
         $new_user_id = (int) $mla_database->lastInsertId();
         new \Billing\Credits($mla_database)->addTrial($new_user_id);
-        $signup_throttle->recordSignup($signup_ip);
 
         // Redirect to login page with success message
         header("Location: /login/?registered=1");

@@ -107,6 +107,50 @@ class UtilitiesTest extends Unit
         \Utilities::getSchemaFilePath('/tmp', '00_test/create_users.sql');
     }
 
+    public function testGetSchemaFilePathRejectsASymlinkIntoASiblingWhoseNameStartsTheSame(): void
+    {
+        // db_schemas_old is not inside db_schemas, though its path begins
+        // with the same characters.
+        $app = sys_get_temp_dir() . '/utilities_' . bin2hex(random_bytes(6));
+        mkdir($app . '/db_schemas', 0700, true);
+        mkdir($app . '/db_schemas_old');
+        file_put_contents($app . '/db_schemas_old/create_secret.sql', 'SELECT 1;');
+        symlink($app . '/db_schemas_old', $app . '/db_schemas/00_link');
+
+        try {
+            \Utilities::getSchemaFilePath($app, '00_link/create_secret.sql');
+            $this->fail('a symlink into db_schemas_old was resolved');
+        } catch (\Exception $e) {
+            $this->assertStringContainsString('escapes base directory', $e->getMessage());
+        } finally {
+            unlink($app . '/db_schemas/00_link');
+            unlink($app . '/db_schemas_old/create_secret.sql');
+            rmdir($app . '/db_schemas_old');
+            rmdir($app . '/db_schemas');
+            rmdir($app);
+        }
+    }
+
+    public function testGetSchemaFilePathRejectsAFileThatResolvesToTheBaseItself(): void
+    {
+        // The base directory is not "inside" itself; nothing is returned for it.
+        $app = sys_get_temp_dir() . '/utilities_' . bin2hex(random_bytes(6));
+        mkdir($app . '/db_schemas/00_x', 0700, true);
+        symlink($app . '/db_schemas', $app . '/db_schemas/00_x/create_self.sql');
+
+        try {
+            \Utilities::getSchemaFilePath($app, '00_x/create_self.sql');
+            $this->fail('the base directory itself was resolved');
+        } catch (\Exception $e) {
+            $this->assertStringContainsString('escapes base directory', $e->getMessage());
+        } finally {
+            unlink($app . '/db_schemas/00_x/create_self.sql');
+            rmdir($app . '/db_schemas/00_x');
+            rmdir($app . '/db_schemas');
+            rmdir($app);
+        }
+    }
+
     public function testGetSchemaFilePathWithRealFile(): void
     {
         // Use actual migration file from the project

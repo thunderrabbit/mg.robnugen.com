@@ -63,7 +63,7 @@ class LoginFunnelTest extends Unit
             )"
         );
         $stmt = $this->pdo->prepare("INSERT INTO users (user_id, username, password_hash, role) VALUES (?, ?, ?, ?)");
-        $stmt->execute([7, 'Alice', password_hash('right horse', PASSWORD_DEFAULT), 'admin']);
+        $stmt->execute([7, 'Alice', \Auth\PasswordHash::make('right horse'), 'admin']);
     }
 
     protected function _after(): void
@@ -119,6 +119,17 @@ class LoginFunnelTest extends Unit
         $this->assertFalse($auth->isLoggedIn());
     }
 
+    public function testAThrottledLoginLeavesNoRowOfItsOwn(): void
+    {
+        $auth = $this->isLoggedIn();
+        $max = \Auth\LoginThrottle::MAX_FAILURES_PER_USERNAME;
+        for ($i = 0; $i < $max; $i++) {
+            $auth->attemptPasswordLogin('alice', 'wrong');
+        }
+        $auth->attemptPasswordLogin('alice', 'wrong');
+        $this->assertSame($max, $this->failures(), 'being refused does not lengthen the lock');
+    }
+
     public function testAccentedSpellingIsRefusedBeforeTheLookup(): void
     {
         // MySQL's accent-insensitive collation would match this to Alice;
@@ -144,7 +155,7 @@ class LoginFunnelTest extends Unit
     public function testResumeFromCookieLogsInTheCookiesOwner(): void
     {
         new \Database\CookieRepository($this->pdo)->issue(7, hash('sha256', 'tok-123'), md5(self::UA), 3600);
-        $_COOKIE = ['mg_test' => 'tok-123'];
+        $_COOKIE = ['__Host-mg_test' => 'tok-123'];
 
         $auth = $this->isLoggedIn();
         $auth->resumeFromCookie(new \Mlaphp\Request());
@@ -154,12 +165,82 @@ class LoginFunnelTest extends Unit
         $this->assertSame('Alice', $auth->getLoggedInUsername());
     }
 
+    public function testACookieUnderTheOldBareNameIsIgnored(): void
+    {
+        new \Database\CookieRepository($this->pdo)->issue(7, hash('sha256', 'tok-123'), md5(self::UA), 3600);
+        $_COOKIE = ['mg_test' => 'tok-123'];
+
+        $auth = $this->isLoggedIn();
+        $auth->resumeFromCookie(new \Mlaphp\Request());
+
+        $this->assertFalse($auth->isLoggedIn(), 'only the __Host- name is read');
+    }
+
     public function testResumeWithoutACookieIsNobody(): void
     {
         $_COOKIE = [];
         $auth = $this->isLoggedIn();
         $auth->resumeFromCookie(new \Mlaphp\Request());
         $this->assertFalse($auth->isLoggedIn());
+    }
+
+    private function storedHash(): string
+    {
+        $stmt = $this->pdo->query("SELECT password_hash FROM users WHERE user_id = 7");
+        $hash = $stmt === false ? false : $stmt->fetchColumn();
+        return is_string($hash) ? $hash : '';
+    }
+
+    public function testAnOldHashIsRehashedWhenItsPasswordIsRight(): void
+    {
+        $old_hash = password_hash('right horse', PASSWORD_BCRYPT, ['cost' => 4]);
+        $this->pdo->prepare("UPDATE users SET password_hash = ? WHERE user_id = 7")->execute([$old_hash]);
+
+        // checkPHPHashedPassword() is the part of a login that sends no headers.
+        $check = new \ReflectionMethod(\Auth\IsLoggedIn::class, 'checkPHPHashedPassword');
+        $this->assertSame(7, $check->invoke($this->isLoggedIn(), 'Alice', 'right horse'));
+
+        $new_hash = $this->storedHash();
+        $this->assertNotSame($old_hash, $new_hash);
+        $this->assertFalse(\Auth\PasswordHash::needsRehash($new_hash));
+        $this->assertTrue(password_verify('right horse', $new_hash), 'a password shorter than the policy still works');
+    }
+
+    public function testABcryptHashFromBeforeArgon2idStillLogsIn(): void
+    {
+        // Made at today's bcrypt cost, the way every hash was before the change.
+        $bcrypt_hash = password_hash('right horse', PASSWORD_BCRYPT);
+        $this->pdo->prepare("UPDATE users SET password_hash = ? WHERE user_id = 7")->execute([$bcrypt_hash]);
+
+        $check = new \ReflectionMethod(\Auth\IsLoggedIn::class, 'checkPHPHashedPassword');
+        $this->assertSame(7, $check->invoke($this->isLoggedIn(), 'Alice', 'right horse'));
+        $this->assertTrue(password_verify('right horse', $this->storedHash()));
+    }
+
+    public function testThatLoginReplacesTheBcryptHashWhereArgon2idIsInUse(): void
+    {
+        $bcrypt_hash = password_hash('right horse', PASSWORD_BCRYPT);
+        $this->pdo->prepare("UPDATE users SET password_hash = ? WHERE user_id = 7")->execute([$bcrypt_hash]);
+
+        $check = new \ReflectionMethod(\Auth\IsLoggedIn::class, 'checkPHPHashedPassword');
+        $check->invoke($this->isLoggedIn(), 'Alice', 'right horse');
+
+        if (\Auth\PasswordHash::algorithm() === \Auth\PasswordHash::ARGON2ID) {
+            $this->assertStringStartsWith('$argon2id$', $this->storedHash());
+        } else {
+            // A PHP without argon2id has nothing newer to move it to.
+            $this->assertSame($bcrypt_hash, $this->storedHash());
+        }
+    }
+
+    public function testAWrongPasswordLeavesTheOldHashAlone(): void
+    {
+        $old_hash = password_hash('right horse', PASSWORD_BCRYPT, ['cost' => 4]);
+        $this->pdo->prepare("UPDATE users SET password_hash = ? WHERE user_id = 7")->execute([$old_hash]);
+
+        $check = new \ReflectionMethod(\Auth\IsLoggedIn::class, 'checkPHPHashedPassword');
+        $this->assertSame(0, $check->invoke($this->isLoggedIn(), 'Alice', 'wrong'));
+        $this->assertSame($old_hash, $this->storedHash());
     }
 
     public function testAUsernameAndPasswordInAnyPostDoNotLogIn(): void
