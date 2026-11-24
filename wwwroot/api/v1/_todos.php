@@ -478,10 +478,7 @@ if ($todos_path === '/granted') {
             if ($value !== null && $value !== '') {
                 $value = \Field::toInt($value);
                 // Verify activity exists
-                $stmt = $pdo->prepare("SELECT activity_id FROM activities WHERE activity_id = ? AND (user_id IS NULL OR user_id = ?)");
-                $stmt->execute([$value, $auth_user_id]);
-                $activityCheck = $stmt->fetchAll();
-                if (empty($activityCheck)) {
+                if (!new \ActivityTracking\Activity($pdo)->userMayUse($value, $auth_user_id)) {
                     http_response_code(400);
                     echo json_encode(['error' => 'Activity not found or access denied']);
                     return;

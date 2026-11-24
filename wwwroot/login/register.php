@@ -91,11 +91,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         new \Database\UserRepository($mla_database)->create($username, $hash, $role);
 
         // Seed 100 trial API credits for new user
-        $new_user_id = $mla_database->lastInsertId();
-        $trial_stmt = $mla_database->prepare(
-            "INSERT INTO api_credits (user_id, credits_remaining) VALUES (?, 100)"
-        );
-        $trial_stmt->execute([$new_user_id]);
+        $new_user_id = (int) $mla_database->lastInsertId();
+        new \Billing\Credits($mla_database)->addTrial($new_user_id);
         $signup_throttle->recordSignup($signup_ip);
 
         // Redirect to login page with success message

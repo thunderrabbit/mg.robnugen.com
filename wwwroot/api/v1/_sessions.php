@@ -67,69 +67,26 @@ if ($method === 'GET' && $ak_id === null && !$is_backfill) {
     $limit       = min(\Field::int($_GET, 'limit', 20), 50);
     $offset      = max(\Field::int($_GET, 'offset'), 0);
 
-    $where  = ['ak.user_id = ?'];
-    $params = [$auth_user_id];
+    $sessions = new \ActivityTracking\ActivityKai($pdo)->getFilteredSessions(
+        $auth_user_id,
+        $from ? \Field::toString($from) : null,
+        $to ? \Field::toString($to) : null,
+        $activity_id ?: null,
+        $is_active,
+        $limit,
+        $offset
+    );
 
-    if ($from) {
-        $where[]  = 'DATE(ak.start_local_dt) >= ?';
-        $params[] = $from;
-    }
-    if ($to) {
-        $where[]  = 'DATE(ak.start_local_dt) <= ?';
-        $params[] = $to;
-    }
-    if ($activity_id) {
-        $where[]  = 'ak.activity_id = ?';
-        $params[] = $activity_id;
-    }
-    if ($is_active === 1) {
-        $where[]  = 'ak.actual_sec IS NULL';
-    } elseif ($is_active === 0) {
-        $where[]  = 'ak.actual_sec IS NOT NULL';
-    }
-
-    $where_sql = implode(' AND ', $where);
-    $params[]  = $limit;
-    $params[]  = $offset;
-
-    $stmt = $pdo->prepare("
-        SELECT ak.ak_id, ak.activity_id, a.activity_name,
-               ak.start_local_dt, ak.intended_sec, ak.actual_sec, ak.bonus_sec,
-               t.iana_name AS timezone,
-               CASE WHEN ak.actual_sec IS NULL THEN 1 ELSE 0 END AS is_active
-        FROM activity_kai ak
-        JOIN activities a  ON ak.activity_id  = a.activity_id
-        JOIN timezones  t  ON ak.timezone_id  = t.timezone_id
-        WHERE {$where_sql}
-        ORDER BY ak.start_local_dt DESC
-        LIMIT ? OFFSET ?
-    ");
-    $stmt->execute($params);
-
-    echo json_encode(['sessions' => $stmt->fetchAll(\PDO::FETCH_ASSOC)]);
+    echo json_encode(['sessions' => $sessions]);
     exit;
 }
 
 // ── GET /sessions/{ak_id} ────────────────────────────────────────────────────
 
 if ($method === 'GET' && $ak_id !== null && $sub_action === null) {
-    $stmt = $pdo->prepare("
-        SELECT ak.ak_id, ak.activity_id, a.activity_name,
-               ak.start_local_dt, ak.intended_sec, ak.actual_sec, ak.bonus_sec,
-               t.iana_name AS timezone,
-               CASE WHEN ak.actual_sec IS NULL THEN 1 ELSE 0 END AS is_active,
-               CASE WHEN ak.actual_sec IS NULL
-                    THEN TIMESTAMPDIFF(SECOND, ak.created_at_utc, UTC_TIMESTAMP())
-                    ELSE NULL END AS elapsed_sec
-        FROM activity_kai ak
-        JOIN activities a ON ak.activity_id = a.activity_id
-        JOIN timezones  t ON ak.timezone_id  = t.timezone_id
-        WHERE ak.ak_id = ? AND ak.user_id = ?
-    ");
-    $stmt->execute([$ak_id, $auth_user_id]);
-    $session = $stmt->fetch(\PDO::FETCH_ASSOC);
+    $session = new \ActivityTracking\ActivityKai($pdo)->getSessionWithElapsed($ak_id, $auth_user_id);
 
-    if (!$session) {
+    if ($session === null) {
         http_response_code(404);
         echo json_encode(['error' => 'Session not found']);
         exit;
@@ -339,21 +296,15 @@ if ($method === 'PATCH' && $ak_id !== null && $sub_action === 'stop') {
     }
 
     // Fetch elapsed seconds atomically — also confirms session is active
-    $stmt = $pdo->prepare("
-        SELECT TIMESTAMPDIFF(SECOND, created_at_utc, UTC_TIMESTAMP()) AS elapsed
-        FROM activity_kai
-        WHERE ak_id = ? AND user_id = ? AND actual_sec IS NULL
-    ");
-    $stmt->execute([$ak_id, $auth_user_id]);
-    $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+    $elapsed = new \ActivityTracking\ActivityKai($pdo)->elapsedSecOf($ak_id, $auth_user_id);
 
-    if (!$row) {
+    if ($elapsed === null) {
         http_response_code(409);
         echo json_encode(['error' => 'Session not found, already stopped, or not yours']);
         exit;
     }
 
-    $actual_sec = max(0, \Field::int($row, 'elapsed'));
+    $actual_sec = max(0, $elapsed);
     $activityHelper->stopActivity($ak_id, $auth_user_id, $actual_sec, 0);
 
     echo json_encode([

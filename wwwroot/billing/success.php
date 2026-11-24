@@ -28,11 +28,7 @@ if (!$is_logged_in->isLoggedIn()) {
 
 $user_id = $is_logged_in->loggedInID();
 
-$credits_stmt = $mla_database->prepare(
-    "SELECT credits_remaining FROM api_credits WHERE user_id = ? LIMIT 1"
-);
-$credits_stmt->execute([$user_id]);
-$credits_remaining = (int)($credits_stmt->fetchColumn() ?: 0);
+$credits_remaining = new \Billing\Credits($mla_database)->getRemaining($user_id);
 
 $page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect, admin_count: $admin_count);
 $page->setTemplate('billing/success.tpl.php');

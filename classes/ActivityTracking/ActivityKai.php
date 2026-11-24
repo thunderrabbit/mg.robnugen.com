@@ -394,4 +394,155 @@ class ActivityKai
         $stmt->execute([$user_id, $limit, $offset]);
         return \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
     }
+
+    /**
+     * One page of a user's sessions, newest first, with the activity's name
+     * and the timezone's. Each filter that is not null narrows the list:
+     * `$from` and `$to` bound the local start date (inclusive), and
+     * `$is_active` 1 keeps the running ones, 0 the finished ones; any other
+     * number keeps both.
+     *
+     * @return list<array<mixed>>
+     */
+    public function getFilteredSessions(
+        int $user_id,
+        ?string $from,
+        ?string $to,
+        ?int $activity_id,
+        ?int $is_active,
+        int $limit,
+        int $offset
+    ): array {
+        $where  = ['ak.user_id = ?'];
+        $params = [$user_id];
+
+        if ($from !== null) {
+            $where[]  = 'DATE(ak.start_local_dt) >= ?';
+            $params[] = $from;
+        }
+        if ($to !== null) {
+            $where[]  = 'DATE(ak.start_local_dt) <= ?';
+            $params[] = $to;
+        }
+        if ($activity_id !== null) {
+            $where[]  = 'ak.activity_id = ?';
+            $params[] = $activity_id;
+        }
+        if ($is_active === 1) {
+            $where[]  = 'ak.actual_sec IS NULL';
+        } elseif ($is_active === 0) {
+            $where[]  = 'ak.actual_sec IS NOT NULL';
+        }
+
+        $where_sql = implode(' AND ', $where);
+        $params[]  = $limit;
+        $params[]  = $offset;
+
+        $stmt = $this->pdo->prepare("
+            SELECT ak.ak_id, ak.activity_id, a.activity_name,
+                   ak.start_local_dt, ak.intended_sec, ak.actual_sec, ak.bonus_sec,
+                   t.iana_name AS timezone,
+                   CASE WHEN ak.actual_sec IS NULL THEN 1 ELSE 0 END AS is_active
+            FROM activity_kai ak
+            JOIN activities a  ON ak.activity_id  = a.activity_id
+            JOIN timezones  t  ON ak.timezone_id  = t.timezone_id
+            WHERE {$where_sql}
+            ORDER BY ak.start_local_dt DESC
+            LIMIT ? OFFSET ?
+        ");
+        $stmt->execute($params);
+        return \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+    }
+
+    /**
+     * One of a user's sessions with the activity's name, the timezone's and,
+     * while it is running, how many seconds it has run (elapsed_sec, null
+     * once finished). Null when the user has no such session.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getSessionWithElapsed(int $ak_id, int $user_id): ?array
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT ak.ak_id, ak.activity_id, a.activity_name,
+                   ak.start_local_dt, ak.intended_sec, ak.actual_sec, ak.bonus_sec,
+                   t.iana_name AS timezone,
+                   CASE WHEN ak.actual_sec IS NULL THEN 1 ELSE 0 END AS is_active,
+                   CASE WHEN ak.actual_sec IS NULL
+                        THEN TIMESTAMPDIFF(SECOND, ak.created_at_utc, UTC_TIMESTAMP())
+                        ELSE NULL END AS elapsed_sec
+            FROM activity_kai ak
+            JOIN activities a ON ak.activity_id = a.activity_id
+            JOIN timezones  t ON ak.timezone_id  = t.timezone_id
+            WHERE ak.ak_id = ? AND ak.user_id = ?
+        ");
+        $stmt->execute([$ak_id, $user_id]);
+        $session = $stmt->fetch(\PDO::FETCH_ASSOC);
+        if (!is_array($session)) {
+            return null;
+        }
+        /** @var array<string, mixed> $session */
+        return $session;
+    }
+
+    /**
+     * How many seconds one of a user's running sessions has run, read in one
+     * query so it also proves the session is still running. Null when the
+     * user has no such session or it has stopped.
+     */
+    public function elapsedSecOf(int $ak_id, int $user_id): ?int
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT TIMESTAMPDIFF(SECOND, created_at_utc, UTC_TIMESTAMP()) AS elapsed
+            FROM activity_kai
+            WHERE ak_id = ? AND user_id = ? AND actual_sec IS NULL
+        ");
+        $stmt->execute([$ak_id, $user_id]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return is_array($row) ? \Field::int($row, 'elapsed') : null;
+    }
+
+    /**
+     * How many sessions a user has finished and their total length, as
+     * total_sessions and total_seconds.
+     *
+     * @return array<string, mixed>
+     */
+    public function getTotals(int $user_id): array
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT
+                COUNT(*)             AS total_sessions,
+                COALESCE(SUM(actual_sec), 0) AS total_seconds
+            FROM activity_kai
+            WHERE user_id = ? AND actual_sec IS NOT NULL
+        ");
+        $stmt->execute([$user_id]);
+        $totals = $stmt->fetch(\PDO::FETCH_ASSOC);
+        if (!is_array($totals)) {
+            // An aggregate with no GROUP BY always gives one row.
+            return [];
+        }
+        /** @var array<string, mixed> $totals */
+        return $totals;
+    }
+
+    /**
+     * The distinct local dates, newest first, on which a user finished a
+     * session in the last 90 days: enough for any streak.
+     *
+     * @return list<mixed>
+     */
+    public function getRecentSessionDates(int $user_id): array
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT DISTINCT DATE(start_local_dt) AS d
+            FROM activity_kai
+            WHERE user_id = ? AND actual_sec IS NOT NULL
+              AND start_local_dt >= DATE_SUB(NOW(), INTERVAL 90 DAY)
+            ORDER BY d DESC
+        ");
+        $stmt->execute([$user_id]);
+        return array_values($stmt->fetchAll(\PDO::FETCH_COLUMN));
+    }
 }

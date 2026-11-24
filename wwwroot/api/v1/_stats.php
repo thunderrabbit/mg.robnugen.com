@@ -45,28 +45,13 @@ if (!\Field::int($auth_actor, 'can_read_sessions')) {
 
 // ── Totals ────────────────────────────────────────────────────────────────────
 
-$stmt = $pdo->prepare("
-    SELECT
-        COUNT(*)             AS total_sessions,
-        COALESCE(SUM(actual_sec), 0) AS total_seconds
-    FROM activity_kai
-    WHERE user_id = ? AND actual_sec IS NOT NULL
-");
-$stmt->execute([$auth_user_id]);
-$totals = $stmt->fetch(\PDO::FETCH_ASSOC);
+$activity_kai = new \ActivityTracking\ActivityKai($pdo);
+$totals = $activity_kai->getTotals($auth_user_id);
 
 // ── Streak ────────────────────────────────────────────────────────────────────
 // Fetch distinct session dates from last 90 days (covers any realistic streak).
 
-$stmt = $pdo->prepare("
-    SELECT DISTINCT DATE(start_local_dt) AS d
-    FROM activity_kai
-    WHERE user_id = ? AND actual_sec IS NOT NULL
-      AND start_local_dt >= DATE_SUB(NOW(), INTERVAL 90 DAY)
-    ORDER BY d DESC
-");
-$stmt->execute([$auth_user_id]);
-$date_rows = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+$date_rows = $activity_kai->getRecentSessionDates($auth_user_id);
 
 $streak       = 0;
 $today_str    = new DateTime('today')->format('Y-m-d');
@@ -96,11 +81,7 @@ if (!empty($date_rows)) {
 
 // ── Credits remaining ─────────────────────────────────────────────────────────
 
-$credit_stmt = $pdo->prepare(
-    "SELECT credits_remaining FROM api_credits WHERE user_id = ? LIMIT 1"
-);
-$credit_stmt->execute([$auth_user_id]);
-$credits = (int)$credit_stmt->fetchColumn();
+$credits = new \Billing\Credits($pdo)->getRemaining($auth_user_id);
 
 // ── Response ──────────────────────────────────────────────────────────────────
 
