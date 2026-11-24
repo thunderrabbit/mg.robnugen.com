@@ -107,11 +107,7 @@ if ($emotions_path === '/vocab' || $emotions_path === '/') {
         }
     } elseif ($method === 'GET') {
         $ledger = new \Emotional\Ledger($pdo, $raw_key, $auth_key_id, $auth_user_id);
-        $stmt = $pdo->prepare(
-            'SELECT my_id, state FROM my_ids_for_my_users_state WHERE api_key_id = ?'
-        );
-        $stmt->execute([$auth_key_id]);
-        $rows = \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+        $rows = new \Emotional\Vocab($pdo)->getEntries($auth_key_id);
 
         $vocab = [];
         foreach ($rows as $row) {
