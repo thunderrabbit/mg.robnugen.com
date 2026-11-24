@@ -34,8 +34,7 @@ try {
     exit;
 }
 
-// @phpstan-ignore nullCoalesce.property (an older Config.php may not declare it)
-if ($config->display_errors ?? false) {
+if (\Security\ErrorOutput::asked($config)) {
     \Security\ErrorOutput::show();
 }
 

@@ -56,4 +56,40 @@ class ErrorOutputTest extends Unit
             \Security\ErrorOutput::pageFor(['Content-Type: text/html; charset=UTF-8']),
         );
     }
+
+    public function testAConfigThatSetsDisplayErrorsTrueAsks(): void
+    {
+        $config = new class {
+            public bool $display_errors = true;
+        };
+
+        $this->assertTrue(\Security\ErrorOutput::asked($config));
+    }
+
+    public function testAConfigThatSetsDisplayErrorsFalseDoesNotAsk(): void
+    {
+        $config = new class {
+            public bool $display_errors = false;
+        };
+
+        $this->assertFalse(\Security\ErrorOutput::asked($config));
+    }
+
+    public function testAnOlderConfigWithoutThePropertyDoesNotAsk(): void
+    {
+        $config = new class {
+            public string $domain_name = 'example.com';
+        };
+
+        $this->assertFalse(\Security\ErrorOutput::asked($config));
+    }
+
+    public function testANonBoolValueDoesNotAsk(): void
+    {
+        $config = new class {
+            public string $display_errors = '1';
+        };
+
+        $this->assertFalse(\Security\ErrorOutput::asked($config));
+    }
 }

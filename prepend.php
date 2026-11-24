@@ -79,8 +79,7 @@ try {
     exit;
 }
 
-// @phpstan-ignore nullCoalesce.property (an older Config.php may not declare it)
-$show_errors = $config->display_errors ?? false;
+$show_errors = \Security\ErrorOutput::asked($config);
 if ($show_errors) {
     \Security\ErrorOutput::show();
 }

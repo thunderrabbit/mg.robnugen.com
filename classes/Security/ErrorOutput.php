@@ -48,6 +48,16 @@ final class ErrorOutput
         set_exception_handler(null);
     }
 
+    /**
+     * Whether a site's Config asks to see errors: true only when it declares
+     * $display_errors and sets it to exactly true. An older Config.php that
+     * does not declare the property keeps them hidden.
+     */
+    public static function asked(object $config): bool
+    {
+        return (get_object_vars($config)['display_errors'] ?? false) === true;
+    }
+
     public static function handle(\Throwable $e): void
     {
         error_log(self::logLine($e));
