@@ -227,7 +227,6 @@ class IsLoggedIn
         );
 
         $cookie_options = \Auth\CookieOptions::build(
-            $this->di_config->domain_name,
             time() + $this->di_config->cookie_lifetime // 30 days
         );
         setcookie($this->di_config->cookie_name, $cookie, $cookie_options);
@@ -381,10 +380,7 @@ class IsLoggedIn
 
     private function killCookie(): void
     {
-        $cookie_options = \Auth\CookieOptions::build(
-            $this->di_config->domain_name,
-            time() - 3600
-        );
+        $cookie_options = \Auth\CookieOptions::build(time() - 3600);
         setcookie($this->di_config->cookie_name, '', $cookie_options);
         $this->who_is_logged_in = 0;
     }
