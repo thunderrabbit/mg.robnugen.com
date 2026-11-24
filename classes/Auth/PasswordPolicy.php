@@ -59,13 +59,4 @@ final class PasswordPolicy
         }
         return $problems;
     }
-
-    /**
-     * The first of problems(), or '' when there is none. Kept only until the
-     * forms ask problems() themselves.
-     */
-    public static function problem(#[\SensitiveParameter] string $password): string
-    {
-        return self::problems($password)[0] ?? '';
-    }
 }

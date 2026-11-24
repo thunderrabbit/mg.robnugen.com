@@ -70,8 +70,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if (empty($password)) {
         $errors[] = "Password is required.";
-    } elseif (\Auth\PasswordPolicy::problem($password) !== '') {
-        $errors[] = \Auth\PasswordPolicy::problem($password);
+    } else {
+        // The first admin's password is held to the policy like anyone's.
+        $errors = [...$errors, ...\Auth\PasswordPolicy::problems($password)];
     }
 
     $signup_throttle = new \Auth\SignupThrottle($mla_database);
