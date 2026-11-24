@@ -1,6 +1,6 @@
 <?php
 
-const SENTIMENTAL_VERSION = "BEGIN the session cookie no sibling site can plant";
-const SEMVER = "0.113.1";
+const SENTIMENTAL_VERSION = "BEGIN a login cookie for this host alone";
+const SEMVER = "0.113.2";
 
 const EMOTIONAL_SESSION_GAP_MINUTES = 30;
