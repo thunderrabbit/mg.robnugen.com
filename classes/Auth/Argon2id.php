@@ -10,10 +10,11 @@ namespace Auth;
  * Asked on /admin/ because that runs under the web server's PHP. The shell's
  * `php` over ssh is a different build and proves nothing about this one.
  *
- * It matters for Auth\PasswordPolicy: bcrypt reads only 72 bytes, argon2id
- * has no such limit, and mg can change over only once its served PHP has it.
- * One bcrypt hash at today's default cost is timed beside it, so the two
- * costs can be compared before logins move to argon2id.
+ * Auth\PasswordHash hashes with argon2id when isListed() says so and with
+ * bcrypt otherwise, and under bcrypt Auth\PasswordPolicy caps new passwords
+ * at the 72 bytes it reads. The line on /admin/ tells the admin which of the
+ * two mg is getting, and times one bcrypt hash at today's default cost
+ * beside it, so the two costs can be compared.
  */
 final class Argon2id
 {
