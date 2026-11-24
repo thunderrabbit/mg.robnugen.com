@@ -505,8 +505,31 @@ a:visited {
 }
 
 .StdSteps td {
-    padding: 0.15em 0;
+    padding: 0;
     vertical-align: top;
+}
+
+.StdLine {
+    padding: 0.15em 0;
+}
+
+/* A track's finished steps, folded behind "6 done". */
+.StdDone > summary {
+    cursor: pointer;
+    list-style: none;
+    color: var(--text-muted);
+}
+
+.StdDone > summary::-webkit-details-marker {
+    display: none;
+}
+
+.StdDone > summary::after {
+    content: " ▸";
+}
+
+.StdDone[open] > summary::after {
+    content: " ▾";
 }
 
 .StdTick {

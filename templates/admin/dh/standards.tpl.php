@@ -9,6 +9,7 @@
  */
 
 use Inventory\Standards\Names;
+use Inventory\Standards\TrackLines;
 use Inventory\Standards\WhoseMove;
 
 $h = \Inventory\AdminPage::h(...);
@@ -63,45 +64,60 @@ Sites on EC2 are here too; their servers are entered with site.sh.</small></p>
                 <p>No proven steps yet.</p>
             <?php else: ?>
             <table class="StdSteps">
-                <?php $track = null; ?>
-                <?php foreach ($report->lines as $line): ?>
+                <?php foreach (TrackLines::group($report->lines) as $trackLines): ?>
                     <tr>
-                        <th scope="row"><?= $line->trackName === $track ? '' : $h($line->trackName) ?></th>
+                        <th scope="row"><?= $h($trackLines->name) ?></th>
                         <td>
-                            <span class="StdTick"><?= $line->done ? '✓' : '·' ?></span>
-                            <?= $h($line->title) ?>
-                            <?php if ($line->nah): ?>
-                                <span class="StdNote">NAh</span>
-                            <?php elseif (!$line->done): ?>
-                                <?php if ($line->whoseMove === WhoseMove::Rob): ?>
-                                    <span class="StdNote StdYours">🐾 your move</span>
-                                <?php else: ?>
-                                    <span class="StdNote">an agent can do this</span>
+                        <?php // Finished steps fold behind one line; what is left shows in full. ?>
+                        <?php foreach ([[true, $trackLines->done], [false, $trackLines->open]] as [$folded, $lines]): ?>
+                            <?php if ($lines === []): ?>
+                                <?php continue; ?>
+                            <?php endif; ?>
+                            <?php if ($folded): ?>
+                            <details class="StdDone">
+                                <summary><span class="StdTick">✓</span><?= $h($trackLines->doneSummary()) ?></summary>
+                            <?php endif; ?>
+                            <?php foreach ($lines as $line): ?>
+                            <div class="StdLine">
+                                <span class="StdTick"><?= $line->done ? '✓' : '·' ?></span>
+                                <?= $h($line->title) ?>
+                                <?php if ($line->nah): ?>
+                                    <span class="StdNote">NAh</span>
+                                <?php elseif (!$line->done): ?>
+                                    <?php if ($line->whoseMove === WhoseMove::Rob): ?>
+                                        <span class="StdNote StdYours">🐾 your move</span>
+                                    <?php else: ?>
+                                        <span class="StdNote">an agent can do this</span>
+                                    <?php endif; ?>
                                 <?php endif; ?>
-                            <?php endif; ?>
-                            <?php if ($line->detail !== '' && !$line->nah): ?>
-                                <small><?= $h($line->detail) ?></small>
-                            <?php endif; ?>
-                            <?php foreach ($line->issues as $issue): ?>
-                                <small><a href="/issues/view.php?issue_id=<?= $issue->issueId ?>">#<?= $issue->issueId ?>
-                                    <?= $h($issue->statusLabel) ?></a></small>
+                                <?php if ($line->detail !== '' && !$line->nah): ?>
+                                    <small><?= $h($line->detail) ?></small>
+                                <?php endif; ?>
+                                <?php foreach ($line->issues as $issue): ?>
+                                    <small><a href="/issues/view.php?issue_id=<?= $issue->issueId ?>">#<?= $issue->issueId ?>
+                                        <?= $h($issue->statusLabel) ?></a></small>
+                                <?php endforeach; ?>
+                                <?php if (!$line->done): ?>
+                                    <div class="StdWhy"><?= $md($line->explanation) ?></div>
+                                    <?php if ($line->howTo !== ''): ?>
+                                        <details class="StdHowTo">
+                                            <summary>How to do it</summary>
+                                            <?= $md($line->howTo) ?>
+                                        </details>
+                                    <?php endif; ?>
+                                    <?php if ($line->issues === []): ?>
+                                        <small>Notes for this site go in an issue titled
+                                            <code><?= $h(Names::noteTitle($line->slug, $site['shortcode'])) ?></code>.</small>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                            </div>
                             <?php endforeach; ?>
-                            <?php if (!$line->done): ?>
-                                <div class="StdWhy"><?= $md($line->explanation) ?></div>
-                                <?php if ($line->howTo !== ''): ?>
-                                    <details class="StdHowTo">
-                                        <summary>How to do it</summary>
-                                        <?= $md($line->howTo) ?>
-                                    </details>
-                                <?php endif; ?>
-                                <?php if ($line->issues === []): ?>
-                                    <small>Notes for this site go in an issue titled
-                                        <code><?= $h(Names::noteTitle($line->slug, $site['shortcode'])) ?></code>.</small>
-                                <?php endif; ?>
+                            <?php if ($folded): ?>
+                            </details>
                             <?php endif; ?>
+                        <?php endforeach; ?>
                         </td>
                     </tr>
-                    <?php $track = $line->trackName; ?>
                 <?php endforeach; ?>
             </table>
             <?php endif; ?>
