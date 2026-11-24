@@ -30,6 +30,42 @@ class Visibility
     }
 
     /**
+     * The peers whose inbox an actor may read, as aiu_ids. A null among them
+     * is the all-actors row: the actor is a supervisor and reads everything.
+     *
+     * @return list<int|null>
+     */
+    public function readablePeers(int $aiu_id): array
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT inbox_peer_aiu_id FROM inbox_visibility
+             WHERE inbox_user_aiu_id = ? AND can_read = 1"
+        );
+        $stmt->execute([$aiu_id]);
+        $peers = [];
+        foreach ($stmt->fetchAll(\PDO::FETCH_COLUMN) as $peer) {
+            $peers[] = $peer === null ? null : \Field::toInt($peer);
+        }
+        return $peers;
+    }
+
+    /**
+     * Whether an actor may send to a peer: the first row found for that peer
+     * or for all actors must have can_send set.
+     */
+    public function canSendTo(int $aiu_id, int $peer_aiu_id): bool
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT can_send FROM inbox_visibility
+             WHERE inbox_user_aiu_id = ?
+             AND (inbox_peer_aiu_id = ? OR inbox_peer_aiu_id IS NULL)"
+        );
+        $stmt->execute([$aiu_id, $peer_aiu_id]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return \Field::int($row, 'can_send') !== 0;
+    }
+
+    /**
      * Lets a new actor read its own messages.
      */
     public function addOwnRow(int $aiu_id): void
