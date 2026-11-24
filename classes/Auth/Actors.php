@@ -79,6 +79,36 @@ class Actors
     }
 
     /**
+     * The account's human actor as aiu_id and can_broadcast_inbox, or null
+     * when it has none.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getHumanActor(int $user_id): ?array
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT aiu_id, can_broadcast_inbox FROM agent_inbox_user WHERE user_id = ? AND actor_type = 'human' LIMIT 1"
+        );
+        $stmt->execute([$user_id]);
+        return self::row($stmt->fetch(\PDO::FETCH_ASSOC));
+    }
+
+    /**
+     * An account's actors, oldest first, as aiu_id and name: the inbox
+     * page's recipient list.
+     *
+     * @return list<array<mixed>>
+     */
+    public function getActorsOldestFirst(int $user_id): array
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT aiu_id, name FROM agent_inbox_user WHERE user_id = ? ORDER BY created_at_utc ASC"
+        );
+        $stmt->execute([$user_id]);
+        return \Database\Rows::all($stmt->fetchAll(\PDO::FETCH_ASSOC));
+    }
+
+    /**
      * An account's actors in name order, as aiu_id, name and description:
      * what a sender needs to pick a recipient.
      *

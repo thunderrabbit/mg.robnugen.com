@@ -39,13 +39,12 @@ if (empty($api_keys)) {
 }
 
 // Get the human actor for this user (for sender_aiu on web form sends)
-$aiu_stmt = $mla_database->prepare(
-    "SELECT aiu_id, can_broadcast_inbox FROM agent_inbox_user WHERE user_id = ? AND actor_type = 'human' LIMIT 1"
-);
-$aiu_stmt->execute([$user_id]);
-$aiu_row = $aiu_stmt->fetch(\PDO::FETCH_ASSOC);
+$inbox_actors_gateway = new \Auth\Actors($mla_database);
+$aiu_row = $inbox_actors_gateway->getHumanActor($user_id);
 $web_sender_aiu = \Field::int($aiu_row, 'aiu_id') ?: null;
 $web_can_broadcast = !empty(\Field::int($aiu_row, 'can_broadcast_inbox'));
+
+$inbox = new \Inbox\Messages($mla_database);
 
 $error_message   = '';
 $success_message = '';
@@ -89,11 +88,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
                 }
                 $error_message = 'You do not have permission to broadcast.';
             } else {
-                $stmt = $mla_database->prepare(
-                    "INSERT INTO agent_inbox (user_id, message, priority, show_date, sender_timezone, sender_aiu, recipient_aiu) VALUES (?, ?, ?, ?, ?, ?, ?)"
+                $new_message_id = $inbox->addMessage(
+                    $user_id,
+                    $message,
+                    $priority,
+                    $show_date,
+                    $sender_timezone ?: null,
+                    $web_sender_aiu,
+                    $recipient_aiu
                 );
-                $stmt->execute([$user_id, $message, $priority, $show_date, $sender_timezone ?: null, $web_sender_aiu, $recipient_aiu]);
-                $new_message_id = $mla_database->lastInsertId();
 
                 if ($is_ajax) {
                     header('Content-Type: application/json');
@@ -118,12 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
         // new broadcast decision.
         $is_broadcast_change = false;
         if ($recipient_aiu === null) {
-            $current_recipient_stmt = $mla_database->prepare(
-                "SELECT recipient_aiu FROM agent_inbox WHERE message_id = ? AND user_id = ?"
-            );
-            $current_recipient_stmt->execute([$message_id, $user_id]);
-            $current_recipient = $current_recipient_stmt->fetchColumn();
-            $is_broadcast_change = ($current_recipient !== null && $current_recipient !== false);
+            $is_broadcast_change = $inbox->hasRecipient($message_id, $user_id);
         }
 
         if ($message_id <= 0 || $message === '') {
@@ -141,10 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
             }
             $error_message = 'You do not have permission to broadcast.';
         } else {
-            $stmt = $mla_database->prepare(
-                "UPDATE agent_inbox SET message = ?, priority = ?, recipient_aiu = ?, show_date = ? WHERE message_id = ? AND user_id = ?"
-            );
-            $stmt->execute([$message, $priority, $recipient_aiu, $show_date, $message_id, $user_id]);
+            $inbox->updateForOwner($message_id, $user_id, $message, $priority, $recipient_aiu, $show_date);
 
             if ($is_ajax) {
                 header('Content-Type: application/json');
@@ -156,19 +151,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['inbox_action'])) {
     } elseif ($_POST['inbox_action'] === 'archive') {
         $message_id = \Field::int($_POST, 'message_id');
         if ($message_id > 0) {
-            $stmt = $mla_database->prepare(
-                "UPDATE agent_inbox SET archived_at = NOW() WHERE message_id = ? AND user_id = ? AND archived_at IS NULL"
-            );
-            $stmt->execute([$message_id, $user_id]);
+            $inbox->archiveForOwner($message_id, $user_id);
             $success_message = 'Message archived.';
         }
     } elseif ($_POST['inbox_action'] === 'delete') {
         $message_id = \Field::int($_POST, 'message_id');
         if ($message_id > 0) {
-            $stmt = $mla_database->prepare(
-                "DELETE FROM agent_inbox WHERE message_id = ? AND user_id = ?"
-            );
-            $stmt->execute([$message_id, $user_id]);
+            $inbox->deleteForOwner($message_id, $user_id);
             $success_message = 'Message deleted.';
         }
     }
@@ -188,90 +177,30 @@ $filter_from = \Field::int($_GET, 'from');  // sender aiu_id or 0 (all)
 $per_page = 50;
 $current_page = max(1, \Field::int($_GET, 'page', 1));
 
-$filters = [];
-$params = [$user_id];
-
-if (!$show_archived) {
-    $filters[] = 'AND archived_at IS NULL';
-}
-if (!$show_future) {
-    $filters[] = 'AND (show_date IS NULL OR show_date <= NOW())';
-}
-
-if (in_array($filter_priority, ['high', 'normal', 'low'])) {
-    $filters[] = 'AND priority = ?';
-    $params[] = $filter_priority;
-}
-
-if ($filter_status === 'pending') {
-    $filters[] = 'AND seen_at IS NULL AND done_at IS NULL AND archived_at IS NULL';
-} elseif ($filter_status === 'seen') {
-    $filters[] = 'AND seen_at IS NOT NULL AND done_at IS NULL AND archived_at IS NULL';
-} elseif ($filter_status === 'done') {
-    $filters[] = 'AND done_at IS NOT NULL AND archived_at IS NULL';
-} elseif ($filter_status === 'archived') {
-    // Override show_archived to include archived when filtering by archived status
+if ($filter_status === 'archived') {
+    // Filtering by the archived status shows archived ones whatever the checkbox says
     $show_archived = true;
-    // Remove the archived_at IS NULL filter if present
-    $filters = array_filter($filters, fn($f): bool => $f !== 'AND archived_at IS NULL');
-    $filters[] = 'AND archived_at IS NOT NULL';
 }
 
-// Recipient filter (to me / broadcast / all)
-if ($filter_to === 'me') {
-    $filters[] = 'AND i.recipient_aiu = ?';
-    $params[] = $web_sender_aiu;
-} elseif ($filter_to === 'broadcast') {
-    $filters[] = 'AND i.recipient_aiu IS NULL';
-}
-
-// Sender filter
-if ($filter_from > 0) {
-    $filters[] = 'AND i.sender_aiu = ?';
-    $params[] = $filter_from;
-}
-
-$filter_sql = implode(' ', $filters);
-
-$order_clauses = match ($sort_by) {
-    'id' => "message_id $sort_dir",
-    'priority' => ($sort_dir === 'ASC'
-        ? "FIELD(priority, 'low', 'normal', 'high'), created_at_utc DESC"
-        : "FIELD(priority, 'high', 'normal', 'low'), created_at_utc DESC"),
-    'date' => "created_at_utc $sort_dir",
-    'status' => "archived_at IS NULL DESC, done_at IS NULL DESC, seen_at IS NULL DESC, created_at_utc DESC",
-    default => "archived_at IS NULL DESC, done_at IS NULL DESC, FIELD(priority, 'high', 'normal', 'low'), created_at_utc DESC",
-};
-
-$count_stmt = $mla_database->prepare(
-    "SELECT COUNT(*) FROM agent_inbox i WHERE i.user_id = ? {$filter_sql}"
+$owner_filter = new \Inbox\OwnerFilter(
+    show_archived: $show_archived,
+    show_future: $show_future,
+    priority: $filter_priority,
+    status: $filter_status,
+    to: $filter_to,
+    me_aiu: $web_sender_aiu,
+    from_aiu: $filter_from,
 );
-$count_stmt->execute($params);
-$total_messages = (int) $count_stmt->fetchColumn();
+
+$total_messages = $inbox->getCountForOwner($user_id, $owner_filter);
 $total_pages = max(1, (int) ceil($total_messages / $per_page));
 $current_page = min($current_page, $total_pages);
 $offset = ($current_page - 1) * $per_page;
 
-$stmt = $mla_database->prepare(
-    "SELECT i.message_id, i.message, i.priority, i.show_date, i.sender_timezone, i.sender_aiu, i.recipient_aiu,
-            i.seen_at, i.done_at, i.archived_at, i.response, i.created_at_utc, i.updated_at_utc,
-            s.name AS sender_name, r.name AS recipient_name
-     FROM agent_inbox i
-     LEFT JOIN agent_inbox_user s ON i.sender_aiu = s.aiu_id
-     LEFT JOIN agent_inbox_user r ON i.recipient_aiu = r.aiu_id
-     WHERE i.user_id = ? {$filter_sql}
-     ORDER BY {$order_clauses}
-     LIMIT {$per_page} OFFSET {$offset}"
-);
-$stmt->execute($params);
-$messages = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+$messages = $inbox->getPageForOwner($user_id, $owner_filter, $sort_by, $sort_dir === 'ASC', $per_page, $offset);
 
 // Fetch actors for recipient dropdown
-$actors_stmt = $mla_database->prepare(
-    "SELECT aiu_id, name FROM agent_inbox_user WHERE user_id = ? ORDER BY created_at_utc ASC"
-);
-$actors_stmt->execute([$user_id]);
-$inbox_actors = $actors_stmt->fetchAll(\PDO::FETCH_ASSOC);
+$inbox_actors = $inbox_actors_gateway->getActorsOldestFirst($user_id);
 
 $page = new \Template(config: $config, is_logged_in: $is_logged_in, csrf: $csrfProtect, admin_count: $admin_count);
 $page->setTemplate('inbox/index.tpl.php');
