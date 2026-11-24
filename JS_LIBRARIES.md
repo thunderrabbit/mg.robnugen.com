@@ -30,28 +30,13 @@ Each integrity hash is the SHA-384 of the file its URL served that day; the
   `resortTodos()`, now sorts a plain array. No inline template script uses
   jQuery.
 
-### jQuery Migrate
-
-- **Version**: 4.0.2
-- **Loaded at**:
-  - `templates/dashboard/paid_dashboard.tpl.php:71`
-    `https://code.jquery.com/jquery-migrate-4.0.2.min.js`
-  - `templates/layout/mg_base.tpl.php:48`
-    `https://code.jquery.com/jquery-migrate-4.0.2.min.js`
-- **How**: CDN (code.jquery.com), straight after jQuery
-- **Integrity**: `sha384-j1JGhEtpRFQa6jnqPcEWt92tLBipLPhYYJxOL/bmH3VrUmV++ZHPOXLcrjVMkuo6`
-- **Needs**: jQuery 4
-- **Needed by**: nothing. It is there only for the jQuery 3 to 4 move, so a
-  missed call still works; take it out once the move has soaked.
-- **Latest**: 4.0.2
-
 ### SortableJS
 
 - **Version**: 1.15.2
 - **Loaded at**:
-  - `templates/admin/dh/standards.tpl.php:203`
+  - `templates/admin/dh/standards.tpl.php:223`
     `https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js`
-  - `templates/dashboard/paid_dashboard.tpl.php:74`
+  - `templates/dashboard/paid_dashboard.tpl.php:71`
     `https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js`
 - **How**: CDN (jsDelivr, from npm)
 - **Integrity**: `sha384-BSxuMLxX+FCbTdYec3TbXlnMGEEM2QXTFdtDaveen71o+jswm2J36+xFqp8k4VHM`
@@ -70,12 +55,12 @@ past DreamHost's 30-day cache.
 |---|---|---|
 | `wwwroot/js/sortable-table.js` | Sorts a `.sortable-table` by a clicked column header | `templates/admin/dh/databases.tpl.php:64`, `templates/admin/dh/domains.tpl.php:45`, `templates/admin/dh/users.tpl.php:37`, `templates/issues/view.tpl.php:147`, `templates/projects/view.tpl.php:121` |
 | `wwwroot/js/issue-images.js` | Images card on issue and project pages: copy a picture's markdown line, confirm a remove, check an upload before it is sent | `templates/issues/image_strip.tpl.php:78` |
-| `wwwroot/js/standards-order.js` | Drag a site on the standards board to reorder or pin it (SortableJS) | `templates/admin/dh/standards.tpl.php:206` |
+| `wwwroot/js/standards-order.js` | Drag a site on the standards board to reorder or pin it (SortableJS) | `templates/admin/dh/standards.tpl.php:226` |
 | `wwwroot/js/dm_crypto.js` | Decision Matrix encryption in the browser (Web Crypto) | `templates/matrix/add_evidence.tpl.php:39`, `templates/matrix/add_opposite.tpl.php:32`, `templates/matrix/add_problem.tpl.php:26`, `templates/matrix/setup.tpl.php:27`, `templates/matrix/view.tpl.php:30` |
-| `wwwroot/dashboard/dashboard.js` | Dashboard: active sessions and todos (jQuery, SortableJS) | `templates/dashboard/paid_dashboard.tpl.php:77` |
-| `wwwroot/mg/javascript/meisoprefs.js` | Meditation timer preferences | `templates/layout/mg_base.tpl.php:49` |
-| `wwwroot/mg/javascript/mgflipclock.js` | The timer's minutes:seconds flip clock (no library) | `templates/layout/mg_base.tpl.php:48` |
-| `wwwroot/mg/javascript/meisogambare.js` | Meditation timer (jQuery) | `templates/layout/mg_base.tpl.php:50` |
+| `wwwroot/dashboard/dashboard.js` | Dashboard: active sessions and todos (jQuery, SortableJS) | `templates/dashboard/paid_dashboard.tpl.php:74` |
+| `wwwroot/mg/javascript/meisoprefs.js` | Meditation timer preferences | `templates/layout/mg_base.tpl.php:46` |
+| `wwwroot/mg/javascript/mgflipclock.js` | The timer's minutes:seconds flip clock (no library) | `templates/layout/mg_base.tpl.php:45` |
+| `wwwroot/mg/javascript/meisogambare.js` | Meditation timer (jQuery) | `templates/layout/mg_base.tpl.php:47` |
 
 ## Inline `<script>` blocks
 
