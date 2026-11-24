@@ -4,28 +4,7 @@ status: proven
 whose_move: agent
 check: admin_notifications
 ---
-Optional, site by site. The question to ask of each site:
-
-**Does this site need to remind its own admins of something on a later
-day?** The first site's reminder was "Revisit Twenty Questions: have LLMs got
-smart enough to un-pause it?", with a link to the game, due 1 April 2027. The
-game had been paused in November 2026 and nothing else in the site would
-have said when to look at it again. Other reminders of the same kind: a
-feature switched off until a date, a price or a notice to change on a known
-day, a decision to look at again in six months.
-
-If yes, do this step. The site gets a `notifications` table. Once a row's
-day comes, the menu's Admin link counts it beside the pending migrations, on
-every page, until an admin presses Completed at `/admin/notifications/`. The
-same page has a "Remind me" form (a day, a message, an optional link), so a
-reminder can be added from the site with no migration.
-
-If no, mark this step's issue **NAh** for that site. A reminder about
-something outside the site (renew a domain, pay an invoice) belongs in a
-todo on mg, not here: this is for things the site's own code or data is
-waiting on.
-
-It builds on `admin_chip_for_pending_migrations`: do that step first. First
+This builds on `admin_chip_for_pending_migrations`: do that step first. First
 built on games.chatforest.com under mg #851, as the two bubbles after that
 one (`COUNTIN Notifications`, then `SUCCESSFULLY added notifications for
 admins`). Read those commits and the site's design note
