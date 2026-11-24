@@ -9,7 +9,8 @@
 
         <div class="form-row">
             <label for="password">Password:</label>
-            <input type="password" name="pass" id="password" required minlength="12" title="At least 12 characters">
+            <input type="password" name="pass" id="password" required minlength="<?= \Auth\PasswordPolicy::MIN_CHARACTERS ?>" autocomplete="new-password" aria-describedby="password-hint">
+            <div id="password-hint">At least <?= \Auth\PasswordPolicy::MIN_CHARACTERS ?> characters. Several unrelated words work well.</div>
         </div>
 
         <div class="form-row">
