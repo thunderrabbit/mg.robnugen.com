@@ -403,13 +403,8 @@ if ($method === 'GET' && $sub === '/list') {
         exit;
     }
 
-    $stmt = $pdo->prepare(
-        "SELECT aiu_id, name, description FROM agent_inbox_user WHERE user_id = ? ORDER BY name"
-    );
-    $stmt->execute([$auth_user_id]);
-
     echo json_encode([
-        'actors' => $stmt->fetchAll(\PDO::FETCH_ASSOC),
+        'actors' => new \Auth\Actors($pdo)->getActorsByName($auth_user_id),
     ]);
 } elseif ($method === 'PATCH' && $sub === '/mark-unseen') {
     // ── Reset message to pending (clear seen_at) ────────────────────────
