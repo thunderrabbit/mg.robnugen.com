@@ -184,6 +184,38 @@ class LoginFunnelTest extends Unit
         $this->assertFalse($auth->isLoggedIn());
     }
 
+    private function storedHash(): string
+    {
+        $stmt = $this->pdo->query("SELECT password_hash FROM users WHERE user_id = 7");
+        $hash = $stmt === false ? false : $stmt->fetchColumn();
+        return is_string($hash) ? $hash : '';
+    }
+
+    public function testAnOldHashIsRehashedWhenItsPasswordIsRight(): void
+    {
+        $old_hash = password_hash('right horse', PASSWORD_BCRYPT, ['cost' => 4]);
+        $this->pdo->prepare("UPDATE users SET password_hash = ? WHERE user_id = 7")->execute([$old_hash]);
+
+        // checkPHPHashedPassword() is the part of a login that sends no headers.
+        $check = new \ReflectionMethod(\Auth\IsLoggedIn::class, 'checkPHPHashedPassword');
+        $this->assertSame(7, $check->invoke($this->isLoggedIn(), 'Alice', 'right horse'));
+
+        $new_hash = $this->storedHash();
+        $this->assertNotSame($old_hash, $new_hash);
+        $this->assertFalse(password_needs_rehash($new_hash, PASSWORD_DEFAULT));
+        $this->assertTrue(password_verify('right horse', $new_hash), 'a password shorter than the policy still works');
+    }
+
+    public function testAWrongPasswordLeavesTheOldHashAlone(): void
+    {
+        $old_hash = password_hash('right horse', PASSWORD_BCRYPT, ['cost' => 4]);
+        $this->pdo->prepare("UPDATE users SET password_hash = ? WHERE user_id = 7")->execute([$old_hash]);
+
+        $check = new \ReflectionMethod(\Auth\IsLoggedIn::class, 'checkPHPHashedPassword');
+        $this->assertSame(0, $check->invoke($this->isLoggedIn(), 'Alice', 'wrong'));
+        $this->assertSame($old_hash, $this->storedHash());
+    }
+
     public function testAUsernameAndPasswordInAnyPostDoNotLogIn(): void
     {
         $_POST = ['username' => 'Alice', 'pass' => 'right horse'];
