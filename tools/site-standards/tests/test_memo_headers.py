@@ -43,7 +43,7 @@ OPTED_OUT = {
     "js_hotfixes_ported": "compares the server's line with other branches",
     "js_libraries_current": "asks the npm registry, which changes without a commit",
     "js_soaked_on_production": "asks the server over ssh",
-    "js_deprecations_clear": "asks a test domain; keeps its own memo",
+    "js_deprecations_clear": "asks git whether the recorded commit is in the history",
     "suite_passes_on_php": "asks a test domain; keeps its own memo",
     "tooling_on_php": "reads the checkout's own .git/config (core.hooksPath)",
 }
