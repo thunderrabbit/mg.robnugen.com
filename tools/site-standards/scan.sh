@@ -19,4 +19,4 @@
 # STEPS_REF=<ref> reads the step files from a ref instead. It says so on
 # stderr and is for a look at steps before they are deployed, not routine use.
 set -euo pipefail
-exec python3 -I "$(dirname "${BASH_SOURCE[0]}")/scan.py" "$@"
+exec python3 -I "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/scan.py" "$@"
