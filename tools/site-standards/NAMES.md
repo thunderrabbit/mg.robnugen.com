@@ -29,14 +29,14 @@ domain by standards-mcp's `run-webdriver.sh`, with `TEST_BASE_URL` set. It
 fails on any error in the browser console, and given `--strict`, on warnings
 too.
 
-The `.js` form is for a site whose tests run under Node. The checks can see
-it but not run it yet: standards-mcp's WebDriver runner has no Node in it.
+The `.js` form is for a site whose tests run under Node. The site runs it
+itself: standards-mcp's WebDriver runner has no Node in it.
 
 A site that already has a browser suite does not have to wrap it in this
 name. It names the suite's command in `JS_LIBRARIES.md` instead.
 
-Read by: `js_checks_in_place` (it exists), `js_deprecations_clear` (runs the
-`.sh` with `--strict`).
+Read by: `js_checks_in_place` (it exists), `js_deprecations_clear` (it
+exists; the site runs the `.sh` with `--strict`, the check does not).
 
 ### `deploy_<slug>_to_dh.sh`
 
@@ -102,8 +102,9 @@ The same suite, run so that a warning in the browser console fails it too.
 Step `js_deprecations_clear` needs this, not `JS tests:`, because a run that
 passes on warnings can't show that they are gone.
 
-Read by: `js_deprecations_clear` (runs it on the test domain). If both this
-line and a `testing-js-since-<date>.sh` are present, this line is run.
+Read by: `js_deprecations_clear` (it must be there; the site runs it, the
+check does not). If both this line and a `testing-js-since-<date>.sh` are
+present, this line is the one to run.
 
 ### `CSS guard: <command>`
 
@@ -152,9 +153,9 @@ the script is loaded).
 
 ### `Deprecation warnings clear at <commit>`
 
-For a site that has a smoke test but no test domain to run it on: the commit
-at which the agent found no deprecation warnings. It holds while that commit
-is in the site's history and the site loads the same libraries it loaded
-then.
+The commit at which the site's strict smoke test passed, so no library
+warned. The site records it; no check runs the smoke test. It holds while
+that commit is in the site's history and the site loads the same libraries
+it loaded then.
 
-Read by: `js_deprecations_clear`, only when there is no test domain.
+Read by: `js_deprecations_clear`.

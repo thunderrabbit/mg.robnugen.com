@@ -27,7 +27,7 @@ site that loads no scripts and has no inline
 1. If the site already has a browser suite, keep it. Add `JS tests: <command>`
    to `JS_LIBRARIES.md`, with the command that runs it from the repo root,
    and `JS strict tests: <command>` with the one that also fails on console
-   warnings (the deprecation step runs that one). Make sure it fails on errors
+   warnings (the deprecation step needs that one). Make sure it fails on errors
    in the browser console; if it doesn't, add that.
    Otherwise, write the smoke test, against the code as it is today, as
    `testing-js-since-<today, e.g. 2026-nov-08>.sh` at the repo root. For each
