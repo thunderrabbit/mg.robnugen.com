@@ -93,11 +93,13 @@ tests and `--dry-run`.
 
 ## Not yet done
 
-- **A step on the standards page**: "the opener can read this site's
-  config", ticked by a check that runs `--dry-run` for the site. It would
-  show which sites have a config the three places do not cover.
-- **The old `phpmyadmin-open*.sh` files** in each site: to become a line
-  pointing at `ql[TAB]` that then runs it, while Rob's fingers relearn.
+- **The old `phpmyadmin-open*.sh` files** in each site: the Tooling step
+  `phpmyadmin_script_reminds` turns each into one `echo` saying to type
+  `ql[TAB]`. mg and one other site have done it. The step
+  `phpmyadmin_script_removed` deletes the reminders, and is an idea until
+  2027-01-27 at the earliest.
+- A step that runs `--dry-run` for every site was considered and dropped
+  (Rob, 2026-11-27): the opener worked in a third site unchanged.
 - **Checking what DBeaver keeps**: after a session, whether anything under
   `~/.local/share/DBeaverData/` holds the temporary connection.
 - **A tunnel that closes itself.** Today it stays until `--close`.

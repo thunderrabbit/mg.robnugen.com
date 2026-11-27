@@ -209,6 +209,7 @@ DreamHost retired phpMyAdmin in November 2026. Rob opens a site's production dat
 - **The connection goes through an ssh tunnel** to the site's server, bound to `127.0.0.1` on a port worked out from the shortcode. The database accepts only the panel's "Allowable Hosts", and Lemur 13's address changes. `--close` closes a site's tunnel; nothing else does.
 - `--dry-run` reads the settings and says which file they came from, naming no value; a session may run that. **Rob runs the rest**: nothing that opens a production database is run from a session.
 - DreamHost sites only; a site on EC2 gets a sentence saying so.
+- **A site's old `phpmyadmin-open*.sh` only reminds.** The Tooling step `phpmyadmin_script_reminds` leaves one `echo` saying to type `ql[TAB]` and no other code. `phpmyadmin_script_removed` is an idea until Rob's fingers have learned the new keys: not before 2027-01-27, and not before he says so.
 - Tests: `python3 -I -m unittest discover -s tools/db-open/tests`. Their stand-in for DBeaver must be named `dbeaver-ce`, the name the script looks for first, or the real one on Lemur 13 is started.
 
 ## Development Notes
