@@ -44,6 +44,8 @@ OPTED_OUT = {
     "js_libraries_current": "asks the npm registry, which changes without a commit",
     "js_soaked_on_production": "asks the server over ssh",
     "js_deprecations_clear": "asks git whether the recorded commit is in the history",
+    "phpmyadmin_script_reminds": "reads files most sites gitignore, which are not in the commit",
+    "phpmyadmin_script_removed": "reads files most sites gitignore, which are not in the commit",
     "suite_passes_on_php": "asks a test domain; keeps its own memo",
     "tooling_on_php": "reads the checkout's own .git/config (core.hooksPath)",
 }
