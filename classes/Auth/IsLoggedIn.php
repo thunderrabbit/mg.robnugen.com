@@ -19,7 +19,7 @@ class IsLoggedIn
 
     public function __construct(
         private readonly \PDO $di_pdo,
-        private readonly \Config $di_config,
+        private readonly \Config\Settings $di_config,
         private readonly \Database\CookieRepository $di_cookies,
         private readonly LoginThrottle $di_throttle,
     ) {

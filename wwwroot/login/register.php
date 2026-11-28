@@ -28,16 +28,16 @@ $mla_request = new \Mlaphp\Request();
 $csrfProtect = new \Security\CSRFProtectaroo($mla_request);
 
 try {
-    $config = new \Config();
-    // @phpstan-ignore catch.neverThrown (the autoloader throws when Config.php is missing)
-} catch (\Exception $e) {
-    error_log("Config init failed: " . $e->getMessage());
+    $config = \Config\Loader::load($matches[1]);
+} catch (\Config\EConfigInvalid $e) {
+    // Names the file or key, never a value, and the path is ours: log, don't show.
+    error_log("Couldn't load config: " . $e->getMessage());
     http_response_code(503);
     echo "<h1>Site unavailable</h1><p>This site is not configured yet.</p>";
     exit;
 }
 
-if (\Security\ErrorOutput::asked($config)) {
+if ($config->display_errors) {
     \Security\ErrorOutput::show();
 }
 

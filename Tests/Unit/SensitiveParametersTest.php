@@ -22,6 +22,10 @@ class SensitiveParametersTest extends Unit
             'verified password' => [\Database\PasswordRepository::class, 'verifyPassword', 'password'],
             'current password' => [\Database\PasswordRepository::class, 'changePassword', 'current_password'],
             'new password' => [\Database\PasswordRepository::class, 'changePassword', 'new_password'],
+            'database password' => [\Config\Settings::class, '__construct', 'dbPass'],
+            'Stripe secret key' => [\Config\Settings::class, '__construct', 'stripe_secret_key'],
+            'Stripe webhook secret' => [\Config\Settings::class, '__construct', 'stripe_webhook_secret'],
+            'Telegram bot token' => [\Config\Settings::class, '__construct', 'telegram_bot_token'],
         ];
     }
 

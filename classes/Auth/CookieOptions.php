@@ -17,7 +17,7 @@ class CookieOptions
     /**
      * The cookie's name as the browser sees it: the site's configured name
      * behind the __Host- prefix. A name that already has the prefix is left
-     * alone, so a Config.php may spell it out.
+     * alone, so a site_config.php may spell it out.
      */
     public static function name(string $configured_name): string
     {

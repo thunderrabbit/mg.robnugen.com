@@ -13,7 +13,7 @@ include_once $matches[1] . '/prepend.php';
 /**
  * Set up by prepend.php.
  *
- * @var \Config $config
+ * @var \Config\Settings $config
  * @var \Auth\IsLoggedIn $is_logged_in
  * @var \Security\CSRFProtectaroo $csrfProtect
  * @var int $admin_count

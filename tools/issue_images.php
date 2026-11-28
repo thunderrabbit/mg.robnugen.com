@@ -27,7 +27,7 @@ if (PHP_SAPI !== 'cli') {
 require_once __DIR__ . '/../classes/Mlaphp/Autoloader.php';
 spl_autoload_register([new \Mlaphp\Autoloader(), 'load']);
 
-$config = new \Config();
+$config = \Config\Loader::load(dirname(__DIR__));
 $pdo = \Database\Base::getPDO($config);
 $command = new \Issues\Images\ImageCommand(
     \Issues\Images\ImageService::forConfig($config, $pdo),

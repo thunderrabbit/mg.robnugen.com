@@ -16,7 +16,7 @@ declare(strict_types=1);
 /**
  * Set up by index.php, which includes this file.
  *
- * @var \Config $config
+ * @var \Config\Settings $config
  * @var string $method
  * @var string $path
  * @var array<mixed> $auth_actor
