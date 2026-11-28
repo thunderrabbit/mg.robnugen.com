@@ -35,6 +35,17 @@ final class StandardsServerChoiceTest extends Unit
         $this->assertNull($choice->problem);
     }
 
+    public function testTheServerCarriesTheDomainItsPagesAnswerAt(): void
+    {
+        $whole = ServerChoice::pick([$this->link(1, 'example.test', 'example.test/wwwroot')], null);
+        $part = ServerChoice::pick([$this->link(1, 'example.test', 'example.test', 'example', '/shop')], null);
+        $none = ServerChoice::pick([], null);
+
+        $this->assertSame('example.test', $whole->domain);
+        $this->assertSame('example.test/shop', $part->domain);
+        $this->assertNull($none->domain);
+    }
+
     public function testDomainsSharingOneDirectoryNeedNoName(): void
     {
         $choice = ServerChoice::pick([

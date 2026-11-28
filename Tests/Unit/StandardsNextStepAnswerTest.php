@@ -18,7 +18,7 @@ final class StandardsNextStepAnswerTest extends Unit
     /**
      * One site as SiteStore::forScanner() lists it.
      *
-     * @return array{shortcode: string, standard: string, checkout_path: ?string, server: ?array{ssh_alias: string, directory: string}, server_problem: ?string, php_current: ?string, test: ?array{domain: string, php_version: ?string, ssh_alias: ?string, directory: ?string}, upgrade_branch: ?string}
+     * @return array{shortcode: string, standard: string, checkout_path: ?string, server: ?array{ssh_alias: string, directory: string, domain: ?string}, server_problem: ?string, php_current: ?string, test: ?array{domain: string, php_version: ?string, ssh_alias: ?string, directory: ?string}, upgrade_branch: ?string}
      */
     private function facts(string $shortcode): array
     {
@@ -26,7 +26,7 @@ final class StandardsNextStepAnswerTest extends Unit
             'shortcode' => $shortcode,
             'standard' => 'template',
             'checkout_path' => 'rob/example.test',
-            'server' => ['ssh_alias' => 'example', 'directory' => 'example.test'],
+            'server' => ['ssh_alias' => 'example', 'directory' => 'example.test', 'domain' => 'example.test'],
             'server_problem' => null,
             'php_current' => '8.2',
             'test' => [

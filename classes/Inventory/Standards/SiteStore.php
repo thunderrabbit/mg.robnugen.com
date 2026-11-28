@@ -286,7 +286,7 @@ final readonly class SiteStore
      * checkout is, which server to ask what is deployed (or why there is
      * none to ask), and the branch it is preparing, if any.
      *
-     * @return list<array{shortcode: string, standard: string, checkout_path: ?string, server: ?array{ssh_alias: string, directory: string}, server_problem: ?string, php_current: ?string, test: ?array{domain: string, php_version: ?string, ssh_alias: ?string, directory: ?string}, upgrade_branch: ?string}>
+     * @return list<array{shortcode: string, standard: string, checkout_path: ?string, server: ?array{ssh_alias: string, directory: string, domain: ?string}, server_problem: ?string, php_current: ?string, test: ?array{domain: string, php_version: ?string, ssh_alias: ?string, directory: ?string}, upgrade_branch: ?string}>
      */
     public function forScanner(): array
     {
@@ -372,7 +372,11 @@ final readonly class SiteStore
                 'checkout_path' => RowValue::stringOrNull($row, 'checkout_path'),
                 'server' => $server->sshAlias === null || $server->directory === null
                     ? null
-                    : ['ssh_alias' => $server->sshAlias, 'directory' => $server->directory],
+                    : [
+                        'ssh_alias' => $server->sshAlias,
+                        'directory' => $server->directory,
+                        'domain' => $server->domain,
+                    ],
                 'server_problem' => $server->problem,
                 'php_current' => $phpCurrent,
                 'test' => $test,

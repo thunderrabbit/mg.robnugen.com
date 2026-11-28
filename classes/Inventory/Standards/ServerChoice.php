@@ -25,6 +25,8 @@ final readonly class ServerChoice
         public ?string $sshAlias,
         public ?string $directory,
         public ?string $problem,
+        // The link reached, as its domain plus any path: where its pages answer.
+        public ?string $domain = null,
     ) {
     }
 
@@ -68,7 +70,7 @@ final readonly class ServerChoice
         if ($link['ssh_alias'] === null) {
             return self::none("no ssh alias is known for the user serving {$where}");
         }
-        return new self($link['ssh_alias'], self::directoryOf($link), null);
+        return new self($link['ssh_alias'], self::directoryOf($link), null, $where);
     }
 
     /**
