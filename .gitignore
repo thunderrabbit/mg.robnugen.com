@@ -3,6 +3,7 @@ auth_log.txt
 .aider*
 scp_files_to_dh.sh
 classes/Config.php
+/site_config.php
 wwwroot/.dh-diag
 wwwroot/favicon.*
 *.code-workspace
