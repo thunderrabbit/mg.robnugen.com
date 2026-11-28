@@ -351,17 +351,17 @@ class ImageServiceTest extends IssueCase
         $this->assertFalse(ImageService::at($this->root, $bare)->enabled());
     }
 
-    public function testAConfigWithoutThePropertyMeansOff(): void
+    public function testASettingsWithNoImageStorePathMeansOff(): void
     {
-        $old = new \stdClass();
-        $new = new \stdClass();
-        $new->image_store_path = $this->root;
-        $odd = new \stdClass();
-        $odd->image_store_path = null;
+        $values = [
+            'dbHost' => 'h', 'dbName' => 'n', 'dbUser' => 'u', 'dbPass' => 'p',
+            'domain_name' => 'example.com', 'cookie_name' => 'auth',
+        ];
+        $off = \Config\Settings::fromArray($values, '/r');
+        $on = \Config\Settings::fromArray(['image_store_path' => $this->root] + $values, '/r');
 
-        $this->assertFalse(ImageService::forConfig($old, $this->pdo)->enabled());
-        $this->assertFalse(ImageService::forConfig($odd, $this->pdo)->enabled());
-        $this->assertTrue(ImageService::forConfig($new, $this->pdo)->enabled());
+        $this->assertFalse(ImageService::forConfig($off, $this->pdo)->enabled());
+        $this->assertTrue(ImageService::forConfig($on, $this->pdo)->enabled());
     }
 
     // ─── Seeing ──────────────────────────────────────────────────────────────

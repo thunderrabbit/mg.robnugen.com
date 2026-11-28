@@ -33,7 +33,7 @@ final class AdminPage
      * @param array<string, mixed> $vars handed to the template
      */
     public static function render(
-        \Config $config,
+        \Config\Settings $config,
         \Auth\IsLoggedIn $is_logged_in,
         \Security\CSRFProtectaroo $csrf,
         int $admin_count,

@@ -26,9 +26,6 @@ class LoginFunnelTest extends Unit
 
     protected function _before(): void
     {
-        if (!class_exists(\Config::class)) {
-            require_once dirname(__DIR__, 2) . '/classes/ConfigSample.php';
-        }
         $this->saved_server = $_SERVER;
         $this->saved_cookie = $_COOKIE;
         $_SERVER['REMOTE_ADDR'] = '203.0.113.7';
@@ -76,9 +73,7 @@ class LoginFunnelTest extends Unit
 
     private function isLoggedIn(): \Auth\IsLoggedIn
     {
-        $config = new \Config();
-        $config->app_path = $this->app_path;
-        $config->cookie_name = 'mg_test';
+        $config = TestSettings::at($this->app_path, cookie_name: 'mg_test');
         return new \Auth\IsLoggedIn(
             $this->pdo,
             $config,

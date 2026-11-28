@@ -37,7 +37,7 @@ try {
         throw new \Inventory\SweepFormatException('STDIN should hold one JSON object');
     }
     $sweep = \Inventory\Ec2\SweepPayload::fromArray($data);
-    $summary = new \Inventory\Ec2\SweepImporter(\Database\Base::getPDO(new \Config()))->import($sweep, $dry_run);
+    $summary = new \Inventory\Ec2\SweepImporter(\Database\Base::getPDO(\Config\Loader::load(dirname(__DIR__))))->import($sweep, $dry_run);
 } catch (\JsonException | \Inventory\SweepFormatException | \Inventory\SweepRefusedException $e) {
     fwrite(STDERR, 'REFUSED: ' . $e->getMessage() . "\n");
     exit(1);

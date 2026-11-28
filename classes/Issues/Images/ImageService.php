@@ -36,15 +36,12 @@ final readonly class ImageService
     }
 
     /**
-     * The service every page and tool uses, from mg's Config. A Config.php
-     * written before this feature has no image_store_path; that means off,
-     * like an empty one, so deploying the code first breaks nothing.
+     * The service every page and tool uses, from mg's settings. A server
+     * that sets no image_store_path has the empty default, which means off.
      */
-    public static function forConfig(object $config, \PDO $pdo): self
+    public static function forConfig(\Config\Settings $config, \PDO $pdo): self
     {
-        $path = get_object_vars($config)['image_store_path'] ?? '';
-
-        return self::at(is_string($path) ? $path : '', $pdo);
+        return self::at($config->image_store_path, $pdo);
     }
 
     /**

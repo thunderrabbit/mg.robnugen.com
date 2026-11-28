@@ -8,11 +8,11 @@ namespace Security;
  * Where PHP's errors and uncaught exceptions go: the log, unless a site asks
  * to see them.
  *
- * hide() is the first thing prepend.php does, before Config.php is read, so
+ * hide() is the first thing prepend.php does, before the config is read, so
  * nothing is ever on screen by accident; login/register.php and
  * billing/webhook.php, which run without prepend.php, call it straight after
- * their autoloader. show() undoes it for a site whose Config sets
- * $display_errors = true.
+ * their autoloader. show() undoes it for a server whose site_config.php sets
+ * display_errors to true.
  *
  * Hidden, an uncaught exception is logged as one line (class, message, file
  * and line) and the visitor gets a plain 500 page. The stack trace is left
@@ -46,16 +46,6 @@ final class ErrorOutput
         ini_set('display_startup_errors', '1');
         // Back to PHP's own handler, which prints the exception.
         set_exception_handler(null);
-    }
-
-    /**
-     * Whether a site's Config asks to see errors: true only when it declares
-     * $display_errors and sets it to exactly true. An older Config.php that
-     * does not declare the property keeps them hidden.
-     */
-    public static function asked(object $config): bool
-    {
-        return (get_object_vars($config)['display_errors'] ?? false) === true;
     }
 
     public static function handle(\Throwable $e): void

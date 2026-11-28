@@ -15,9 +15,6 @@ class TemplateTest extends Unit
 
     protected function _before(): void
     {
-        if (!class_exists(\Config::class)) {
-            require_once dirname(__DIR__, 2) . '/classes/ConfigSample.php';
-        }
         $this->app_path = sys_get_temp_dir() . '/mg-template-test-' . bin2hex(random_bytes(6));
         mkdir($this->app_path . '/templates', 0700, true);
         file_put_contents(
@@ -44,8 +41,7 @@ class TemplateTest extends Unit
 
     private function template(int $admin_count, string $template_file = 'count.tpl.php'): \Template
     {
-        $config = new \Config();
-        $config->app_path = $this->app_path;
+        $config = TestSettings::at($this->app_path);
         $template = new \Template(
             config: $config,
             is_logged_in: null,

@@ -75,7 +75,7 @@ class LoaderTest extends Unit
 
     public function testFallsBackToTheOldConfigFile(): void
     {
-        // Declares \Config, so it can run once per process: this is that once.
+        // Declares \Config\Settings, so it can run once per process: this is that once.
         mkdir($this->root . '/classes', 0700, true);
         file_put_contents($this->root . '/' . Loader::LEGACY_FILE, '<?php
             class Config {

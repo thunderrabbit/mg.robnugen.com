@@ -29,7 +29,7 @@ $say = static function (string $line): void {
     fwrite(STDERR, "$line\n");
 };
 
-$config = new \Config();
+$config = \Config\Loader::load(dirname(__DIR__, 2));
 $pdo = \Database\Base::getPDO($config);
 $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 

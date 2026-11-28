@@ -11,7 +11,7 @@ class Base
     private static ?\PDO $pdo = null;
 
     // Modern database access using native PDO interface
-    public static function getPDO(\Config $config): \PDO
+    public static function getPDO(\Config\Settings $config): \PDO
     {
         return self::$pdo ??= self::connect($config);
     }
@@ -19,7 +19,7 @@ class Base
     /**
      * Connects, trying once more after a second's sleep.
      */
-    private static function connect(\Config $config): \PDO
+    private static function connect(\Config\Settings $config): \PDO
     {
         $dsn = "mysql:host={$config->dbHost}";
         if (!empty($config->dbName)) {
@@ -45,7 +45,7 @@ class Base
      * Opens a connection whose session time zone is always UTC, whatever
      * PHP's time zone is: mg's *_utc columns rely on it.
      */
-    private static function open(string $dsn, \Config $config): \PDO
+    private static function open(string $dsn, \Config\Settings $config): \PDO
     {
         $pdo = new \PDO($dsn, $config->dbUser, $config->dbPass, [
             \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
@@ -60,7 +60,7 @@ class Base
     /**
      * Check if database exists using native PDO
      */
-    public static function databaseExists(\Config $config): bool
+    public static function databaseExists(\Config\Settings $config): bool
     {
         try {
             // Connect without database name to check if server is reachable
