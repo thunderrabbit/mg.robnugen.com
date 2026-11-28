@@ -47,8 +47,7 @@ All three must pass. Setup and fixing:
   The one ignore in `phpstan.neon` covers Codeception actor method calls under
   `Tests/`, whose traits are generated and gitignored. A finding PHPStan can't
   see past gets `// @phpstan-ignore <identifier> (reason)` on that one line,
-  never a blanket ignore: the `catch` around `new \Config()` is live because
-  the autoloader throws.
+  never a blanket ignore.
 
 - **Rector** keeps the code at PHP 8.5 (`rector.php`: `LevelSetList::UP_TO_PHP_85`
   over the phpcs scope; `classes/Journal` and `tools/journal-sync` are skipped
@@ -93,7 +92,7 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
 - **Template System**: `classes/Template.php` - Custom templating engine with layout nesting via `grabTheGoods()` method
 - **Database Layer**: `classes/Database/` - PDO-based database abstraction with migration system
 - **Authentication**: `classes/Auth/` - Cookie-based login system with browser matching
-- **Configuration**: Must create `classes/Config.php` from `classes/ConfigSample.php` with actual database credentials
+- **Configuration**: `site_config.php` in the project root, copied from `site_config.sample.php` and gitignored; see *Configuration (`site_config.php`)* below
 - **Bootstrap**: `prepend.php` - Application initialization, autoloader, and database checks
 
 ### Database Migration System
@@ -114,9 +113,19 @@ This is a minimalist PHP web application framework designed for DreamHost deploy
 
 ### Initial Setup
 
-1. Copy `classes/ConfigSample.php` to `classes/Config.php` and configure database credentials
+1. Copy `site_config.sample.php` to `site_config.php`, `chmod 600` it, and fill in the database credentials, `domain_name` and `cookie_name`
 2. First visit to site triggers automatic schema creation and admin user setup
 3. Database must exist before application runs (checked by `DBExistaroo`)
+
+### Configuration (`site_config.php`)
+
+- A server's values are an array returned by `site_config.php`, in the project root above `wwwroot/`, gitignored, mode 600. `Config\Loader::load($root)` turns it into a final, read-only `Config\Settings`. `prepend.php`, `login/register.php`, `billing/webhook.php` and every tool under `tools/` call the loader; nothing builds a config any other way.
+- **`Config\Settings` holds every default, once.** Never read a setting as `$config->x ?? y`. A new setting is a constructor property with its type and default, its name in `KEYS`, and its line in `fromArray()`; a secret also gets `#[\SensitiveParameter]` and a place in `SECRETS`, which keeps it out of dumps. Give a default to anything a server may leave out. `Tests/Unit/SettingsTest.php` fails if `KEYS` and the properties fall out of step.
+- Settings refuses an unknown key, a wrong type, a null, an empty database credential or `domain_name`, a `cookie_name` that is not letters, digits, `.`, `_` or `-`, and a `cookie_lifetime` outside 60 seconds to 400 days. A refused config answers 503 and the error log names the key, never its value.
+- `app_path` is not a key. The loader passes the project root it runs from.
+- **The old `classes/Config.php` still works** while a server has no `site_config.php` (`Loader::LEGACY_FILE`, class `\Config`, `LEGACY_CLASS`). From the old file an unknown key is dropped, not refused. Keep those two constants each a single-quoted string on one line: the standards checks and `convert-site-config.sh` read them as text. The fallback goes once every server has converted.
+- Tests build a config with `Tests\Unit\TestSettings::at($app_path)`.
+- `classes/Journal/*` and `tools/journal-sync/journal_sync.php` also run on PHP 8.1 and never load the config; `tools/journal-sync/make_sync_key.php` runs on the server only and does.
 
 ### Authentication Flow
 
@@ -168,7 +177,7 @@ An actor with `agent_inbox_user.todos_limited = 1` is a "limited actor": a third
 
 Pictures can be attached to an issue and show in an Images strip on the issue page and, for every issue of a project, on the project page. Design: `docs/superpowers/specs/2026-11-23-issue-images-design.md`.
 
-- **Files live on the server only**, under `Config::$image_store_path` (a directory beside the checkout, never in git or the web root) at `projects/<project_id>/<yyyy>/issues/<issue_id>/<filename>`: the issue a file was first uploaded to and the UTC year of the upload. A file never moves. An empty or missing `image_store_path` turns the whole feature off.
+- **Files live on the server only**, under the `image_store_path` setting (a directory beside the checkout, never in git or the web root) at `projects/<project_id>/<yyyy>/issues/<issue_id>/<filename>`: the issue a file was first uploaded to and the UTC year of the upload. A file never moves. An empty or missing `image_store_path` turns the whole feature off.
 - **The URL** is `/images/projects/<project_id>[-<name>]/<yyyy>/issues/<issue_id>/<filename>`. Only the id is read from the project segment, so a link written before a project rename still works. `wwwroot/.htaccess` sends these to `wwwroot/issues/image.php`; nothing named `images` exists under `wwwroot/`.
 - **Who may see a picture:** anyone who can read an issue it is linked to (`issue_image_links`). Every other case is the same bare 404. A picture can be linked to several issues, in any project of the account; embedding one by markdown does not link it.
 - **Two ways in, one set of checks** (`Issues\Images\ImageCheck`: really a PNG, JPEG, GIF or WebP by content, at most 10 MB): the form on the issue page (`wwwroot/issues/images.php`, 20 files a post), and from Lemur 13 `tools/issue-images/upload.sh [--dry-run] [--as=<aiu_id>] <issue_id> <file-or-dir> ...`, which prints the markdown line of each picture. Uploading the same file again stores nothing; a different file of the same name becomes `name-2`.
@@ -221,7 +230,7 @@ DreamHost retired phpMyAdmin in November 2026. Rob opens a site's production dat
 - Session: start one with `\Startup\Session::start()`, never a bare `session_start()`. The session holds the CSRF token, so whoever can choose a visitor's session id knows it. The cookie is `__Host-session`: the prefix makes browsers refuse it unless it is Secure, host-only and `Path=/`, so a sibling subdomain cannot plant one. Three callers: `prepend.php` (which loads the class before the autoloader), `/login/register.php` and `Auth\IsLoggedIn::logout()`. Over plain HTTP there is no session, so no form works; that is intended. The step this follows is `tools/site-standards/steps/template/security/010_session_cookie_host_only.md`
 - Admin count: `prepend.php` sets `$admin_count` to the number of pending migrations for a logged-in admin and 0 for everyone else. Every `Template` requires it (`admin_count: $admin_count`, beside `csrf:`) and shows it to its template as `$admin_count`, which `templates/partials/menu.tpl.php` draws inside the Admin link when it is above 0. A page must not `set('admin_count', ...)`. A pending migration leaves the count only by being applied at `/admin/migrate_tables.php`
 - Notifications: the count also adds the due rows of the `notifications` table (`db_schemas/01_gumdrop_cloud/create_notifications.sql`, read through `Admin\Notifications`): things an admin must act on that are not migrations. A row is due once its `show_from` has come and its `completed_at` is empty. Every time in the table is UTC, written from PHP, never MySQL `NOW()`. The table is admin-only (no `user_id`), a pending migration is never a row in it, and a missing table counts 0 and stops no page. An admin clears a due one with Completed at `/admin/notifications/` (`wwwroot/admin/notifications/index.php`), where the "Remind me" form adds one for a later day (shown from 00:00 UTC of that day) and the upcoming ones are listed; nothing edits or cancels an upcoming row yet. A link is optional and must be a path on this site (`Admin\SitePath`), checked when stored and again when drawn. The step this follows is `tools/site-standards/steps/template/features/20_admin_notifications.md`
-- Errors: `Security\ErrorOutput::hide()` is the first thing `prepend.php` does (it requires the class before the autoloader), and `login/register.php` and `billing/webhook.php` call it after theirs. Errors are logged (`~/logs/mg.robnugen.com/https/error.log` on the server), and an uncaught exception gets a plain 500 page and a one-line log entry without the stack trace (a trace carries arguments); a response that already sent `Content-Type: application/json` gets `{"error":"Internal error"}` instead. Setup problems are logged with a plain 503. `$config->display_errors = true` calls `show()` and puts everything back on screen (not in the webhook). Never set that on a site strangers can reach, and never `ini_set('display_errors', ...)` anywhere else. The CLI tools under `tools/` don't load `prepend.php`, so PHP's CLI defaults still print their failures and exit non-zero
+- Errors: `Security\ErrorOutput::hide()` is the first thing `prepend.php` does (it requires the class before the autoloader), and `login/register.php` and `billing/webhook.php` call it after theirs. Errors are logged (`~/logs/mg.robnugen.com/https/error.log` on the server), and an uncaught exception gets a plain 500 page and a one-line log entry without the stack trace (a trace carries arguments); a response that already sent `Content-Type: application/json` gets `{"error":"Internal error"}` instead. Setup problems are logged with a plain 503. `'display_errors' => true` in `site_config.php` calls `show()` and puts everything back on screen (not in the webhook). Never set that on a site strangers can reach, and never `ini_set('display_errors', ...)` anywhere else. The CLI tools under `tools/` don't load `prepend.php`, so PHP's CLI defaults still print their failures and exit non-zero
 - `?debug=1` URL parameter enables debug output; `\PrintRob\Debug::printRob($var)` echoes `<pre>` dump and exits; `\PrintRob\Debug::printRobLog($var, $label)` appends to `~/rob.log`
 
 ### Including prepend.php
@@ -236,7 +245,7 @@ include_once $matches[1] . '/prepend.php';
 /**
  * Set up by prepend.php.
  *
- * @var \Config $config
+ * @var \Config\Settings $config
  * @var \Auth\IsLoggedIn $is_logged_in
  */
 ```
