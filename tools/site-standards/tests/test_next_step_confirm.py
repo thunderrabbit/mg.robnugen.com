@@ -16,7 +16,7 @@ HERE_TESTS = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE_TESTS, ".."))
 sys.path.insert(0, HERE_TESTS)
 import next_step  # noqa: E402
-from next_step_case import NextStepCase, GIT, write  # noqa: E402
+from next_step_case import NextStepCase, GIT, STEP, write  # noqa: E402
 
 
 class NextStepConfirmTest(NextStepCase):
@@ -234,6 +234,91 @@ class NextStepConfirmTest(NextStepCase):
                  "#[Skip]\n$scenario->skip();\n * @skip\n", "Add a skipped test")
         self.assertIn("5 tests newly marked skipped or incomplete", self.diff_line())
         self.assertIs(self.confirm()["clean"], False)
+
+    # ---- a step that says `deploys: agent` ------------------------------
+    def deploying_step(self, **site):
+        write(os.path.join(self.steps, "010_a_step.md"), STEP.replace("check: echo\n", "check: echo\ndeploys: agent\n"))
+        commit = self.commit_all(self.mg, "the step deploys")
+        self.mg_says(self.site([self.step()], **site), steps_commit=commit)
+
+    def deploy_script(self, name="deploy_demo_to_dh.sh", executable=True):
+        write(os.path.join(self.repo, name), "#!/usr/bin/env bash\n", executable=executable)
+        self.base = self.commit_all(self.repo, "Add " + name)
+
+    def test_a_clean_deploying_step_lists_the_deploy_and_the_scan(self):
+        self.deploying_step()
+        self.deploy_script()
+        self.add("classes/A.php", "<?php\n", "Add A")
+        got = self.confirm()
+        script = os.path.join(os.path.realpath(self.repo), "deploy_demo_to_dh.sh")
+        scan = "~/work/rob/mg.robnugen.com/tools/site-standards/scan.sh demo"
+        self.assertEqual(got["deploy"], [script, scan])
+        self.assertEqual(got["say"].split("\n")[-3:], [
+            "This step ends with a deploy by this session, once any bubble is closed. Run, in order:",
+            f"- `{script}`",
+            f"- `{scan}`",
+        ])
+        self.assertIs(got["clean"], True)
+        self.assertEqual(sorted(got), ["clean", "deploy", "outcome", "say"])
+
+    def test_the_generic_deploy_script_counts_too(self):
+        self.deploying_step()
+        self.deploy_script("deploy_to_dh.sh")
+        self.assertEqual(self.confirm()["deploy"][0], os.path.join(os.path.realpath(self.repo), "deploy_to_dh.sh"))
+
+    def test_a_step_that_does_not_say_so_never_gets_a_deploy(self):
+        self.deploy_script()
+        got = self.confirm()
+        self.assertNotIn("deploy", got)
+        self.assertIn("after", got)
+        self.assertFalse([l for l in got["say"].split("\n") if "deploy" in l])
+
+    def test_a_result_that_is_not_clean_never_gets_a_deploy(self):
+        self.deploying_step()
+        self.deploy_script()
+        self.check("echo", 1, "still missing")
+        got = self.confirm()
+        self.assertNotIn("deploy", got)
+        self.assertFalse([l for l in got["say"].split("\n") if "ends with a deploy" in l])
+
+    def no_deploy(self, sentence):
+        got = self.confirm()
+        self.assertNotIn("deploy", got)
+        self.assertEqual(got["say"].split("\n")[-1], sentence)
+        self.assertIs(got["clean"], True)
+        self.assertIn("after", got)
+
+    NO_SCRIPT = ("This step would end with a deploy by this session, but this repo has no single tracked, "
+                 "executable `deploy_to_dh.sh` or `deploy_<name>_to_dh.sh`, so the deploy is yours.")
+
+    def test_no_deploy_script_leaves_the_deploy_to_rob(self):
+        self.deploying_step()
+        self.no_deploy(self.NO_SCRIPT)
+
+    def test_two_deploy_scripts_leave_the_deploy_to_rob(self):
+        self.deploying_step()
+        self.deploy_script()
+        self.deploy_script("deploy_to_dh.sh")
+        self.no_deploy(self.NO_SCRIPT)
+
+    def test_a_deploy_script_that_is_not_executable_or_not_at_the_root_does_not_count(self):
+        self.deploying_step()
+        self.deploy_script(executable=False)
+        self.deploy_script("tools/deploy_to_dh.sh")
+        self.deploy_script("deploy_quick.sh")
+        self.no_deploy(self.NO_SCRIPT)
+
+    def test_a_site_served_below_8_4_is_not_deployed(self):
+        self.deploying_step(php_current="8.3")
+        self.deploy_script()
+        self.no_deploy("This step would end with a deploy by this session, but `demo` is served on PHP `8.3` and "
+                       "this code needs 8.4 or newer, so nothing is deployed.")
+
+    def test_a_site_with_no_sweep_is_left_to_rob(self):
+        self.deploying_step(php_current=None)
+        self.deploy_script()
+        self.no_deploy("This step would end with a deploy by this session, but mg has no sweep saying which PHP "
+                       "serves `demo`, so the deploy is yours.")
 
     def test_a_stop_in_confirm_is_not_clean(self):
         self.mg_fails(255, "ssh: connect to host mg port 22: Connection refused\n")

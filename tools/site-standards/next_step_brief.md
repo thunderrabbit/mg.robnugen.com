@@ -57,6 +57,15 @@ You are doing one step of mg's site standards for the site `{{shortcode}}`, in t
 8. **Plain words.** Every site here is working; an open step is the next
    thing to do. No warning or alarm wording in commits or in what you report.
 
+<!-- deploys -->
+9. **This step ends with a deploy, and Rob is not the one who deploys it.**
+   He chose that for this step; "never push" in rule 5 holds for everything
+   else. Whoever does the work still stops at rule 7 and reports. Only the
+   session that ran `/next-mg-step` deploys, only after
+   `next-step.sh --confirm` has said clean and any bubble is closed, and only
+   by running the `deploy` commands that answer lists, in order, as written.
+   When the answer lists none, the deploy is Rob's after all.
+
 <!-- subagent -->
 ## Because you are a subagent
 
