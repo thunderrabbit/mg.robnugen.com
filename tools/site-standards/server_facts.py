@@ -7,6 +7,8 @@
     server_facts.py config ALIAS DIRECTORY LEGACY_FILE
                                               which config files are there: three lines,
                                               "site_config: yes|no", "legacy: yes|no", "kept: yes|no"
+    server_facts.py where  ALIAS              whether the user's ~/.bash_aliases defines the
+                                              alias `where`: one line, "where: yes|no"
 
 An EC2 server (an absolute DIRECTORY) is asked first through the ssh host
 <ALIAS>_facts, a forced-command key that runs deets.sh and prints one JSON
@@ -21,6 +23,10 @@ in the checkout's top directory, and the copy of the old file that a
 conversion keeps is looked for in the server user's home, as
 <checkout's name>.Config.php.old or a hand-made Config.php.old. DreamHost
 servers only.
+
+`where` is for the step that gives every server user a `where` alias. It asks
+with `grep -q` for a line that opens `alias where=` and never prints the file.
+Whatever the user's own dotfiles print on the way in is ignored.
 """
 import json
 import os
@@ -38,6 +44,7 @@ LEGACY_FILE = re.compile(r"\A[A-Za-z0-9_][A-Za-z0-9._-]*(?:/[A-Za-z0-9._-]+)*\.p
 SITE_CONFIG = "site_config.php"
 KEPT_SUFFIX = ".Config.php.old"   # after the checkout's name, in the server user's home
 KEPT_BY_HAND = "Config.php.old"   # what the first site converted, by hand, left there
+WHERE_ANSWER = re.compile(r"^where-alias-answer: (yes|no)$", re.MULTILINE)
 
 
 class NoAnswer(Exception):
@@ -150,7 +157,28 @@ def config(alias, directory, legacy_file):
     return dict(zip(("site_config", "legacy", "kept"), (word == "yes" for word in words)))
 
 
+def where(alias):
+    """True when the user's ~/.bash_aliases has an `alias where=` line. Raises NoAnswer."""
+    if not ALIAS.match(alias):
+        raise NoAnswer("its ssh alias is not one the scanner will use")
+    asked = _run(alias, (
+        "if grep -q '^[[:space:]]*alias where=' \"$HOME\"/.bash_aliases 2>/dev/null; "
+        "then echo 'where-alias-answer: yes'; else echo 'where-alias-answer: no'; fi"))
+    answers = WHERE_ANSWER.findall(asked.stdout)
+    if asked.returncode != 0 or len(answers) != 1:
+        said = (asked.stderr.strip().splitlines() or ["no answer"])[-1]
+        raise NoAnswer("could not ask its server about ~/.bash_aliases: " + said)
+    return answers[0] == "yes"
+
+
 def main(argv):
+    if len(argv) == 3 and argv[1] == "where":
+        try:
+            print("where: " + ("yes" if where(argv[2]) else "no"))
+        except NoAnswer as why:
+            print(why, file=sys.stderr)
+            return 1
+        return 0
     if len(argv) == 5 and argv[1] == "config":
         try:
             for name, there in config(*argv[2:]).items():

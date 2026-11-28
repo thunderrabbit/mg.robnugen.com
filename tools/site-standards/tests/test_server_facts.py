@@ -136,3 +136,19 @@ class ServerFactsTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+    def test_where_reads_the_answer_past_what_the_dotfiles_print(self):
+        self.ssh("", git_out="tmux new -A -s robone\nwhere-alias-answer: yes\n")
+        self.assertTrue(server_facts.where("dh"))
+        self.ssh("", git_out="where-alias-answer: no\n")
+        self.assertFalse(server_facts.where("dh"))
+
+    def test_where_with_no_answer_or_a_failed_login_is_no_answer(self):
+        self.ssh("", git_out="tmux new -A -s robone\n")
+        with self.assertRaisesRegex(server_facts.NoAnswer, "bash_aliases"):
+            server_facts.where("dh")
+        self.ssh("", git_out="where-alias-answer: yes\n", git_code=255)
+        with self.assertRaises(server_facts.NoAnswer):
+            server_facts.where("dh")
+        with self.assertRaises(server_facts.NoAnswer):
+            server_facts.where("dh; id")
