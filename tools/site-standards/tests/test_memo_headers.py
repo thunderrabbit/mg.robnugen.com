@@ -49,6 +49,7 @@ OPTED_OUT = {
     "phpmyadmin_script_reminds": "reads files most sites gitignore, which are not in the commit",
     "phpmyadmin_script_removed": "reads files most sites gitignore, which are not in the commit",
     "suite_passes_on_php": "asks a test domain; keeps its own memo",
+    "where_alias": "asks the server over ssh",
     "tooling_on_php": "reads the checkout's own .git/config (core.hooksPath)",
 }
 
