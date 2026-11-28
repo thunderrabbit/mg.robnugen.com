@@ -23,6 +23,11 @@ not:
   never run on a guess.
 - The brief and the rules come from next_step_brief.md beside this file,
   which names no site.
+- A step whose file says `deploys: agent` (read like `model:`) ends with a
+  deploy by the session, not by Rob. Its brief and rules gain the part of
+  the template that says so, and a clean `--confirm` lists the `deploy`
+  commands: the repo's one deploy script, then the scan. This script runs
+  neither.
 - `--confirm --base=<commit>` is for after the work, whoever did it. It
   reports what it finds itself (the branch, the tree, the commits since the
   base, the check, the gates, what the diff added) and `clean`. The gates
@@ -99,6 +104,7 @@ STEP_NAME = re.compile(r"\A[a-z][a-z0-9_]{0,63}\Z")     # Names::STEP
 SUBAGENT_MODELS = ("haiku", "sonnet")   # a step on any other model is done by the session
 PLACEHOLDERS = ("shortcode", "top", "track", "title", "slug", "detail", "served", "explanation", "how_to", "check")
 RULES_MARK = "<!-- rules -->\n"
+DEPLOYS_MARK = "<!-- deploys -->\n"   # the part only a `deploys: agent` step gets, after the rules
 SUBAGENT_MARK = "<!-- subagent -->\n"
 
 TRUNKS = ("master", "main")
@@ -132,6 +138,21 @@ BASELINE = re.compile(r"baseline.*\.(?:neon|php|xml|json)\Z", re.IGNORECASE)
 TEST_FILE = re.compile(r"(?:Test|Cest|Cept)\.php\Z")
 SKIPPED = re.compile(r"markTestSkipped|markTestIncomplete|#\[(Skip|Incomplete)\b"
                      r"|\$scenario->(skip|incomplete)\(|@(skip|incomplete)\b")
+
+# A step that says `deploys: agent`.
+DEPLOY_SCRIPT = re.compile(r"\Adeploy_(?:.+_)?to_dh\.sh\Z")
+SCAN_COMMAND = "~/work/rob/mg.robnugen.com/tools/site-standards/scan.sh {shortcode}"
+# The steps that deploy so far bring in the Config classes, which use PHP 8.4
+# syntax; a deploying step with another floor needs its own line in its file.
+DEPLOY_NEEDS_PHP = (8, 4)
+DEPLOY_NOW = "This step ends with a deploy by this session, once any bubble is closed. Run, in order:"
+DEPLOY_LINE = "- `{command}`"
+NO_DEPLOY_SCRIPT = ("This step would end with a deploy by this session, but this repo has no single tracked, "
+                    "executable `deploy_to_dh.sh` or `deploy_<name>_to_dh.sh`, so the deploy is yours.")
+NO_DEPLOY_SWEEP = ("This step would end with a deploy by this session, but mg has no sweep saying which PHP "
+                   "serves `{shortcode}`, so the deploy is yours.")
+NO_DEPLOY_PHP = ("This step would end with a deploy by this session, but `{shortcode}` is served on PHP "
+                 "`{php_current}` and this code needs 8.4 or newer, so nothing is deployed.")
 
 Options = collections.namedtuple("Options", "shortcode leave_upgrade confirm base session_model")
 # kind: "script" (a check script here), "none" (mg's own check, or an idea with
@@ -370,26 +391,26 @@ def scan_reminder(shortcode, facts):
     return SCAN_REMINDER.format(where=where, shortcode=shortcode)
 
 
-def step_model(mg_repo, steps_commit, standard, slug):
-    """The model the step names, else its track's, in the step files at the
-    commit mg last scanned; None when that commit names none.
+def step_lines(mg_repo, steps_commit, standard, slug):
+    """(the step file's frontmatter, its track's) at the commit mg last
+    scanned; (None, None) when that commit has no such step.
 
     Nothing from mg reaches git as anything but a full hash or a plain name.
-    Python reads only the one line: StepTree on mg is the judge of a step file.
+    Python reads single lines: StepTree on mg is the judge of a step file.
     """
+    nothing = (None, None)
     if not mg_repo or not all(isinstance(value, str) for value in (steps_commit, standard, slug)):
-        return None
+        return nothing
     if not scan.server_facts.SHA.match(steps_commit) or not STEP_NAME.match(standard) or not STEP_NAME.match(slug):
-        return None
+        return nothing
     prefix = STEPS_DIR + standard + "/"
     code, listing = scan.git(mg_repo, "ls-tree", "-r", "--name-only", steps_commit, "--", prefix)
     if code != 0:   # this checkout does not have the commit
-        return None
+        return nothing
 
-    def model_in(path):
+    def fields_in(path):
         code, content = scan.git(mg_repo, "show", f"{steps_commit}:{path}")
-        model = scan.frontmatter(content).get("model") if code == 0 else None
-        return model if model in MODELS else None
+        return scan.frontmatter(content) if code == 0 else {}
 
     for path in listing.splitlines():
         parts = path[len(prefix):].split("/")
@@ -398,8 +419,39 @@ def step_model(mg_repo, steps_commit, standard, slug):
         stem = parts[1][:-3]
         if stem.startswith("_") or scan.step_name(stem) != slug:
             continue
-        return model_in(path) or model_in(prefix + parts[0] + "/_track.md")
+        return fields_in(path), fields_in(prefix + parts[0] + "/_track.md")
+    return nothing
+
+
+def step_model(mg_repo, steps_commit, standard, slug):
+    """The model the step names, else its track's, in the step files at the
+    commit mg last scanned; None when that commit names none."""
+    step, track = step_lines(mg_repo, steps_commit, standard, slug)
+    for fields in (step, track):
+        if fields is not None and fields.get("model") in MODELS:
+            return fields["model"]
     return None
+
+
+def step_deploys(mg_repo, steps_commit, standard, slug):
+    """Whether the step's file says `deploys: agent` at the commit mg last scanned."""
+    step, _ = step_lines(mg_repo, steps_commit, standard, slug)
+    return step is not None and step.get("deploys") == "agent"
+
+
+def deploy_commands(site, top):
+    """(the commands a clean deploying step ends with, None), or (None, why nobody but Rob deploys)."""
+    shortcode = site["shortcode"]
+    served = re.fullmatch(r"(\d{1,2})\.(\d{1,2})", str(site.get("php_current") or ""))
+    if not served:
+        return None, NO_DEPLOY_SWEEP.format(shortcode=shortcode)
+    if (int(served.group(1)), int(served.group(2))) < DEPLOY_NEEDS_PHP:
+        return None, NO_DEPLOY_PHP.format(shortcode=shortcode, php_current=site["php_current"])
+    tracked = scan.git(top, "ls-files", "-z", "--", "deploy*.sh")[1].split("\0")
+    scripts = [name for name in tracked if DEPLOY_SCRIPT.match(name) and os.access(os.path.join(top, name), os.X_OK)]
+    if len(scripts) != 1:
+        return None, NO_DEPLOY_SCRIPT
+    return [shlex.quote(os.path.join(top, scripts[0])), SCAN_COMMAND.format(shortcode=shortcode)], None
 
 
 def check_text(check, top):
@@ -435,18 +487,22 @@ def step_values(site, step, top, check):
     return values
 
 
-def render(values):
+def render(values, deploys=False):
     """(brief, rules) from the template beside this script.
 
-    The template has three parts: the step, the rules, and what applies to a
-    subagent only. The brief is all three; the rules are the middle one with
-    the check after it. Each part is filled in one pass, so nothing in a value
-    is read again as a placeholder.
+    The template has four parts: the step, the rules, one more rule for a
+    step that says `deploys: agent`, and what applies to a subagent only. The
+    brief is all of them; the rules are the rules (with the deploy rule when
+    the step has it) and the check after them. Each part is filled in one
+    pass, so nothing in a value is read again as a placeholder.
     """
     with open(BRIEF, encoding="utf-8") as handle:
         text = handle.read()
     the_step, rest = text.split(RULES_MARK)
-    the_rules, for_a_subagent = rest.split(SUBAGENT_MARK)
+    the_rules, rest = rest.split(DEPLOYS_MARK)
+    the_deploy, for_a_subagent = rest.split(SUBAGENT_MARK)
+    if deploys:
+        the_rules = the_rules.rstrip() + "\n" + the_deploy
 
     def fill(part):
         return re.sub(r"\{\{([a-z_]+)\}\}", lambda found: values[found.group(1)], part)
@@ -496,7 +552,8 @@ def lookup(options, cwd):
     if model is None:   # never run on a guess
         lines.append(NO_MODEL.format(title=step.get("title")))
         return {"outcome": "say", "say": "\n".join(lines)}
-    brief, rules = render(step_values(site, step, top, check))
+    deploys = step_deploys(mg_repo, steps_commit, site.get("standard"), step.get("slug"))
+    brief, rules = render(step_values(site, step, top, check), deploys)
     base = local_head(top)[0]
     if model in SUBAGENT_MODELS:
         return {"outcome": "dispatch", "say": "\n".join(lines), "model": model, "brief": brief, "base": base}
@@ -594,7 +651,7 @@ def confirm(options, cwd):
         if code != 0 or not scan.server_facts.SHA.match(base):
             raise Usage(NOT_A_COMMIT)
         # No scan has run since the lookup, so mg names the same step.
-        site, facts, _ = site_or_stop(ask_mg(options, relative))
+        site, facts, steps_commit = site_or_stop(ask_mg(options, relative))
     except Stop as stop:
         raise Stop(dict(stop.answer, clean=False)) from None
     step = site["open_steps"][0]
@@ -658,8 +715,20 @@ def confirm(options, cwd):
     lines.append(IN_THE_DIFF.format(**counts))
     clean = clean and not any(counts.values())
 
-    return {"outcome": "say", "say": "\n".join(lines), "after": scan_reminder(site["shortcode"], facts),
-            "clean": clean}
+    result = {"outcome": "say", "say": "", "after": scan_reminder(site["shortcode"], facts), "clean": clean}
+    mg_repo = scan.git(HERE, "rev-parse", "--show-toplevel")[1].strip()
+    if clean and step_deploys(mg_repo, steps_commit, site.get("standard"), step.get("slug")):
+        commands, why_not = deploy_commands(site, top)
+        if commands is None:
+            lines.append(why_not)
+        else:
+            # The session deploys and scans, so there is nothing to remind Rob of.
+            lines.append(DEPLOY_NOW)
+            lines += [DEPLOY_LINE.format(command=command) for command in commands]
+            result["deploy"] = commands
+            del result["after"]
+    result["say"] = "\n".join(lines)
+    return result
 
 
 def answer(argv, cwd=None):

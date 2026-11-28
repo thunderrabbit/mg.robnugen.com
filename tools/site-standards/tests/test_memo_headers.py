@@ -19,7 +19,7 @@ import memo  # noqa: E402
 
 # Repo-only checks: their answer is a function of the commit and the key's inputs.
 OPTED_IN = {
-    "admin_link_admins_only", "admin_migrations_chip", "admin_notifications", "code_runs_on_php", "codeception_layout", "composer_platform_pinned", "deploy_script", "js_build_reproducible", "js_inventory", "js_pinned",
+    "admin_link_admins_only", "admin_migrations_chip", "admin_notifications", "code_runs_on_php", "codeception_layout", "composer_platform_pinned", "config_through_loader", "deploy_script", "js_build_reproducible", "js_inventory", "js_pinned",
     "js_shims_removed", "js_visual_baseline", "mlaphp_autoloader", "mlaphp_functions_in_classes",
     "mlaphp_no_global", "mlaphp_no_includes_in_classes", "mlaphp_one_database_namespace",
     "mlaphp_print_rob_in_class",
@@ -43,8 +43,13 @@ OPTED_OUT = {
     "js_hotfixes_ported": "compares the server's line with other branches",
     "js_libraries_current": "asks the npm registry, which changes without a commit",
     "js_soaked_on_production": "asks the server over ssh",
+    "old_config_file_deleted": "asks the server over ssh",
+    "server_on_site_config": "asks the server over ssh",
     "js_deprecations_clear": "asks git whether the recorded commit is in the history",
+    "phpmyadmin_script_reminds": "reads files most sites gitignore, which are not in the commit",
+    "phpmyadmin_script_removed": "reads files most sites gitignore, which are not in the commit",
     "suite_passes_on_php": "asks a test domain; keeps its own memo",
+    "where_alias": "asks the server over ssh",
     "tooling_on_php": "reads the checkout's own .git/config (core.hooksPath)",
 }
 

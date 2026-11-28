@@ -340,4 +340,32 @@ final class StandardsStepTreeTest extends Unit
 
         $this->assertSame(StepModel::Opus, StepTree::fromFiles($files)->standards[0]->tracks[0]->steps[0]->model);
     }
+
+    public function testAnAgentStepMaySayItDeploys(): void
+    {
+        $files = self::GOOD;
+        $files[self::STEP] = str_replace("model: sonnet\n", "model: sonnet\ndeploys: agent\n", $files[self::STEP]);
+
+        $this->assertSame('rector_php_8_5_rules', StepTree::fromFiles($files)->standards[0]->tracks[0]->steps[0]->slug);
+    }
+
+    public function testRefusesADeploysLineNamingAnyoneElse(): void
+    {
+        $files = self::GOOD;
+        $files[self::STEP] = str_replace("model: sonnet\n", "model: sonnet\ndeploys: rob\n", $files[self::STEP]);
+
+        $this->refuses($files, '#10_rector_php_8_5_rules\.md: deploys must be agent, or the line left out#');
+    }
+
+    public function testRefusesDeploysOnRobsStep(): void
+    {
+        $files = self::GOOD;
+        $files[self::STEP] = str_replace(
+            ['whose_move: agent', "model: sonnet\n"],
+            ['whose_move: rob', "deploys: agent\n"],
+            $files[self::STEP],
+        );
+
+        $this->refuses($files, '#10_rector_php_8_5_rules\.md: only an agent\'s step may say "deploys: agent"#');
+    }
 }

@@ -3,7 +3,7 @@
 /**
  * Rector config — keep mg's PHP at the version it serves, 8.5 (the standards
  * page's "Rector's PHP 8.5 rules" step). Same scope as phpcs.xml: everything
- * except the vendored Parsedown, the gitignored Config.php and Codeception's
+ * except the vendored Parsedown, the gitignored old Config.php and Codeception's
  * generated output.
  *
  * Runs in Docker only, through standards-mcp:

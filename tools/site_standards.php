@@ -36,7 +36,7 @@ foreach (array_slice(is_array($given) ? $given : [], 1) as $arg) {
 try {
     // Read the arguments before connecting, so a typo needs no database.
     \Inventory\Standards\SiteCommand::parse($args);
-    $pdo = \Database\Base::getPDO(new \Config());
+    $pdo = \Database\Base::getPDO(\Config\Loader::load(dirname(__DIR__)));
     echo \Inventory\Standards\SiteCommand::run(
         $args,
         new \Inventory\Standards\SiteStore($pdo),

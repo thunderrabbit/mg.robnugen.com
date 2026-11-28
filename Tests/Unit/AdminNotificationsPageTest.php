@@ -13,13 +13,6 @@ use Codeception\Test\Unit;
  */
 class AdminNotificationsPageTest extends Unit
 {
-    protected function _before(): void
-    {
-        if (!class_exists(\Config::class)) {
-            require_once dirname(__DIR__, 2) . '/classes/ConfigSample.php';
-        }
-    }
-
     protected function _after(): void
     {
         unset($_SESSION);
@@ -38,8 +31,7 @@ class AdminNotificationsPageTest extends Unit
         array $upcoming = [],
         array $form = self::EMPTY_FORM,
     ): string {
-        $config = new \Config();
-        $config->app_path = dirname(__DIR__, 2);  // project root: real templates/
+        $config = TestSettings::at(dirname(__DIR__, 2));  // project root: real templates/
         // $_SESSION is just an array until session_start(), so this stays session-free.
         $_SESSION = ['csrf_token' => 'page-token'];
         $page = new \Template(

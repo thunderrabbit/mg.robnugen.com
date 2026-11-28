@@ -18,11 +18,11 @@ class DBExistaroo
      * It's then asked to create TABLE `users` and `cookies`
      * It also checks if there are any users in the users table.
      *
-     * @param \Config $config Configuration object containing DB connection details.
+     * @param \Config\Settings $config Configuration object containing DB connection details.
      * @param \PDO $pdo Native PDO database connection.
      */
     public function __construct(
-        private readonly \Config $config,
+        private readonly \Config\Settings $config,
         private readonly \PDO $pdo,
     ) {
     }
@@ -50,8 +50,7 @@ class DBExistaroo
 
         if (!$this->domainMatches()) {
             $errors[] = "Domain mismatch: Current domain does not match configured domain '{$this->config->domain_name}'.";
-            $errors[] = "Go fix the value of domain name in classes/Config.php "
-                . "(and probably app_path as well).";
+            $errors[] = "Go fix the value of domain_name in site_config.php.";
             return $errors;
         }
 

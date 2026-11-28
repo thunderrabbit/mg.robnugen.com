@@ -76,17 +76,16 @@ if (!$csrf_exempt && !$csrfProtect->validateRequest()) {
 }
 
 try {
-    $config = new \Config();
-    // @phpstan-ignore catch.neverThrown (the autoloader throws when Config.php is missing)
-} catch (\Exception $e) {
-    // The message names the missing file's path, so it is logged, not shown.
-    error_log("Couldn't create Config: " . $e->getMessage());
+    $config = \Config\Loader::load(__DIR__);
+} catch (\Config\EConfigInvalid $e) {
+    // Names the file or key, never a value, and the path is ours: log, don't show.
+    error_log("Couldn't load config: " . $e->getMessage());
     http_response_code(503);
     echo "<h1>Site unavailable</h1><p>This site is not configured yet.</p>";
     exit;
 }
 
-$show_errors = \Security\ErrorOutput::asked($config);
+$show_errors = $config->display_errors;
 if ($show_errors) {
     \Security\ErrorOutput::show();
 }

@@ -17,7 +17,7 @@ class Template
      *        page that forgets it fails PHPStan and does not quietly lose the chip.
      */
     public function __construct(
-        \Config $config,
+        \Config\Settings $config,
         ?\Auth\IsLoggedIn $is_logged_in,
         private readonly \Security\CSRFProtectaroo $csrf,
         private readonly int $admin_count,
