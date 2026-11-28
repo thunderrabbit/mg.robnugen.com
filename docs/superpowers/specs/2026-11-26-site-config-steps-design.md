@@ -1,6 +1,8 @@
 # Steps: a site's config moves out of the class tree
 
-2026-11-26. Source: jikan message 2977 (the template session's hand-over).
+2026-11-26, built 2026-11-28. Source: jikan message 2977 (the template
+session's hand-over). Where the build differs from the first design, this
+says what was built.
 
 ## Intent
 
@@ -144,6 +146,9 @@ asks through a new read-only `server_facts.py config ALIAS DIRECTORY
 LEGACY_FILE`, which prints two words (`site_config: yes|no`, `legacy:
 yes|no`) from `test -f`, never file contents.
 
+A site whose `Loader` no longer names a `LEGACY_FILE` gets "could not tell":
+the fallback's removal, once every site has converted, changes this check.
+
 ### 126 `old_config_file_deleted` (Rob's)
 
 The conversion keeps the old file in the server user's home (mode 600, named
@@ -154,7 +159,10 @@ a session runs only on his say-so.
 Check `old_config_file_deleted.sh` (asks the server, no memo): done when the
 server has `site_config.php` and no kept file. Not yet otherwise.
 The same `server_facts.py config` answers it with a third word (`kept:
-yes|no`).
+yes|no`), which is yes for the script's kept file and also for a
+`~/Config.php.old` left by a conversion done by hand. The first site
+converted has one, and without this the step would tick there with the
+password still in the home directory.
 
 ## The conversion script
 
@@ -162,7 +170,16 @@ yes|no`).
 logic in `convert_site_config.py`, run from inside the site's checkout like
 `next-step.sh`. It finds the site, its server alias, directory, domain and
 served PHP the way `next_step.py` does, and reads `LEGACY_FILE` and
-`LEGACY_CLASS` from the checkout's `classes/Config/Loader.php`.
+`LEGACY_CLASS` from the checkout's `classes/Config/Loader.php`. mg's facts
+gained the server's `domain` for this (`ServerChoice::$domain`).
+
+What runs on the server is `convert_site_config_remote.sh`, sent as the
+argument of `bash -c`, one operation a call (`look`, `keys`, `fingerprint`,
+`generate`, `place`, `move`, `put-back`, `delete-old`). It prints `name=value`
+lines of yes, no, key names, hashes, a PHP version and a file mode. The
+Python reads those lines and drops anything else the server printed. PHP
+runs there with `display_errors` off, since a parse error quotes the code it
+stopped on.
 
 It stops before touching anything unless all of these hold:
 
@@ -196,18 +213,22 @@ one.
 
 Then, each step followed by a comparison:
 
-1. Generate `site_config.php` on the server with the served PHP, under
-   `noclobber` and `umask 077`, from the old class's values without
-   `app_path`; lint it.
-2. Fingerprint. It must equal the first and must say it read
-   `site_config.php`.
+1. Generate the new file with the served PHP from the old class's values
+   without `app_path`, as a candidate in the home directory
+   (`~/<project root's name>.site_config.php.candidate`, `noclobber`,
+   `umask 077`); lint it; hash the settings `Settings::fromArray()` builds
+   from it. That hash must equal the first fingerprint, so a file that would
+   load differently never reaches the checkout.
+2. Put the candidate in as `site_config.php` (a hard link, so it appears
+   whole). Fingerprint: equal, and read from `site_config.php`.
 3. Move the legacy file to the kept file.
 4. Fingerprint again (equal, read from `site_config.php`), both URLs answer
-   with the status codes recorded before, and `git status --porcelain` prints
-   what it printed before.
+   with the status codes recorded before, and a hash of
+   `git status --porcelain` is what it was before.
 
-On any failure after step 1 began: remove `site_config.php`, move
-the kept file back if it was moved, take the fingerprint once more, and
+On any failure after step 1 began: remove the candidate and
+`site_config.php`, move the kept file back if it was moved (with the mode it
+had), take the fingerprint once more, and
 report that the site is on its old config and which comparison failed. If
 the put-back itself fails, say so in plain words and stop; that is the one
 case a person must look at.
@@ -225,6 +246,7 @@ are.
 
 `--delete-old` removes the kept file only when the server has
 `site_config.php`, has no legacy file, and both URLs answer without a 5xx.
+It never deletes a `~/Config.php.old` made by hand; it says one is there.
 
 `--test` does all of the above to the site's test domain's checkout instead
 of production's, for a site that has one. Step 124's how-to says to convert
@@ -288,11 +310,21 @@ how-to before any other site takes the step.
 - Each check is run by hand against the template's checkout on its
   `site-config` branch (pass) and against mg (not yet).
 
-## Left to the builder
+## Decided while building
 
-- The exact wording of the how-tos, check lines and pinned sentences.
-- How `convert_site_config.py` shares code with `next_step.py` and `scan.py`.
-- Whether `deploys:` needs a database column or is only read from the step
-  file at the scanned commit, as `model:` is.
-- The grep patterns of `config_through_loader.sh`.
-- Commit and bubble layout inside this bubble.
+- `deploys:` has no database column. `StepTree` checks the line and
+  `next_step.py` reads it from the step file at the scanned commit, as it
+  reads `model:`.
+- A clean confirm that lists a `deploy` leaves out `after`: the session runs
+  the scan, so there is nothing to remind Rob of.
+- `convert_site_config.py` imports `next_step`, `scan` and `server_facts` for
+  the lookup, the git calls and the server's commit, and has its own ssh call
+  for the remote script.
+- The tests move real files on a scratch server with a stand-in PHP
+  (`CONVERT_PHP_BIN`, `CONVERT_HTTP` and `SCAN_SSH` are the stand-ins' way
+  in). One run by hand used real PHP 8.5 in Docker on a copy of the template.
+
+## Not built
+
+- EC2 servers. The two server-asking checks answer "could not tell" there.
+- The practice run on mg, which follows this bubble's deploy.
