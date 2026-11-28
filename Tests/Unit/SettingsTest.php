@@ -196,12 +196,15 @@ class SettingsTest extends Unit
 
     public function testCannotBeChangedOnceBuilt(): void
     {
-        $settings = Settings::fromArray($this->minimal(), '/r');
+        $class = new \ReflectionClass(Settings::class);
 
-        $this->expectException(\Error::class);
-        $this->expectExceptionMessage('readonly');
-        // @phpstan-ignore assign.propertyProtectedSet (the point of the test)
-        $settings->display_errors = true;
+        // A readonly class: PHP refuses any write to any property after the
+        // constructor. Final, so no subclass can add one that is writable.
+        $this->assertTrue($class->isReadOnly());
+        $this->assertTrue($class->isFinal());
+        foreach ($class->getProperties() as $property) {
+            $this->assertTrue($property->isReadOnly(), $property->getName());
+        }
     }
 
     public function testDumpHidesThePassword(): void
