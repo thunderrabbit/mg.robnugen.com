@@ -36,7 +36,7 @@ try {
         throw new \Inventory\Standards\StandardsFormatException('STDIN should hold one JSON object');
     }
     $scan = \Inventory\Standards\ScanPayload::fromArray($data);
-    $importer = new \Inventory\Standards\StandardsImporter(\Database\Base::getPDO(new \Config()));
+    $importer = new \Inventory\Standards\StandardsImporter(\Database\Base::getPDO(\Config\Loader::load(dirname(__DIR__))));
     $summary = $importer->import($scan, $dry_run);
 } catch (
     \JsonException

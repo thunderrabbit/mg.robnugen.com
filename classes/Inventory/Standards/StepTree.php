@@ -12,7 +12,8 @@ namespace Inventory\Standards;
  *                                      model (optional)
  *     <standard>/<track>/<number>_<step>.md
  *                                      frontmatter: title, status, whose_move,
- *                                      check, param (optional), model (optional)
+ *                                      check, param (optional), model (optional),
+ *                                      deploys (optional)
  *
  * A step's position is the number its filename starts with (0 to 65535.9999,
  * up to four decimal places) and its name is what follows the underscore, as
@@ -26,6 +27,11 @@ namespace Inventory\Standards;
  * A step's model is its own "model" line, else its track's. It names the
  * model an agent does the step on (StepModel). An agent's step with neither
  * is refused: there is no default. Rob's step needs none.
+ *
+ * A step's "deploys: agent" line says the session that does the step also
+ * deploys it, where every other step waits for Rob's deploy. Only an agent's
+ * step may carry it. The line is checked here and read by the next-step
+ * script from the step file itself, as "model" is; nothing stores it.
  *
  * Anything else is refused, so a typo in a file cannot quietly change what
  * the page says about a site.
@@ -150,7 +156,7 @@ final readonly class StepTree
             $path,
             $content,
             ['title', 'status', 'whose_move', 'check'],
-            ['param', 'model'],
+            ['param', 'model', 'deploys'],
         );
         $fields = $parsed['fields'];
 
@@ -163,6 +169,15 @@ final readonly class StepTree
             throw new StandardsFormatException(
                 "{$path}: an agent step needs a model: add a \"model\" line here or to its track's _track.md"
             );
+        }
+
+        if (isset($fields['deploys'])) {
+            if ($fields['deploys'] !== 'agent') {
+                throw new StandardsFormatException("{$path}: deploys must be agent, or the line left out");
+            }
+            if ($whoseMove !== WhoseMove::Agent) {
+                throw new StandardsFormatException("{$path}: only an agent's step may say \"deploys: agent\"");
+            }
         }
 
         $lines = explode("\n", $parsed['body']);

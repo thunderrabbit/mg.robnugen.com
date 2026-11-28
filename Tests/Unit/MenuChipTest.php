@@ -13,9 +13,6 @@ class MenuChipTest extends Unit
 {
     protected function _before(): void
     {
-        if (!class_exists(\Config::class)) {
-            require_once dirname(__DIR__, 2) . '/classes/ConfigSample.php';
-        }
         // $_SESSION is just an array until session_start(), so this stays session-free.
         $_SESSION = ['csrf_token' => 'menu-token'];
     }
@@ -31,8 +28,7 @@ class MenuChipTest extends Unit
      */
     private function menu(bool $logged_in, bool $is_admin, int $admin_count): string
     {
-        $config = new \Config();
-        $config->app_path = dirname(__DIR__, 2);  // project root: real templates/
+        $config = TestSettings::at(dirname(__DIR__, 2));  // project root: real templates/
         $menu = new \Template(
             config: $config,
             is_logged_in: null,

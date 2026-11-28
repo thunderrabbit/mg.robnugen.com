@@ -15,7 +15,7 @@ parameters:
             # Vendored third-party library; scanned so Utilities can use it.
             - classes/Parsedown.php
         analyseAndScan:
-            # Gitignored per-server credentials; ConfigSample declares the same class.
+            # The old per-server config, gitignored; Config\Loader still reads one.
             - classes/Config.php (?)
             # Codeception output, and the actors built from generated traits
             # that a fresh clone doesn't have.

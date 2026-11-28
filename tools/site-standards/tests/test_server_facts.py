@@ -93,6 +93,62 @@ class ServerFactsTest(unittest.TestCase):
         with self.assertRaises(server_facts.NoAnswer):
             server_facts.head_and_branch("box", "../site")
 
+    def test_config_says_which_files_are_there(self):
+        self.ssh("", git_out="yes\nno\nyes\n")
+        self.assertEqual({"site_config": True, "legacy": False, "kept": True},
+                         server_facts.config("dh", "site.example/wwwroot", "classes/Config/Config.php"))
+
+    def test_config_asks_with_test_and_never_reads_a_file(self):
+        log = os.path.join(self.dir, "asked")
+        path = os.path.join(self.dir, "ssh-logging")
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write(f"#!/usr/bin/env bash\nprintf '%s\\n' \"$2\" > {log}\nprintf 'no\\nyes\\nno\\n'\n")
+        os.chmod(path, os.stat(path).st_mode | stat.S_IXUSR)
+        os.environ["SCAN_SSH"] = path
+        server_facts.config("dh", "site.example", "classes/Config.php")
+        with open(log, encoding="utf-8") as handle:
+            asked = handle.read()
+        self.assertIn('has "$root"/site_config.php; has "$root"/classes/Config.php;', asked)
+        self.assertIn('"$HOME/$(basename "$root").Config.php.old"', asked)
+        self.assertIn('"$HOME"/Config.php.old', asked)
+        for reader in ("cat ", "php ", "grep", "head ", "less", "source "):
+            self.assertNotIn(reader, asked)
+
+    def test_config_is_for_dreamhost_only(self):
+        self.ssh("", git_out="yes\nno\nno\n")
+        with self.assertRaisesRegex(server_facts.NoAnswer, "not a DreamHost one"):
+            server_facts.config("box", "/var/www/site", "classes/Config/Config.php")
+
+    def test_config_refuses_a_legacy_path_that_leaves_the_checkout(self):
+        self.ssh("", git_out="yes\nno\nno\n")
+        for legacy in ("../Config.php", "/etc/passwd.php", "classes/$(id).php", "classes/Config"):
+            with self.assertRaises(server_facts.NoAnswer):
+                server_facts.config("dh", "site.example", legacy)
+
+    def test_config_with_any_other_answer_is_no_answer(self):
+        self.ssh("", git_out="yes\nno\n")
+        with self.assertRaisesRegex(server_facts.NoAnswer, "which config files"):
+            server_facts.config("dh", "site.example", "classes/Config/Config.php")
+        self.ssh("", git_out="yes\nno\nno\n", git_code=3)
+        with self.assertRaises(server_facts.NoAnswer):
+            server_facts.config("dh", "site.example", "classes/Config/Config.php")
+
 
 if __name__ == "__main__":
     unittest.main()
+
+    def test_where_reads_the_answer_past_what_the_dotfiles_print(self):
+        self.ssh("", git_out="tmux new -A -s robone\nwhere-alias-answer: yes\n")
+        self.assertTrue(server_facts.where("dh"))
+        self.ssh("", git_out="where-alias-answer: no\n")
+        self.assertFalse(server_facts.where("dh"))
+
+    def test_where_with_no_answer_or_a_failed_login_is_no_answer(self):
+        self.ssh("", git_out="tmux new -A -s robone\n")
+        with self.assertRaisesRegex(server_facts.NoAnswer, "bash_aliases"):
+            server_facts.where("dh")
+        self.ssh("", git_out="where-alias-answer: yes\n", git_code=255)
+        with self.assertRaises(server_facts.NoAnswer):
+            server_facts.where("dh")
+        with self.assertRaises(server_facts.NoAnswer):
+            server_facts.where("dh; id")

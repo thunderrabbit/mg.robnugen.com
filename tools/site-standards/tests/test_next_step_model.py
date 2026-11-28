@@ -156,8 +156,42 @@ class NextStepModelTest(NextStepCase):
             text = handle.read()
         self.assertEqual(set(re.findall(r"\{\{([a-z_]+)\}\}", text)), set(next_step.PLACEHOLDERS))
         self.assertEqual(text.count("<!-- rules -->\n"), 1)
+        self.assertEqual(text.count("<!-- deploys -->\n"), 1)
         self.assertEqual(text.count("<!-- subagent -->\n"), 1)
-        self.assertLess(text.index("<!-- rules -->"), text.index("<!-- subagent -->"))
+        self.assertLess(text.index("<!-- rules -->"), text.index("<!-- deploys -->"))
+        self.assertLess(text.index("<!-- deploys -->"), text.index("<!-- subagent -->"))
+
+    DEPLOY_RULE = "9. **This step ends with a deploy, and Rob is not the one who deploys it.**"
+
+    def test_a_step_that_deploys_gets_the_deploy_rule_in_its_brief(self):
+        commit = self.restep(step=STEP.replace("check: echo\n", "check: echo\ndeploys: agent\n"))
+        self.mg_says(self.site([self.step()]), steps_commit=commit)
+        brief = self.run_it()["brief"]
+        self.assertIn(self.DEPLOY_RULE, brief)
+        self.assertLess(brief.index("8. **Plain words.**"), brief.index(self.DEPLOY_RULE))
+        self.assertLess(brief.index(self.DEPLOY_RULE), brief.index("## Because you are a subagent"))
+        self.assertNotIn("<!--", brief)
+
+    def test_a_step_that_deploys_gets_the_deploy_rule_in_its_rules(self):
+        commit = self.restep(step=STEP.replace("check: echo\n", "check: echo\ndeploys: agent\n"),
+                             track=TRACK.replace("sonnet", "opus"))
+        self.mg_says(self.site([self.step()]), steps_commit=commit)
+        rules = self.run_it()["rules"]
+        self.assertIn(self.DEPLOY_RULE, rules)
+        self.assertLess(rules.index(self.DEPLOY_RULE), rules.index("### The check that decides it"))
+        self.assertNotIn("subagent", rules)
+
+    def test_every_other_step_never_hears_of_a_deploy(self):
+        self.mg_says(self.site([self.step()]))
+        self.assertNotIn("ends with a deploy", self.run_it()["brief"])
+        commit = self.restep(track=TRACK.replace("sonnet", "opus"))
+        self.mg_says(self.site([self.step()]), steps_commit=commit)
+        self.assertNotIn("ends with a deploy", self.run_it()["rules"])
+
+    def test_the_deploys_line_is_read_at_the_scanned_commit_not_the_working_tree(self):
+        write(os.path.join(self.steps, "010_a_step.md"), STEP.replace("check: echo\n", "check: echo\ndeploys: agent\n"))
+        self.mg_says(self.site([self.step()]))
+        self.assertNotIn("ends with a deploy", self.run_it()["brief"])
 
     def test_a_cheaper_session_is_told_which_model_the_step_asks_for(self):
         commit = self.restep(track=TRACK.replace("sonnet", "opus"))

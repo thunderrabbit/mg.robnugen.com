@@ -33,7 +33,9 @@ spl_autoload_register($autoloader->load(...));
 // and a 500, which Stripe retries.
 \Security\ErrorOutput::hide();
 
-$config = new \Config();
+// A config that does not load is an uncaught EConfigInvalid: a logged line
+// naming the key, and a 500, which Stripe retries.
+$config = \Config\Loader::load($project_root);
 $pdo    = \Database\Base::getPDO($config);
 
 // ── Verify signature before reading payload ───────────────────────────────────
