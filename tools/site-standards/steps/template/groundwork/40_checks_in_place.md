@@ -4,8 +4,9 @@ status: proven
 whose_move: agent
 check: checks_in_place
 ---
-The repo has a `phpcs.xml`, a `phpstan.neon`, a Unit suite under `Tests/Unit/`
-and a tracked pre-commit hook that is switched on: `core.hooksPath` names a
+The repo has a `phpcs.xml`, a PHPStan config (`phpstan.neon`, or one
+`phpstan-level-N.neon` per level), a Unit suite under `Tests/Unit/` and a
+tracked pre-commit hook that is switched on: `core.hooksPath` names a
 directory in the repo (`.githooks/` by convention; `hooks/` on older sites),
 and the hook is committed there. Every later step changes code, and
 these are what say a change did not break anything. Without them a rewrite by

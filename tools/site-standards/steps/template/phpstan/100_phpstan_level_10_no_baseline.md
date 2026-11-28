@@ -6,7 +6,14 @@ check: phpstan_level
 param: 10
 model: opus
 ---
-`phpstan.neon` is at level 10, there is no baseline file, and a run is clean.
+All of the site's code is held to PHPStan level 10, no baseline hides a
+finding, and a run is clean.
+
+A site that keeps one config per level (`phpstan-level-N.neon`, each over its
+own directories) is at the lowest of them: the level all of its code is held
+to. There, a baseline in any tier counts against every level, and raising the
+level means moving the last directories out of the lowest tier. A baseline
+file with no entries hides nothing and is not a baseline.
 
 Level 10 is the top. It treats a value with no declared type at all the same
 way level 9 treats a declared `mixed`, which is where database rows and
@@ -44,5 +51,5 @@ one says little.
 10. Vendored third-party files are excluded from analysis, not fixed.
 11. Run the Unit suite and phpcs after each commit.
 12. When a run at `--level 10` is clean, the last commits of the outer bubble
-    are `PHPStan: raise the level to 10` (only `phpstan.neon`) and one for any
-    of the site's notes that state the level. Then close the outer bubble.
+    are `PHPStan: raise the level to 10` (only the PHPStan config) and one for
+    any of the site's notes that state the level. Then close the outer bubble.
