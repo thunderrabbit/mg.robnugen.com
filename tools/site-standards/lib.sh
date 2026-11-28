@@ -71,6 +71,27 @@ need_server_dir() {
   SERVER_DIR="$1"
 }
 
+# need_config_files: sets LEGACY_FILE (from the checkout's Config\Loader) and
+# HAS_SITE_CONFIG, HAS_LEGACY and HAS_KEPT (yes or no, from the server), or
+# stops the check.
+need_config_files() {
+  local loader="$REPO/classes/Config/Loader.php" alias_ answer
+  [ -f "$loader" ] || not_yet "no classes/Config/Loader.php here; the code step comes first"
+  LEGACY_FILE="$(sed -nE "s/^.*const( string)? LEGACY_FILE = '([^']+)';.*$/\2/p" "$loader" | head -1)"
+  [ -n "$LEGACY_FILE" ] || unknown "classes/Config/Loader.php names no LEGACY_FILE to look for"
+
+  alias_="${SITE_SERVER_SSH_ALIAS:-}"
+  [[ "$alias_" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || unknown "no ssh login for the server to ask which config files it has"
+  need_server_dir "${SITE_SERVER_DIRECTORY:-}" "the server's"
+  [[ "$SERVER_DIR" != /* ]] || unknown "only a DreamHost server is asked which config files it has"
+
+  answer="$(python3 -I -B "$(dirname "${BASH_SOURCE[0]}")/server_facts.py" config "$alias_" "$SERVER_DIR" "$LEGACY_FILE" 2>&1 </dev/null)" \
+    || unknown "${answer:-the server did not answer}"
+  HAS_SITE_CONFIG="$(sed -n 's/^site_config: //p' <<< "$answer")"
+  HAS_LEGACY="$(sed -n 's/^legacy: //p' <<< "$answer")"
+  HAS_KEPT="$(sed -n 's/^kept: //p' <<< "$answer")"
+}
+
 # need_hooks: sets HOOKS to the repo's tracked hooks directory, or stops the
 # check with "not yet". The directory is whatever core.hooksPath names, so
 # long as that is a relative path inside the repo with tracked files in it:
