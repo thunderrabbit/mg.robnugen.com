@@ -5,8 +5,14 @@ whose_move: agent
 check: phpstan_level
 param: 2
 ---
-`phpstan.neon` is at level 2 or above, there is no baseline file, and a run is
-clean.
+All of the site's code is held to PHPStan level 2 or above, no baseline hides
+a finding, and a run is clean.
+
+A site that keeps one config per level (`phpstan-level-N.neon`, each over its
+own directories) is at the lowest of them: the level all of its code is held
+to. There, a baseline in any tier counts against every level, and raising the
+level means moving the last directories out of the lowest tier. A baseline
+file with no entries hides nothing and is not a baseline.
 
 Level 2 checks unknown methods and properties on every expression, not only
 on `$this`, and starts reading the PHPDocs, so a docblock that names a class
@@ -44,5 +50,5 @@ the docblocks say, so they have to be true.
 10. Vendored third-party files are excluded from analysis, not fixed.
 11. Run the Unit suite and phpcs after each commit.
 12. When a run at `--level 2` is clean, the last commits of the outer bubble
-    are `PHPStan: raise the level to 2` (only `phpstan.neon`) and one for any
-    of the site's notes that state the level. Then close the outer bubble.
+    are `PHPStan: raise the level to 2` (only the PHPStan config) and one for
+    any of the site's notes that state the level. Then close the outer bubble.

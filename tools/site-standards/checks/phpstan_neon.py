@@ -8,6 +8,14 @@ beside it, without running PHPStan. Run with `python3 -I`.
     php-version FILE               "MIN MAX" from parameters.phpVersion (a
                                    number or {min, max}); exit 1 if not set
     level FILE                     parameters.level; exit 1 if not set
+    lowest-level REPO              "LEVEL FILE": the level all the site's code
+                                   is held to, which is the lowest of its
+                                   configs' levels, and the config that sets
+                                   it. LEVEL is "unset" for a config with no
+                                   level; exit 1 if the repo has no config
+    baselines REPO                 "FILE COUNT" for each baseline that hides
+                                   findings (0: entries this cannot count);
+                                   an empty baseline file is not listed
     baselined-undefined REPO CFG   how many "undefined property" findings the
                                    baselines CFG includes are hiding
 
@@ -60,6 +68,29 @@ def level(text):
     return found.group(1) if found else None
 
 
+def lowest_level(repo):
+    """(level, config) the whole site is held to, or None with no config. A
+    config with no level comes first (level None), then one whose level is not
+    a number or max, then the lowest."""
+    found = [(level(read(os.path.join(repo, name))), name) for name in configs(repo)]
+    if not found:
+        return None
+    for wanted in (lambda lv: lv is None, lambda lv: rank(lv) is None):
+        for lv, name in found:
+            if wanted(lv):
+                return lv, name
+    return min(found, key=lambda pair: rank(pair[0]))
+
+
+def rank(lv):
+    """A level as a number, max being 10; None for anything else."""
+    if lv == "max":
+        return 10
+    if lv is not None and re.fullmatch(r"[0-9]|10", lv):
+        return int(lv)
+    return None
+
+
 def included_baselines(text):
     """The files under includes: whose name says baseline."""
     found = re.search(r"^includes:[ \t]*\n((?:[ \t]+-[^\n]*\n?)+)", text, re.M)
@@ -79,6 +110,45 @@ def undefined_properties(text):
     return total
 
 
+EMPTY_BASELINES = ("", "parameters:", "parameters:ignoreErrors:", "parameters:ignoreErrors:[]")
+
+
+def hidden(text):
+    """How many findings a baseline hides. None when it hides nothing: no
+    entries at all. 0 when it has content this could not count."""
+    if re.sub(r"\s+", "", re.sub(r"#.*", "", text)) in EMPTY_BASELINES:
+        return None
+    total = 0
+    indent = None
+    for line in text.splitlines():
+        entry = re.match(r"^([ \t]+)-([ \t]|$)", line)
+        if entry and indent is None:
+            indent = entry.group(1)
+        if entry and entry.group(1) == indent:
+            total += 1
+            continue
+        count = re.match(r"^[ \t]+count:[ \t]*(\d+)", line)
+        if count and indent is not None:
+            total += int(count.group(1)) - 1
+    return total
+
+
+def baselines(repo):
+    """[(file, findings)] for every baseline that hides something: the files
+    named like one beside the configs, and the ones a config includes."""
+    names = {os.path.basename(p) for p in glob.glob(os.path.join(repo, "phpstan*baseline*.neon"))}
+    for config in configs(repo):
+        here = os.path.dirname(os.path.join(repo, config))
+        for name in included_baselines(read(os.path.join(repo, config))):
+            names.add(os.path.relpath(os.path.normpath(os.path.join(here, name)), repo))
+    found = []
+    for name in sorted(names):
+        count = hidden(read(os.path.join(repo, name)))
+        if count is not None:
+            found.append((name, count))
+    return found
+
+
 def main(argv):
     try:
         if len(argv) == 3 and argv[1] == "configs":
@@ -95,6 +165,16 @@ def main(argv):
             if found is None:
                 return 1
             print(found)
+            return 0
+        if len(argv) == 3 and argv[1] == "lowest-level":
+            found = lowest_level(argv[2])
+            if found is None:
+                return 1
+            print(f"{found[0] or 'unset'} {found[1]}")
+            return 0
+        if len(argv) == 3 and argv[1] == "baselines":
+            for name, count in baselines(argv[2]):
+                print(f"{name} {count}")
             return 0
         if len(argv) == 4 and argv[1] == "baselined-undefined":
             config = os.path.join(argv[2], argv[3])

@@ -6,8 +6,14 @@ check: phpstan_level
 param: 8
 model: opus
 ---
-`phpstan.neon` is at level 8 or above, there is no baseline file, and a run is
-clean.
+All of the site's code is held to PHPStan level 8 or above, no baseline hides
+a finding, and a run is clean.
+
+A site that keeps one config per level (`phpstan-level-N.neon`, each over its
+own directories) is at the lowest of them: the level all of its code is held
+to. There, a baseline in any tier counts against every level, and raising the
+level means moving the last directories out of the lowest tier. A baseline
+file with no entries hides nothing and is not a baseline.
 
 Level 8 reports a method call or property read on a value that might be
 null. Each finding is a place the site would stop with an error if the row
@@ -44,5 +50,5 @@ was not found or the field was not sent.
 10. Vendored third-party files are excluded from analysis, not fixed.
 11. Run the Unit suite and phpcs after each commit.
 12. When a run at `--level 8` is clean, the last commits of the outer bubble
-    are `PHPStan: raise the level to 8` (only `phpstan.neon`) and one for any
-    of the site's notes that state the level. Then close the outer bubble.
+    are `PHPStan: raise the level to 8` (only the PHPStan config) and one for
+    any of the site's notes that state the level. Then close the outer bubble.

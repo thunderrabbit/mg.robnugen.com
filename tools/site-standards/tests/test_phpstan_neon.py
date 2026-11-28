@@ -75,6 +75,69 @@ class PhpstanNeonTest(unittest.TestCase):
                          ["phpstan-baseline.neon"])
         self.assertEqual(n.main(["x", "baselined-undefined", self.repo, "phpstan.neon"]), 0)
 
+    def tiers(self, levels):
+        for name, body in levels.items():
+            write(os.path.join(self.repo, name), body)
+
+    def test_lowest_level_of_one_config(self):
+        self.assertIsNone(n.lowest_level(self.repo))
+        self.tiers({"phpstan.neon": "parameters:\n    level: max\n"})
+        self.assertEqual(n.lowest_level(self.repo), ("max", "phpstan.neon"))
+
+    def test_lowest_level_is_the_lowest_tier(self):
+        self.tiers({
+            "phpstan-level-2.neon": "parameters:\n    level: 2\n",
+            "phpstan-level-10.neon": "parameters:\n    level: 10\n",
+            "phpstan-level-2-baseline.neon": "parameters:\n\tignoreErrors: []\n",
+        })
+        self.assertEqual(n.lowest_level(self.repo), ("2", "phpstan-level-2.neon"))
+
+    def test_a_tier_with_no_level_or_an_unknown_one_is_the_answer(self):
+        self.tiers({
+            "phpstan-level-0.neon": "parameters:\n    level: 0\n",
+            "phpstan-level-1.neon": "parameters:\n    level: strictest\n",
+        })
+        self.assertEqual(n.lowest_level(self.repo), ("strictest", "phpstan-level-1.neon"))
+        self.tiers({"phpstan-level-3.neon": "parameters:\n    paths: [.]\n"})
+        self.assertEqual(n.lowest_level(self.repo), (None, "phpstan-level-3.neon"))
+        self.assertEqual(n.main(["x", "lowest-level", self.repo]), 0)
+
+    def test_an_empty_baseline_hides_nothing(self):
+        for text in ("", "parameters:\n\tignoreErrors: []\n", "# none yet\nparameters:\n    ignoreErrors: [] # none\n",
+                     "parameters:\n\tignoreErrors:\n"):
+            self.assertIsNone(n.hidden(text), text)
+
+    def test_hidden_counts_findings_not_entries(self):
+        baseline = (
+            "parameters:\n\tignoreErrors:\n"
+            "\t\t-\n\t\t\tmessage: '#^Variable \\$x might not be defined\\.$#'\n"
+            "\t\t\tidentifier: variable.undefined\n\t\t\tcount: 3\n\t\t\tpath: wwwroot/a.php\n\n"
+            "\t\t-\n\t\t\tmessage: '#^Other\\.$#'\n"
+            "\t\t\tpaths:\n\t\t\t\t- wwwroot/a.php\n\t\t\t\t- wwwroot/b.php\n"
+            "\t\t- '#^Written by hand$#'\n"
+        )
+        self.assertEqual(n.hidden(baseline), 5)
+
+    def test_a_baseline_this_cannot_count_still_counts(self):
+        self.assertEqual(n.hidden("parameters:\n    ignoreErrors: ['#^Anything#']\n"), 0)
+
+    def test_baselines_lists_only_the_ones_that_hide_something(self):
+        entry = "parameters:\n\tignoreErrors:\n\t\t-\n\t\t\tmessage: '#^A$#'\n\t\t\tcount: 2\n"
+        os.mkdir(os.path.join(self.repo, "build"))
+        self.tiers({
+            "phpstan-level-0.neon": "includes:\n    - phpstan-level-0-baseline.neon\n\nparameters:\n    level: 0\n",
+            "phpstan-level-1.neon": "includes:\n    - build/old-baseline.neon\n\nparameters:\n    level: 1\n",
+            "phpstan-level-0-baseline.neon": "parameters:\n\tignoreErrors: []\n",
+            "phpstan-level-1-baseline.neon": entry,
+            "build/old-baseline.neon": entry + "\t\t-\n\t\t\tmessage: '#^B$#'\n",
+        })
+        self.assertEqual(n.baselines(self.repo),
+                         [("build/old-baseline.neon", 3), ("phpstan-level-1-baseline.neon", 2)])
+
+    def test_an_included_baseline_that_is_missing_cannot_be_read(self):
+        self.tiers({"phpstan.neon": "includes:\n    - phpstan-baseline.neon\n\nparameters:\n    level: 0\n"})
+        self.assertEqual(n.main(["x", "baselines", self.repo]), 3)
+
 
 if __name__ == "__main__":
     unittest.main()
